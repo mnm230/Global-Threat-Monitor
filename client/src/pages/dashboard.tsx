@@ -44,6 +44,8 @@ import {
   AlertOctagon,
   Shield,
   X,
+  Minus,
+  Maximize2,
   Volume2,
   VolumeX,
   PanelLeft,
@@ -183,14 +185,15 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
 };
 
-function PanelCloseButton({ onClose }: { onClose: () => void }) {
+function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); onClose(); }}
-      className="ml-auto w-4 h-4 rounded flex items-center justify-center text-muted-foreground/40 hover:text-foreground/70 hover:bg-foreground/10 transition-colors"
-      data-testid="button-panel-close"
+      onClick={(e) => { e.stopPropagation(); onMinimize(); }}
+      className="ml-auto w-5 h-4 rounded flex items-center justify-center text-muted-foreground/40 hover:text-amber-400/80 hover:bg-amber-400/10 transition-colors"
+      title="Minimize panel"
+      data-testid="button-panel-minimize"
     >
-      <X className="w-2.5 h-2.5" />
+      <Minus className="w-3 h-3" />
     </button>
   );
 }
@@ -397,7 +400,7 @@ function PanelHeader({
           <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-500/80 font-bold">LIVE</span>
         </div>
       )}
-      {onClose && <PanelCloseButton onClose={onClose} />}
+      {onClose && <PanelMinimizeButton onMinimize={onClose} />}
     </div>
   );
 }
@@ -711,7 +714,7 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-dot" />
           <span className="text-[9px] text-green-400/60 font-mono">{adsbFlights.length} tracked</span>
         </div>
-        {onClose && <PanelCloseButton onClose={onClose} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
       <div className="px-2 py-1.5 border-b border-border/30 flex gap-1 flex-wrap shrink-0">
@@ -1027,7 +1030,7 @@ function RedAlertPanel({ alerts, language, onClose }: { alerts: RedAlert[]; lang
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
           <span className="text-[9px] uppercase tracking-[0.2em] text-red-400/70 font-bold">LIVE</span>
         </div>
-        {onClose && <PanelCloseButton onClose={onClose} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
       {alerts.length === 0 && (
@@ -1205,7 +1208,7 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
           <Sparkles className="w-2.5 h-2.5 text-purple-400/60" />
           <span className="text-[9px] text-purple-400/50 font-mono">{brief?.model || 'loading'}</span>
         </div>
-        {onClose && <PanelCloseButton onClose={onClose} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
       <ScrollArea className="flex-1">
@@ -1366,7 +1369,7 @@ function MapSection({
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
           <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
         </div>
-        {onClose && <PanelCloseButton onClose={onClose} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
       <div className="flex-1 relative min-h-0">
         <div className="absolute inset-0">
@@ -1714,9 +1717,11 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => openPanel(id)}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-primary/70 bg-primary/10 hover:bg-primary/20 hover:text-primary transition-colors border border-primary/20"
+                    className="group flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-primary/70 bg-primary/10 hover:bg-primary/20 hover:text-primary transition-colors border border-primary/20"
+                    title={`Restore ${cfg.label} panel`}
                     data-testid={`button-open-panel-${id}`}
                   >
+                    <Maximize2 className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
                     <Icon className="w-2.5 h-2.5" />
                     {language === 'en' ? cfg.label : cfg.labelAr}
                   </button>
