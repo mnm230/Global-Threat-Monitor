@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,38 @@ import {
 import { SiTelegram } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
+
+function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: number) => void; direction?: 'col' | 'row' }) {
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      onResize(direction === 'col' ? e.movementX : e.movementY);
+    };
+    const handleMouseUp = () => setIsDragging(false);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = direction === 'col' ? 'col-resize' : 'row-resize';
+    document.body.style.userSelect = 'none';
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging, onResize, direction]);
+
+  return (
+    <div
+      className={`${direction === 'col' ? 'w-[5px] cursor-col-resize hover:bg-primary/40' : 'h-[5px] cursor-row-resize hover:bg-primary/40'} bg-border/60 shrink-0 transition-colors relative group ${isDragging ? 'bg-primary/50' : ''}`}
+      onMouseDown={() => setIsDragging(true)}
+      data-testid="resize-handle"
+    >
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[3px] h-8' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[3px] w-8'} rounded-full bg-muted-foreground/30 group-hover:bg-primary/60 transition-colors ${isDragging ? 'bg-primary/70' : ''}`} />
+    </div>
+  );
+}
 
 function timeAgo(timestamp: string): string {
   const now = Date.now();
@@ -820,6 +852,25 @@ export default function Dashboard() {
   const flights = intelData?.flights || [];
   const ships = intelData?.ships || [];
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [colWidths, setColWidths] = useState([12, 34, 16, 18, 20]);
+
+  const makeResizer = useCallback((index: number) => (delta: number) => {
+    if (!containerRef.current) return;
+    const totalWidth = containerRef.current.offsetWidth;
+    const pctDelta = (delta / totalWidth) * 100;
+    setColWidths(prev => {
+      const next = [...prev];
+      const minW = 8;
+      const newLeft = next[index] + pctDelta;
+      const newRight = next[index + 1] - pctDelta;
+      if (newLeft < minW || newRight < minW) return prev;
+      next[index] = newLeft;
+      next[index + 1] = newRight;
+      return next;
+    });
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
       <header className="h-11 border-b border-border/60 flex items-center justify-between px-4 bg-card/40 shrink-0 backdrop-blur-sm">
@@ -864,22 +915,28 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-px bg-border min-h-0 overflow-hidden">
-        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden flex flex-col min-h-0">
+      <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden" data-testid="resizable-panels">
+        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[0]}%` }}>
           <NewsPanel news={news} language={language} />
         </div>
 
-        <div className="col-span-1 lg:col-span-4 bg-background overflow-hidden flex flex-col min-h-0">
+        <ResizeHandle onResize={makeResizer(0)} />
+
+        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[1]}%` }}>
           <MapSection events={events} flights={flights} ships={ships} language={language} />
         </div>
 
-        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden flex flex-col min-h-0">
+        <ResizeHandle onResize={makeResizer(1)} />
+
+        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[2]}%` }}>
           <ScrollArea className="h-full">
             <FlightRadarPanel flights={flights} language={language} />
           </ScrollArea>
         </div>
 
-        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden flex flex-col min-h-0">
+        <ResizeHandle onResize={makeResizer(2)} />
+
+        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[3]}%` }}>
           <ScrollArea className="h-full">
             <RedAlertPanel alerts={redAlerts} language={language} />
             <div className="border-t border-border">
@@ -888,7 +945,9 @@ export default function Dashboard() {
           </ScrollArea>
         </div>
 
-        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden min-h-0">
+        <ResizeHandle onResize={makeResizer(3)} />
+
+        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[4]}%` }}>
           <ScrollArea className="h-full">
             <CommoditiesPanel commodities={commodities} language={language} />
             <div className="border-t border-border">
