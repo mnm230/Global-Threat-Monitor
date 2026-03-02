@@ -1454,7 +1454,7 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>({
-    news: true, intel: true, map: true, events: true, radar: true, adsb: false, alerts: true, markets: true,
+    news: true, intel: true, map: true, events: true, radar: true, adsb: true, alerts: true, markets: true,
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -1517,38 +1517,57 @@ export default function Dashboard() {
   useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
 
-  const panelOrder: PanelId[] = ['news', 'intel', 'map', 'events', 'radar', 'adsb', 'alerts', 'markets'];
-  const activePanels = panelOrder.filter(id => visiblePanels[id]);
-  const panelCount = activePanels.length;
+  const topRow: PanelId[] = ['news', 'intel', 'map', 'alerts'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets'];
+  const allPanels: PanelId[] = [...topRow, ...bottomRow];
+  const activeTop = topRow.filter(id => visiblePanels[id]);
+  const activeBottom = bottomRow.filter(id => visiblePanels[id]);
+  const panelCount = activeTop.length + activeBottom.length;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const defaultWidths: Record<PanelId, number> = { news: 11, intel: 13, map: 24, events: 10, radar: 10, adsb: 13, alerts: 12, markets: 16 };
+  const defaultWidths: Record<PanelId, number> = {
+    news: 18, intel: 18, map: 44, alerts: 20,
+    events: 22, radar: 22, adsb: 28, markets: 28,
+  };
   const [colWidths, setColWidths] = useState(defaultWidths);
+  const [rowSplit, setRowSplit] = useState(58);
 
-  const activeWidths = useMemo(() => {
-    const raw = activePanels.map(id => colWidths[id]);
+  const computeWidths = useCallback((panels: PanelId[]) => {
+    const raw = panels.map(id => colWidths[id]);
     const total = raw.reduce((s, w) => s + w, 0);
     return raw.map(w => (w / total) * 100);
-  }, [activePanels, colWidths]);
+  }, [colWidths]);
 
-  const makeResizer = useCallback((leftIdx: number) => (delta: number) => {
-    if (!containerRef.current || leftIdx >= activePanels.length - 1) return;
+  const activeTopWidths = useMemo(() => computeWidths(activeTop), [activeTop, computeWidths]);
+  const activeBottomWidths = useMemo(() => computeWidths(activeBottom), [activeBottom, computeWidths]);
+
+  const makeRowResizer = useCallback((row: PanelId[], leftIdx: number) => (delta: number) => {
+    if (!containerRef.current || leftIdx >= row.length - 1) return;
     const totalWidth = containerRef.current.offsetWidth;
     const pctDelta = (delta / totalWidth) * 100;
-    const leftId = activePanels[leftIdx];
-    const rightId = activePanels[leftIdx + 1];
+    const leftId = row[leftIdx];
+    const rightId = row[leftIdx + 1];
     setColWidths(prev => {
-      const totalActive = activePanels.reduce((s, id) => s + prev[id], 0);
+      const totalActive = row.reduce((s, id) => s + prev[id], 0);
       const leftPct = (prev[leftId] / totalActive) * 100;
       const rightPct = (prev[rightId] / totalActive) * 100;
       const newLeft = leftPct + pctDelta;
       const newRight = rightPct - pctDelta;
       if (newLeft < 8 || newRight < 8) return prev;
-      const leftRaw = (newLeft / 100) * totalActive;
-      const rightRaw = (newRight / 100) * totalActive;
-      return { ...prev, [leftId]: leftRaw, [rightId]: rightRaw };
+      return { ...prev, [leftId]: (newLeft / 100) * totalActive, [rightId]: (newRight / 100) * totalActive };
     });
-  }, [activePanels]);
+  }, []);
+
+  const makeVerticalResizer = useCallback(() => (delta: number) => {
+    if (!containerRef.current) return;
+    const totalHeight = containerRef.current.offsetHeight;
+    const pctDelta = (delta / totalHeight) * 100;
+    setRowSplit(prev => {
+      const next = prev + pctDelta;
+      if (next < 30 || next > 80) return prev;
+      return next;
+    });
+  }, []);
 
   const renderPanel = (id: PanelId) => {
     const close = () => closePanel(id);
@@ -1662,19 +1681,8 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden border-t border-border/20" data-testid="resizable-panels">
-        {activePanels.map((id, idx) => (
-          <div key={id} className="contents">
-            {idx > 0 && <ResizeHandle onResize={makeResizer(idx - 1)} />}
-            <div
-              className={`overflow-hidden flex flex-col min-h-0 ${idx < activePanels.length - 1 ? 'border-r border-border/30' : ''}`}
-              style={{ width: `${activeWidths[idx]}%`, background: 'hsl(var(--background))' }}
-            >
-              {renderPanel(id)}
-            </div>
-          </div>
-        ))}
-        {panelCount === 0 && (
+      <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden border-t border-border/20" data-testid="resizable-panels">
+        {panelCount === 0 ? (
           <div className="flex-1 flex items-center justify-center bg-background">
             <div className="text-center">
               <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
@@ -1682,6 +1690,42 @@ export default function Dashboard() {
               <p className="text-[11px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
             </div>
           </div>
+        ) : (
+          <>
+            {activeTop.length > 0 && (
+              <div className="flex min-h-0 overflow-hidden" style={{ height: activeBottom.length > 0 ? `${rowSplit}%` : '100%' }}>
+                {activeTop.map((id, idx) => (
+                  <div key={id} className="contents">
+                    {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeTop, idx - 1)} />}
+                    <div
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-border/30' : ''}`}
+                      style={{ width: `${activeTopWidths[idx]}%`, background: 'hsl(var(--background))' }}
+                    >
+                      {renderPanel(id)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {activeTop.length > 0 && activeBottom.length > 0 && (
+              <ResizeHandle onResize={makeVerticalResizer()} direction="row" />
+            )}
+            {activeBottom.length > 0 && (
+              <div className="flex min-h-0 overflow-hidden border-t border-border/20" style={{ height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
+                {activeBottom.map((id, idx) => (
+                  <div key={id} className="contents">
+                    {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeBottom, idx - 1)} />}
+                    <div
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeBottom.length - 1 ? 'border-r border-border/30' : ''}`}
+                      style={{ width: `${activeBottomWidths[idx]}%`, background: 'hsl(var(--background))' }}
+                    >
+                      {renderPanel(id)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
