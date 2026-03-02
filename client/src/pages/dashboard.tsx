@@ -289,11 +289,11 @@ function TelegramPanel({
         {messages.map((msg) => (
           <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
             <div className="flex items-center gap-1.5 mb-0.5">
-              <SiTelegram className="w-2.5 h-2.5 text-sky-400 shrink-0" />
-              <span className="text-[9px] text-sky-400 font-bold truncate">{msg.channel}</span>
-              <span className="text-[8px] text-muted-foreground font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+              <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
+              <span className="text-[11px] text-sky-400 font-bold truncate">{msg.channel}</span>
+              <span className="text-[10px] text-muted-foreground font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
             </div>
-            <p className="text-[10px] text-foreground/75 leading-[1.6]">
+            <p className="text-[12px] text-foreground/75 leading-[1.6]">
               {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
             </p>
           </div>
