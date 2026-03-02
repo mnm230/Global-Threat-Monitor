@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction } from "@shared/schema";
 
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
@@ -414,6 +414,79 @@ function generateRedAlerts(): RedAlert[] {
   }));
 }
 
+function generateAIBrief(): AIBrief {
+  const now = new Date();
+  return {
+    id: 'brief-' + Date.now(),
+    summary: 'The Iran-Israel-Lebanon theater remains at EXTREME risk levels. Multiple ballistic missile exchanges detected in the past 6 hours, with Israeli air defense systems reporting 94% interception rate. IRGC naval forces have increased patrols in the Strait of Hormuz, threatening commercial shipping lanes. Hezbollah has launched over 200 rockets toward northern Israel in the past 12 hours. US carrier strike group USS Eisenhower has repositioned to patrol station Bravo in the Persian Gulf. Diplomatic channels remain active with Qatar-mediated back-channel communications between Tehran and Washington.',
+    summaryAr: '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646 \u064A\u0628\u0642\u0649 \u0639\u0646\u062F \u0645\u0633\u062A\u0648\u064A\u0627\u062A \u062E\u0637\u0631 \u0642\u0635\u0648\u0649. \u062A\u0645 \u0631\u0635\u062F \u062A\u0628\u0627\u062F\u0644\u0627\u062A \u0635\u0627\u0631\u0648\u062E\u064A\u0629 \u0628\u0627\u0644\u064A\u0633\u062A\u064A\u0629 \u0645\u062A\u0639\u062F\u062F\u0629 \u062E\u0644\u0627\u0644 \u0627\u0644\u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0633\u062A \u0627\u0644\u0645\u0627\u0636\u064A\u0629.',
+    keyDevelopments: [
+      {
+        text: 'IRGC confirms test-fire of Fattah-2 hypersonic missile from Kermanshah province - estimated Mach 13 velocity detected by early warning systems',
+        textAr: '\u0627\u0644\u062D\u0631\u0633 \u0627\u0644\u062B\u0648\u0631\u064A \u064A\u0624\u0643\u062F \u0625\u0637\u0644\u0627\u0642 \u0635\u0627\u0631\u0648\u062E \u0641\u062A\u0627\u062D-2 \u0641\u0631\u0637 \u0635\u0648\u062A\u064A',
+        severity: 'critical',
+        category: 'Missile Activity'
+      },
+      {
+        text: 'Iron Dome and David\'s Sling batteries depleted to 60% capacity across northern command - emergency resupply from US stockpiles initiated',
+        textAr: '\u0628\u0637\u0627\u0631\u064A\u0627\u062A \u0627\u0644\u0642\u0628\u0629 \u0627\u0644\u062D\u062F\u064A\u062F\u064A\u0629 \u0648\u0645\u0642\u0644\u0627\u0639 \u062F\u0627\u0648\u062F \u0627\u0633\u062A\u0646\u0641\u062F\u062A \u0625\u0644\u0649 60%',
+        severity: 'critical',
+        category: 'Air Defense'
+      },
+      {
+        text: 'Strait of Hormuz: 3 VLCC supertankers rerouted via Oman coast after IRGC fast-attack craft intercept - insurance premiums surge 340%',
+        textAr: '\u0645\u0636\u064A\u0642 \u0647\u0631\u0645\u0632: \u062A\u062D\u0648\u064A\u0644 3 \u0646\u0627\u0642\u0644\u0627\u062A \u0639\u0645\u0644\u0627\u0642\u0629 \u0628\u0639\u062F \u0627\u0639\u062A\u0631\u0627\u0636 \u0632\u0648\u0627\u0631\u0642 \u0627\u0644\u062D\u0631\u0633',
+        severity: 'high',
+        category: 'Maritime'
+      },
+      {
+        text: 'Hezbollah ground forces detected massing near Metula crossing - IDF 91st Division redeployed to northern border',
+        textAr: '\u0631\u0635\u062F \u062A\u062C\u0645\u0639 \u0642\u0648\u0627\u062A \u062D\u0632\u0628 \u0627\u0644\u0644\u0647 \u0627\u0644\u0628\u0631\u064A\u0629 \u0642\u0631\u0628 \u0645\u0639\u0628\u0631 \u0645\u0637\u0644\u0629',
+        severity: 'high',
+        category: 'Ground Forces'
+      },
+      {
+        text: 'IAEA emergency session called after seismic activity detected near Fordow enrichment facility - Iran denies underground test',
+        textAr: '\u062C\u0644\u0633\u0629 \u0637\u0627\u0631\u0626\u0629 \u0644\u0644\u0648\u0643\u0627\u0644\u0629 \u0627\u0644\u062F\u0648\u0644\u064A\u0629 \u0628\u0639\u062F \u0646\u0634\u0627\u0637 \u0632\u0644\u0632\u0627\u0644\u064A \u0642\u0631\u0628 \u0641\u0631\u062F\u0648',
+        severity: 'critical',
+        category: 'Nuclear'
+      },
+      {
+        text: 'Brent crude breaks $87 resistance - Goldman Sachs updates target to $95 on Hormuz disruption scenario, gold tests $2,100',
+        textAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A \u064A\u0643\u0633\u0631 \u0645\u0642\u0627\u0648\u0645\u0629 87$ - \u0627\u0644\u0630\u0647\u0628 \u064A\u062E\u062A\u0628\u0631 2100$',
+        severity: 'medium',
+        category: 'Markets'
+      },
+    ],
+    focalPoints: ['Strait of Hormuz', 'Northern Israel', 'Fordow Nuclear Facility', 'Kermanshah', 'South Lebanon'],
+    riskLevel: 'EXTREME',
+    generatedAt: now.toISOString(),
+    model: 'warroom-llm-v3.1',
+  };
+}
+
+const deductionResponses: Record<string, { response: string; responseAr: string; confidence: number; timeframe: string }> = {
+  default: {
+    response: 'Based on current trajectory analysis and multi-source intelligence correlation:\n\n1. HIGH PROBABILITY (85%): Iran will conduct additional ballistic missile launches within 24-48 hours, likely targeting Israeli military infrastructure in the Golan Heights and Negev desert.\n\n2. MODERATE PROBABILITY (65%): Hezbollah will escalate rocket fire to include precision-guided munitions targeting Haifa port facilities and northern IDF command centers.\n\n3. ELEVATED RISK (70%): IRGC Navy will attempt to detain or board a commercial vessel in the Strait of Hormuz within 72 hours as leverage.\n\n4. DIPLOMATIC (55%): Qatar-mediated back-channel will produce a 48-hour humanitarian pause proposal by end of week.\n\n5. ECONOMIC IMPACT: Brent crude projected to reach $92-95 range if Hormuz disruption materializes. Gold likely to breach $2,100 resistance.',
+    responseAr: '\u0628\u0646\u0627\u0621\u064B \u0639\u0644\u0649 \u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0645\u0633\u0627\u0631 \u0627\u0644\u062D\u0627\u0644\u064A \u0648\u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u0645\u062A\u0639\u062F\u062F\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631: \u0627\u062D\u062A\u0645\u0627\u0644 \u0645\u0631\u062A\u0641\u0639 \u0644\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E \u0625\u064A\u0631\u0627\u0646\u064A\u0629 \u0625\u0636\u0627\u0641\u064A\u0629.',
+    confidence: 0.72,
+    timeframe: '24-72 hours'
+  }
+};
+
+function generateDeduction(query: string): AIDeduction {
+  const resp = deductionResponses.default;
+  return {
+    id: 'ded-' + Date.now(),
+    query,
+    response: resp.response,
+    responseAr: resp.responseAr,
+    confidence: resp.confidence,
+    timeframe: resp.timeframe,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -444,6 +517,18 @@ export async function registerRoutes(
 
   app.get('/api/red-alerts', (_req, res) => {
     res.json(generateRedAlerts());
+  });
+
+  app.get('/api/ai-brief', (_req, res) => {
+    res.json(generateAIBrief());
+  });
+
+  app.post('/api/ai-deduct', (req, res) => {
+    const { query } = req.body || {};
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Query string required' });
+    }
+    res.json(generateDeduction(query));
   });
 
   return httpServer;

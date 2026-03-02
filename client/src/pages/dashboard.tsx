@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, Component, type ErrorInfo, type ReactNode } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/components/theme-provider';
+import { apiRequest } from '@/lib/queryClient';
 import type {
   NewsItem,
   CommodityData,
@@ -15,6 +16,8 @@ import type {
   TelegramMessage,
   SirenAlert,
   RedAlert,
+  AIBrief,
+  AIDeduction,
 } from '@shared/schema';
 import {
   Radio,
@@ -43,10 +46,42 @@ import {
   Volume2,
   VolumeX,
   PanelLeft,
+  Brain,
+  Sparkles,
+  ChevronRight,
+  Zap,
+  Loader2,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
+
+class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Map component error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-card/50 text-muted-foreground" data-testid="map-error-fallback">
+          <div className="text-center p-4">
+            <Globe className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+            <p className="text-[11px] font-mono">WebGL required for 3D map</p>
+            <p className="text-[9px] mt-1 text-muted-foreground/60">Map rendering unavailable in this environment</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: number) => void; direction?: 'col' | 'row' }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -133,10 +168,11 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'news' | 'map' | 'events' | 'radar' | 'alerts' | 'markets';
+type PanelId = 'news' | 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   news: { icon: Newspaper, label: 'News', labelAr: '\u0623\u062E\u0628\u0627\u0631' },
+  intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
   map: { icon: Target, label: 'Map', labelAr: '\u062E\u0631\u064A\u0637\u0629' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   radar: { icon: Plane, label: 'Radar', labelAr: '\u0631\u0627\u062F\u0627\u0631' },
@@ -954,6 +990,167 @@ function MapLegend({ activeView, language }: { activeView: string; language: 'en
   );
 }
 
+const RISK_COLORS: Record<string, string> = {
+  EXTREME: 'text-red-400 bg-red-950/50 border-red-500/50',
+  HIGH: 'text-orange-400 bg-orange-950/50 border-orange-500/50',
+  ELEVATED: 'text-yellow-400 bg-yellow-950/50 border-yellow-500/50',
+  MODERATE: 'text-emerald-400 bg-emerald-950/50 border-emerald-500/50',
+};
+
+const DEV_SEVERITY_STYLES: Record<string, string> = {
+  critical: 'text-red-400 border-red-500/40 bg-red-950/30',
+  high: 'text-orange-400 border-orange-500/40 bg-orange-950/30',
+  medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-950/30',
+};
+
+function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () => void }) {
+  const [deductQuery, setDeductQuery] = useState('');
+  const [deductResult, setDeductResult] = useState<AIDeduction | null>(null);
+
+  const { data: brief, isLoading: briefLoading } = useQuery<AIBrief>({
+    queryKey: ['/api/ai-brief'],
+    refetchInterval: 60000,
+  });
+
+  const deductMutation = useMutation({
+    mutationFn: async (query: string) => {
+      const res = await apiRequest('POST', '/api/ai-deduct', { query });
+      return res.json() as Promise<AIDeduction>;
+    },
+    onSuccess: (data) => setDeductResult(data),
+  });
+
+  const handleDeduct = () => {
+    if (deductQuery.trim()) {
+      deductMutation.mutate(deductQuery.trim());
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col" data-testid="ai-intel-panel">
+      <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
+        <div className="w-4 h-4 rounded bg-purple-600/30 flex items-center justify-center border border-purple-500/40">
+          <Brain className="w-3 h-3 text-purple-400" />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-purple-400/90">
+          {language === 'en' ? 'AI Intelligence' : '\u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A'}
+        </span>
+        <div className="flex items-center gap-1">
+          <Sparkles className="w-2.5 h-2.5 text-purple-400/60" />
+          <span className="text-[9px] text-purple-400/50 font-mono">{brief?.model || 'loading'}</span>
+        </div>
+        {onClose && <PanelCloseButton onClose={onClose} />}
+      </div>
+
+      <ScrollArea className="flex-1">
+        {briefLoading && (
+          <div className="px-3 py-8 text-center">
+            <Brain className="w-6 h-6 text-purple-400/40 mx-auto mb-2 animate-pulse" />
+            <p className="text-[10px] text-muted-foreground">Synthesizing intelligence brief...</p>
+          </div>
+        )}
+
+        {brief && (
+          <div className="divide-y divide-border/30">
+            <div className="px-3 py-2">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/70">
+                  {language === 'en' ? 'World Brief' : '\u0645\u0648\u062C\u0632 \u0639\u0627\u0644\u0645\u064A'}
+                </span>
+                {brief.riskLevel && (
+                  <Badge className={`text-[8px] px-1 py-0 h-[15px] font-bold border ${RISK_COLORS[brief.riskLevel] || ''}`}>
+                    {brief.riskLevel}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-foreground/70 leading-[1.6]">
+                {language === 'ar' ? brief.summaryAr : brief.summary}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {brief.focalPoints.map((fp, i) => (
+                  <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-purple-950/30 border border-purple-500/20 text-purple-300/70 font-mono">
+                    {fp}
+                  </span>
+                ))}
+              </div>
+              <div className="text-[9px] text-muted-foreground/40 font-mono mt-1.5">
+                {new Date(brief.generatedAt).toLocaleTimeString()} UTC
+              </div>
+            </div>
+
+            <div className="px-3 py-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/70 mb-1.5 block">
+                {language === 'en' ? 'Key Developments' : '\u062A\u0637\u0648\u0631\u0627\u062A \u0631\u0626\u064A\u0633\u064A\u0629'}
+              </span>
+              <div className="space-y-1.5">
+                {brief.keyDevelopments.map((dev, i) => (
+                  <div key={i} className="flex gap-2 items-start">
+                    <div className="mt-0.5 shrink-0">
+                      <Badge className={`text-[7px] px-1 py-0 h-[13px] font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
+                        {dev.severity.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[8px] text-muted-foreground/50 font-bold uppercase tracking-wider">{dev.category}</span>
+                      <p className="text-[10px] text-foreground/75 leading-[1.5]">
+                        {language === 'ar' ? dev.textAr : dev.text}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-3 py-2">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Zap className="w-3 h-3 text-amber-400/70" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/70">
+                  {language === 'en' ? 'AI Deduction' : '\u0627\u0633\u062A\u0646\u062A\u0627\u062C \u0630\u0643\u064A'}
+                </span>
+              </div>
+              <div className="flex gap-1.5 mb-2">
+                <input
+                  type="text"
+                  value={deductQuery}
+                  onChange={(e) => setDeductQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleDeduct()}
+                  placeholder={language === 'en' ? 'What will happen in the next 24h?' : '\u0645\u0627\u0630\u0627 \u0633\u064A\u062D\u062F\u062B \u0641\u064A \u0627\u0644\u0640 24 \u0633\u0627\u0639\u0629 \u0627\u0644\u0642\u0627\u062F\u0645\u0629\u061F'}
+                  className="flex-1 bg-card/50 border border-border/50 rounded px-2 py-1 text-[10px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-purple-500/50 font-mono"
+                  data-testid="input-ai-deduction"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-[10px] px-2 h-6 text-purple-400"
+                  onClick={handleDeduct}
+                  disabled={deductMutation.isPending || !deductQuery.trim()}
+                  data-testid="button-ai-deduct"
+                >
+                  {deductMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <ChevronRight className="w-3 h-3" />}
+                </Button>
+              </div>
+
+              {deductResult && (
+                <div className="bg-card/30 border border-border/30 rounded p-2 animate-fade-in">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge className="text-[8px] px-1 py-0 h-[14px] font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
+                      {Math.round(deductResult.confidence * 100)}% confidence
+                    </Badge>
+                    <span className="text-[8px] text-muted-foreground/40 font-mono">{deductResult.timeframe}</span>
+                  </div>
+                  <p className="text-[10px] text-foreground/75 leading-[1.6] whitespace-pre-line">
+                    {language === 'ar' ? deductResult.responseAr : deductResult.response}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
 function MapSection({
   events,
   flights,
@@ -1005,24 +1202,26 @@ function MapSection({
       </div>
       <div className="flex-1 relative min-h-0">
         <div className="absolute inset-0">
-          <Suspense
-            fallback={
-              <div className="w-full h-full flex items-center justify-center bg-card/20">
-                <div className="text-center">
-                  <Globe className="w-8 h-8 text-primary mx-auto mb-2 animate-pulse" />
-                  <p className="text-sm text-muted-foreground">Loading map...</p>
+          <MapErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center bg-card/20">
+                  <div className="text-center">
+                    <Globe className="w-8 h-8 text-primary mx-auto mb-2 animate-pulse" />
+                    <p className="text-sm text-muted-foreground">Loading map...</p>
+                  </div>
                 </div>
-              </div>
-            }
-          >
-            <ConflictMap
-              events={events}
-              flights={flights}
-              ships={ships}
-              activeView={activeView}
-              language={language}
-            />
-          </Suspense>
+              }
+            >
+              <ConflictMap
+                events={events}
+                flights={flights}
+                ships={ships}
+                activeView={activeView}
+                language={language}
+              />
+            </Suspense>
+          </MapErrorBoundary>
         </div>
         <MapLegend activeView={activeView} language={language} />
         <div className="absolute top-3 right-3 z-[1000] bg-background/90 backdrop-blur-sm border border-border rounded-md px-2 py-1">
@@ -1040,10 +1239,42 @@ function MapSection({
   );
 }
 
+function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar' }) {
+  if (!news.length) return null;
+  const CATEGORY_COLORS: Record<string, string> = {
+    breaking: 'text-red-400',
+    military: 'text-orange-400',
+    diplomatic: 'text-blue-400',
+    economic: 'text-emerald-400',
+  };
+  const items = [...news, ...news, ...news];
+  return (
+    <div className="h-6 border-t border-border/40 bg-card/20 overflow-hidden relative shrink-0" data-testid="news-ticker">
+      <div className="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-background to-transparent z-10 flex items-center">
+        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-primary font-mono pl-2 whitespace-nowrap">NEWS</span>
+      </div>
+      <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-12">
+        {items.map((item, i) => (
+          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-2 text-[10px] font-mono">
+            <span className={`font-bold uppercase tracking-wider text-[8px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
+              {item.category}
+            </span>
+            <span className="text-foreground/75">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
+            <span className="text-muted-foreground/30 text-[9px]">·</span>
+            <span className="text-muted-foreground/50 text-[9px]">{item.source}</span>
+            <span className="text-border/30 mx-2">|</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>({
-    news: true, map: true, events: true, radar: true, alerts: true, markets: true,
+    news: true, intel: true, map: true, events: true, radar: true, alerts: true, markets: true,
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -1101,12 +1332,12 @@ export default function Dashboard() {
   useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
 
-  const panelOrder: PanelId[] = ['news', 'map', 'events', 'radar', 'alerts', 'markets'];
+  const panelOrder: PanelId[] = ['news', 'intel', 'map', 'events', 'radar', 'alerts', 'markets'];
   const activePanels = panelOrder.filter(id => visiblePanels[id]);
   const panelCount = activePanels.length;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const defaultWidths: Record<PanelId, number> = { news: 10, map: 26, events: 14, radar: 14, alerts: 16, markets: 20 };
+  const defaultWidths: Record<PanelId, number> = { news: 10, intel: 14, map: 22, events: 10, radar: 12, alerts: 14, markets: 18 };
   const [colWidths, setColWidths] = useState(defaultWidths);
 
   const activeWidths = useMemo(() => {
@@ -1139,6 +1370,8 @@ export default function Dashboard() {
     switch (id) {
       case 'news':
         return <NewsPanel news={news} language={language} onClose={close} />;
+      case 'intel':
+        return <AIIntelPanel language={language} onClose={close} />;
       case 'map':
         return <MapSection events={events} flights={flights} ships={ships} language={language} onClose={close} />;
       case 'events':
@@ -1255,6 +1488,8 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      <NewsTicker news={news} language={language} />
 
       <div className="h-7 border-t border-border/30 flex items-center px-4 bg-card/15 shrink-0 gap-3 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1">

@@ -110,3 +110,31 @@ export interface RedAlert {
   lat: number;
   lng: number;
 }
+
+export interface AIBriefDevelopment {
+  text: string;
+  textAr: string;
+  severity: 'critical' | 'high' | 'medium';
+  category: string;
+}
+
+export interface AIBrief {
+  id: string;
+  summary: string;
+  summaryAr: string;
+  keyDevelopments: AIBriefDevelopment[];
+  focalPoints: string[];
+  riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE';
+  generatedAt: string;
+  model: string;
+}
+
+export interface AIDeduction {
+  id: string;
+  query: string;
+  response: string;
+  responseAr: string;
+  confidence: number;
+  timeframe: string;
+  timestamp: string;
+}
