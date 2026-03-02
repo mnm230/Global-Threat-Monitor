@@ -60,6 +60,9 @@ export interface FlightData {
   altitude: number;
   heading: number;
   speed: number;
+  aircraft?: string;
+  origin?: string;
+  squawk?: string;
 }
 
 export interface ShipData {
