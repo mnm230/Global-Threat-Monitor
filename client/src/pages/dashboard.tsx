@@ -52,6 +52,10 @@ import {
   Brain,
   Sparkles,
   ChevronRight,
+  ChevronDown,
+  ExternalLink,
+  Clock,
+  MessageSquare,
   Zap,
   Loader2,
   Radar,
@@ -1219,6 +1223,7 @@ function TelegramPanel({
   });
   const [newChannel, setNewChannel] = useState('');
   const [showManager, setShowManager] = useState(false);
+  const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null);
 
   const allChannels = useMemo(() => [...DEFAULT_CHANNELS, ...customChannels], [customChannels]);
 
@@ -1324,18 +1329,58 @@ function TelegramPanel({
               <p className="text-xs text-muted-foreground">{language === 'ar' ? '\u062C\u0627\u0631\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0627\u0644\u0642\u0646\u0648\u0627\u062A...' : 'Connecting to channels...'}</p>
             </div>
           )}
-          {filteredMessages.map((msg) => (
-            <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
-                <span className="text-[14px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
-                <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+          {filteredMessages.map((msg) => {
+            const isExpanded = expandedMsgId === msg.id;
+            const text = language === 'ar' && msg.textAr ? msg.textAr : msg.text;
+            return (
+              <div
+                key={msg.id}
+                className={`px-3 py-2 animate-fade-in cursor-pointer transition-colors ${
+                  isExpanded ? 'bg-sky-950/30' : 'hover:bg-sky-950/15'
+                }`}
+                onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
+                data-testid={`telegram-msg-${msg.id}`}
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
+                  <span className="text-[14px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
+                  <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                  {isExpanded
+                    ? <ChevronDown className="w-3 h-3 text-sky-400/50 shrink-0" />
+                    : <ChevronRight className="w-3 h-3 text-sky-400/30 shrink-0" />
+                  }
+                </div>
+                {isExpanded ? (
+                  <div className="mt-1.5 space-y-2">
+                    <p className="text-xs text-foreground/85 leading-[1.7] whitespace-pre-wrap">{text}</p>
+                    <div className="flex items-center gap-3 pt-1 border-t border-sky-800/20">
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
+                        <Clock className="w-2.5 h-2.5" />
+                        <span className="font-mono">{new Date(msg.timestamp).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
+                        <MessageSquare className="w-2.5 h-2.5" />
+                        <span className="font-mono">{text.length} {language === 'ar' ? 'حرف' : 'chars'}</span>
+                      </div>
+                      <a
+                        href={`https://t.me/${msg.channel.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 text-[11px] text-sky-400/60 hover:text-sky-400/90 transition-colors ml-auto"
+                        data-testid={`link-telegram-channel-${msg.id}`}
+                      >
+                        <ExternalLink className="w-2.5 h-2.5" />
+                        <span>{language === 'ar' ? 'فتح القناة' : 'Open channel'}</span>
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-foreground/70 leading-[1.55] line-clamp-2">{text}</p>
+                )}
               </div>
-              <p className="text-xs text-foreground/70 leading-[1.55]">
-                {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </ScrollArea>
     </div>
