@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert } from "@shared/schema";
 
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
@@ -359,6 +359,28 @@ function generateTelegram(): TelegramMessage[] {
   ];
 }
 
+function generateSirens(): SirenAlert[] {
+  const now = Date.now();
+  const allSirens: SirenAlert[] = [
+    { id: 's1', location: 'Tel Aviv - Gush Dan', locationAr: '\u062A\u0644 \u0623\u0628\u064A\u0628 - \u063A\u0648\u0634 \u062F\u0627\u0646', region: 'Central Israel', regionAr: '\u0648\u0633\u0637 \u0625\u0633\u0631\u0627\u0626\u064A\u0644', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 120000)).toISOString(), active: true },
+    { id: 's2', location: 'Haifa Bay', locationAr: '\u062E\u0644\u064A\u062C \u062D\u064A\u0641\u0627', region: 'Northern Israel', regionAr: '\u0634\u0645\u0627\u0644 \u0625\u0633\u0631\u0627\u0626\u064A\u0644', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 180000)).toISOString(), active: true },
+    { id: 's3', location: 'Kiryat Shmona', locationAr: '\u0643\u0631\u064A\u0627\u062A \u0634\u0645\u0648\u0646\u0629', region: 'Upper Galilee', regionAr: '\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u0623\u0639\u0644\u0649', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 90000)).toISOString(), active: true },
+    { id: 's4', location: 'Nahariya', locationAr: '\u0646\u0647\u0627\u0631\u064A\u0627', region: 'Western Galilee', regionAr: '\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u063A\u0631\u0628\u064A', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 60000)).toISOString(), active: true },
+    { id: 's5', location: 'Ashkelon', locationAr: '\u0639\u0633\u0642\u0644\u0627\u0646', region: 'Southern Israel', regionAr: '\u062C\u0646\u0648\u0628 \u0625\u0633\u0631\u0627\u0626\u064A\u0644', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 150000)).toISOString(), active: true },
+    { id: 's6', location: 'Sderot', locationAr: '\u0633\u062F\u064A\u0631\u0648\u062A', region: 'Gaza Envelope', regionAr: '\u063A\u0644\u0627\u0641 \u063A\u0632\u0629', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 45000)).toISOString(), active: true },
+    { id: 's7', location: 'Tiberias', locationAr: '\u0637\u0628\u0631\u064A\u0627', region: 'Sea of Galilee', regionAr: '\u0628\u062D\u064A\u0631\u0629 \u0637\u0628\u0631\u064A\u0627', threatType: 'missile', timestamp: new Date(now - Math.floor(Math.random() * 200000)).toISOString(), active: true },
+    { id: 's8', location: 'Be\'er Sheva', locationAr: '\u0628\u0626\u0631 \u0627\u0644\u0633\u0628\u0639', region: 'Negev', regionAr: '\u0627\u0644\u0646\u0642\u0628', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 100000)).toISOString(), active: true },
+    { id: 's9', location: 'Safed', locationAr: '\u0635\u0641\u062F', region: 'Upper Galilee', regionAr: '\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u0623\u0639\u0644\u0649', threatType: 'uav', timestamp: new Date(now - Math.floor(Math.random() * 130000)).toISOString(), active: true },
+    { id: 's10', location: 'Netanya', locationAr: '\u0646\u062A\u0627\u0646\u064A\u0627', region: 'Sharon Plain', regionAr: '\u0633\u0647\u0644 \u0627\u0644\u0634\u0627\u0631\u0648\u0646', threatType: 'hostile_aircraft', timestamp: new Date(now - Math.floor(Math.random() * 170000)).toISOString(), active: true },
+    { id: 's11', location: 'Riyadh', locationAr: '\u0627\u0644\u0631\u064A\u0627\u0636', region: 'Saudi Arabia', regionAr: '\u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629', threatType: 'missile', timestamp: new Date(now - Math.floor(Math.random() * 250000)).toISOString(), active: true },
+    { id: 's12', location: 'Erbil', locationAr: '\u0623\u0631\u0628\u064A\u0644', region: 'Iraqi Kurdistan', regionAr: '\u0643\u0631\u062F\u0633\u062A\u0627\u0646 \u0627\u0644\u0639\u0631\u0627\u0642', threatType: 'uav', timestamp: new Date(now - Math.floor(Math.random() * 300000)).toISOString(), active: true },
+  ];
+
+  const count = 3 + Math.floor(Math.random() * 5);
+  const shuffled = allSirens.sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -381,6 +403,10 @@ export async function registerRoutes(
 
   app.get('/api/telegram', (_req, res) => {
     res.json(generateTelegram());
+  });
+
+  app.get('/api/sirens', (_req, res) => {
+    res.json(generateSirens());
   });
 
   return httpServer;

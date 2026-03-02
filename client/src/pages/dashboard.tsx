@@ -13,6 +13,7 @@ import type {
   FlightData,
   ShipData,
   TelegramMessage,
+  SirenAlert,
 } from '@shared/schema';
 import {
   Radio,
@@ -31,6 +32,9 @@ import {
   Target,
   Activity,
   Globe,
+  Siren,
+  ShieldAlert,
+  MapPin,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -104,6 +108,108 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+const THREAT_LABELS: Record<string, { en: string; ar: string; icon: string }> = {
+  rocket: { en: 'ROCKET FIRE', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', icon: '\u{1F680}' },
+  missile: { en: 'MISSILE LAUNCH', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0627\u0631\u0648\u062E', icon: '\u{1F4A5}' },
+  uav: { en: 'HOSTILE UAV', ar: '\u0637\u0627\u0626\u0631\u0629 \u0645\u0633\u064A\u0631\u0629 \u0645\u0639\u0627\u062F\u064A\u0629', icon: '\u2708\uFE0F' },
+  hostile_aircraft: { en: 'HOSTILE AIRCRAFT', ar: '\u0637\u0627\u0626\u0631\u0629 \u0645\u0639\u0627\u062F\u064A\u0629', icon: '\u26A0\uFE0F' },
+};
+
+function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en' | 'ar' }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (sirens.length === 0) return null;
+
+  const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return (
+    <div className="border-b border-red-900/50 shrink-0" data-testid="siren-banner">
+      <div
+        className="animate-siren-bg flex items-center gap-2 px-4 cursor-pointer select-none"
+        onClick={() => setExpanded(!expanded)}
+        data-testid="button-siren-toggle"
+      >
+        <div className="flex items-center gap-2 py-1.5 shrink-0">
+          <div className="w-5 h-5 rounded bg-red-600/30 flex items-center justify-center animate-siren-flash border border-red-500">
+            <Siren className="w-3.5 h-3.5 text-red-400" />
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400 font-mono whitespace-nowrap">
+            {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
+          </span>
+          <Badge variant="destructive" className="text-[8px] px-1.5 py-0 h-4 font-mono font-bold animate-pulse-dot">
+            {sirens.length}
+          </Badge>
+        </div>
+
+        <div className="flex-1 overflow-hidden min-w-0">
+          <div className="flex items-center gap-4 animate-siren-scroll whitespace-nowrap">
+            {[...sorted, ...sorted].map((s, i) => {
+              const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
+              return (
+                <span key={`${s.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
+                  <ShieldAlert className="w-3 h-3 text-red-400 shrink-0" />
+                  <span className="text-red-300 font-bold">
+                    {language === 'ar' ? s.locationAr : s.location}
+                  </span>
+                  <span className="text-red-500/70">\u2022</span>
+                  <span className="text-red-400/80 text-[9px]">
+                    {language === 'ar' ? threat.ar : threat.en}
+                  </span>
+                  <span className="text-red-900/60 mx-1">\u2502</span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-[9px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
+          data-testid="button-siren-expand"
+        >
+          {expanded ? '\u25B2' : '\u25BC'} {language === 'en' ? 'Details' : '\u062A\u0641\u0627\u0635\u064A\u0644'}
+        </Button>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-red-900/30 bg-red-950/20 max-h-[180px] overflow-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-red-900/20">
+            {sorted.map((s) => {
+              const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
+              return (
+                <div
+                  key={s.id}
+                  className="px-3 py-2 bg-background/80 animate-fade-in"
+                  data-testid={`siren-alert-${s.id}`}
+                >
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <MapPin className="w-3 h-3 text-red-400 shrink-0" />
+                    <span className="text-[11px] text-red-300 font-bold truncate">
+                      {language === 'ar' ? s.locationAr : s.location}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="destructive" className="text-[7px] px-1 py-0 h-3.5 font-bold tracking-wider rounded-sm">
+                      {language === 'ar' ? threat.ar : threat.en}
+                    </Badge>
+                    <span className="text-[9px] text-muted-foreground font-mono ml-auto tabular-nums">
+                      {timeAgo(s.timestamp)}
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-red-400/60 mt-0.5 block">
+                    {language === 'ar' ? s.regionAr : s.region}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -446,6 +552,11 @@ export default function Dashboard() {
     refetchInterval: 25000,
   });
 
+  const { data: sirens = [] } = useQuery<SirenAlert[]>({
+    queryKey: ['/api/sirens'],
+    refetchInterval: 10000,
+  });
+
   const events = intelData?.events || [];
   const flights = intelData?.flights || [];
   const ships = intelData?.ships || [];
@@ -492,6 +603,8 @@ export default function Dashboard() {
 
       <TickerBar commodities={commodities} />
 
+      <SirenBanner sirens={sirens} language={language} />
+
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-px bg-border min-h-0 overflow-hidden">
         <div className="col-span-1 lg:col-span-3 bg-background overflow-hidden flex flex-col min-h-0">
           <NewsPanel news={news} language={language} />
@@ -533,6 +646,11 @@ export default function Dashboard() {
           <span className="text-[8px] text-muted-foreground font-mono">
             <span className="text-foreground/50">MKT</span> {commodities.length}
           </span>
+          {sirens.length > 0 && (
+            <span className="text-[8px] text-red-400 font-mono font-bold">
+              <span className="text-red-400/60">SRN</span> {sirens.length}
+            </span>
+          )}
         </div>
         <span className="text-[8px] text-muted-foreground font-mono ml-auto hidden sm:inline">
           WARROOM v1.0 \u2502 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}

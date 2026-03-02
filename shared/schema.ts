@@ -80,3 +80,14 @@ export interface TelegramMessage {
   textAr?: string;
   timestamp: string;
 }
+
+export interface SirenAlert {
+  id: string;
+  location: string;
+  locationAr: string;
+  region: string;
+  regionAr: string;
+  threatType: 'rocket' | 'missile' | 'uav' | 'hostile_aircraft';
+  timestamp: string;
+  active: boolean;
+}

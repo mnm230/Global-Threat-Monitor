@@ -28,10 +28,12 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 5. **Scrolling Ticker** - Marquee-style ticker with fade edges, all 18 instruments
 6. **Language Toggle** - Switch between English and Arabic (RTL support)
 7. **Status Bar** - Connection status, event counts, source indicators
+8. **Live Sirens** - Scrolling red alert banner showing active rocket/missile/UAV sirens by location with expandable detail grid (polled every 10s)
 
 ## API Endpoints
 - `GET /api/news` - Breaking news items (polled every 20s)
 - `GET /api/commodities` - Commodity and FX prices (polled every 5s)
+- `GET /api/sirens` - Active siren alerts (polled every 10s)
 - `GET /api/events` - Map events, flights, ships (polled every 15s)
 - `GET /api/telegram` - Telegram channel messages (polled every 25s)
 

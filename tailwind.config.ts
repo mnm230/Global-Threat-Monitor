@@ -111,6 +111,18 @@ export default {
           "0%": { opacity: "0", transform: "translateX(8px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
+        "siren-flash": {
+          "0%, 100%": { opacity: "1", borderColor: "rgb(239 68 68)" },
+          "50%": { opacity: "0.7", borderColor: "rgb(239 68 68 / 0.4)" },
+        },
+        "siren-bg": {
+          "0%, 100%": { backgroundColor: "rgb(127 29 29 / 0.25)" },
+          "50%": { backgroundColor: "rgb(127 29 29 / 0.12)" },
+        },
+        "siren-scroll": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -119,6 +131,9 @@ export default {
         "pulse-dot": "pulse-dot 1.5s ease-in-out infinite",
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in-right": "slide-in-right 0.3s ease-out",
+        "siren-flash": "siren-flash 1s ease-in-out infinite",
+        "siren-bg": "siren-bg 1.2s ease-in-out infinite",
+        "siren-scroll": "siren-scroll 20s linear infinite",
       },
     },
   },
