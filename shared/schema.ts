@@ -35,6 +35,7 @@ export interface CommodityData {
   change: number;
   changePercent: number;
   currency: string;
+  category: 'commodity' | 'fx' | 'fx-major';
 }
 
 export interface ConflictEvent {

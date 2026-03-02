@@ -139,30 +139,39 @@ function generateNews(): NewsItem[] {
 
 function generateCommodities(): CommodityData[] {
   const basePrices = [
-    { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', base: 84.72, currency: 'USD' },
-    { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', base: 80.35, currency: 'USD' },
-    { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', base: 2068.40, currency: 'USD' },
-    { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', base: 23.85, currency: 'USD' },
-    { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', base: 3.42, currency: 'USD' },
-    { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', base: 3.92, currency: '' },
-    { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', base: 42150, currency: '' },
-    { symbol: 'USD/LBP', name: 'US Dollar/Pound', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0644\u064A\u0631\u0629', base: 89750, currency: '' },
-    { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', base: 612.50, currency: 'USD' },
-    { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', base: 8542.00, currency: 'USD' },
+    { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', base: 84.72, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', base: 80.35, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', base: 2068.40, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', base: 23.85, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', base: 3.42, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', base: 612.50, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', base: 8542.00, currency: 'USD', category: 'commodity' as const },
+    { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', base: 1.0862, currency: '', category: 'fx-major' as const },
+    { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', base: 1.2674, currency: '', category: 'fx-major' as const },
+    { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', base: 149.82, currency: '', category: 'fx-major' as const },
+    { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', base: 0.8815, currency: '', category: 'fx-major' as const },
+    { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', base: 0.6542, currency: '', category: 'fx-major' as const },
+    { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', base: 1.3598, currency: '', category: 'fx-major' as const },
+    { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', base: 3.92, currency: '', category: 'fx' as const },
+    { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', base: 42150, currency: '', category: 'fx' as const },
+    { symbol: 'USD/LBP', name: 'US Dollar/Lira', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0644\u064A\u0631\u0629', base: 89750, currency: '', category: 'fx' as const },
+    { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', base: 3.7500, currency: '', category: 'fx' as const },
+    { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', base: 3.6725, currency: '', category: 'fx' as const },
   ];
 
   return basePrices.map((item) => {
-    const volatility = item.symbol.includes('/') ? 0.005 : 0.02;
+    const volatility = item.category === 'commodity' ? 0.02 : item.category === 'fx-major' ? 0.003 : 0.005;
     const changePercent = (Math.random() - 0.45) * volatility * 100;
     const change = item.base * (changePercent / 100);
     return {
       symbol: item.symbol,
       name: item.name,
       nameAr: item.nameAr,
-      price: Number((item.base + change).toFixed(2)),
-      change: Number(change.toFixed(2)),
+      price: Number((item.base + change).toFixed(item.base < 10 ? 4 : 2)),
+      change: Number(change.toFixed(item.base < 10 ? 4 : 2)),
       changePercent: Number(changePercent.toFixed(2)),
       currency: item.currency,
+      category: item.category,
     };
   });
 }

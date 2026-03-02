@@ -77,24 +77,30 @@ function LiveClock() {
   );
 }
 
+function formatPrice(c: CommodityData): string {
+  const decimals = c.price < 10 ? 4 : 2;
+  const prefix = c.currency === 'USD' ? '$' : '';
+  return `${prefix}${c.price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   if (!commodities.length) return <div className="h-7 border-b border-border bg-card/20" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-border bg-card/20 overflow-hidden relative" data-testid="ticker-bar">
+    <div className="h-7 border-b border-border/50 bg-card/20 overflow-hidden relative" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent z-10" />
+      <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap px-4">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[10px]">
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
             <span className="text-primary font-bold">{c.symbol}</span>
-            <span className="text-foreground/80">
-              {c.currency === 'USD' ? '$' : ''}{c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+            <span className="text-foreground/80">{formatPrice(c)}</span>
             <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
-            <span className="text-border mx-1">|</span>
+            <span className="text-border/40 mx-0.5">\u2502</span>
           </span>
         ))}
       </div>
@@ -114,11 +120,13 @@ function PanelHeader({
   count?: number;
 }) {
   return (
-    <div className="px-3 py-1.5 border-b border-border flex items-center gap-2 bg-card/40 shrink-0">
+    <div className="px-3 py-2 border-b border-border flex items-center gap-2 bg-card/50 shrink-0">
       <span className="text-primary">{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] text-muted-foreground font-mono">({count})</span>
+        <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-3.5 font-mono border-border/50">
+          {count}
+        </Badge>
       )}
       {live && (
         <div className="ml-auto flex items-center gap-1">
@@ -156,33 +164,63 @@ function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar'
           )}
           {news.map((item, index) => {
             const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.breaking;
+            const isBreaking = item.category === 'breaking';
             return (
               <div
                 key={item.id}
-                className="px-3 py-2 hover-elevate cursor-pointer animate-fade-in"
+                className={`px-3 py-2.5 hover-elevate cursor-pointer animate-fade-in ${isBreaking ? 'border-l-2 border-l-red-500/60' : 'border-l-2 border-l-transparent'}`}
                 style={{ animationDelay: `${index * 30}ms` }}
                 data-testid={`news-item-${item.id}`}
               >
-                <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                  <Badge variant={style.variant} className="text-[8px] px-1 py-0 h-3.5 font-bold tracking-wider">
+                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                  <Badge variant={style.variant} className="text-[7px] px-1.5 py-0 h-3.5 font-bold tracking-wider rounded-sm">
                     {item.category.toUpperCase()}
                   </Badge>
-                  <span className="text-[9px] text-muted-foreground font-mono tabular-nums">
+                  <span className="text-[9px] text-muted-foreground font-mono tabular-nums ml-auto">
                     {timeAgo(item.timestamp)}
                   </span>
                 </div>
-                <p className="text-[11px] text-foreground/90 leading-[1.5] font-medium">
+                <p className="text-[11px] text-foreground/90 leading-[1.6] font-medium">
                   {language === 'ar' && item.titleAr ? item.titleAr : item.title}
                 </p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <Radio className="w-2 h-2 text-muted-foreground" />
-                  <span className="text-[9px] text-muted-foreground font-medium">{item.source}</span>
+                <div className="flex items-center gap-1 mt-1">
+                  <Radio className="w-2 h-2 text-muted-foreground/60" />
+                  <span className="text-[9px] text-muted-foreground/70 font-medium">{item.source}</span>
                 </div>
               </div>
             );
           })}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
+  return (
+    <div
+      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 font-mono text-[10px] items-center hover-elevate transition-colors"
+      data-testid={`commodity-${c.symbol}`}
+    >
+      <div className="flex flex-col min-w-0">
+        <span className="text-foreground font-bold text-[10px] truncate">{c.symbol}</span>
+        <span className="text-[8px] text-muted-foreground leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+      </div>
+      <span className="text-foreground tabular-nums text-right font-semibold whitespace-nowrap">
+        {formatPrice(c)}
+      </span>
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[52px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <div className={`w-1 h-3 rounded-full ${c.change >= 0 ? 'bg-emerald-400/30' : 'bg-red-400/30'}`} />
+        <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div className="px-3 py-1 bg-card/60 border-b border-border/30">
+      <span className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground font-bold">{label}</span>
     </div>
   );
 }
@@ -194,38 +232,33 @@ function CommoditiesPanel({
   commodities: CommodityData[];
   language: 'en' | 'ar';
 }) {
+  const cmdty = commodities.filter(c => c.category === 'commodity');
+  const fxMajor = commodities.filter(c => c.category === 'fx-major');
+  const fxRegional = commodities.filter(c => c.category === 'fx');
+
   return (
     <div className="flex flex-col">
       <PanelHeader
-        title={language === 'en' ? 'Commodities & FX' : '\u0627\u0644\u0633\u0644\u0639 \u0648\u0627\u0644\u0639\u0645\u0644\u0627\u062A'}
+        title={language === 'en' ? 'Markets' : '\u0627\u0644\u0623\u0633\u0648\u0627\u0642'}
         icon={<BarChart3 className="w-3.5 h-3.5" />}
         live
       />
-      <div className="divide-y divide-border/20">
-        <div className="grid grid-cols-[1fr_auto_auto] gap-x-2 px-3 py-1 text-[8px] uppercase tracking-[0.15em] text-muted-foreground font-bold border-b border-border/30">
-          <span>Symbol</span>
-          <span className="text-right">Price</span>
-          <span className="text-right">Chg%</span>
-        </div>
-        {commodities.map((c) => (
-          <div
-            key={c.symbol}
-            className="grid grid-cols-[1fr_auto_auto] gap-x-2 px-3 py-1.5 font-mono text-[10px] items-center hover-elevate"
-            data-testid={`commodity-${c.symbol}`}
-          >
-            <div className="flex flex-col">
-              <span className="text-foreground font-bold text-[10px]">{c.symbol}</span>
-              <span className="text-[8px] text-muted-foreground leading-tight">{language === 'ar' ? c.nameAr : c.name}</span>
-            </div>
-            <span className="text-foreground tabular-nums text-right font-semibold">
-              {c.currency === 'USD' ? '$' : ''}{c.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-              <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[8px] uppercase tracking-[0.15em] text-muted-foreground font-bold border-b border-border/30">
+        <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
+        <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
+        <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
+      </div>
+      <SectionLabel label={language === 'en' ? '\u25B8 Commodities' : '\u25B8 \u0627\u0644\u0633\u0644\u0639'} />
+      <div className="divide-y divide-border/10">
+        {cmdty.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+      </div>
+      <SectionLabel label={language === 'en' ? '\u25B8 Major FX' : '\u25B8 \u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} />
+      <div className="divide-y divide-border/10">
+        {fxMajor.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+      </div>
+      <SectionLabel label={language === 'en' ? '\u25B8 Regional FX' : '\u25B8 \u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} />
+      <div className="divide-y divide-border/10">
+        {fxRegional.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
       </div>
     </div>
   );
@@ -239,35 +272,33 @@ function TelegramPanel({
   language: 'en' | 'ar';
 }) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <PanelHeader
         title={language === 'en' ? 'Telegram Feed' : '\u062A\u0644\u063A\u0631\u0627\u0645'}
         icon={<Send className="w-3.5 h-3.5" />}
         live
         count={messages.length}
       />
-      <ScrollArea className="flex-1">
-        <div className="divide-y divide-border/20">
-          {messages.length === 0 && (
-            <div className="px-3 py-6 text-center">
-              <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-[10px] text-muted-foreground">Connecting to channels...</p>
+      <div className="divide-y divide-border/20">
+        {messages.length === 0 && (
+          <div className="px-3 py-6 text-center">
+            <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+            <p className="text-[10px] text-muted-foreground">Connecting to channels...</p>
+          </div>
+        )}
+        {messages.map((msg) => (
+          <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <SiTelegram className="w-2.5 h-2.5 text-sky-400 shrink-0" />
+              <span className="text-[9px] text-sky-400 font-bold truncate">{msg.channel}</span>
+              <span className="text-[8px] text-muted-foreground font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
             </div>
-          )}
-          {messages.map((msg) => (
-            <div key={msg.id} className="px-3 py-1.5 animate-fade-in" data-testid={`telegram-msg-${msg.id}`}>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <SiTelegram className="w-2.5 h-2.5 text-sky-400" />
-                <span className="text-[9px] text-sky-400 font-bold">{msg.channel}</span>
-                <span className="text-[8px] text-muted-foreground font-mono ml-auto tabular-nums">{timeAgo(msg.timestamp)}</span>
-              </div>
-              <p className="text-[10px] text-foreground/75 leading-[1.5]">
-                {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+            <p className="text-[10px] text-foreground/75 leading-[1.6]">
+              {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -421,37 +452,39 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-10 border-b border-border flex items-center justify-between px-3 bg-card/30 shrink-0">
-        <div className="flex items-center gap-2">
+      <header className="h-11 border-b border-border/60 flex items-center justify-between px-4 bg-card/40 shrink-0 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <Crosshair className="w-4 h-4 text-primary" />
+            <div className="w-5 h-5 rounded bg-primary/15 flex items-center justify-center">
+              <Crosshair className="w-3.5 h-3.5 text-primary" />
+            </div>
             <span className="font-bold text-sm tracking-tight text-primary font-mono">WARROOM</span>
           </div>
-          <Badge variant="destructive" className="h-3.5 text-[7px] px-1 font-bold tracking-[0.15em] animate-pulse-dot">
+          <Badge variant="destructive" className="h-4 text-[7px] px-1.5 font-bold tracking-[0.15em] animate-pulse-dot">
             LIVE
           </Badge>
-          <Separator orientation="vertical" className="h-4 hidden sm:block" />
-          <span className="text-[9px] text-muted-foreground hidden md:inline font-medium">
+          <Separator orientation="vertical" className="h-5 hidden sm:block" />
+          <span className="text-[9px] text-muted-foreground hidden md:inline font-medium tracking-wide">
             {language === 'en' ? 'Middle East Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u0627\u0644\u0634\u0631\u0642 \u0627\u0644\u0623\u0648\u0633\u0637'}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <LiveClock />
-          <Separator orientation="vertical" className="h-4" />
+          <Separator orientation="vertical" className="h-5" />
           <Button
             size="sm"
-            variant="ghost"
-            className="text-[10px] px-2 font-mono"
+            variant="outline"
+            className="text-[10px] px-2.5 h-7 font-mono border-border/50 bg-card/30"
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             data-testid="button-language-toggle"
           >
             <Languages className="w-3 h-3 mr-1" />
             {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
           </Button>
-          <div className="flex items-center gap-1">
-            <Wifi className="w-3 h-3 text-emerald-400" />
-            <span className="text-[8px] text-emerald-400 font-bold tracking-wider hidden sm:inline">
-              {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
+            <span className="text-[8px] text-emerald-400 font-bold tracking-wider hidden sm:inline uppercase">
+              {language === 'en' ? 'Connected' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
         </div>
@@ -468,35 +501,41 @@ export default function Dashboard() {
           <MapSection events={events} flights={flights} ships={ships} language={language} />
         </div>
 
-        <div className="col-span-1 lg:col-span-3 bg-background overflow-hidden flex flex-col min-h-0">
-          <div className="overflow-auto flex-shrink-0" style={{ maxHeight: '55%' }}>
+        <div className="col-span-1 lg:col-span-3 bg-background overflow-hidden min-h-0">
+          <ScrollArea className="h-full">
             <CommoditiesPanel commodities={commodities} language={language} />
-          </div>
-          <div className="border-t border-border flex-1 overflow-hidden min-h-0">
-            <TelegramPanel messages={telegramMessages} language={language} />
-          </div>
+            <div className="border-t border-border">
+              <TelegramPanel messages={telegramMessages} language={language} />
+            </div>
+          </ScrollArea>
         </div>
       </div>
 
-      <div className="h-5 border-t border-border flex items-center px-3 bg-card/20 shrink-0 gap-3 overflow-hidden" data-testid="status-bar">
-        <div className="flex items-center gap-1">
+      <div className="h-6 border-t border-border/60 flex items-center px-4 bg-card/30 shrink-0 gap-4 overflow-hidden" data-testid="status-bar">
+        <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-[8px] text-muted-foreground font-mono font-medium">ONLINE</span>
         </div>
-        <span className="text-[8px] text-muted-foreground font-mono">
-          SRC: 12
-        </span>
-        <span className="text-[8px] text-muted-foreground font-mono">
-          EVT: {events.length}
-        </span>
-        <span className="text-[8px] text-muted-foreground font-mono">
-          FLT: {flights.length}
-        </span>
-        <span className="text-[8px] text-muted-foreground font-mono">
-          VES: {ships.length}
-        </span>
+        <Separator orientation="vertical" className="h-3" />
+        <div className="flex items-center gap-3">
+          <span className="text-[8px] text-muted-foreground font-mono">
+            <span className="text-foreground/50">SRC</span> 12
+          </span>
+          <span className="text-[8px] text-muted-foreground font-mono">
+            <span className="text-foreground/50">EVT</span> {events.length}
+          </span>
+          <span className="text-[8px] text-muted-foreground font-mono">
+            <span className="text-foreground/50">FLT</span> {flights.length}
+          </span>
+          <span className="text-[8px] text-muted-foreground font-mono">
+            <span className="text-foreground/50">VES</span> {ships.length}
+          </span>
+          <span className="text-[8px] text-muted-foreground font-mono">
+            <span className="text-foreground/50">MKT</span> {commodities.length}
+          </span>
+        </div>
         <span className="text-[8px] text-muted-foreground font-mono ml-auto hidden sm:inline">
-          WARROOM TERMINAL v1.0 | {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
+          WARROOM v1.0 \u2502 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
         </span>
       </div>
     </div>
