@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,10 @@ import {
   Timer,
   AlertOctagon,
   Shield,
+  X,
+  Volume2,
+  VolumeX,
+  PanelLeft,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -73,6 +77,82 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
     >
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-6' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-6'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/50'}`} />
     </div>
+  );
+}
+
+const audioCtxRef = { current: null as AudioContext | null };
+
+function playAlertSound() {
+  try {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (_) {}
+}
+
+function useAlertSound(alerts: { id: string }[], enabled: boolean) {
+  const prevIdsRef = useRef<Set<string>>(new Set());
+  const hasFetchedOnce = useRef(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const currentIds = new Set(alerts.map(a => a.id));
+
+    if (!hasFetchedOnce.current) {
+      hasFetchedOnce.current = true;
+      prevIdsRef.current = currentIds;
+      return;
+    }
+
+    let hasNew = false;
+    currentIds.forEach(id => {
+      if (!prevIdsRef.current.has(id)) hasNew = true;
+    });
+
+    if (hasNew) playAlertSound();
+    prevIdsRef.current = currentIds;
+  }, [alerts, enabled]);
+}
+
+type PanelId = 'news' | 'map' | 'events' | 'radar' | 'alerts' | 'markets';
+
+const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
+  news: { icon: Newspaper, label: 'News', labelAr: '\u0623\u062E\u0628\u0627\u0631' },
+  map: { icon: Target, label: 'Map', labelAr: '\u062E\u0631\u064A\u0637\u0629' },
+  events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
+  radar: { icon: Plane, label: 'Radar', labelAr: '\u0631\u0627\u062F\u0627\u0631' },
+  alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
+  markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
+};
+
+function PanelCloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      className="ml-auto w-4 h-4 rounded flex items-center justify-center text-muted-foreground/40 hover:text-foreground/70 hover:bg-foreground/10 transition-colors"
+      data-testid="button-panel-close"
+    >
+      <X className="w-2.5 h-2.5" />
+    </button>
   );
 }
 
@@ -255,11 +335,13 @@ function PanelHeader({
   icon,
   live,
   count,
+  onClose,
 }: {
   title: string;
   icon: React.ReactNode;
   live?: boolean;
   count?: number;
+  onClose?: () => void;
 }) {
   return (
     <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
@@ -271,11 +353,12 @@ function PanelHeader({
         </Badge>
       )}
       {live && (
-        <div className="ml-auto flex items-center gap-1">
+        <div className={`${onClose ? '' : 'ml-auto'} flex items-center gap-1`}>
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-500/80 font-bold">LIVE</span>
         </div>
       )}
+      {onClose && <PanelCloseButton onClose={onClose} />}
     </div>
   );
 }
@@ -287,7 +370,7 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
   economic: { variant: 'outline', color: 'text-emerald-400' },
 };
 
-function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar' }) {
+function NewsPanel({ news, language, onClose }: { news: NewsItem[]; language: 'en' | 'ar'; onClose?: () => void }) {
   return (
     <div className="h-full flex flex-col">
       <PanelHeader
@@ -295,6 +378,7 @@ function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar'
         icon={<Newspaper className="w-3.5 h-3.5" />}
         live
         count={news.length}
+        onClose={onClose}
       />
       <ScrollArea className="flex-1">
         <div className="divide-y divide-border/30">
@@ -370,9 +454,11 @@ function SectionLabel({ label }: { label: string }) {
 function CommoditiesPanel({
   commodities,
   language,
+  onClose,
 }: {
   commodities: CommodityData[];
   language: 'en' | 'ar';
+  onClose?: () => void;
 }) {
   const cmdty = commodities.filter(c => c.category === 'commodity');
   const fxMajor = commodities.filter(c => c.category === 'fx-major');
@@ -384,6 +470,7 @@ function CommoditiesPanel({
         title={language === 'en' ? 'Markets' : '\u0627\u0644\u0623\u0633\u0648\u0627\u0642'}
         icon={<BarChart3 className="w-3.5 h-3.5" />}
         live
+        onClose={onClose}
       />
       <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-0.5 text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60 font-bold border-b border-border/20">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
@@ -413,7 +500,7 @@ const THREAT_COLORS: Record<string, string> = {
   hostile_aircraft: 'text-purple-400 border-purple-500/40 bg-purple-950/30',
 };
 
-function SirensPanel({ sirens, language }: { sirens: SirenAlert[]; language: 'en' | 'ar' }) {
+function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
@@ -423,6 +510,7 @@ function SirensPanel({ sirens, language }: { sirens: SirenAlert[]; language: 'en
         icon={<Siren className="w-3.5 h-3.5" />}
         live
         count={sirens.length}
+        onClose={onClose}
       />
       {sirens.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -476,7 +564,7 @@ function headingToCompass(deg: number): string {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-function FlightRadarPanel({ flights, language }: { flights: FlightData[]; language: 'en' | 'ar' }) {
+function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const sorted = [...flights].sort((a, b) => {
     const order = { military: 0, surveillance: 1, commercial: 2 };
     return (order[a.type] ?? 3) - (order[b.type] ?? 3);
@@ -489,6 +577,7 @@ function FlightRadarPanel({ flights, language }: { flights: FlightData[]; langua
         icon={<Plane className="w-3.5 h-3.5" />}
         live
         count={flights.length}
+        onClose={onClose}
       />
       {flights.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -544,7 +633,7 @@ const EVENT_TYPE_ICONS: Record<string, string> = {
   nuclear:   '☢️',
 };
 
-function ConflictEventsPanel({ events, language }: { events: ConflictEvent[]; language: 'en' | 'ar' }) {
+function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEvent[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const sorted = [...events].sort((a, b) => {
     const order = { critical: 0, high: 1, medium: 2, low: 3 };
     return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
@@ -557,6 +646,7 @@ function ConflictEventsPanel({ events, language }: { events: ConflictEvent[]; la
         icon={<AlertTriangle className="w-3.5 h-3.5" />}
         live
         count={events.length}
+        onClose={onClose}
       />
       {events.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -607,7 +697,7 @@ const SHIP_TYPE_STYLES: Record<string, { color: string; bg: string; label: strin
   patrol:   { color: 'text-yellow-400', bg: 'bg-yellow-950/40 border-yellow-500/30', label: 'PTL' },
 };
 
-function MaritimePanel({ ships, language }: { ships: ShipData[]; language: 'en' | 'ar' }) {
+function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const sorted = [...ships].sort((a, b) => {
     const order = { military: 0, patrol: 1, tanker: 2, cargo: 3 };
     return (order[a.type] ?? 4) - (order[b.type] ?? 4);
@@ -620,6 +710,7 @@ function MaritimePanel({ ships, language }: { ships: ShipData[]; language: 'en' 
         icon={<Ship className="w-3.5 h-3.5" />}
         live
         count={ships.length}
+        onClose={onClose}
       />
       {ships.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -701,7 +792,7 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   );
 }
 
-function RedAlertPanel({ alerts, language }: { alerts: RedAlert[]; language: 'en' | 'ar' }) {
+function RedAlertPanel({ alerts, language, onClose }: { alerts: RedAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const grouped = alerts.reduce<Record<string, RedAlert[]>>((acc, alert) => {
     const key = language === 'ar' ? alert.regionAr : alert.region;
     if (!acc[key]) acc[key] = [];
@@ -727,13 +818,14 @@ function RedAlertPanel({ alerts, language }: { alerts: RedAlert[]; language: 'en
           </span>
           <span className="text-[9px] text-red-400/50 font-mono" dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD \u2014 Tzeva Adom</span>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
           <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[18px] font-mono font-bold animate-pulse-dot">
             {alerts.length}
           </Badge>
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
           <span className="text-[9px] uppercase tracking-[0.2em] text-red-400/70 font-bold">LIVE</span>
         </div>
+        {onClose && <PanelCloseButton onClose={onClose} />}
       </div>
 
       {alerts.length === 0 && (
@@ -790,9 +882,11 @@ function RedAlertPanel({ alerts, language }: { alerts: RedAlert[]; language: 'en
 function TelegramPanel({
   messages,
   language,
+  onClose,
 }: {
   messages: TelegramMessage[];
   language: 'en' | 'ar';
+  onClose?: () => void;
 }) {
   return (
     <div className="flex flex-col">
@@ -801,6 +895,7 @@ function TelegramPanel({
         icon={<Send className="w-3.5 h-3.5" />}
         live
         count={messages.length}
+        onClose={onClose}
       />
       <div className="divide-y divide-border/20">
         {messages.length === 0 && (
@@ -864,11 +959,13 @@ function MapSection({
   flights,
   ships,
   language,
+  onClose,
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
   ships: ShipData[];
   language: 'en' | 'ar';
+  onClose?: () => void;
 }) {
   const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
 
@@ -904,6 +1001,7 @@ function MapSection({
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
           <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
         </div>
+        {onClose && <PanelCloseButton onClose={onClose} />}
       </div>
       <div className="flex-1 relative min-h-0">
         <div className="absolute inset-0">
@@ -944,6 +1042,23 @@ function MapSection({
 
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
+  const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>({
+    news: true, map: true, events: true, radar: true, alerts: true, markets: true,
+  });
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const closePanel = useCallback((id: PanelId) => {
+    setVisiblePanels(prev => ({ ...prev, [id]: false }));
+  }, []);
+
+  const openPanel = useCallback((id: PanelId) => {
+    setVisiblePanels(prev => ({ ...prev, [id]: true }));
+  }, []);
+
+  const closedPanels = useMemo(() =>
+    (Object.keys(visiblePanels) as PanelId[]).filter(k => !visiblePanels[k]),
+    [visiblePanels]
+  );
 
   const { data: news = [], isLoading: newsLoading } = useQuery<NewsItem[]>({
     queryKey: ['/api/news'],
@@ -983,24 +1098,90 @@ export default function Dashboard() {
   const flights = intelData?.flights || [];
   const ships = intelData?.ships || [];
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [colWidths, setColWidths] = useState([12, 34, 16, 18, 20]);
+  useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
+  useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
 
-  const makeResizer = useCallback((index: number) => (delta: number) => {
-    if (!containerRef.current) return;
+  const panelOrder: PanelId[] = ['news', 'map', 'events', 'radar', 'alerts', 'markets'];
+  const activePanels = panelOrder.filter(id => visiblePanels[id]);
+  const panelCount = activePanels.length;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const defaultWidths: Record<PanelId, number> = { news: 10, map: 26, events: 14, radar: 14, alerts: 16, markets: 20 };
+  const [colWidths, setColWidths] = useState(defaultWidths);
+
+  const activeWidths = useMemo(() => {
+    const raw = activePanels.map(id => colWidths[id]);
+    const total = raw.reduce((s, w) => s + w, 0);
+    return raw.map(w => (w / total) * 100);
+  }, [activePanels, colWidths]);
+
+  const makeResizer = useCallback((leftIdx: number) => (delta: number) => {
+    if (!containerRef.current || leftIdx >= activePanels.length - 1) return;
     const totalWidth = containerRef.current.offsetWidth;
     const pctDelta = (delta / totalWidth) * 100;
+    const leftId = activePanels[leftIdx];
+    const rightId = activePanels[leftIdx + 1];
     setColWidths(prev => {
-      const next = [...prev];
-      const minW = 8;
-      const newLeft = next[index] + pctDelta;
-      const newRight = next[index + 1] - pctDelta;
-      if (newLeft < minW || newRight < minW) return prev;
-      next[index] = newLeft;
-      next[index + 1] = newRight;
-      return next;
+      const totalActive = activePanels.reduce((s, id) => s + prev[id], 0);
+      const leftPct = (prev[leftId] / totalActive) * 100;
+      const rightPct = (prev[rightId] / totalActive) * 100;
+      const newLeft = leftPct + pctDelta;
+      const newRight = rightPct - pctDelta;
+      if (newLeft < 8 || newRight < 8) return prev;
+      const leftRaw = (newLeft / 100) * totalActive;
+      const rightRaw = (newRight / 100) * totalActive;
+      return { ...prev, [leftId]: leftRaw, [rightId]: rightRaw };
     });
-  }, []);
+  }, [activePanels]);
+
+  const renderPanel = (id: PanelId) => {
+    const close = () => closePanel(id);
+    switch (id) {
+      case 'news':
+        return <NewsPanel news={news} language={language} onClose={close} />;
+      case 'map':
+        return <MapSection events={events} flights={flights} ships={ships} language={language} onClose={close} />;
+      case 'events':
+        return (
+          <ScrollArea className="h-full">
+            <ConflictEventsPanel events={events} language={language} onClose={close} />
+          </ScrollArea>
+        );
+      case 'radar':
+        return (
+          <>
+            <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
+              <ScrollArea className="h-full">
+                <FlightRadarPanel flights={flights} language={language} onClose={close} />
+              </ScrollArea>
+            </div>
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <ScrollArea className="h-full">
+                <MaritimePanel ships={ships} language={language} />
+              </ScrollArea>
+            </div>
+          </>
+        );
+      case 'alerts':
+        return (
+          <ScrollArea className="h-full">
+            <RedAlertPanel alerts={redAlerts} language={language} onClose={close} />
+            <div className="border-t border-border">
+              <SirensPanel sirens={sirens} language={language} />
+            </div>
+          </ScrollArea>
+        );
+      case 'markets':
+        return (
+          <ScrollArea className="h-full">
+            <CommoditiesPanel commodities={commodities} language={language} onClose={close} />
+            <div className="border-t border-border">
+              <TelegramPanel messages={telegramMessages} language={language} />
+            </div>
+          </ScrollArea>
+        );
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
@@ -1026,6 +1207,15 @@ export default function Dashboard() {
           <Button
             size="sm"
             variant="ghost"
+            className={`text-[10px] px-2 h-6 font-mono ${soundEnabled ? 'text-primary' : 'text-muted-foreground'} hover:text-foreground`}
+            onClick={() => setSoundEnabled(p => !p)}
+            data-testid="button-sound-toggle"
+          >
+            {soundEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             className="text-[10px] px-2 h-6 font-mono text-muted-foreground hover:text-foreground"
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             data-testid="button-language-toggle"
@@ -1047,55 +1237,26 @@ export default function Dashboard() {
       <SirenBanner sirens={sirens} language={language} />
 
       <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden" data-testid="resizable-panels">
-        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[0]}%` }}>
-          <NewsPanel news={news} language={language} />
-        </div>
-
-        <ResizeHandle onResize={makeResizer(0)} />
-
-        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[1]}%` }}>
-          <MapSection events={events} flights={flights} ships={ships} language={language} />
-        </div>
-
-        <ResizeHandle onResize={makeResizer(1)} />
-
-        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[2]}%` }}>
-          <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-            <ScrollArea className="h-full">
-              <FlightRadarPanel flights={flights} language={language} />
-            </ScrollArea>
-          </div>
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <ScrollArea className="h-full">
-              <MaritimePanel ships={ships} language={language} />
-            </ScrollArea>
-          </div>
-        </div>
-
-        <ResizeHandle onResize={makeResizer(2)} />
-
-        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[3]}%` }}>
-          <ScrollArea className="h-full">
-            <RedAlertPanel alerts={redAlerts} language={language} />
-            <div className="border-t border-border">
-              <SirensPanel sirens={sirens} language={language} />
+        {activePanels.map((id, idx) => (
+          <div key={id} className="contents">
+            {idx > 0 && <ResizeHandle onResize={makeResizer(idx - 1)} />}
+            <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${activeWidths[idx]}%` }}>
+              {renderPanel(id)}
             </div>
-          </ScrollArea>
-        </div>
-
-        <ResizeHandle onResize={makeResizer(3)} />
-
-        <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[4]}%` }}>
-          <ScrollArea className="h-full">
-            <CommoditiesPanel commodities={commodities} language={language} />
-            <div className="border-t border-border">
-              <TelegramPanel messages={telegramMessages} language={language} />
+          </div>
+        ))}
+        {panelCount === 0 && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <PanelLeft className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground/50">{language === 'en' ? 'All panels closed' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u063A\u0644\u0642\u0629'}</p>
+              <p className="text-[10px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Use tabs below to restore' : '\u0627\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0623\u062F\u0646\u0627\u0647 \u0644\u0644\u0627\u0633\u062A\u0639\u0627\u062F\u0629'}</p>
             </div>
-          </ScrollArea>
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="h-6 border-t border-border/30 flex items-center px-4 bg-card/15 shrink-0 gap-3 overflow-hidden" data-testid="status-bar">
+      <div className="h-7 border-t border-border/30 flex items-center px-4 bg-card/15 shrink-0 gap-3 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1">
           <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-[9px] text-muted-foreground/70 font-mono">ONLINE</span>
@@ -1128,6 +1289,28 @@ export default function Dashboard() {
             </span>
           )}
         </div>
+        {closedPanels.length > 0 && (
+          <>
+            <div className="w-px h-3 bg-border/30" />
+            <div className="flex items-center gap-1">
+              {closedPanels.map(id => {
+                const cfg = PANEL_CONFIG[id];
+                const Icon = cfg.icon;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => openPanel(id)}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-primary/70 bg-primary/10 hover:bg-primary/20 hover:text-primary transition-colors border border-primary/20"
+                    data-testid={`button-open-panel-${id}`}
+                  >
+                    <Icon className="w-2.5 h-2.5" />
+                    {language === 'en' ? cfg.label : cfg.labelAr}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
         <span className="text-[9px] text-muted-foreground/50 font-mono ml-auto hidden sm:inline">
           WARROOM v1.0 \u00B7 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
         </span>
