@@ -18,6 +18,7 @@ import type {
   RedAlert,
   AIBrief,
   AIDeduction,
+  AdsbFlight,
 } from '@shared/schema';
 import {
   Radio,
@@ -51,6 +52,7 @@ import {
   ChevronRight,
   Zap,
   Loader2,
+  Radar,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -168,7 +170,7 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'news' | 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel';
+type PanelId = 'news' | 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   news: { icon: Newspaper, label: 'News', labelAr: '\u0623\u062E\u0628\u0627\u0631' },
@@ -176,6 +178,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   map: { icon: Target, label: 'Map', labelAr: '\u062E\u0631\u064A\u0637\u0629' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   radar: { icon: Plane, label: 'Radar', labelAr: '\u0631\u0627\u062F\u0627\u0631' },
+  adsb: { icon: Radar, label: 'ADS-B', labelAr: '\u0645\u0631\u0627\u0642\u0628\u0629 \u062C\u0648\u064A\u0629' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
 };
@@ -649,6 +652,169 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
           );
         })}
       </div>
+    </div>
+  );
+}
+
+const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; label: string }> = {
+  military:     { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    label: 'MIL' },
+  surveillance: { color: 'text-cyan-400',   bg: 'bg-cyan-950/40 border-cyan-500/30',  label: 'ISR' },
+  commercial:   { color: 'text-green-400',  bg: 'bg-green-950/40 border-green-500/30', label: 'CIV' },
+  cargo:        { color: 'text-amber-400',  bg: 'bg-amber-950/40 border-amber-500/30', label: 'CGO' },
+  private:      { color: 'text-purple-400', bg: 'bg-purple-950/40 border-purple-500/30', label: 'PVT' },
+  government:   { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'GOV' },
+};
+
+function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () => void }) {
+  const [filter, setFilter] = useState<string>('all');
+  const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
+
+  const { data: adsbFlights = [], isLoading } = useQuery<AdsbFlight[]>({
+    queryKey: ['/api/adsb'],
+    refetchInterval: 6000,
+  });
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return adsbFlights;
+    if (filter === 'flagged') return adsbFlights.filter(f => f.flagged);
+    return adsbFlights.filter(f => f.type === filter);
+  }, [adsbFlights, filter]);
+
+  const sorted = useMemo(() =>
+    [...filtered].sort((a, b) => {
+      if (a.flagged && !b.flagged) return -1;
+      if (!a.flagged && b.flagged) return 1;
+      const order: Record<string, number> = { military: 0, surveillance: 1, government: 2, cargo: 3, commercial: 4, private: 5 };
+      return (order[a.type] ?? 6) - (order[b.type] ?? 6);
+    }),
+  [filtered]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: adsbFlights.length, flagged: 0 };
+    for (const f of adsbFlights) {
+      c[f.type] = (c[f.type] || 0) + 1;
+      if (f.flagged) c.flagged++;
+    }
+    return c;
+  }, [adsbFlights]);
+
+  return (
+    <div className="h-full flex flex-col" data-testid="adsb-panel">
+      <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
+        <div className="w-4 h-4 rounded bg-cyan-600/30 flex items-center justify-center border border-cyan-500/40">
+          <Radar className="w-3 h-3 text-cyan-400" />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-cyan-400/90">
+          ADS-B
+        </span>
+        <div className="flex items-center gap-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-dot" />
+          <span className="text-[9px] text-green-400/60 font-mono">{adsbFlights.length} tracked</span>
+        </div>
+        {onClose && <PanelCloseButton onClose={onClose} />}
+      </div>
+
+      <div className="px-2 py-1.5 border-b border-border/30 flex gap-1 flex-wrap shrink-0">
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'flagged', label: 'Flagged' },
+          { key: 'military', label: 'MIL' },
+          { key: 'surveillance', label: 'ISR' },
+          { key: 'commercial', label: 'CIV' },
+          { key: 'cargo', label: 'CGO' },
+          { key: 'government', label: 'GOV' },
+          { key: 'private', label: 'PVT' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            data-testid={`adsb-filter-${key}`}
+            onClick={() => setFilter(key)}
+            className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono border transition-colors ${
+              filter === key
+                ? 'bg-cyan-950/50 border-cyan-500/40 text-cyan-300'
+                : 'bg-card/30 border-border/30 text-muted-foreground/60'
+            }`}
+          >
+            {label} {counts[key] ? `(${counts[key]})` : ''}
+          </button>
+        ))}
+      </div>
+
+      <ScrollArea className="flex-1">
+        {isLoading && (
+          <div className="px-3 py-8 text-center">
+            <Radar className="w-6 h-6 text-cyan-400/40 mx-auto mb-2 animate-pulse" />
+            <p className="text-[10px] text-muted-foreground">Scanning ADS-B feeds...</p>
+          </div>
+        )}
+
+        {selectedFlight && (
+          <div className="px-3 py-2 bg-cyan-950/20 border-b border-cyan-500/20 animate-fade-in">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
+              <button
+                onClick={() => setSelectedFlight(null)}
+                className="text-muted-foreground/40 text-[10px]"
+                data-testid="adsb-close-detail"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[8px] font-mono">
+              <div><span className="text-foreground/30">HEX</span> <span className="text-foreground/70">{selectedFlight.hex}</span></div>
+              <div><span className="text-foreground/30">REG</span> <span className="text-foreground/70">{selectedFlight.registration}</span></div>
+              <div><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>
+              <div><span className="text-foreground/30">CTRY</span> <span className="text-foreground/70">{selectedFlight.country}</span></div>
+              <div><span className="text-foreground/30">ORIG</span> <span className="text-foreground/70">{selectedFlight.origin}</span></div>
+              <div><span className="text-foreground/30">DEST</span> <span className="text-foreground/70">{selectedFlight.destination}</span></div>
+              <div><span className="text-foreground/30">ALT</span> <span className="text-foreground/70">{selectedFlight.altitude.toLocaleString()}ft</span></div>
+              <div><span className="text-foreground/30">GS</span> <span className="text-foreground/70">{selectedFlight.groundSpeed}kts</span></div>
+              <div><span className="text-foreground/30">VR</span> <span className={selectedFlight.verticalRate > 0 ? 'text-green-400' : selectedFlight.verticalRate < 0 ? 'text-red-400' : 'text-foreground/70'}>{selectedFlight.verticalRate > 0 ? '+' : ''}{selectedFlight.verticalRate}fpm</span></div>
+              <div><span className="text-foreground/30">HDG</span> <span className="text-foreground/70">{Math.round(selectedFlight.heading)}{'\u00B0'} {headingToCompass(selectedFlight.heading)}</span></div>
+              <div><span className="text-foreground/30">SQK</span> <span className={selectedFlight.squawk === '7700' || selectedFlight.squawk === '7600' || selectedFlight.squawk === '7500' ? 'text-red-400 font-bold' : 'text-foreground/70'}>{selectedFlight.squawk}</span></div>
+              <div><span className="text-foreground/30">RSSI</span> <span className="text-foreground/70">{selectedFlight.rssi}dBm</span></div>
+              <div><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedFlight.lat.toFixed(3)}, {selectedFlight.lng.toFixed(3)}</span></div>
+              <div><span className="text-foreground/30">SEEN</span> <span className="text-foreground/70">{selectedFlight.seen}s ago</span></div>
+            </div>
+          </div>
+        )}
+
+        <div className="divide-y divide-border/20">
+          {sorted.map((f) => {
+            const style = ADSB_TYPE_STYLES[f.type] || ADSB_TYPE_STYLES.commercial;
+            return (
+              <div
+                key={f.id}
+                className={`px-3 py-1.5 cursor-pointer transition-colors ${
+                  selectedFlight?.id === f.id ? 'bg-cyan-950/30' : ''
+                } ${f.flagged ? 'border-l-2 border-l-amber-500/60' : ''}`}
+                onClick={() => setSelectedFlight(f)}
+                data-testid={`adsb-flight-${f.id}`}
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span
+                    className="text-foreground/25 shrink-0 inline-block"
+                    style={{ transform: `rotate(${f.heading}deg)`, fontSize: '8px', lineHeight: 1 }}
+                  >
+                    {'\u25B2'}
+                  </span>
+                  <span className="text-[9px] font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
+                  <span className="text-[7px] text-muted-foreground/40 font-mono">{f.hex}</span>
+                  <span className={`text-[7px] px-1 py-0 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
+                    {style.label}
+                  </span>
+                  {f.flagged && <span className="text-[7px] px-1 py-0 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
+                </div>
+                <div className="flex items-center gap-2 text-[7px] font-mono text-muted-foreground/50">
+                  <span>{f.aircraft}</span>
+                  <span>{f.origin} {'\u2192'} {f.destination}</span>
+                  <span className="ml-auto">{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -1155,12 +1321,14 @@ function MapSection({
   events,
   flights,
   ships,
+  adsbFlights,
   language,
   onClose,
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
   ships: ShipData[];
+  adsbFlights: AdsbFlight[];
   language: 'en' | 'ar';
   onClose?: () => void;
 }) {
@@ -1217,6 +1385,7 @@ function MapSection({
                 events={events}
                 flights={flights}
                 ships={ships}
+                adsbFlights={adsbFlights}
                 activeView={activeView}
                 language={language}
               />
@@ -1274,7 +1443,7 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>({
-    news: true, intel: true, map: true, events: true, radar: true, alerts: true, markets: true,
+    news: true, intel: true, map: true, events: true, radar: true, adsb: false, alerts: true, markets: true,
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -1325,6 +1494,11 @@ export default function Dashboard() {
     refetchInterval: 8000,
   });
 
+  const { data: adsbFlights = [] } = useQuery<AdsbFlight[]>({
+    queryKey: ['/api/adsb'],
+    refetchInterval: 6000,
+  });
+
   const events = intelData?.events || [];
   const flights = intelData?.flights || [];
   const ships = intelData?.ships || [];
@@ -1332,12 +1506,12 @@ export default function Dashboard() {
   useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
 
-  const panelOrder: PanelId[] = ['news', 'intel', 'map', 'events', 'radar', 'alerts', 'markets'];
+  const panelOrder: PanelId[] = ['news', 'intel', 'map', 'events', 'radar', 'adsb', 'alerts', 'markets'];
   const activePanels = panelOrder.filter(id => visiblePanels[id]);
   const panelCount = activePanels.length;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const defaultWidths: Record<PanelId, number> = { news: 10, intel: 14, map: 22, events: 10, radar: 12, alerts: 14, markets: 18 };
+  const defaultWidths: Record<PanelId, number> = { news: 10, intel: 14, map: 22, events: 10, radar: 10, adsb: 14, alerts: 14, markets: 18 };
   const [colWidths, setColWidths] = useState(defaultWidths);
 
   const activeWidths = useMemo(() => {
@@ -1373,7 +1547,7 @@ export default function Dashboard() {
       case 'intel':
         return <AIIntelPanel language={language} onClose={close} />;
       case 'map':
-        return <MapSection events={events} flights={flights} ships={ships} language={language} onClose={close} />;
+        return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} language={language} onClose={close} />;
       case 'events':
         return (
           <ScrollArea className="h-full">
@@ -1395,6 +1569,8 @@ export default function Dashboard() {
             </div>
           </>
         );
+      case 'adsb':
+        return <AdsbPanel language={language} onClose={close} />;
       case 'alerts':
         return (
           <ScrollArea className="h-full">
@@ -1506,6 +1682,9 @@ export default function Dashboard() {
           </span>
           <span className="text-[9px] text-muted-foreground/60 font-mono">
             <span className="text-foreground/40">FLT</span> {flights.length}
+          </span>
+          <span className="text-[9px] text-muted-foreground/60 font-mono">
+            <span className="text-cyan-400/40">ADSB</span> {adsbFlights.length}
           </span>
           <span className="text-[9px] text-muted-foreground/60 font-mono">
             <span className="text-foreground/40">VES</span> {ships.length}

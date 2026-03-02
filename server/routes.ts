@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight } from "@shared/schema";
 
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
@@ -289,6 +289,36 @@ function generateFlights(): FlightData[] {
   ];
 }
 
+function generateAdsbFlights(): AdsbFlight[] {
+  const now = Date.now();
+  return [
+    { id: 'ab1', hex: '738066', callsign: 'IAF685', type: 'military', aircraft: 'F-35I Adir', registration: '685', origin: 'LLNV', destination: 'PATROL', lat: jitter(31.8, 0.4), lng: jitter(34.9, 0.4), altitude: 32000, groundSpeed: 540, verticalRate: 0, heading: jitter(45, 10), squawk: '6712', rssi: -12.4, seen: 2, country: 'Israel', flagged: true },
+    { id: 'ab2', hex: '738091', callsign: 'IAF902', type: 'military', aircraft: 'F-16I Sufa', registration: '902', origin: 'LLRD', destination: 'PATROL', lat: jitter(33.0, 0.3), lng: jitter(35.5, 0.3), altitude: 28000, groundSpeed: 490, verticalRate: -500, heading: jitter(350, 10), squawk: '6714', rssi: -8.1, seen: 1, country: 'Israel', flagged: true },
+    { id: 'ab3', hex: 'AE5420', callsign: 'FORTE12', type: 'surveillance', aircraft: 'RQ-4B Global Hawk', registration: '11-2048', origin: 'OAIX', destination: 'ORBIT', lat: jitter(27.2, 0.8), lng: jitter(51.5, 1.0), altitude: 55200, groundSpeed: 340, verticalRate: 0, heading: jitter(180, 20), squawk: '4572', rssi: -22.5, seen: 4, country: 'USA', flagged: true },
+    { id: 'ab4', hex: 'AE6801', callsign: 'DUKE01', type: 'surveillance', aircraft: 'RC-135V Rivet Joint', registration: '64-14841', origin: 'OKAS', destination: 'ORBIT', lat: jitter(28.5, 0.5), lng: jitter(52.5, 0.8), altitude: 42000, groundSpeed: 380, verticalRate: 0, heading: jitter(270, 15), squawk: '4612', rssi: -18.3, seen: 3, country: 'USA', flagged: true },
+    { id: 'ab5', hex: 'AE1D8F', callsign: 'HOMER31', type: 'surveillance', aircraft: 'P-8A Poseidon', registration: '169333', origin: 'OBBI', destination: 'PATROL', lat: jitter(26.3, 0.3), lng: jitter(55.8, 0.5), altitude: 25000, groundSpeed: 310, verticalRate: 200, heading: jitter(90, 10), squawk: '4532', rssi: -14.7, seen: 2, country: 'USA', flagged: true },
+    { id: 'ab6', hex: '06A1C4', callsign: 'IRGC41', type: 'military', aircraft: 'F-14A Tomcat', registration: '3-6052', origin: 'OISS', destination: 'PATROL', lat: jitter(27.8, 0.4), lng: jitter(56.2, 0.3), altitude: 20000, groundSpeed: 420, verticalRate: 1000, heading: jitter(200, 10), squawk: '2341', rssi: -19.8, seen: 5, country: 'Iran', flagged: true },
+    { id: 'ab7', hex: '06A2F1', callsign: 'IRI732', type: 'commercial', aircraft: 'A320-214', registration: 'EP-IEE', origin: 'OIIE', destination: 'OBBI', lat: jitter(29.1, 0.3), lng: jitter(52.0, 0.5), altitude: 36000, groundSpeed: 460, verticalRate: 0, heading: jitter(210, 5), squawk: '1234', rssi: -16.2, seen: 1, country: 'Iran', flagged: false },
+    { id: 'ab8', hex: 'A4C2E1', callsign: 'QTR810', type: 'commercial', aircraft: 'B777-3DZ(ER)', registration: 'A7-BAO', origin: 'OTHH', destination: 'EGLL', lat: jitter(30.0, 0.5), lng: jitter(48.0, 0.8), altitude: 39000, groundSpeed: 470, verticalRate: 0, heading: jitter(315, 5), squawk: '7421', rssi: -11.3, seen: 1, country: 'Qatar', flagged: false },
+    { id: 'ab9', hex: 'A68C71', callsign: 'UAE422', type: 'commercial', aircraft: 'A380-861', registration: 'A6-EVK', origin: 'OMDB', destination: 'KJFK', lat: jitter(25.8, 0.3), lng: jitter(55.2, 0.3), altitude: 37000, groundSpeed: 475, verticalRate: 0, heading: jitter(340, 5), squawk: '2517', rssi: -9.8, seen: 1, country: 'UAE', flagged: false },
+    { id: 'ab10', hex: '4B1A3E', callsign: 'SVA302', type: 'commercial', aircraft: 'B787-9', registration: 'HZ-AR24', origin: 'OEJN', destination: 'OERK', lat: jitter(24.5, 0.5), lng: jitter(44.0, 0.5), altitude: 32000, groundSpeed: 440, verticalRate: -800, heading: jitter(60, 5), squawk: '3561', rssi: -13.5, seen: 2, country: 'Saudi Arabia', flagged: false },
+    { id: 'ab11', hex: 'AE07C3', callsign: 'RCH416', type: 'cargo', aircraft: 'C-17A Globemaster III', registration: '07-7178', origin: 'EDDF', destination: 'OKAS', lat: jitter(33.5, 0.5), lng: jitter(42.0, 1.0), altitude: 31000, groundSpeed: 410, verticalRate: 0, heading: jitter(120, 8), squawk: '4617', rssi: -20.1, seen: 3, country: 'USA', flagged: true },
+    { id: 'ab12', hex: '43C5E2', callsign: 'THY1872', type: 'commercial', aircraft: 'B737-9 MAX', registration: 'TC-LYA', origin: 'LTFM', destination: 'OEJN', lat: jitter(37.2, 0.3), lng: jitter(39.5, 0.5), altitude: 38000, groundSpeed: 465, verticalRate: 0, heading: jitter(135, 5), squawk: '1647', rssi: -15.4, seen: 1, country: 'Turkey', flagged: false },
+    { id: 'ab13', hex: '43D101', callsign: 'RFF02', type: 'surveillance', aircraft: 'RC-135W Airseeker', registration: 'ZZ664', origin: 'OKAS', destination: 'ORBIT', lat: jitter(32.0, 0.5), lng: jitter(44.0, 0.8), altitude: 41000, groundSpeed: 350, verticalRate: 0, heading: jitter(90, 15), squawk: '7612', rssi: -17.9, seen: 2, country: 'UK', flagged: true },
+    { id: 'ab14', hex: '3C6512', callsign: 'GAF689', type: 'government', aircraft: 'A319-133(CJ)', registration: '15+02', origin: 'EDDB', destination: 'LLBG', lat: jitter(34.0, 0.3), lng: jitter(36.0, 0.5), altitude: 39000, groundSpeed: 430, verticalRate: 0, heading: jitter(150, 5), squawk: '5411', rssi: -14.1, seen: 2, country: 'Germany', flagged: true },
+    { id: 'ab15', hex: 'AE4B21', callsign: 'EVAC01', type: 'military', aircraft: 'C-130J Super Hercules', registration: '08-8604', origin: 'OKBK', destination: 'LLAR', lat: jitter(30.0, 0.5), lng: jitter(38.0, 0.5), altitude: 24000, groundSpeed: 310, verticalRate: -400, heading: jitter(240, 8), squawk: '4621', rssi: -16.8, seen: 3, country: 'USA', flagged: true },
+    { id: 'ab16', hex: '06A0E2', callsign: 'IRIAF5', type: 'military', aircraft: 'Su-35S', registration: '3-7364', origin: 'OIFM', destination: 'PATROL', lat: jitter(34.5, 0.3), lng: jitter(47.5, 0.3), altitude: 18000, groundSpeed: 550, verticalRate: 2000, heading: jitter(270, 10), squawk: '2204', rssi: -21.3, seen: 6, country: 'Iran', flagged: true },
+    { id: 'ab17', hex: 'A81234', callsign: 'FDX6023', type: 'cargo', aircraft: 'B767-3S2F(ER)', registration: 'N129FE', origin: 'OMDB', destination: 'EDDM', lat: jitter(28.5, 0.4), lng: jitter(50.0, 0.5), altitude: 35000, groundSpeed: 445, verticalRate: 0, heading: jitter(320, 5), squawk: '2341', rssi: -12.9, seen: 1, country: 'USA', flagged: false },
+    { id: 'ab18', hex: '710501', callsign: 'MEA315', type: 'commercial', aircraft: 'A321-271NX', registration: 'OD-MRT', origin: 'OLBA', destination: 'LFPG', lat: jitter(35.2, 0.3), lng: jitter(34.8, 0.3), altitude: 34000, groundSpeed: 450, verticalRate: 500, heading: jitter(300, 5), squawk: '6102', rssi: -10.5, seen: 1, country: 'Lebanon', flagged: false },
+    { id: 'ab19', hex: '738044', callsign: 'IAF550', type: 'surveillance', aircraft: 'G550 CAEW Eitam', registration: '550', origin: 'LLNV', destination: 'ORBIT', lat: jitter(31.5, 0.5), lng: jitter(34.5, 0.5), altitude: 40000, groundSpeed: 370, verticalRate: 0, heading: jitter(180, 15), squawk: '6720', rssi: -11.8, seen: 2, country: 'Israel', flagged: true },
+    { id: 'ab20', hex: 'AE5C01', callsign: 'NCHO11', type: 'surveillance', aircraft: 'E-3G Sentry AWACS', registration: '75-0557', origin: 'OKAS', destination: 'ORBIT', lat: jitter(29.5, 0.5), lng: jitter(47.5, 0.8), altitude: 33000, groundSpeed: 340, verticalRate: 0, heading: jitter(90, 20), squawk: '4560', rssi: -19.2, seen: 3, country: 'USA', flagged: true },
+    { id: 'ab21', hex: 'A9F201', callsign: 'N/A', type: 'private', aircraft: 'G650ER', registration: 'VP-CGG', origin: 'OEJN', destination: 'OMDB', lat: jitter(25.0, 0.5), lng: jitter(48.0, 0.5), altitude: 43000, groundSpeed: 480, verticalRate: 0, heading: jitter(90, 5), squawk: '1000', rssi: -15.0, seen: 2, country: 'Cayman Is.', flagged: false },
+    { id: 'ab22', hex: '4BA912', callsign: 'RJA182', type: 'commercial', aircraft: 'A321neo', registration: 'JY-AYP', origin: 'OJAI', destination: 'OERK', lat: jitter(28.0, 0.3), lng: jitter(39.0, 0.5), altitude: 37000, groundSpeed: 455, verticalRate: 0, heading: jitter(150, 5), squawk: '3210', rssi: -13.7, seen: 1, country: 'Jordan', flagged: false },
+    { id: 'ab23', hex: '06A3B1', callsign: 'QSM412', type: 'cargo', aircraft: 'B747-281F', registration: 'EP-FAB', origin: 'OIIE', destination: 'OISS', lat: jitter(33.0, 0.3), lng: jitter(52.0, 0.5), altitude: 29000, groundSpeed: 400, verticalRate: -600, heading: jitter(180, 5), squawk: '2413', rssi: -18.5, seen: 4, country: 'Iran', flagged: true },
+    { id: 'ab24', hex: 'AE68F2', callsign: 'JAKE11', type: 'military', aircraft: 'KC-135R Stratotanker', registration: '62-3534', origin: 'OKAS', destination: 'ORBIT', lat: jitter(31.5, 0.5), lng: jitter(46.0, 0.8), altitude: 28000, groundSpeed: 390, verticalRate: 0, heading: jitter(120, 10), squawk: '4632', rssi: -16.1, seen: 2, country: 'USA', flagged: true },
+  ];
+}
+
 function generateShips(): ShipData[] {
   return [
     { id: 's1', name: 'MT Stena Impero', type: 'tanker', lat: jitter(26.4, 0.15), lng: jitter(56.15, 0.15), heading: 45, speed: 12, flag: 'UK' },
@@ -517,6 +547,10 @@ export async function registerRoutes(
 
   app.get('/api/red-alerts', (_req, res) => {
     res.json(generateRedAlerts());
+  });
+
+  app.get('/api/adsb', (_req, res) => {
+    res.json(generateAdsbFlights());
   });
 
   app.get('/api/ai-brief', (_req, res) => {

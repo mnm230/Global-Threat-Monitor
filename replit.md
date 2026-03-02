@@ -39,7 +39,8 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 10. **Live Sirens** - Scrolling red alert banner showing active rocket/missile/UAV sirens
 11. **Israel Red Alert (Tzeva Adom)** - Red Alert panel with 20 Israeli cities, shelter countdown timers, trilingual support
 12. **Alert Sound System** - Web Audio API sine-wave tone on new red alerts/sirens, with sound toggle
-13. **Panel Close/Reopen** - 7 closeable panels with reopen tabs in status bar
+13. **Panel Close/Reopen** - 8 closeable panels with reopen tabs in status bar
+14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 24 tracked aircraft, filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Also rendered as toggleable layer on the 3D map.
 
 ## API Endpoints
 - `GET /api/news` - Breaking news items (polled every 20s)
@@ -50,10 +51,12 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - `GET /api/telegram` - Telegram channel messages (polled every 25s)
 - `GET /api/ai-brief` - AI intelligence brief with key developments (polled every 60s)
 - `POST /api/ai-deduct` - AI deduction/forecasting (on-demand)
+- `GET /api/adsb` - ADS-B flight tracking data, 24 aircraft (polled every 6s)
 
 ## Panel System
-- 7 panel IDs: news, intel, map, events, radar, alerts, markets
-- Default widths: news:10, intel:14, map:22, events:10, radar:12, alerts:14, markets:18
+- 8 panel IDs: news, intel, map, events, radar, adsb, alerts, markets
+- Default widths: news:10, intel:14, map:22, events:10, radar:10, adsb:14, alerts:14, markets:18
+- ADS-B panel starts hidden (closed) by default; open via status bar tab
 - Close button (X) on each panel header
 - Closed panels appear as clickable tabs in the status bar
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { Deck } from '@deck.gl/core';
 import { ScatterplotLayer, PathLayer, LineLayer } from '@deck.gl/layers';
-import type { ConflictEvent, FlightData, ShipData } from '@shared/schema';
+import type { ConflictEvent, FlightData, ShipData, AdsbFlight } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -199,6 +199,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'underseaCables', label: 'Undersea Cables', color: '#06b6d4', defaultOn: false },
   { key: 'pipelines', label: 'Pipelines', color: '#ca8a04', defaultOn: false },
   { key: 'keyInfra', label: 'Key Infrastructure', color: '#f59e0b', defaultOn: false },
+  { key: 'adsbFlights', label: 'ADS-B Flights', color: '#06b6d4', defaultOn: false },
 ];
 
 interface TooltipInfo {
@@ -212,11 +213,12 @@ interface ConflictMapProps {
   events: ConflictEvent[];
   flights: FlightData[];
   ships: ShipData[];
+  adsbFlights?: AdsbFlight[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
 }
 
-export default function ConflictMap({ events, flights, ships, activeView, language = 'en' }: ConflictMapProps) {
+export default function ConflictMap({ events, flights, ships, adsbFlights = [], activeView, language = 'en' }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
@@ -303,6 +305,9 @@ export default function ConflictMap({ events, flights, ships, activeView, langua
       } else if (layerId === 'infra-layer') {
         text = obj.name as string;
         detail = `${obj.type} | ${obj.country}`;
+      } else if (layerId === 'adsb-layer') {
+        text = `${obj.callsign} (${obj.hex})`;
+        detail = `${obj.aircraft} | ${obj.country} | ${obj.altitude}ft`;
       }
 
       if (text) {
@@ -539,8 +544,35 @@ export default function ConflictMap({ events, flights, ships, activeView, langua
       );
     }
 
+    const ADSB_COLORS: Record<string, [number, number, number]> = {
+      military: [239, 68, 68],
+      surveillance: [34, 211, 238],
+      commercial: [34, 197, 94],
+      cargo: [245, 158, 11],
+      private: [168, 85, 247],
+      government: [59, 130, 246],
+    };
+
+    if (layerVisibility.adsbFlights && adsbFlights.length > 0) {
+      result.push(
+        new ScatterplotLayer({
+          id: 'adsb-layer',
+          data: adsbFlights,
+          getPosition: (d: AdsbFlight) => [d.lng, d.lat],
+          getRadius: 5000,
+          getFillColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || [34, 197, 94]), d.flagged ? 200 : 120] as [number, number, number, number],
+          getLineColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || [34, 197, 94]), 255] as [number, number, number, number],
+          stroked: true,
+          lineWidthMinPixels: 1,
+          radiusMinPixels: 3,
+          radiusMaxPixels: 10,
+          pickable: true,
+        })
+      );
+    }
+
     return result;
-  }, [events, flights, ships, layerVisibility]);
+  }, [events, flights, ships, adsbFlights, layerVisibility]);
 
   useEffect(() => {
     if (!containerRef.current) return;

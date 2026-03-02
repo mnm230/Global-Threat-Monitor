@@ -65,6 +65,28 @@ export interface FlightData {
   squawk?: string;
 }
 
+export interface AdsbFlight {
+  id: string;
+  hex: string;
+  callsign: string;
+  type: 'military' | 'commercial' | 'surveillance' | 'cargo' | 'private' | 'government';
+  aircraft: string;
+  registration: string;
+  origin: string;
+  destination: string;
+  lat: number;
+  lng: number;
+  altitude: number;
+  groundSpeed: number;
+  verticalRate: number;
+  heading: number;
+  squawk: string;
+  rssi: number;
+  seen: number;
+  country: string;
+  flagged: boolean;
+}
+
 export interface ShipData {
   id: string;
   name: string;
