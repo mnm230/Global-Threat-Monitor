@@ -79,36 +79,36 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .025);
   --elevate-2: rgba(255,255,255, .06);
-  --background: 220 40% 2%;
-  --foreground: 196 18% 90%;
-  --border: 218 25% 11%;
-  --card: 220 36% 3.5%;
-  --card-foreground: 196 15% 88%;
-  --card-border: 218 24% 9%;
-  --sidebar: 220 38% 3%;
-  --sidebar-foreground: 196 14% 86%;
-  --sidebar-border: 218 22% 9%;
-  --sidebar-primary: 185 88% 44%;
-  --sidebar-primary-foreground: 220 40% 5%;
-  --sidebar-accent: 218 24% 7%;
-  --sidebar-accent-foreground: 196 14% 86%;
-  --sidebar-ring: 185 88% 44%;
-  --popover: 220 36% 4%;
-  --popover-foreground: 196 14% 88%;
-  --popover-border: 218 22% 11%;
-  --primary: 185 88% 44%;
-  --primary-foreground: 220 40% 5%;
-  --secondary: 218 24% 9%;
-  --secondary-foreground: 196 14% 86%;
-  --muted: 218 22% 7%;
-  --muted-foreground: 200 12% 38%;
-  --accent: 218 24% 6.5%;
-  --accent-foreground: 196 14% 86%;
+  --background: 150 30% 2%;
+  --foreground: 140 18% 88%;
+  --border: 148 28% 10%;
+  --card: 150 28% 3.5%;
+  --card-foreground: 140 15% 86%;
+  --card-border: 148 24% 8%;
+  --sidebar: 150 30% 3%;
+  --sidebar-foreground: 140 14% 84%;
+  --sidebar-border: 148 22% 8%;
+  --sidebar-primary: 145 72% 40%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 148 22% 7%;
+  --sidebar-accent-foreground: 140 14% 84%;
+  --sidebar-ring: 145 72% 40%;
+  --popover: 150 28% 4%;
+  --popover-foreground: 140 14% 86%;
+  --popover-border: 148 22% 10%;
+  --primary: 145 72% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 148 22% 9%;
+  --secondary-foreground: 140 14% 84%;
+  --muted: 148 20% 7%;
+  --muted-foreground: 145 10% 36%;
+  --accent: 148 22% 6.5%;
+  --accent-foreground: 140 14% 84%;
   --destructive: 0 82% 54%;
   --destructive-foreground: 0 0% 100%;
-  --input: 218 22% 13%;
-  --ring: 185 88% 44%;
-  --chart-1: 185 88% 44%;
+  --input: 148 20% 12%;
+  --ring: 145 72% 40%;
+  --chart-1: 145 72% 40%;
   --chart-2: 152 72% 42%;
   --chart-3: 0 82% 54%;
   --chart-4: 199 89% 48%;
@@ -147,8 +147,23 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 
+  body.dark::after {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.06) 2px,
+      rgba(0, 0, 0, 0.06) 4px
+    );
+  }
+
   ::selection {
-    background: hsl(185 88% 44% / 0.25);
+    background: hsl(145 72% 40% / 0.25);
     color: hsl(var(--foreground));
   }
 

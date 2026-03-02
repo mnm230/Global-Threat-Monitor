@@ -77,8 +77,8 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
         <div className="w-full h-full flex items-center justify-center bg-card/50 text-muted-foreground" data-testid="map-error-fallback">
           <div className="text-center p-4">
             <Globe className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-[11px] font-mono">WebGL required for 3D map</p>
-            <p className="text-[9px] mt-1 text-muted-foreground/60">Map rendering unavailable in this environment</p>
+            <p className="text-[14px] font-mono">WebGL required for 3D map</p>
+            <p className="text-[14px] mt-1 text-muted-foreground/60">Map rendering unavailable in this environment</p>
           </div>
         </div>
       );
@@ -234,7 +234,7 @@ function LiveClock() {
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-xs text-muted-foreground font-mono hidden md:inline">{dateStr}</span>
       <span className="text-sm text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
-      <span className="text-[11px] text-muted-foreground">UTC</span>
+      <span className="text-[14px] text-muted-foreground">UTC</span>
     </div>
   );
 }
@@ -250,14 +250,14 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-6 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
+    <div className="h-7 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
-        <span className="text-[7px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
+        <span className="text-[14px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
       </div>
       <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-12">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[11px]">
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[14px]">
             <span className="text-primary/80 font-bold">{c.symbol}</span>
             <span className="text-foreground/60">{formatPrice(c)}</span>
             <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
@@ -297,10 +297,10 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
           <div className="w-4 h-4 rounded bg-red-600/25 flex items-center justify-center animate-siren-flash border border-red-500/60">
             <Siren className="w-3 h-3 text-red-400/90" />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400/80 font-mono whitespace-nowrap">
+          <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-400/80 font-mono whitespace-nowrap">
             {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
           </span>
-          <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[16px] font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[14px] px-1 py-0 h-[16px] font-mono font-bold animate-pulse-dot">
             {sirens.length}
           </Badge>
         </div>
@@ -316,7 +316,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
                   <span className="text-red-500/70">\u2022</span>
-                  <span className="text-red-400/80 text-[11px]">
+                  <span className="text-red-400/80 text-[14px]">
                     {language === 'ar' ? threat.ar : threat.en}
                   </span>
                   <span className="text-red-900/60 mx-1">\u2502</span>
@@ -329,7 +329,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
         <Button
           size="sm"
           variant="ghost"
-          className="text-[11px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
+          className="text-[14px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
           data-testid="button-siren-expand"
         >
           {expanded ? '\u25B2' : '\u25BC'} {language === 'en' ? 'Details' : '\u062A\u0641\u0627\u0635\u064A\u0644'}
@@ -349,19 +349,19 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
                 >
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <MapPin className="w-3 h-3 text-red-400 shrink-0" />
-                    <span className="text-[13px] text-red-300 font-bold truncate">
+                    <span className="text-[14px] text-red-300 font-bold truncate">
                       {language === 'ar' ? s.locationAr : s.location}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 font-bold tracking-wider rounded-sm">
+                    <Badge variant="destructive" className="text-[14px] px-1 py-0 h-4 font-bold tracking-wider rounded-sm">
                       {language === 'ar' ? threat.ar : threat.en}
                     </Badge>
-                    <span className="text-[11px] text-muted-foreground font-mono ml-auto tabular-nums">
+                    <span className="text-[14px] text-muted-foreground font-mono ml-auto tabular-nums">
                       {timeAgo(s.timestamp)}
                     </span>
                   </div>
-                  <span className="text-[11px] text-red-400/60 mt-0.5 block">
+                  <span className="text-[14px] text-red-400/60 mt-0.5 block">
                     {language === 'ar' ? s.regionAr : s.region}
                   </span>
                 </div>
@@ -388,11 +388,11 @@ function PanelHeader({
   onClose?: () => void;
 }) {
   return (
-    <div className="px-3 py-1.5 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
+    <div className="px-4 py-2 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
       <span className="text-primary shrink-0">{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/90 font-mono">{title}</span>
+      <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-primary/90 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
+        <span className="text-[14px] px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
           {count}
         </span>
       )}
@@ -400,7 +400,7 @@ function PanelHeader({
       {live && (
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
+          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -439,15 +439,15 @@ function NewsPanel({ news, language, onClose }: { news: NewsItem[]; language: 'e
             return (
               <div
                 key={item.id}
-                className={`px-3 py-2 hover-elevate cursor-pointer animate-fade-in ${isBreaking ? 'border-l-2 border-l-red-500/50' : 'border-l-2 border-l-transparent'}`}
+                className={`px-4 py-3 hover-elevate cursor-pointer animate-fade-in ${isBreaking ? 'border-l-2 border-l-red-500/50' : 'border-l-2 border-l-transparent'}`}
                 style={{ animationDelay: `${index * 30}ms` }}
                 data-testid={`news-item-${item.id}`}
               >
                 <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                  <Badge variant={style.variant} className="text-[8px] px-1 py-0 h-[15px] font-bold tracking-wider rounded-sm">
+                  <Badge variant={style.variant} className="text-[12px] px-1 py-0 h-[15px] font-bold tracking-wider rounded-sm">
                     {item.category.toUpperCase()}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground font-mono tabular-nums ml-auto">
+                  <span className="text-[12px] text-muted-foreground font-mono tabular-nums ml-auto">
                     {timeAgo(item.timestamp)}
                   </span>
                 </div>
@@ -456,7 +456,7 @@ function NewsPanel({ news, language, onClose }: { news: NewsItem[]; language: 'e
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Radio className="w-2.5 h-2.5 text-muted-foreground/50" />
-                  <span className="text-[10px] text-muted-foreground/60 font-medium">{item.source}</span>
+                  <span className="text-[12px] text-muted-foreground/60 font-medium">{item.source}</span>
                 </div>
               </div>
             );
@@ -470,17 +470,17 @@ function NewsPanel({ news, language, onClose }: { news: NewsItem[]; language: 'e
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 font-mono text-xs items-center hover-elevate transition-colors"
+      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2 font-mono text-xs items-center hover-elevate transition-colors"
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground/90 font-bold text-[11px] truncate">{c.symbol}</span>
-        <span className="text-[9px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground/90 font-bold text-[14px] truncate">{c.symbol}</span>
+        <span className="text-[14px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
-      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-[11px]">
+      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-[14px]">
         {formatPrice(c)}
       </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[11px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[14px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
         <div className={`w-0.5 h-2.5 rounded-full ${c.change >= 0 ? 'bg-emerald-500/40' : 'bg-red-500/40'}`} />
         <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
       </div>
@@ -491,7 +491,7 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 function SectionLabel({ label }: { label: string }) {
   return (
     <div className="px-3 py-0.5 bg-primary/5 border-y border-primary/10">
-      <span className="text-[8px] uppercase tracking-[0.2em] text-primary/50 font-bold font-mono">{label}</span>
+      <span className="text-[12px] uppercase tracking-[0.2em] text-primary/50 font-bold font-mono">{label}</span>
     </div>
   );
 }
@@ -517,7 +517,7 @@ function CommoditiesPanel({
         live
         onClose={onClose}
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-0.5 text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60 font-bold border-b border-border/20">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-0.5 text-[12px] uppercase tracking-[0.2em] text-muted-foreground/60 font-bold border-b border-border/20">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
         <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
         <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
@@ -570,23 +570,23 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           return (
             <div
               key={s.id}
-              className="px-3 py-1.5 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
+              className="px-4 py-2.5 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
               data-testid={`siren-panel-${s.id}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
                 <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
-                <span className="text-[11px] text-red-300/90 font-bold truncate flex-1">
+                <span className="text-[14px] text-red-300/90 font-bold truncate flex-1">
                   {language === 'ar' ? s.locationAr : s.location}
                 </span>
-                <span className="text-[10px] text-muted-foreground/60 font-mono tabular-nums shrink-0">
+                <span className="text-[12px] text-muted-foreground/60 font-mono tabular-nums shrink-0">
                   {timeAgo(s.timestamp)}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[8px] px-1 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
+                <span className={`text-[12px] px-1 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
                   {language === 'ar' ? threat.ar : threat.en}
                 </span>
-                <span className="text-[10px] text-muted-foreground/50 truncate">
+                <span className="text-[12px] text-muted-foreground/50 truncate">
                   {language === 'ar' ? s.regionAr : s.region}
                 </span>
               </div>
@@ -627,7 +627,7 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
       {flights.length === 0 && (
         <div className="px-3 py-6 text-center">
           <Plane className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-          <p className="text-[10px] text-muted-foreground">Scanning airspace...</p>
+          <p className="text-[12px] text-muted-foreground">Scanning airspace...</p>
         </div>
       )}
       <div className="divide-y divide-border/20">
@@ -636,7 +636,7 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
           return (
             <div
               key={f.id}
-              className="px-3 py-2 hover-elevate animate-fade-in"
+              className="px-4 py-3 hover-elevate animate-fade-in"
               data-testid={`flight-${f.id}`}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
@@ -644,12 +644,12 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
                   className="text-foreground/25 shrink-0 inline-block"
                   style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
                 >▲</span>
-                <span className="text-[10px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
-                <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                <span className="text-[12px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
+                <span className={`text-[14px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-1 text-[8px] font-mono text-muted-foreground/70">
+              <div className="grid grid-cols-3 gap-x-1 text-[12px] font-mono text-muted-foreground/70">
                 <span><span className="text-foreground/30">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
                 <span><span className="text-foreground/30">SPD</span> {f.speed}</span>
                 <span><span className="text-foreground/30">HDG</span> {headingToCompass(f.heading)}</span>
@@ -708,16 +708,16 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
     <div className="h-full flex flex-col" data-testid="adsb-panel">
       <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Radar className="w-3.5 h-3.5 text-cyan-400/70" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-[14px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           ADS-B
         </span>
-        <span className="text-[9px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
+        <span className="text-[14px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
           {adsbFlights.length}
         </span>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -737,7 +737,7 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
             key={key}
             data-testid={`adsb-filter-${key}`}
             onClick={() => setFilter(key)}
-            className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono border transition-colors ${
+            className={`text-[12px] px-1.5 py-0.5 rounded font-bold font-mono border transition-colors ${
               filter === key
                 ? 'bg-cyan-950/50 border-cyan-500/40 text-cyan-300'
                 : 'bg-card/30 border-border/30 text-muted-foreground/60'
@@ -752,23 +752,23 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
         {isLoading && (
           <div className="px-3 py-8 text-center">
             <Radar className="w-6 h-6 text-cyan-400/40 mx-auto mb-2 animate-pulse" />
-            <p className="text-[10px] text-muted-foreground">Scanning ADS-B feeds...</p>
+            <p className="text-[12px] text-muted-foreground">Scanning ADS-B feeds...</p>
           </div>
         )}
 
         {selectedFlight && (
           <div className="px-3 py-2 bg-cyan-950/20 border-b border-cyan-500/20 animate-fade-in">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
+              <span className="text-[14px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
               <button
                 onClick={() => setSelectedFlight(null)}
-                className="text-muted-foreground/40 text-[10px]"
+                className="text-muted-foreground/40 text-[12px]"
                 data-testid="adsb-close-detail"
               >
                 <X className="w-3 h-3" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[8px] font-mono">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[12px] font-mono">
               <div><span className="text-foreground/30">HEX</span> <span className="text-foreground/70">{selectedFlight.hex}</span></div>
               <div><span className="text-foreground/30">REG</span> <span className="text-foreground/70">{selectedFlight.registration}</span></div>
               <div><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>
@@ -806,14 +806,14 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
                   >
                     {'\u25B2'}
                   </span>
-                  <span className="text-[9px] font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
-                  <span className="text-[7px] text-muted-foreground/40 font-mono">{f.hex}</span>
-                  <span className={`text-[7px] px-1 py-0 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
+                  <span className="text-[14px] font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
+                  <span className="text-[14px] text-muted-foreground/40 font-mono">{f.hex}</span>
+                  <span className={`text-[14px] px-1 py-0 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
                     {style.label}
                   </span>
-                  {f.flagged && <span className="text-[7px] px-1 py-0 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
+                  {f.flagged && <span className="text-[14px] px-1 py-0 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
                 </div>
-                <div className="flex items-center gap-2 text-[7px] font-mono text-muted-foreground/50">
+                <div className="flex items-center gap-2 text-[14px] font-mono text-muted-foreground/50">
                   <span>{f.aircraft}</span>
                   <span>{f.origin} {'\u2192'} {f.destination}</span>
                   <span className="ml-auto">{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
@@ -861,7 +861,7 @@ function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEv
       {events.length === 0 && (
         <div className="px-3 py-6 text-center">
           <Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-          <p className="text-[10px] text-muted-foreground">No active events</p>
+          <p className="text-[12px] text-muted-foreground">No active events</p>
         </div>
       )}
       <div className="divide-y divide-border/20">
@@ -876,18 +876,18 @@ function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEv
               data-testid={`conflict-event-${e.id}`}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[11px] shrink-0">{icon}</span>
-                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">
+                <span className="text-[14px] shrink-0">{icon}</span>
+                <span className="text-[14px] font-bold font-mono text-foreground truncate flex-1">
                   {language === 'ar' && e.titleAr ? e.titleAr : e.title}
                 </span>
-                <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
+                <span className={`text-[14px] px-1 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
                   {e.severity.toUpperCase()}
                 </span>
               </div>
-              <p className="text-[9px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1">
+              <p className="text-[14px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1">
                 {language === 'ar' && e.descriptionAr ? e.descriptionAr : e.description}
               </p>
-              <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
+              <div className="flex items-center gap-2 text-[14px] font-mono text-muted-foreground">
                 <span className="uppercase tracking-wider text-foreground/40">{e.type}</span>
                 <span className="text-foreground/20">·</span>
                 <span>{timeAgo(e.timestamp)}</span>
@@ -925,7 +925,7 @@ function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; langua
       {ships.length === 0 && (
         <div className="px-3 py-6 text-center">
           <Anchor className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-          <p className="text-[10px] text-muted-foreground">Scanning waters...</p>
+          <p className="text-[12px] text-muted-foreground">Scanning waters...</p>
         </div>
       )}
       <div className="divide-y divide-border/20">
@@ -942,12 +942,12 @@ function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; langua
                   className="text-foreground/30 shrink-0 inline-block"
                   style={{ transform: `rotate(${s.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
                 >▲</span>
-                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
-                <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                <span className="text-[14px] font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
+                <span className={`text-[14px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-1 text-[9px] font-mono text-muted-foreground">
+              <div className="grid grid-cols-3 gap-x-1 text-[14px] font-mono text-muted-foreground">
                 <span><span className="text-foreground/40">SPD</span> {s.speed}kn</span>
                 <span><span className="text-foreground/40">HDG</span> {headingToCompass(s.heading)}</span>
                 <span className="truncate"><span className="text-foreground/30">FLG</span> {s.flag}</span>
@@ -991,19 +991,37 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   const isImmediate = alert.countdown === 0;
 
   return (
-    <div className={`font-mono text-center ${isImmediate ? 'text-red-400' : isUrgent ? 'text-red-400 animate-pulse' : remaining === 0 ? 'text-muted-foreground/50' : 'text-amber-400/90'}`}>
-      <div className="text-sm font-bold tabular-nums leading-none" data-testid={`red-alert-countdown-${alert.id}`}>
-        {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}s` : '--'}
+    <div className={`font-mono text-center shrink-0 min-w-[40px] ${isImmediate || isUrgent ? 'animate-pulse' : ''}`}>
+      <div
+        className={`text-base font-black tabular-nums leading-none ${
+          isImmediate ? 'text-white' : isUrgent ? 'text-red-300' : remaining === 0 ? 'text-red-900/40' : 'text-white/90'
+        }`}
+        data-testid={`red-alert-countdown-${alert.id}`}
+      >
+        {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
       </div>
-      <div className="text-[8px] text-muted-foreground/50 mt-0.5">
-        {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'shelter' : 'expired'}
+      <div className="text-[14px] text-red-300/40 mt-0.5 uppercase tracking-wider">
+        {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'sec' : ''}
       </div>
     </div>
   );
 }
 
-function RedAlertPanel({ alerts, language, onClose }: { alerts: RedAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
-  const grouped = alerts.reduce<Record<string, RedAlert[]>>((acc, alert) => {
+function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredAlerts = useMemo(() => {
+    if (!searchQuery.trim()) return alerts;
+    const q = searchQuery.toLowerCase();
+    return alerts.filter(a =>
+      a.city.toLowerCase().includes(q) ||
+      a.cityHe.includes(q) ||
+      a.cityAr.includes(q) ||
+      a.region.toLowerCase().includes(q)
+    );
+  }, [alerts, searchQuery]);
+
+  const grouped = filteredAlerts.reduce<Record<string, RedAlert[]>>((acc, alert) => {
     const key = language === 'ar' ? alert.regionAr : alert.region;
     if (!acc[key]) acc[key] = [];
     acc[key].push(alert);
@@ -1016,73 +1034,145 @@ function RedAlertPanel({ alerts, language, onClose }: { alerts: RedAlert[]; lang
     return minA - minB;
   });
 
+  const hasActiveAlerts = alerts.length > 0;
+
   return (
-    <div className="flex flex-col" data-testid="red-alert-panel">
-      <div className="px-3 py-1.5 border-b border-red-900/40 flex items-center gap-2 bg-red-950/20 shrink-0">
-        <AlertOctagon className="w-3.5 h-3.5 text-red-400/80" />
+    <div className="flex flex-col h-full" data-testid="red-alert-panel">
+      <div className={`px-3 py-2 border-b border-red-800/50 flex items-center gap-2 shrink-0 ${hasActiveAlerts ? 'bg-red-700' : 'bg-card/60'}`}>
+        <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'bg-white/20' : 'bg-red-950/30'}`}>
+          <AlertOctagon className={`w-4 h-4 ${hasActiveAlerts ? 'text-white' : 'text-red-400/60'}`} />
+        </div>
         <div className="flex flex-col leading-none">
-          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+          <span className={`text-[14px] font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className="text-[8px] text-red-400/40 font-mono">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD</span>
+          <span className={`text-[14px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
         </div>
-        <span className="text-[9px] px-1.5 py-0 font-mono text-red-400/70 bg-red-950/40 rounded border border-red-500/25 font-bold">
-          {alerts.length}
-        </span>
+        {hasActiveAlerts && (
+          <span className="text-[12px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
+            {alerts.length}
+          </span>
+        )}
         <div className="flex-1" />
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-red-400/60 font-bold">LIVE</span>
-        </div>
+        {hasActiveAlerts && (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse-dot" />
+            <span className="text-[12px] uppercase tracking-[0.2em] text-white/70 font-bold">LIVE</span>
+          </div>
+        )}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      {alerts.length === 0 && (
-        <div className="px-3 py-8 text-center">
-          <Shield className="w-6 h-6 text-emerald-500/50 mx-auto mb-2" />
-          <p className="text-xs text-emerald-400/70 font-mono">{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No active alerts'}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA</p>
+      {hasActiveAlerts && (
+        <div className="px-2 py-1.5 border-b border-red-900/30 bg-red-950/20 shrink-0">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city name...'}
+              className="w-full h-7 text-[14px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
+              data-testid="input-red-alert-search"
+            />
+          </div>
         </div>
       )}
 
-      <div className="divide-y divide-red-900/30">
-        {sortedRegions.map(([regionName, regionAlerts]) => (
-          <div key={regionName}>
-            <div className="px-3 py-1 bg-red-950/30 border-b border-red-900/20">
-              <span className="text-[10px] uppercase tracking-[0.15em] text-red-400/80 font-bold font-mono">{regionName}</span>
-            </div>
-            {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
-              const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
-              const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
-              return (
-                <div
-                  key={alert.id}
-                  className="px-3 py-1.5 flex items-center gap-2 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
-                  data-testid={`red-alert-${alert.id}`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <MapPin className="w-2.5 h-2.5 text-red-400/70 shrink-0" />
-                      <span className="text-[11px] text-red-300/90 font-bold truncate">
-                        {language === 'ar' ? alert.cityAr : alert.city}
-                      </span>
-                      <span className="text-[9px] text-red-400/40 font-mono" dir="rtl">{alert.cityHe}</span>
+      {!hasActiveAlerts && (
+        <div className="px-3 py-8 text-center flex-1 flex flex-col items-center justify-center">
+          <Shield className="w-8 h-8 text-emerald-500/40 mb-3" />
+          <p className="text-xs text-emerald-400/80 font-bold font-mono">{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No Active Alerts'}</p>
+          <p className="text-[12px] text-muted-foreground/40 mt-1 font-mono" dir="rtl">\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA</p>
+          <p className="text-[12px] text-muted-foreground/30 mt-2">All areas safe</p>
+        </div>
+      )}
+
+      <ScrollArea className="flex-1">
+        <div>
+          {sortedRegions.map(([regionName, regionAlerts]) => (
+            <div key={regionName}>
+              <div className="px-3 py-1 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-0 z-[100]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
+                  <span className="text-[14px] text-red-400/40 font-mono">{regionAlerts.length}</span>
+                </div>
+              </div>
+              {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
+                const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
+                const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
+                const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
+                const isActive = elapsed < alert.countdown;
+                return (
+                  <div
+                    key={alert.id}
+                    className={`px-3 py-2 flex items-center gap-3 border-b border-red-900/15 transition-colors ${
+                      isActive ? 'bg-red-950/30 border-l-[3px] border-l-red-500' : 'bg-transparent border-l-[3px] border-l-red-900/20'
+                    }`}
+                    data-testid={`red-alert-${alert.id}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className={`text-[12px] font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
+                          {language === 'ar' ? alert.cityAr : alert.city}
+                        </span>
+                        <span className="text-[14px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[12px] px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
+                          isActive ? `text-white/90 ${threatColor}` : 'text-red-400/30 bg-red-950/30'
+                        }`}>
+                          {language === 'ar' ? threat.ar : threat.en}
+                        </span>
+                        <span className="text-[14px] text-red-400/30 font-mono tabular-nums">
+                          {timeAgo(alert.timestamp)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[8px] px-1 py-0.5 rounded text-white/90 font-bold tracking-wider uppercase font-mono ${threatColor}`}>
-                        {language === 'ar' ? threat.ar : threat.en}
-                      </span>
-                      <span className="text-[9px] text-muted-foreground/60 font-mono tabular-nums">
-                        {timeAgo(alert.timestamp)}
-                      </span>
-                    </div>
+                    <RedAlertCountdown alert={alert} />
                   </div>
-                  <RedAlertCountdown alert={alert} />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {sirens.length > 0 && (
+        <div className="border-t border-amber-900/30 shrink-0">
+          <div className="px-3 py-1 bg-amber-950/20 flex items-center gap-2">
+            <Siren className="w-3 h-3 text-amber-400/60" />
+            <span className="text-[9px] uppercase tracking-[0.15em] text-amber-400/70 font-bold font-mono">
+              {language === 'ar' ? '\u0635\u0641\u0627\u0631\u0627\u062A' : 'Sirens'}
+            </span>
+            <span className="text-[8px] px-1 py-0 font-mono text-amber-400/50 bg-amber-950/30 rounded border border-amber-500/15">
+              {sirens.length}
+            </span>
+            <div className="flex-1" />
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot" />
+          </div>
+          <div className="max-h-[120px] overflow-y-auto">
+            {sirens.map(s => {
+              const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
+              return (
+                <div key={s.id} className="px-3 py-1 flex items-center gap-2 border-t border-amber-900/10" data-testid={`siren-panel-${s.id}`}>
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot shrink-0" />
+                  <span className="text-[10px] text-amber-300/80 font-bold truncate flex-1">
+                    {language === 'ar' ? s.locationAr : s.location}
+                  </span>
+                  <span className="text-[8px] text-amber-400/40 font-mono">{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
           </div>
-        ))}
+        </div>
+      )}
+
+      <div className="px-3 py-1 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
+        <span className="text-[8px] text-red-400/40 font-mono">tzevaadom.co.il</span>
+        <span className="text-[8px] text-red-400/40 font-mono tabular-nums">
+          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'}
+        </span>
       </div>
     </div>
   );
@@ -1117,8 +1207,8 @@ function TelegramPanel({
           <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
             <div className="flex items-center gap-1.5 mb-0.5">
               <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
-              <span className="text-[11px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
-              <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+              <span className="text-[14px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
+              <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
             </div>
             <p className="text-xs text-foreground/70 leading-[1.55]">
               {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
@@ -1133,7 +1223,7 @@ function TelegramPanel({
 function MapLegend({ activeView, language }: { activeView: string; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/15 rounded-md p-2 text-[10px] space-y-1" dir="ltr">
+    <div className="absolute bottom-3 left-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/15 rounded-md p-2 text-[12px] space-y-1" dir="ltr">
       {activeView === 'conflict' && (
         <>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Missile/Strike', '\u0635\u0627\u0631\u0648\u062E/\u0636\u0631\u0628\u0629')}</span></div>
@@ -1203,16 +1293,16 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
       <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Brain className="w-3.5 h-3.5 text-purple-400/70" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-[14px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
-        <span className="text-[8px] px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
+        <span className="text-[12px] px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
           {brief?.model || '...'}
         </span>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1221,7 +1311,7 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
         {briefLoading && (
           <div className="px-3 py-8 text-center">
             <Brain className="w-6 h-6 text-purple-400/40 mx-auto mb-2 animate-pulse" />
-            <p className="text-[10px] text-muted-foreground">Synthesizing intelligence brief...</p>
+            <p className="text-[12px] text-muted-foreground">Synthesizing intelligence brief...</p>
           </div>
         )}
 
@@ -1229,45 +1319,45 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
           <div className="divide-y divide-border/30">
             <div className="px-3 py-2">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/70">
+                <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-foreground/70">
                   {language === 'en' ? 'World Brief' : '\u0645\u0648\u062C\u0632 \u0639\u0627\u0644\u0645\u064A'}
                 </span>
                 {brief.riskLevel && (
-                  <Badge className={`text-[8px] px-1 py-0 h-[15px] font-bold border ${RISK_COLORS[brief.riskLevel] || ''}`}>
+                  <Badge className={`text-[12px] px-1 py-0 h-[15px] font-bold border ${RISK_COLORS[brief.riskLevel] || ''}`}>
                     {brief.riskLevel}
                   </Badge>
                 )}
               </div>
-              <p className="text-[11px] text-foreground/70 leading-[1.6]">
+              <p className="text-[14px] text-foreground/70 leading-[1.6]">
                 {language === 'ar' ? brief.summaryAr : brief.summary}
               </p>
               <div className="flex flex-wrap gap-1 mt-2">
                 {brief.focalPoints.map((fp, i) => (
-                  <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-purple-950/30 border border-purple-500/20 text-purple-300/70 font-mono">
+                  <span key={i} className="text-[12px] px-1.5 py-0.5 rounded bg-purple-950/30 border border-purple-500/20 text-purple-300/70 font-mono">
                     {fp}
                   </span>
                 ))}
               </div>
-              <div className="text-[9px] text-muted-foreground/40 font-mono mt-1.5">
+              <div className="text-[14px] text-muted-foreground/40 font-mono mt-1.5">
                 {new Date(brief.generatedAt).toLocaleTimeString()} UTC
               </div>
             </div>
 
             <div className="px-3 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/70 mb-1.5 block">
+              <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-foreground/70 mb-1.5 block">
                 {language === 'en' ? 'Key Developments' : '\u062A\u0637\u0648\u0631\u0627\u062A \u0631\u0626\u064A\u0633\u064A\u0629'}
               </span>
               <div className="space-y-1.5">
                 {brief.keyDevelopments.map((dev, i) => (
                   <div key={i} className="flex gap-2 items-start">
                     <div className="mt-0.5 shrink-0">
-                      <Badge className={`text-[7px] px-1 py-0 h-[13px] font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
+                      <Badge className={`text-[14px] px-1 py-0 h-[13px] font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
                         {dev.severity.toUpperCase()}
                       </Badge>
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[8px] text-muted-foreground/50 font-bold uppercase tracking-wider">{dev.category}</span>
-                      <p className="text-[10px] text-foreground/75 leading-[1.5]">
+                      <span className="text-[12px] text-muted-foreground/50 font-bold uppercase tracking-wider">{dev.category}</span>
+                      <p className="text-[12px] text-foreground/75 leading-[1.5]">
                         {language === 'ar' ? dev.textAr : dev.text}
                       </p>
                     </div>
@@ -1279,7 +1369,7 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
             <div className="px-3 py-2">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Zap className="w-3 h-3 text-amber-400/70" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/70">
+                <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-foreground/70">
                   {language === 'en' ? 'AI Deduction' : '\u0627\u0633\u062A\u0646\u062A\u0627\u062C \u0630\u0643\u064A'}
                 </span>
               </div>
@@ -1290,13 +1380,13 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
                   onChange={(e) => setDeductQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleDeduct()}
                   placeholder={language === 'en' ? 'What will happen in the next 24h?' : '\u0645\u0627\u0630\u0627 \u0633\u064A\u062D\u062F\u062B \u0641\u064A \u0627\u0644\u0640 24 \u0633\u0627\u0639\u0629 \u0627\u0644\u0642\u0627\u062F\u0645\u0629\u061F'}
-                  className="flex-1 bg-card/50 border border-border/50 rounded px-2 py-1 text-[10px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-purple-500/50 font-mono"
+                  className="flex-1 bg-card/50 border border-border/50 rounded px-2 py-1 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-purple-500/50 font-mono"
                   data-testid="input-ai-deduction"
                 />
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-[10px] px-2 h-6 text-purple-400"
+                  className="text-[12px] px-2 h-6 text-purple-400"
                   onClick={handleDeduct}
                   disabled={deductMutation.isPending || !deductQuery.trim()}
                   data-testid="button-ai-deduct"
@@ -1308,12 +1398,12 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
               {deductResult && (
                 <div className="bg-card/30 border border-border/30 rounded p-2 animate-fade-in">
                   <div className="flex items-center gap-2 mb-1">
-                    <Badge className="text-[8px] px-1 py-0 h-[14px] font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
+                    <Badge className="text-[12px] px-1 py-0 h-[14px] font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
                       {Math.round(deductResult.confidence * 100)}% confidence
                     </Badge>
-                    <span className="text-[8px] text-muted-foreground/40 font-mono">{deductResult.timeframe}</span>
+                    <span className="text-[12px] text-muted-foreground/40 font-mono">{deductResult.timeframe}</span>
                   </div>
-                  <p className="text-[10px] text-foreground/75 leading-[1.6] whitespace-pre-line">
+                  <p className="text-[12px] text-foreground/75 leading-[1.6] whitespace-pre-line">
                     {language === 'ar' ? deductResult.responseAr : deductResult.response}
                   </p>
                 </div>
@@ -1353,14 +1443,14 @@ function MapSection({
     <div className="h-full flex flex-col">
       <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Target className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-[14px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
         <div className="flex items-center gap-0.5 bg-card/50 rounded border border-border/30 p-0.5">
           {views.map((v) => (
             <button
               key={v.key}
-              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
+              className={`text-[14px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
                 activeView === v.key
                   ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'text-muted-foreground/50 hover:text-foreground/70 border border-transparent'
@@ -1375,7 +1465,7 @@ function MapSection({
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1407,7 +1497,7 @@ function MapSection({
         <div className="absolute top-3 right-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/20 rounded-md px-2 py-1">
           <div className="flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[11px] text-foreground/70 font-mono">
+            <span className="text-[14px] text-foreground/70 font-mono">
               {activeView === 'conflict' && `${events.length} events`}
               {activeView === 'flights' && `${flights.length} aircraft`}
               {activeView === 'maritime' && `${ships.length} vessels`}
@@ -1429,20 +1519,20 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-6 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
+    <div className="h-7 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
-        <span className="text-[7px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
+        <span className="text-[14px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
       </div>
       <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
-          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-2 text-[10px] font-mono">
-            <span className={`font-bold uppercase tracking-wider text-[8px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
+          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-2 text-[12px] font-mono">
+            <span className={`font-bold uppercase tracking-wider text-[12px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
               {item.category}
             </span>
             <span className="text-foreground/75">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
-            <span className="text-muted-foreground/30 text-[9px]">·</span>
-            <span className="text-muted-foreground/50 text-[9px]">{item.source}</span>
+            <span className="text-muted-foreground/30 text-[14px]">·</span>
+            <span className="text-muted-foreground/50 text-[14px]">{item.source}</span>
             <span className="text-border/30 mx-2">|</span>
           </span>
         ))}
@@ -1602,14 +1692,7 @@ export default function Dashboard() {
       case 'adsb':
         return <AdsbPanel language={language} onClose={close} />;
       case 'alerts':
-        return (
-          <ScrollArea className="h-full">
-            <RedAlertPanel alerts={redAlerts} language={language} onClose={close} />
-            <div className="border-t border-border">
-              <SirensPanel sirens={sirens} language={language} />
-            </div>
-          </ScrollArea>
-        );
+        return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} />;
       case 'markets':
         return (
           <ScrollArea className="h-full">
@@ -1624,15 +1707,15 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-10 border-b-2 border-primary/15 flex items-center justify-between px-4 bg-card/50 shrink-0">
+      <header className="h-12 border-b-2 border-primary/15 flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
               <Crosshair className="w-3 h-3 text-primary" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-bold text-[13px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 18px hsl(185 88% 44% / 0.5)'}}>WARROOM</span>
-              <span className="text-[8px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
+              <span className="font-bold text-[14px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(145 72% 40% / 0.6)'}}>WARROOM</span>
+              <span className="text-[12px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
                 {language === 'en' ? 'ME INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
@@ -1640,7 +1723,7 @@ export default function Dashboard() {
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-950/30 border border-red-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-            <span className="text-[9px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
+            <span className="text-[14px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1650,7 +1733,7 @@ export default function Dashboard() {
             <Button
               size="sm"
               variant="ghost"
-              className={`text-[10px] px-2 h-7 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`}
+              className={`text-[12px] px-2 h-7 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`}
               onClick={() => setSoundEnabled(p => !p)}
               data-testid="button-sound-toggle"
             >
@@ -1659,7 +1742,7 @@ export default function Dashboard() {
             <Button
               size="sm"
               variant="ghost"
-              className="text-[10px] px-2 h-7 font-mono text-muted-foreground/60 hover:text-foreground rounded"
+              className="text-[12px] px-2 h-7 font-mono text-muted-foreground/60 hover:text-foreground rounded"
               onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
               data-testid="button-language-toggle"
             >
@@ -1670,7 +1753,7 @@ export default function Dashboard() {
           <div className="w-px h-4 bg-border/30" />
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/30 border border-emerald-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[9px] text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
+            <span className="text-[14px] text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
               {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
@@ -1687,7 +1770,7 @@ export default function Dashboard() {
             <div className="text-center">
               <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground/50 font-medium">{language === 'en' ? 'All panels minimized' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0635\u063A\u0631\u0629'}</p>
-              <p className="text-[11px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
+              <p className="text-[14px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
             </div>
           </div>
         ) : (
@@ -1731,13 +1814,13 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-8 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
+      <div className="h-9 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[9px] text-emerald-400/70 font-mono font-bold">ONLINE</span>
+          <span className="text-[14px] text-emerald-400/70 font-mono font-bold">ONLINE</span>
         </div>
         <div className="w-px h-4 bg-border/30" />
-        <div className="flex items-center gap-2 text-[9px] font-mono">
+        <div className="flex items-center gap-2 text-[14px] font-mono">
           <span className="text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
           <span className="text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
           <span className="text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
@@ -1748,7 +1831,7 @@ export default function Dashboard() {
         {(redAlerts.length > 0 || sirens.length > 0) && (
           <>
             <div className="w-px h-4 bg-border/30" />
-            <div className="flex items-center gap-2 text-[9px] font-mono">
+            <div className="flex items-center gap-2 text-[14px] font-mono">
               {redAlerts.length > 0 && (
                 <span className="text-red-400/90 font-bold animate-pulse px-1.5 py-0.5 rounded bg-red-950/30 border border-red-500/20">
                   RED {redAlerts.length}
@@ -1766,7 +1849,7 @@ export default function Dashboard() {
           <>
             <div className="w-px h-4 bg-border/30" />
             <div className="flex items-center gap-1.5">
-              <span className="text-[8px] text-muted-foreground/40 font-mono uppercase tracking-wider hidden sm:inline">Restore:</span>
+              <span className="text-[12px] text-muted-foreground/40 font-mono uppercase tracking-wider hidden sm:inline">Restore:</span>
               {closedPanels.map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -1774,7 +1857,7 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => openPanel(id)}
-                    className="group flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
+                    className="group flex items-center gap-1 px-2 py-0.5 rounded text-[14px] font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
                     title={`Restore ${cfg.label} panel`}
                     data-testid={`button-open-panel-${id}`}
                   >
@@ -1787,7 +1870,7 @@ export default function Dashboard() {
             </div>
           </>
         )}
-        <span className="text-[8px] text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
+        <span className="text-[12px] text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
           WARROOM v1.0
         </span>
       </div>
