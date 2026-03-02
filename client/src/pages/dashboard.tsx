@@ -110,11 +110,11 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
   return (
     <div
-      className={`${direction === 'col' ? 'w-[3px] cursor-col-resize' : 'h-[3px] cursor-row-resize'} shrink-0 transition-all duration-150 relative group ${isDragging ? 'bg-primary/60' : 'bg-border/40 hover:bg-primary/30'}`}
+      className={`${direction === 'col' ? 'w-[2px] cursor-col-resize' : 'h-[2px] cursor-row-resize'} shrink-0 transition-all duration-150 relative group ${isDragging ? 'bg-primary/50' : 'bg-border/20 hover:bg-primary/20'}`}
       onMouseDown={() => setIsDragging(true)}
       data-testid="resize-handle"
     >
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-6' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-6'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/50'}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-8' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-8'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/40'}`} />
     </div>
   );
 }
@@ -246,14 +246,16 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-border/30 bg-card/15" />;
+  if (!commodities.length) return <div className="h-7 border-b border-border/20 bg-card/10" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-border/30 bg-card/15 overflow-hidden relative" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
-      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap px-4">
+    <div className="h-6 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
+        <span className="text-[7px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
+      </div>
+      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-12">
         {items.map((c, i) => (
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[11px]">
             <span className="text-primary/80 font-bold">{c.symbol}</span>
@@ -386,18 +388,19 @@ function PanelHeader({
   onClose?: () => void;
 }) {
   return (
-    <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
-      <span className="text-primary/80">{icon}</span>
-      <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/90">{title}</span>
+    <div className="px-3 py-1.5 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
+      <span className="text-primary shrink-0">{icon}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/90 font-mono">{title}</span>
       {count !== undefined && (
-        <Badge variant="outline" className="text-[9px] px-1 py-0 h-[18px] font-mono border-border/40 text-muted-foreground">
+        <span className="text-[9px] px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
           {count}
-        </Badge>
+        </span>
       )}
+      <div className="flex-1" />
       {live && (
-        <div className={`${onClose ? '' : 'ml-auto'} flex items-center gap-1`}>
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-500/80 font-bold">LIVE</span>
+        <div className="flex items-center gap-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -487,8 +490,8 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3 py-0.5 bg-card/40 border-y border-border/20">
-      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/80 font-bold">{label}</span>
+    <div className="px-3 py-0.5 bg-primary/5 border-y border-primary/10">
+      <span className="text-[8px] uppercase tracking-[0.2em] text-primary/50 font-bold font-mono">{label}</span>
     </div>
   );
 }
@@ -703,16 +706,18 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
 
   return (
     <div className="h-full flex flex-col" data-testid="adsb-panel">
-      <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
-        <div className="w-4 h-4 rounded bg-cyan-600/30 flex items-center justify-center border border-cyan-500/40">
-          <Radar className="w-3 h-3 text-cyan-400" />
-        </div>
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-cyan-400/90">
+      <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
+        <Radar className="w-3.5 h-3.5 text-cyan-400/70" />
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           ADS-B
         </span>
+        <span className="text-[9px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
+          {adsbFlights.length}
+        </span>
+        <div className="flex-1" />
         <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse-dot" />
-          <span className="text-[9px] text-green-400/60 font-mono">{adsbFlights.length} tracked</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1013,22 +1018,21 @@ function RedAlertPanel({ alerts, language, onClose }: { alerts: RedAlert[]; lang
 
   return (
     <div className="flex flex-col" data-testid="red-alert-panel">
-      <div className="px-3 py-1.5 border-b border-red-900/40 flex items-center gap-2 bg-red-950/30 shrink-0">
-        <div className="w-4 h-4 rounded bg-red-600/30 flex items-center justify-center animate-siren-flash border border-red-500/60">
-          <AlertOctagon className="w-3 h-3 text-red-400/90" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-red-400/90">
+      <div className="px-3 py-1.5 border-b border-red-900/40 flex items-center gap-2 bg-red-950/20 shrink-0">
+        <AlertOctagon className="w-3.5 h-3.5 text-red-400/80" />
+        <div className="flex flex-col leading-none">
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className="text-[9px] text-red-400/50 font-mono" dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD \u2014 Tzeva Adom</span>
+          <span className="text-[8px] text-red-400/40 font-mono">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[18px] font-mono font-bold animate-pulse-dot">
-            {alerts.length}
-          </Badge>
+        <span className="text-[9px] px-1.5 py-0 font-mono text-red-400/70 bg-red-950/40 rounded border border-red-500/25 font-bold">
+          {alerts.length}
+        </span>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[9px] uppercase tracking-[0.2em] text-red-400/70 font-bold">LIVE</span>
+          <span className="text-[8px] uppercase tracking-[0.2em] text-red-400/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1129,7 +1133,7 @@ function TelegramPanel({
 function MapLegend({ activeView, language }: { activeView: string; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm border border-border rounded-md p-2 text-[10px] space-y-0.5" dir="ltr">
+    <div className="absolute bottom-3 left-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/15 rounded-md p-2 text-[10px] space-y-1" dir="ltr">
       {activeView === 'conflict' && (
         <>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Missile/Strike', '\u0635\u0627\u0631\u0648\u062E/\u0636\u0631\u0628\u0629')}</span></div>
@@ -1197,16 +1201,18 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
 
   return (
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
-      <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
-        <div className="w-4 h-4 rounded bg-purple-600/30 flex items-center justify-center border border-purple-500/40">
-          <Brain className="w-3 h-3 text-purple-400" />
-        </div>
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-purple-400/90">
-          {language === 'en' ? 'AI Intelligence' : '\u0630\u0643\u0627\u0621 \u0627\u0635\u0637\u0646\u0627\u0639\u064A'}
+      <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
+        <Brain className="w-3.5 h-3.5 text-purple-400/70" />
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+          {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
+        <span className="text-[8px] px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
+          {brief?.model || '...'}
+        </span>
+        <div className="flex-1" />
         <div className="flex items-center gap-1">
-          <Sparkles className="w-2.5 h-2.5 text-purple-400/60" />
-          <span className="text-[9px] text-purple-400/50 font-mono">{brief?.model || 'loading'}</span>
+          <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
+          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1345,29 +1351,31 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-1 border-b border-border/50 flex items-center gap-1.5 bg-card/20 shrink-0 flex-wrap">
-        <Target className="w-3.5 h-3.5 text-primary/80 shrink-0" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/90 mr-auto">
-          {language === 'en' ? 'Intelligence Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
+      <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
+        <Target className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+          {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 bg-card/50 rounded border border-border/30 p-0.5">
           {views.map((v) => (
-            <Button
+            <button
               key={v.key}
-              size="sm"
-              variant={activeView === v.key ? 'default' : 'ghost'}
-              className={`text-[10px] px-1.5 h-6 ${activeView === v.key ? '' : 'text-muted-foreground/70'}`}
+              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
+                activeView === v.key
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'text-muted-foreground/50 hover:text-foreground/70 border border-transparent'
+              }`}
               onClick={() => setActiveView(v.key)}
               data-testid={`button-map-${v.key}`}
             >
-              <v.icon className="w-2.5 h-2.5 mr-0.5" />
-              {v.label}
-            </Button>
+              {v.labelEn}
+            </button>
           ))}
         </div>
-        <div className="flex items-center gap-1 ml-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1396,7 +1404,7 @@ function MapSection({
           </MapErrorBoundary>
         </div>
         <MapLegend activeView={activeView} language={language} />
-        <div className="absolute top-3 right-3 z-[1000] bg-background/90 backdrop-blur-sm border border-border rounded-md px-2 py-1">
+        <div className="absolute top-3 right-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/20 rounded-md px-2 py-1">
           <div className="flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-[11px] text-foreground/70 font-mono">
@@ -1415,18 +1423,18 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   if (!news.length) return null;
   const CATEGORY_COLORS: Record<string, string> = {
     breaking: 'text-red-400',
-    military: 'text-orange-400',
+    military: 'text-amber-400',
     diplomatic: 'text-blue-400',
     economic: 'text-emerald-400',
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-6 border-t border-border/40 bg-card/20 overflow-hidden relative shrink-0" data-testid="news-ticker">
-      <div className="absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-background to-transparent z-10 flex items-center">
-        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-primary font-mono pl-2 whitespace-nowrap">NEWS</span>
+    <div className="h-6 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
+      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
+        <span className="text-[7px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-12">
+      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-2 text-[10px] font-mono">
             <span className={`font-bold uppercase tracking-wider text-[8px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
@@ -1514,7 +1522,7 @@ export default function Dashboard() {
   const panelCount = activePanels.length;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const defaultWidths: Record<PanelId, number> = { news: 10, intel: 14, map: 22, events: 10, radar: 10, adsb: 14, alerts: 14, markets: 18 };
+  const defaultWidths: Record<PanelId, number> = { news: 11, intel: 13, map: 24, events: 10, radar: 10, adsb: 13, alerts: 12, markets: 16 };
   const [colWidths, setColWidths] = useState(defaultWidths);
 
   const activeWidths = useMemo(() => {
@@ -1597,48 +1605,54 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-10 border-b border-border/40 flex items-center justify-between px-4 bg-card/20 shrink-0">
+      <header className="h-10 border-b-2 border-primary/15 flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-4 h-4 rounded bg-primary/20 flex items-center justify-center">
-              <Crosshair className="w-3 h-3 text-primary/80" />
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
+              <Crosshair className="w-3 h-3 text-primary" />
             </div>
-            <span className="font-bold text-[13px] tracking-tight text-primary font-mono">WARROOM</span>
+            <div className="flex flex-col leading-none">
+              <span className="font-bold text-[13px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 18px hsl(185 88% 44% / 0.5)'}}>WARROOM</span>
+              <span className="text-[8px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
+                {language === 'en' ? 'ME INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="w-px h-5 bg-border/30 hidden sm:block" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-950/30 border border-red-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-            <span className="text-[9px] text-red-400/80 font-bold tracking-[0.15em] uppercase">LIVE</span>
+            <span className="text-[9px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
-          <span className="text-[10px] text-muted-foreground/60 hidden md:inline font-medium tracking-wide">
-            {language === 'en' ? 'Middle East Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u0627\u0644\u0634\u0631\u0642 \u0627\u0644\u0623\u0648\u0633\u0637'}
-          </span>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <LiveClock />
-          <Separator orientation="vertical" className="h-4 bg-border/30" />
-          <Button
-            size="sm"
-            variant="ghost"
-            className={`text-[10px] px-2 h-6 font-mono ${soundEnabled ? 'text-primary' : 'text-muted-foreground'} hover:text-foreground`}
-            onClick={() => setSoundEnabled(p => !p)}
-            data-testid="button-sound-toggle"
-          >
-            {soundEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-[10px] px-2 h-6 font-mono text-muted-foreground hover:text-foreground"
-            onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-            data-testid="button-language-toggle"
-          >
-            <Languages className="w-3 h-3 mr-1" />
-            {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
-          </Button>
+          <div className="w-px h-4 bg-border/30" />
           <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`text-[10px] px-2 h-7 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`}
+              onClick={() => setSoundEnabled(p => !p)}
+              data-testid="button-sound-toggle"
+            >
+              {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-[10px] px-2 h-7 font-mono text-muted-foreground/60 hover:text-foreground rounded"
+              onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+              data-testid="button-language-toggle"
+            >
+              <Languages className="w-3.5 h-3.5 mr-1" />
+              {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
+            </Button>
+          </div>
+          <div className="w-px h-4 bg-border/30" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/30 border border-emerald-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[9px] text-emerald-500/70 font-bold tracking-wider hidden sm:inline uppercase">
-              {language === 'en' ? 'Connected' : '\u0645\u062A\u0635\u0644'}
+            <span className="text-[9px] text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
+              {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
         </div>
@@ -1648,21 +1662,24 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden" data-testid="resizable-panels">
+      <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden border-t border-border/20" data-testid="resizable-panels">
         {activePanels.map((id, idx) => (
           <div key={id} className="contents">
             {idx > 0 && <ResizeHandle onResize={makeResizer(idx - 1)} />}
-            <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${activeWidths[idx]}%` }}>
+            <div
+              className={`overflow-hidden flex flex-col min-h-0 ${idx < activePanels.length - 1 ? 'border-r border-border/30' : ''}`}
+              style={{ width: `${activeWidths[idx]}%`, background: 'hsl(var(--background))' }}
+            >
               {renderPanel(id)}
             </div>
           </div>
         ))}
         {panelCount === 0 && (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-background">
             <div className="text-center">
-              <PanelLeft className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground/50">{language === 'en' ? 'All panels closed' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u063A\u0644\u0642\u0629'}</p>
-              <p className="text-[10px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Use tabs below to restore' : '\u0627\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062A \u0623\u062F\u0646\u0627\u0647 \u0644\u0644\u0627\u0633\u062A\u0639\u0627\u062F\u0629'}</p>
+              <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground/50 font-medium">{language === 'en' ? 'All panels minimized' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0635\u063A\u0631\u0629'}</p>
+              <p className="text-[11px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
             </div>
           </div>
         )}
@@ -1670,46 +1687,42 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-7 border-t border-border/30 flex items-center px-4 bg-card/15 shrink-0 gap-3 overflow-hidden" data-testid="status-bar">
-        <div className="flex items-center gap-1">
-          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[9px] text-muted-foreground/70 font-mono">ONLINE</span>
+      <div className="h-8 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
+        <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+          <span className="text-[9px] text-emerald-400/70 font-mono font-bold">ONLINE</span>
         </div>
-        <div className="w-px h-3 bg-border/30" />
-        <div className="flex items-center gap-2.5">
-          <span className="text-[9px] text-muted-foreground/60 font-mono">
-            <span className="text-foreground/40">SRC</span> 12
-          </span>
-          <span className="text-[9px] text-muted-foreground/60 font-mono">
-            <span className="text-foreground/40">EVT</span> {events.length}
-          </span>
-          <span className="text-[9px] text-muted-foreground/60 font-mono">
-            <span className="text-foreground/40">FLT</span> {flights.length}
-          </span>
-          <span className="text-[9px] text-muted-foreground/60 font-mono">
-            <span className="text-cyan-400/40">ADSB</span> {adsbFlights.length}
-          </span>
-          <span className="text-[9px] text-muted-foreground/60 font-mono">
-            <span className="text-foreground/40">VES</span> {ships.length}
-          </span>
-          <span className="text-[9px] text-muted-foreground/60 font-mono">
-            <span className="text-foreground/40">MKT</span> {commodities.length}
-          </span>
-          {redAlerts.length > 0 && (
-            <span className="text-[9px] text-red-400/80 font-mono font-bold animate-pulse">
-              <span className="text-red-400/50">RED</span> {redAlerts.length}
-            </span>
-          )}
-          {sirens.length > 0 && (
-            <span className="text-[9px] text-red-400/70 font-mono font-bold">
-              <span className="text-red-400/50">SRN</span> {sirens.length}
-            </span>
-          )}
+        <div className="w-px h-4 bg-border/30" />
+        <div className="flex items-center gap-2 text-[9px] font-mono">
+          <span className="text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
+          <span className="text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
+          <span className="text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
+          <span className="text-muted-foreground/50"><span className="text-cyan-400/35">ADS</span> {adsbFlights.length}</span>
+          <span className="text-muted-foreground/50"><span className="text-foreground/35">VES</span> {ships.length}</span>
+          <span className="text-muted-foreground/50"><span className="text-foreground/35">MKT</span> {commodities.length}</span>
         </div>
+        {(redAlerts.length > 0 || sirens.length > 0) && (
+          <>
+            <div className="w-px h-4 bg-border/30" />
+            <div className="flex items-center gap-2 text-[9px] font-mono">
+              {redAlerts.length > 0 && (
+                <span className="text-red-400/90 font-bold animate-pulse px-1.5 py-0.5 rounded bg-red-950/30 border border-red-500/20">
+                  RED {redAlerts.length}
+                </span>
+              )}
+              {sirens.length > 0 && (
+                <span className="text-red-400/70 font-bold px-1.5 py-0.5 rounded bg-red-950/20 border border-red-500/15">
+                  SRN {sirens.length}
+                </span>
+              )}
+            </div>
+          </>
+        )}
         {closedPanels.length > 0 && (
           <>
-            <div className="w-px h-3 bg-border/30" />
-            <div className="flex items-center gap-1">
+            <div className="w-px h-4 bg-border/30" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[8px] text-muted-foreground/40 font-mono uppercase tracking-wider hidden sm:inline">Restore:</span>
               {closedPanels.map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -1717,11 +1730,11 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => openPanel(id)}
-                    className="group flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-primary/70 bg-primary/10 hover:bg-primary/20 hover:text-primary transition-colors border border-primary/20"
+                    className="group flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
                     title={`Restore ${cfg.label} panel`}
                     data-testid={`button-open-panel-${id}`}
                   >
-                    <Maximize2 className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
+                    <Maximize2 className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 transition-opacity" />
                     <Icon className="w-2.5 h-2.5" />
                     {language === 'en' ? cfg.label : cfg.labelAr}
                   </button>
@@ -1730,8 +1743,8 @@ export default function Dashboard() {
             </div>
           </>
         )}
-        <span className="text-[9px] text-muted-foreground/50 font-mono ml-auto hidden sm:inline">
-          WARROOM v1.0 \u00B7 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
+        <span className="text-[8px] text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
+          WARROOM v1.0
         </span>
       </div>
     </div>

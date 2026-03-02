@@ -74,43 +74,43 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
+  --button-outline: rgba(255,255,255, .08);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .03);
-  --elevate-2: rgba(255,255,255, .07);
-  --background: 225 30% 3%;
-  --foreground: 210 12% 93%;
-  --border: 225 20% 12%;
-  --card: 225 28% 5.5%;
-  --card-foreground: 210 12% 91%;
-  --card-border: 225 20% 10%;
-  --sidebar: 225 30% 4%;
-  --sidebar-foreground: 210 12% 89%;
-  --sidebar-border: 225 20% 10%;
-  --sidebar-primary: 32 95% 50%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 225 20% 8%;
-  --sidebar-accent-foreground: 210 12% 89%;
-  --sidebar-ring: 32 95% 50%;
-  --popover: 225 28% 6%;
-  --popover-foreground: 210 12% 91%;
-  --popover-border: 225 20% 12%;
-  --primary: 32 95% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 225 20% 10%;
-  --secondary-foreground: 210 12% 89%;
-  --muted: 225 20% 8%;
-  --muted-foreground: 210 10% 42%;
-  --accent: 225 22% 7%;
-  --accent-foreground: 210 12% 89%;
-  --destructive: 0 72% 51%;
+  --elevate-1: rgba(255,255,255, .025);
+  --elevate-2: rgba(255,255,255, .06);
+  --background: 220 40% 2%;
+  --foreground: 196 18% 90%;
+  --border: 218 25% 11%;
+  --card: 220 36% 3.5%;
+  --card-foreground: 196 15% 88%;
+  --card-border: 218 24% 9%;
+  --sidebar: 220 38% 3%;
+  --sidebar-foreground: 196 14% 86%;
+  --sidebar-border: 218 22% 9%;
+  --sidebar-primary: 185 88% 44%;
+  --sidebar-primary-foreground: 220 40% 5%;
+  --sidebar-accent: 218 24% 7%;
+  --sidebar-accent-foreground: 196 14% 86%;
+  --sidebar-ring: 185 88% 44%;
+  --popover: 220 36% 4%;
+  --popover-foreground: 196 14% 88%;
+  --popover-border: 218 22% 11%;
+  --primary: 185 88% 44%;
+  --primary-foreground: 220 40% 5%;
+  --secondary: 218 24% 9%;
+  --secondary-foreground: 196 14% 86%;
+  --muted: 218 22% 7%;
+  --muted-foreground: 200 12% 38%;
+  --accent: 218 24% 6.5%;
+  --accent-foreground: 196 14% 86%;
+  --destructive: 0 82% 54%;
   --destructive-foreground: 0 0% 100%;
-  --input: 225 20% 16%;
-  --ring: 32 95% 50%;
-  --chart-1: 32 95% 50%;
+  --input: 218 22% 13%;
+  --ring: 185 88% 44%;
+  --chart-1: 185 88% 44%;
   --chart-2: 152 72% 42%;
-  --chart-3: 0 72% 51%;
+  --chart-3: 0 82% 54%;
   --chart-4: 199 89% 48%;
   --chart-5: 47 95% 55%;
   --shadow-2xs: 0px 2px 0px 0px hsl(224 18% 50% / 0.00);
@@ -148,7 +148,7 @@
   }
 
   ::selection {
-    background: hsl(28 95% 52% / 0.3);
+    background: hsl(185 88% 44% / 0.25);
     color: hsl(var(--foreground));
   }
 
