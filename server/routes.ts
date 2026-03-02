@@ -154,7 +154,6 @@ function generateCommodities(): CommodityData[] {
     { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', base: 1.3598, currency: '', category: 'fx-major' as const },
     { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', base: 3.92, currency: '', category: 'fx' as const },
     { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', base: 42150, currency: '', category: 'fx' as const },
-    { symbol: 'USD/LBP', name: 'US Dollar/Lira', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0644\u064A\u0631\u0629', base: 89750, currency: '', category: 'fx' as const },
     { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', base: 3.7500, currency: '', category: 'fx' as const },
     { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', base: 3.6725, currency: '', category: 'fx' as const },
   ];

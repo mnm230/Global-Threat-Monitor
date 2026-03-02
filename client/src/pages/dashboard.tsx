@@ -67,11 +67,11 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
   return (
     <div
-      className={`${direction === 'col' ? 'w-[5px] cursor-col-resize hover:bg-primary/40' : 'h-[5px] cursor-row-resize hover:bg-primary/40'} bg-border/60 shrink-0 transition-colors relative group ${isDragging ? 'bg-primary/50' : ''}`}
+      className={`${direction === 'col' ? 'w-[3px] cursor-col-resize' : 'h-[3px] cursor-row-resize'} shrink-0 transition-all duration-150 relative group ${isDragging ? 'bg-primary/60' : 'bg-border/40 hover:bg-primary/30'}`}
       onMouseDown={() => setIsDragging(true)}
       data-testid="resize-handle"
     >
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[3px] h-8' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[3px] w-8'} rounded-full bg-muted-foreground/30 group-hover:bg-primary/60 transition-colors ${isDragging ? 'bg-primary/70' : ''}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-6' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-6'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/50'}`} />
     </div>
   );
 }
@@ -124,23 +124,23 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-8 border-b border-border bg-card/20" />;
+  if (!commodities.length) return <div className="h-7 border-b border-border/30 bg-card/15" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-8 border-b border-border/50 bg-card/20 overflow-hidden relative" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent z-10" />
-      <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap px-4">
+    <div className="h-7 border-b border-border/30 bg-card/15 overflow-hidden relative" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-background to-transparent z-10" />
+      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-background to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap px-4">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-xs">
-            <span className="text-primary font-bold">{c.symbol}</span>
-            <span className="text-foreground/80">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {c.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[11px]">
+            <span className="text-primary/80 font-bold">{c.symbol}</span>
+            <span className="text-foreground/60">{formatPrice(c)}</span>
+            <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+              {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
-            <span className="text-border/40 mx-0.5">\u2502</span>
+            <span className="text-border/30 mx-0.5">\u00B7</span>
           </span>
         ))}
       </div>
@@ -163,20 +163,20 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
   const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="border-b border-red-900/50 shrink-0" data-testid="siren-banner">
+    <div className="border-b border-red-900/30 shrink-0" data-testid="siren-banner">
       <div
         className="animate-siren-bg flex items-center gap-2 px-4 cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
         data-testid="button-siren-toggle"
       >
-        <div className="flex items-center gap-2 py-1.5 shrink-0">
-          <div className="w-5 h-5 rounded bg-red-600/30 flex items-center justify-center animate-siren-flash border border-red-500">
-            <Siren className="w-3.5 h-3.5 text-red-400" />
+        <div className="flex items-center gap-2 py-1 shrink-0">
+          <div className="w-4 h-4 rounded bg-red-600/25 flex items-center justify-center animate-siren-flash border border-red-500/60">
+            <Siren className="w-3 h-3 text-red-400/90" />
           </div>
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-400 font-mono whitespace-nowrap">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400/80 font-mono whitespace-nowrap">
             {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
           </span>
-          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[16px] font-mono font-bold animate-pulse-dot">
             {sirens.length}
           </Badge>
         </div>
@@ -262,18 +262,18 @@ function PanelHeader({
   count?: number;
 }) {
   return (
-    <div className="px-3 py-2 border-b border-border flex items-center gap-2 bg-card/50 shrink-0">
-      <span className="text-primary">{icon}</span>
-      <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{title}</span>
+    <div className="px-3 py-1.5 border-b border-border/70 flex items-center gap-2 bg-card/30 shrink-0">
+      <span className="text-primary/80">{icon}</span>
+      <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/90">{title}</span>
       {count !== undefined && (
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-mono border-border/50">
+        <Badge variant="outline" className="text-[9px] px-1 py-0 h-[18px] font-mono border-border/40 text-muted-foreground">
           {count}
         </Badge>
       )}
       {live && (
         <div className="ml-auto flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-500/80 font-bold">LIVE</span>
         </div>
       )}
     </div>
@@ -310,24 +310,24 @@ function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar'
             return (
               <div
                 key={item.id}
-                className={`px-3 py-2.5 hover-elevate cursor-pointer animate-fade-in ${isBreaking ? 'border-l-2 border-l-red-500/60' : 'border-l-2 border-l-transparent'}`}
+                className={`px-3 py-2 hover-elevate cursor-pointer animate-fade-in ${isBreaking ? 'border-l-2 border-l-red-500/50' : 'border-l-2 border-l-transparent'}`}
                 style={{ animationDelay: `${index * 30}ms` }}
                 data-testid={`news-item-${item.id}`}
               >
-                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                  <Badge variant={style.variant} className="text-[9px] px-1.5 py-0 h-4 font-bold tracking-wider rounded-sm">
+                <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                  <Badge variant={style.variant} className="text-[8px] px-1 py-0 h-[15px] font-bold tracking-wider rounded-sm">
                     {item.category.toUpperCase()}
                   </Badge>
-                  <span className="text-[11px] text-muted-foreground font-mono tabular-nums ml-auto">
+                  <span className="text-[10px] text-muted-foreground font-mono tabular-nums ml-auto">
                     {timeAgo(item.timestamp)}
                   </span>
                 </div>
-                <p className="text-[13px] text-foreground/90 leading-[1.6] font-medium">
+                <p className="text-xs text-foreground/85 leading-[1.5] font-medium">
                   {language === 'ar' && item.titleAr ? item.titleAr : item.title}
                 </p>
-                <div className="flex items-center gap-1 mt-1">
-                  <Radio className="w-2.5 h-2.5 text-muted-foreground/60" />
-                  <span className="text-[11px] text-muted-foreground/70 font-medium">{item.source}</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Radio className="w-2.5 h-2.5 text-muted-foreground/50" />
+                  <span className="text-[10px] text-muted-foreground/60 font-medium">{item.source}</span>
                 </div>
               </div>
             );
@@ -341,18 +341,18 @@ function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar'
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 font-mono text-xs items-center hover-elevate transition-colors"
+      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 font-mono text-xs items-center hover-elevate transition-colors"
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground font-bold text-xs truncate">{c.symbol}</span>
-        <span className="text-[10px] text-muted-foreground leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground/90 font-bold text-[11px] truncate">{c.symbol}</span>
+        <span className="text-[9px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
-      <span className="text-foreground tabular-nums text-right font-semibold whitespace-nowrap">
+      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-[11px]">
         {formatPrice(c)}
       </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[52px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-        <div className={`w-1 h-3 rounded-full ${c.change >= 0 ? 'bg-emerald-400/30' : 'bg-red-400/30'}`} />
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[11px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <div className={`w-0.5 h-2.5 rounded-full ${c.change >= 0 ? 'bg-emerald-500/40' : 'bg-red-500/40'}`} />
         <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
       </div>
     </div>
@@ -361,8 +361,8 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3 py-1 bg-card/60 border-b border-border/30">
-      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">{label}</span>
+    <div className="px-3 py-0.5 bg-card/40 border-y border-border/20">
+      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/80 font-bold">{label}</span>
     </div>
   );
 }
@@ -385,7 +385,7 @@ function CommoditiesPanel({
         icon={<BarChart3 className="w-3.5 h-3.5" />}
         live
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-bold border-b border-border/30">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-0.5 text-[8px] uppercase tracking-[0.2em] text-muted-foreground/60 font-bold border-b border-border/20">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
         <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
         <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
@@ -430,30 +430,30 @@ function SirensPanel({ sirens, language }: { sirens: SirenAlert[]; language: 'en
           <p className="text-xs text-muted-foreground">No active alerts</p>
         </div>
       )}
-      <div className="divide-y divide-border/20">
+      <div className="divide-y divide-border/15">
         {sorted.map((s) => {
           const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
           const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
           return (
             <div
               key={s.id}
-              className="px-3 py-2 animate-fade-in hover-elevate border-l-2 border-l-red-500/50"
+              className="px-3 py-1.5 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
               data-testid={`siren-panel-${s.id}`}
             >
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
-                <span className="text-[13px] text-red-300 font-bold truncate flex-1">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
+                <span className="text-[11px] text-red-300/90 font-bold truncate flex-1">
                   {language === 'ar' ? s.locationAr : s.location}
                 </span>
-                <span className="text-[11px] text-muted-foreground font-mono tabular-nums shrink-0">
+                <span className="text-[10px] text-muted-foreground/60 font-mono tabular-nums shrink-0">
                   {timeAgo(s.timestamp)}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
-                  {threat.icon} {language === 'ar' ? threat.ar : threat.en}
+                <span className={`text-[8px] px-1 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
+                  {language === 'ar' ? threat.ar : threat.en}
                 </span>
-                <span className="text-[11px] text-muted-foreground/70 truncate">
+                <span className="text-[10px] text-muted-foreground/50 truncate">
                   {language === 'ar' ? s.regionAr : s.region}
                 </span>
               </div>
@@ -505,20 +505,151 @@ function FlightRadarPanel({ flights, language }: { flights: FlightData[]; langua
               className="px-3 py-2 hover-elevate animate-fade-in"
               data-testid={`flight-${f.id}`}
             >
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span
+                  className="text-foreground/25 shrink-0 inline-block"
+                  style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
+                >▲</span>
+                <span className="text-[10px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
+                <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                  {style.label}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-x-1 text-[8px] font-mono text-muted-foreground/70">
+                <span><span className="text-foreground/30">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
+                <span><span className="text-foreground/30">SPD</span> {f.speed}</span>
+                <span><span className="text-foreground/30">HDG</span> {headingToCompass(f.heading)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const SEVERITY_STYLES: Record<string, { color: string; bg: string; dot: string }> = {
+  critical: { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    dot: 'bg-red-500' },
+  high:     { color: 'text-orange-400', bg: 'bg-orange-950/40 border-orange-500/30', dot: 'bg-orange-500' },
+  medium:   { color: 'text-yellow-400', bg: 'bg-yellow-950/40 border-yellow-500/30', dot: 'bg-yellow-500' },
+  low:      { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  dot: 'bg-blue-500' },
+};
+
+const EVENT_TYPE_ICONS: Record<string, string> = {
+  missile:   '🚀',
+  airstrike: '💥',
+  naval:     '⚓',
+  ground:    '🪖',
+  defense:   '🛡️',
+  nuclear:   '☢️',
+};
+
+function ConflictEventsPanel({ events, language }: { events: ConflictEvent[]; language: 'en' | 'ar' }) {
+  const sorted = [...events].sort((a, b) => {
+    const order = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
+  });
+
+  return (
+    <div className="flex flex-col">
+      <PanelHeader
+        title={language === 'en' ? 'Conflict Events' : 'أحداث النزاع'}
+        icon={<AlertTriangle className="w-3.5 h-3.5" />}
+        live
+        count={events.length}
+      />
+      {events.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+          <p className="text-[10px] text-muted-foreground">No active events</p>
+        </div>
+      )}
+      <div className="divide-y divide-border/20">
+        {sorted.map((e) => {
+          const sev = SEVERITY_STYLES[e.severity] || SEVERITY_STYLES.low;
+          const icon = EVENT_TYPE_ICONS[e.type] || '📍';
+          return (
+            <div
+              key={e.id}
+              className="px-3 py-2 hover-elevate animate-fade-in border-l-2"
+              style={{ borderLeftColor: e.severity === 'critical' ? 'rgb(239 68 68 / 0.6)' : e.severity === 'high' ? 'rgb(249 115 22 / 0.6)' : 'transparent' }}
+              data-testid={`conflict-event-${e.id}`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[11px] shrink-0">{icon}</span>
+                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">
+                  {language === 'ar' && e.titleAr ? e.titleAr : e.title}
+                </span>
+                <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
+                  {e.severity.toUpperCase()}
+                </span>
+              </div>
+              <p className="text-[9px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1">
+                {language === 'ar' && e.descriptionAr ? e.descriptionAr : e.description}
+              </p>
+              <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground">
+                <span className="uppercase tracking-wider text-foreground/40">{e.type}</span>
+                <span className="text-foreground/20">·</span>
+                <span>{timeAgo(e.timestamp)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const SHIP_TYPE_STYLES: Record<string, { color: string; bg: string; label: string }> = {
+  military: { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    label: 'NAV' },
+  tanker:   { color: 'text-orange-400', bg: 'bg-orange-950/40 border-orange-500/30', label: 'TKR' },
+  cargo:    { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'CGO' },
+  patrol:   { color: 'text-yellow-400', bg: 'bg-yellow-950/40 border-yellow-500/30', label: 'PTL' },
+};
+
+function MaritimePanel({ ships, language }: { ships: ShipData[]; language: 'en' | 'ar' }) {
+  const sorted = [...ships].sort((a, b) => {
+    const order = { military: 0, patrol: 1, tanker: 2, cargo: 3 };
+    return (order[a.type] ?? 4) - (order[b.type] ?? 4);
+  });
+
+  return (
+    <div className="flex flex-col">
+      <PanelHeader
+        title={language === 'en' ? 'Maritime' : 'بحري'}
+        icon={<Ship className="w-3.5 h-3.5" />}
+        live
+        count={ships.length}
+      />
+      {ships.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <Anchor className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+          <p className="text-[10px] text-muted-foreground">Scanning waters...</p>
+        </div>
+      )}
+      <div className="divide-y divide-border/20">
+        {sorted.map((s) => {
+          const style = SHIP_TYPE_STYLES[s.type] || SHIP_TYPE_STYLES.cargo;
+          return (
+            <div
+              key={s.id}
+              className="px-3 py-2 hover-elevate animate-fade-in"
+              data-testid={`ship-${s.id}`}
+            >
               <div className="flex items-center gap-1.5 mb-1">
                 <span
                   className="text-foreground/30 shrink-0 inline-block"
-                  style={{ transform: `rotate(${f.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
+                  style={{ transform: `rotate(${s.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
                 >▲</span>
-                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">{f.callsign}</span>
+                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
                 <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-x-1 text-[9px] font-mono text-muted-foreground">
-                <span><span className="text-foreground/40">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
-                <span><span className="text-foreground/40">SPD</span> {f.speed}</span>
-                <span><span className="text-foreground/40">HDG</span> {headingToCompass(f.heading)}</span>
+                <span><span className="text-foreground/40">SPD</span> {s.speed}kn</span>
+                <span><span className="text-foreground/40">HDG</span> {headingToCompass(s.heading)}</span>
+                <span className="truncate"><span className="text-foreground/30">FLG</span> {s.flag}</span>
               </div>
             </div>
           );
@@ -559,11 +690,11 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   const isImmediate = alert.countdown === 0;
 
   return (
-    <div className={`font-mono text-center ${isImmediate ? 'text-red-400' : isUrgent ? 'text-red-400 animate-pulse' : remaining === 0 ? 'text-muted-foreground' : 'text-orange-400'}`}>
-      <div className="text-lg font-bold tabular-nums leading-none" data-testid={`red-alert-countdown-${alert.id}`}>
+    <div className={`font-mono text-center ${isImmediate ? 'text-red-400' : isUrgent ? 'text-red-400 animate-pulse' : remaining === 0 ? 'text-muted-foreground/50' : 'text-amber-400/90'}`}>
+      <div className="text-sm font-bold tabular-nums leading-none" data-testid={`red-alert-countdown-${alert.id}`}>
         {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}s` : '--'}
       </div>
-      <div className="text-[9px] text-muted-foreground mt-0.5">
+      <div className="text-[8px] text-muted-foreground/50 mt-0.5">
         {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'shelter' : 'expired'}
       </div>
     </div>
@@ -586,22 +717,22 @@ function RedAlertPanel({ alerts, language }: { alerts: RedAlert[]; language: 'en
 
   return (
     <div className="flex flex-col" data-testid="red-alert-panel">
-      <div className="px-3 py-2 border-b border-red-900/50 flex items-center gap-2 bg-red-950/40 shrink-0">
-        <div className="w-5 h-5 rounded bg-red-600/40 flex items-center justify-center animate-siren-flash border border-red-500">
-          <AlertOctagon className="w-3.5 h-3.5 text-red-400" />
+      <div className="px-3 py-1.5 border-b border-red-900/40 flex items-center gap-2 bg-red-950/30 shrink-0">
+        <div className="w-4 h-4 rounded bg-red-600/30 flex items-center justify-center animate-siren-flash border border-red-500/60">
+          <AlertOctagon className="w-3 h-3 text-red-400/90" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xs font-bold uppercase tracking-[0.15em] text-red-400">
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-red-400/90">
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className="text-[10px] text-red-400/70 font-mono" dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD \u2014 Tzeva Adom</span>
+          <span className="text-[9px] text-red-400/50 font-mono" dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD \u2014 Tzeva Adom</span>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
-          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5 font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[18px] font-mono font-bold animate-pulse-dot">
             {alerts.length}
           </Badge>
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
+          <span className="text-[9px] uppercase tracking-[0.2em] text-red-400/70 font-bold">LIVE</span>
         </div>
       </div>
 
@@ -625,22 +756,22 @@ function RedAlertPanel({ alerts, language }: { alerts: RedAlert[]; language: 'en
               return (
                 <div
                   key={alert.id}
-                  className="px-3 py-2 flex items-center gap-3 animate-fade-in hover-elevate border-l-2 border-l-red-500/60"
+                  className="px-3 py-1.5 flex items-center gap-2 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
                   data-testid={`red-alert-${alert.id}`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <MapPin className="w-3 h-3 text-red-400 shrink-0" />
-                      <span className="text-[13px] text-red-300 font-bold truncate">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <MapPin className="w-2.5 h-2.5 text-red-400/70 shrink-0" />
+                      <span className="text-[11px] text-red-300/90 font-bold truncate">
                         {language === 'ar' ? alert.cityAr : alert.city}
                       </span>
-                      <span className="text-[11px] text-red-400/50 font-mono" dir="rtl">{alert.cityHe}</span>
+                      <span className="text-[9px] text-red-400/40 font-mono" dir="rtl">{alert.cityHe}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded text-white font-bold tracking-wider uppercase font-mono ${threatColor}`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[8px] px-1 py-0.5 rounded text-white/90 font-bold tracking-wider uppercase font-mono ${threatColor}`}>
                         {language === 'ar' ? threat.ar : threat.en}
                       </span>
-                      <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                      <span className="text-[9px] text-muted-foreground/60 font-mono tabular-nums">
                         {timeAgo(alert.timestamp)}
                       </span>
                     </div>
@@ -681,11 +812,11 @@ function TelegramPanel({
         {messages.map((msg) => (
           <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
             <div className="flex items-center gap-1.5 mb-0.5">
-              <SiTelegram className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span className="text-[13px] text-sky-400 font-bold truncate">{msg.channel}</span>
-              <span className="text-xs text-muted-foreground font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+              <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
+              <span className="text-[11px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
+              <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
             </div>
-            <p className="text-sm text-foreground/75 leading-[1.6]">
+            <p className="text-xs text-foreground/70 leading-[1.55]">
               {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
             </p>
           </div>
@@ -749,9 +880,9 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-1.5 border-b border-border flex items-center gap-1.5 bg-card/40 shrink-0 flex-wrap">
-        <Target className="w-4 h-4 text-primary shrink-0" />
-        <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary mr-auto">
+      <div className="px-3 py-1 border-b border-border/50 flex items-center gap-1.5 bg-card/20 shrink-0 flex-wrap">
+        <Target className="w-3.5 h-3.5 text-primary/80 shrink-0" />
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/90 mr-auto">
           {language === 'en' ? 'Intelligence Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
         </span>
         <div className="flex items-center gap-0.5">
@@ -760,11 +891,11 @@ function MapSection({
               key={v.key}
               size="sm"
               variant={activeView === v.key ? 'default' : 'ghost'}
-              className="text-[11px] px-2"
+              className={`text-[10px] px-1.5 h-6 ${activeView === v.key ? '' : 'text-muted-foreground/70'}`}
               onClick={() => setActiveView(v.key)}
               data-testid={`button-map-${v.key}`}
             >
-              <v.icon className="w-3 h-3 mr-1" />
+              <v.icon className="w-2.5 h-2.5 mr-0.5" />
               {v.label}
             </Button>
           ))}
@@ -873,38 +1004,38 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-11 border-b border-border/60 flex items-center justify-between px-4 bg-card/40 shrink-0 backdrop-blur-sm">
+      <header className="h-10 border-b border-border/40 flex items-center justify-between px-4 bg-card/20 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded bg-primary/15 flex items-center justify-center">
-              <Crosshair className="w-3.5 h-3.5 text-primary" />
+            <div className="w-4 h-4 rounded bg-primary/20 flex items-center justify-center">
+              <Crosshair className="w-3 h-3 text-primary/80" />
             </div>
-            <span className="font-bold text-sm tracking-tight text-primary font-mono">WARROOM</span>
+            <span className="font-bold text-[13px] tracking-tight text-primary font-mono">WARROOM</span>
           </div>
-          <Badge variant="destructive" className="h-5 text-[9px] px-1.5 font-bold tracking-[0.15em] animate-pulse-dot">
-            LIVE
-          </Badge>
-          <Separator orientation="vertical" className="h-5 hidden sm:block" />
-          <span className="text-[11px] text-muted-foreground hidden md:inline font-medium tracking-wide">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
+            <span className="text-[9px] text-red-400/80 font-bold tracking-[0.15em] uppercase">LIVE</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground/60 hidden md:inline font-medium tracking-wide">
             {language === 'en' ? 'Middle East Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u0627\u0644\u0634\u0631\u0642 \u0627\u0644\u0623\u0648\u0633\u0637'}
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <LiveClock />
-          <Separator orientation="vertical" className="h-5" />
+          <Separator orientation="vertical" className="h-4 bg-border/30" />
           <Button
             size="sm"
-            variant="outline"
-            className="text-xs px-2.5 h-7 font-mono border-border/50 bg-card/30"
+            variant="ghost"
+            className="text-[10px] px-2 h-6 font-mono text-muted-foreground hover:text-foreground"
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             data-testid="button-language-toggle"
           >
             <Languages className="w-3 h-3 mr-1" />
             {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
           </Button>
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[10px] text-emerald-400 font-bold tracking-wider hidden sm:inline uppercase">
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+            <span className="text-[9px] text-emerald-500/70 font-bold tracking-wider hidden sm:inline uppercase">
               {language === 'en' ? 'Connected' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
@@ -929,9 +1060,16 @@ export default function Dashboard() {
         <ResizeHandle onResize={makeResizer(1)} />
 
         <div className="bg-background overflow-hidden flex flex-col min-h-0" style={{ width: `${colWidths[2]}%` }}>
-          <ScrollArea className="h-full">
-            <FlightRadarPanel flights={flights} language={language} />
-          </ScrollArea>
+          <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
+            <ScrollArea className="h-full">
+              <FlightRadarPanel flights={flights} language={language} />
+            </ScrollArea>
+          </div>
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              <MaritimePanel ships={ships} language={language} />
+            </ScrollArea>
+          </div>
         </div>
 
         <ResizeHandle onResize={makeResizer(2)} />
@@ -957,41 +1095,41 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="h-7 border-t border-border/60 flex items-center px-4 bg-card/30 shrink-0 gap-4 overflow-hidden" data-testid="status-bar">
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[10px] text-muted-foreground font-mono font-medium">ONLINE</span>
+      <div className="h-6 border-t border-border/30 flex items-center px-4 bg-card/15 shrink-0 gap-3 overflow-hidden" data-testid="status-bar">
+        <div className="flex items-center gap-1">
+          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse-dot" />
+          <span className="text-[9px] text-muted-foreground/70 font-mono">ONLINE</span>
         </div>
-        <Separator orientation="vertical" className="h-3" />
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] text-muted-foreground font-mono">
-            <span className="text-foreground/50">SRC</span> 12
+        <div className="w-px h-3 bg-border/30" />
+        <div className="flex items-center gap-2.5">
+          <span className="text-[9px] text-muted-foreground/60 font-mono">
+            <span className="text-foreground/40">SRC</span> 12
           </span>
-          <span className="text-[10px] text-muted-foreground font-mono">
-            <span className="text-foreground/50">EVT</span> {events.length}
+          <span className="text-[9px] text-muted-foreground/60 font-mono">
+            <span className="text-foreground/40">EVT</span> {events.length}
           </span>
-          <span className="text-[10px] text-muted-foreground font-mono">
-            <span className="text-foreground/50">FLT</span> {flights.length}
+          <span className="text-[9px] text-muted-foreground/60 font-mono">
+            <span className="text-foreground/40">FLT</span> {flights.length}
           </span>
-          <span className="text-[10px] text-muted-foreground font-mono">
-            <span className="text-foreground/50">VES</span> {ships.length}
+          <span className="text-[9px] text-muted-foreground/60 font-mono">
+            <span className="text-foreground/40">VES</span> {ships.length}
           </span>
-          <span className="text-[10px] text-muted-foreground font-mono">
-            <span className="text-foreground/50">MKT</span> {commodities.length}
+          <span className="text-[9px] text-muted-foreground/60 font-mono">
+            <span className="text-foreground/40">MKT</span> {commodities.length}
           </span>
           {redAlerts.length > 0 && (
-            <span className="text-[10px] text-red-400 font-mono font-bold animate-pulse">
-              <span className="text-red-400/60">RED</span> {redAlerts.length}
+            <span className="text-[9px] text-red-400/80 font-mono font-bold animate-pulse">
+              <span className="text-red-400/50">RED</span> {redAlerts.length}
             </span>
           )}
           {sirens.length > 0 && (
-            <span className="text-[10px] text-red-400 font-mono font-bold">
-              <span className="text-red-400/60">SRN</span> {sirens.length}
+            <span className="text-[9px] text-red-400/70 font-mono font-bold">
+              <span className="text-red-400/50">SRN</span> {sirens.length}
             </span>
           )}
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono ml-auto hidden sm:inline">
-          WARROOM v1.0 \u2502 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
+        <span className="text-[9px] text-muted-foreground/50 font-mono ml-auto hidden sm:inline">
+          WARROOM v1.0 \u00B7 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
         </span>
       </div>
     </div>

@@ -23,9 +23,9 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
    - Conflict: Missile sites, airstrikes, ground ops, naval ops, nuclear facilities, air defense
    - Flights: Military, commercial, surveillance aircraft
    - Maritime: Ships in Strait of Hormuz (tankers, cargo, military, patrol)
-3. **Markets Panel** - Sectioned into Commodities, Major FX (EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD), and Regional FX (USD/ILS, USD/IRR, USD/LBP, USD/SAR, USD/AED) — 18 total instruments
+3. **Markets Panel** - Sectioned into Commodities, Major FX (EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD), and Regional FX (USD/ILS, USD/IRR, USD/SAR, USD/AED) — 17 total instruments
 4. **Telegram Feed** - Intelligence channel messages from simulated Telegram channels
-5. **Scrolling Ticker** - Marquee-style ticker with fade edges, all 18 instruments
+5. **Scrolling Ticker** - Marquee-style ticker with fade edges, all 17 instruments
 6. **Language Toggle** - Switch between English and Arabic (RTL support)
 7. **Status Bar** - Connection status, event counts, source indicators
 8. **Live Sirens** - Scrolling red alert banner showing active rocket/missile/UAV sirens by location with expandable detail grid (polled every 10s)
