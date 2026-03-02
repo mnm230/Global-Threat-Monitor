@@ -37,7 +37,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 8. **Language Toggle** - Switch between English and Arabic (RTL support)
 9. **Status Bar** - Connection status, event counts, source indicators, closed panel tabs
 10. **Live Sirens** - Scrolling red alert banner showing active rocket/missile/UAV sirens
-11. **Israel Red Alert (Tzeva Adom)** - Redesigned after tzevaadom.co.il: solid red header when active, city search filter, region-grouped alerts with countdown timers, pulsing active indicators, integrated sirens section (amber), trilingual support (EN/AR/HE)
+11. **Israel Red Alert (Tzeva Adom)** - Multi-country alert system (57 cities across 12 countries: Israel, Lebanon, Iran, Syria, Iraq, Saudi Arabia, Yemen, UAE, Jordan, Kuwait, Bahrain, Qatar). Redesigned after tzevaadom.co.il: solid red header when active, city/country search filter, country filter tabs (ALL + per-country), country-grouped headers with distinct colors, region-grouped alerts with sticky headers, countdown timers, pulsing active indicators, integrated sirens section (amber), trilingual support (EN/AR/HE)
 12. **Alert Sound System** - Web Audio API sine-wave tone on new red alerts/sirens, with sound toggle
 13. **Panel Close/Reopen** - 8 closeable panels with reopen tabs in status bar
 14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 24 tracked aircraft, filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Also rendered as toggleable layer on the 3D map.
@@ -46,7 +46,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - `GET /api/news` - Breaking news items (polled every 20s)
 - `GET /api/commodities` - Commodity and FX prices (polled every 5s)
 - `GET /api/sirens` - Active siren alerts (polled every 10s)
-- `GET /api/red-alerts` - Israel Red Alert system data (polled every 8s)
+- `GET /api/red-alerts` - Multi-country Red Alert system data, 57 cities across 12 countries (polled every 8s)
 - `GET /api/events` - Map events, flights, ships (polled every 15s)
 - `GET /api/telegram` - Telegram channel messages (polled every 25s)
 - `GET /api/ai-brief` - AI intelligence brief with key developments (polled every 60s)

@@ -385,6 +385,66 @@ function generateTelegram(): TelegramMessage[] {
       textAr: '\u0648\u0632\u064A\u0631 \u0627\u0644\u062E\u0627\u0631\u062C\u064A\u0629 \u0627\u0644\u0625\u064A\u0631\u0627\u0646\u064A: "\u0623\u064A \u0647\u062C\u0648\u0645 \u0639\u0644\u0649 \u0623\u0631\u0627\u0636\u064A\u0646\u0627 \u0633\u064A\u064F\u0642\u0627\u0628\u0644 \u0628\u0642\u0648\u0629 \u0633\u0627\u062D\u0642\u0629."',
       timestamp: new Date(now - 40 * 60000).toISOString(),
     },
+    {
+      id: 't9', channel: '@OSINTdefender',
+      text: 'SIGINT: Unusual radio traffic on IRGC Navy UHF bands in Strait of Hormuz. Possible coordination of fast boat swarms. Monitoring.',
+      textAr: 'إشارات: حركة راديو غير معتادة على ترددات البحرية IRGC. مراقبة مستمرة.',
+      timestamp: new Date(now - 5 * 60000).toISOString(),
+    },
+    {
+      id: 't10', channel: '@GeoConfirmed',
+      text: 'GEOLOCATED: Satellite imagery confirms 3 Shahed-136 launch positions near Tabriz. Grid refs confirmed via shadow analysis.',
+      textAr: 'تأكيد جغرافي: صور أقمار صناعية تؤكد مواقع الإطلاق قرب تبريز.',
+      timestamp: new Date(now - 18 * 60000).toISOString(),
+    },
+    {
+      id: 't11', channel: '@YemeniLeaks',
+      text: 'Houthi military spokesman: Third ballistic missile salvo fired toward Eilat. "Al-Quds-2" variant. Iron Dome and David\'s Sling both activated.',
+      textAr: 'الناطق الحوثي: إطلاق صاروخ ثالث باتجاه إيلات. نوع القدس-2.',
+      timestamp: new Date(now - 25 * 60000).toISOString(),
+    },
+    {
+      id: 't12', channel: '@Intel_Slava',
+      text: 'CONFIRMED: IDF F-35I Adir squadron departed Ramon AFB on undisclosed mission. F-15I Ra\'am tanker support noted.',
+      textAr: 'مؤكد: سرب F-35I اتجه شمالاً من قاعدة رامون الجوية.',
+      timestamp: new Date(now - 35 * 60000).toISOString(),
+    },
+    {
+      id: 't13', channel: '@MaritimeSecurity',
+      text: 'MSC ARIES: Crew update from satellite phone — still detained in Bandar Abbas. 25 crew of mixed nationality. India, Pakistan, Philippines flagged.',
+      textAr: 'طاقم MSC ARIES: لا يزال محتجزاً في بندر عباس.',
+      timestamp: new Date(now - 55 * 60000).toISOString(),
+    },
+    {
+      id: 't14', channel: '@CyberKnow20',
+      text: 'CYBER: Anonymous Sudan claims DDoS against Israeli banking infrastructure. Partial outages at Bank Hapoalim and Mizrahi-Tefahot confirmed.',
+      textAr: 'هجمات إلكترونية: اضطرابات جزئية في البنوك الإسرائيلية.',
+      timestamp: new Date(now - 48 * 60000).toISOString(),
+    },
+    {
+      id: 't15', channel: '@AviationIntel',
+      text: 'ELINT: E-8C J-STARS airborne over eastern Mediterranean. Ground surveillance mode. Tracking armored movement south Lebanon.',
+      textAr: 'E-8C في وضع المراقبة فوق المتوسط. يتتبع حركة مدرعة.',
+      timestamp: new Date(now - 62 * 60000).toISOString(),
+    },
+    {
+      id: 't16', channel: '@CENTCOM_Watch',
+      text: 'USS Gerald R. Ford (CVN-78) strike group entered eastern Mediterranean. Combined with Eisenhower — two CSGs now in theater.',
+      textAr: 'USS جيرالد فورد يدخل المتوسط. مجموعتان ضاربتان الآن في المنطقة.',
+      timestamp: new Date(now - 70 * 60000).toISOString(),
+    },
+    {
+      id: 't17', channel: '@LebanoScope',
+      text: 'South Lebanon: Hezbollah Radwan forces repositioning in Marjayoun-Khiam corridor. Unusual vehicle movements past 2 hours.',
+      textAr: 'قوات رضوان تعيد تموضعها في ممر مرجعيون-خيام.',
+      timestamp: new Date(now - 85 * 60000).toISOString(),
+    },
+    {
+      id: 't18', channel: '@OilMarkets',
+      text: 'Aramco tanker insurance surcharges +340% week-on-week. Lloyd\'s of London raising "war risk" zone to include all Persian Gulf approaches.',
+      textAr: 'ارتفاع أقساط تأمين ناقلات أرامكو 340% أسبوعياً.',
+      timestamp: new Date(now - 90 * 60000).toISOString(),
+    },
   ];
 }
 
@@ -411,31 +471,80 @@ function generateSirens(): SirenAlert[] {
 }
 
 const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
-  { id: 'ra1', city: 'Sderot', cityHe: 'שדרות', cityAr: 'سديروت', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15, threatType: 'rockets', lat: 31.525, lng: 34.596 },
-  { id: 'ra2', city: 'Ashkelon', cityHe: 'אשקלון', cityAr: 'عسقلان', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30, threatType: 'rockets', lat: 31.669, lng: 34.571 },
-  { id: 'ra3', city: 'Be\'er Sheva', cityHe: 'באר שבע', cityAr: 'بئر السبع', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60, threatType: 'rockets', lat: 31.252, lng: 34.791 },
-  { id: 'ra4', city: 'Tel Aviv', cityHe: 'תל אביב', cityAr: 'تل أبيب', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90, threatType: 'rockets', lat: 32.085, lng: 34.782 },
-  { id: 'ra5', city: 'Haifa', cityHe: 'חיפה', cityAr: 'حيفا', region: 'Haifa Bay', regionHe: 'מפרץ חיפה', regionAr: 'خليج حيفا', countdown: 60, threatType: 'rockets', lat: 32.794, lng: 34.990 },
-  { id: 'ra6', city: 'Kiryat Shmona', cityHe: 'קריית שמונה', cityAr: 'كريات شمونة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0, threatType: 'rockets', lat: 33.208, lng: 35.571 },
-  { id: 'ra7', city: 'Nahariya', cityHe: 'נהריה', cityAr: 'نهاريا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15, threatType: 'rockets', lat: 33.005, lng: 35.098 },
-  { id: 'ra8', city: 'Metula', cityHe: 'מטולה', cityAr: 'المطلة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0, threatType: 'rockets', lat: 33.280, lng: 35.578 },
-  { id: 'ra9', city: 'Tiberias', cityHe: 'טבריה', cityAr: 'طبريا', region: 'Sea of Galilee', regionHe: 'כנרת', regionAr: 'بحيرة طبريا', countdown: 30, threatType: 'missiles', lat: 32.796, lng: 35.530 },
-  { id: 'ra10', city: 'Netanya', cityHe: 'נתניה', cityAr: 'نتانيا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90, threatType: 'hostile_aircraft_intrusion', lat: 32.333, lng: 34.857 },
-  { id: 'ra11', city: 'Safed', cityHe: 'צפת', cityAr: 'صفد', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15, threatType: 'uav_intrusion', lat: 32.966, lng: 35.496 },
-  { id: 'ra12', city: 'Eilat', cityHe: 'אילת', cityAr: 'إيلات', region: 'Southern Negev', regionHe: 'דרום הנגב', regionAr: 'النقب الجنوبي', countdown: 90, threatType: 'missiles', lat: 29.558, lng: 34.952 },
-  { id: 'ra13', city: 'Rishon LeZion', cityHe: 'ראשון לציון', cityAr: 'ريشون لتسيون', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90, threatType: 'rockets', lat: 31.964, lng: 34.804 },
-  { id: 'ra14', city: 'Petah Tikva', cityHe: 'פתח תקווה', cityAr: 'بيتح تكفا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90, threatType: 'rockets', lat: 32.089, lng: 34.886 },
-  { id: 'ra15', city: 'Ashdod', cityHe: 'אשדוד', cityAr: 'أسدود', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 45, threatType: 'rockets', lat: 31.801, lng: 34.650 },
-  { id: 'ra16', city: 'Herzliya', cityHe: 'הרצליה', cityAr: 'هرتسليا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90, threatType: 'rockets', lat: 32.166, lng: 34.846 },
-  { id: 'ra17', city: 'Acre', cityHe: 'עכו', cityAr: 'عكا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 30, threatType: 'rockets', lat: 32.928, lng: 35.076 },
-  { id: 'ra18', city: 'Karmiel', cityHe: 'כרמיאל', cityAr: 'كرميئيل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30, threatType: 'rockets', lat: 32.919, lng: 35.296 },
-  { id: 'ra19', city: 'Nof HaGalil', cityHe: 'נוף הגליל', cityAr: 'نوف هجليل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30, threatType: 'uav_intrusion', lat: 32.700, lng: 35.320 },
-  { id: 'ra20', city: 'Jerusalem', cityHe: 'ירושלים', cityAr: 'القدس', region: 'Jerusalem', regionHe: 'ירושלים', regionAr: 'القدس', countdown: 90, threatType: 'missiles', lat: 31.769, lng: 35.216 },
+  // ISRAEL
+  { id: 'ra1', city: 'Sderot', cityHe: 'שדרות', cityAr: 'سديروت', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', country: 'Israel', countryCode: 'IL', countdown: 15, threatType: 'rockets', lat: 31.525, lng: 34.596 },
+  { id: 'ra2', city: 'Ashkelon', cityHe: 'אשקלון', cityAr: 'عسقلان', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', country: 'Israel', countryCode: 'IL', countdown: 30, threatType: 'rockets', lat: 31.669, lng: 34.571 },
+  { id: 'ra3', city: 'Be\'er Sheva', cityHe: 'באר שבע', cityAr: 'بئر السبع', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', country: 'Israel', countryCode: 'IL', countdown: 60, threatType: 'rockets', lat: 31.252, lng: 34.791 },
+  { id: 'ra4', city: 'Tel Aviv', cityHe: 'תל אביב', cityAr: 'تل أبيب', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'rockets', lat: 32.085, lng: 34.782 },
+  { id: 'ra5', city: 'Haifa', cityHe: 'חיפה', cityAr: 'حيفا', region: 'Haifa Bay', regionHe: 'מפרץ חיפה', regionAr: 'خليج حيفا', country: 'Israel', countryCode: 'IL', countdown: 60, threatType: 'rockets', lat: 32.794, lng: 34.990 },
+  { id: 'ra6', city: 'Kiryat Shmona', cityHe: 'קריית שמונה', cityAr: 'كريات شمونة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', country: 'Israel', countryCode: 'IL', countdown: 0, threatType: 'rockets', lat: 33.208, lng: 35.571 },
+  { id: 'ra7', city: 'Nahariya', cityHe: 'נהריה', cityAr: 'نهاريا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', country: 'Israel', countryCode: 'IL', countdown: 15, threatType: 'rockets', lat: 33.005, lng: 35.098 },
+  { id: 'ra8', city: 'Metula', cityHe: 'מטולה', cityAr: 'المطلة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', country: 'Israel', countryCode: 'IL', countdown: 0, threatType: 'rockets', lat: 33.280, lng: 35.578 },
+  { id: 'ra9', city: 'Tiberias', cityHe: 'טבריה', cityAr: 'طبريا', region: 'Sea of Galilee', regionHe: 'כנרת', regionAr: 'بحيرة طبريا', country: 'Israel', countryCode: 'IL', countdown: 30, threatType: 'missiles', lat: 32.796, lng: 35.530 },
+  { id: 'ra10', city: 'Netanya', cityHe: 'נתניה', cityAr: 'نتانيا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'hostile_aircraft_intrusion', lat: 32.333, lng: 34.857 },
+  { id: 'ra11', city: 'Safed', cityHe: 'צפת', cityAr: 'صفد', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', country: 'Israel', countryCode: 'IL', countdown: 15, threatType: 'uav_intrusion', lat: 32.966, lng: 35.496 },
+  { id: 'ra12', city: 'Eilat', cityHe: 'אילת', cityAr: 'إيلات', region: 'Southern Negev', regionHe: 'דרום הנגב', regionAr: 'النقب الجنوبي', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'missiles', lat: 29.558, lng: 34.952 },
+  { id: 'ra13', city: 'Rishon LeZion', cityHe: 'ראשון לציון', cityAr: 'ريشون لتسيون', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'rockets', lat: 31.964, lng: 34.804 },
+  { id: 'ra14', city: 'Petah Tikva', cityHe: 'פתח תקווה', cityAr: 'بيتح تكفا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'rockets', lat: 32.089, lng: 34.886 },
+  { id: 'ra15', city: 'Ashdod', cityHe: 'אשדוד', cityAr: 'أسدود', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', country: 'Israel', countryCode: 'IL', countdown: 45, threatType: 'rockets', lat: 31.801, lng: 34.650 },
+  { id: 'ra16', city: 'Herzliya', cityHe: 'הרצליה', cityAr: 'هرتسليا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'rockets', lat: 32.166, lng: 34.846 },
+  { id: 'ra17', city: 'Acre', cityHe: 'עכו', cityAr: 'عكا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', country: 'Israel', countryCode: 'IL', countdown: 30, threatType: 'rockets', lat: 32.928, lng: 35.076 },
+  { id: 'ra18', city: 'Karmiel', cityHe: 'כרמיאל', cityAr: 'كرميئيل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجליل الأسفل', country: 'Israel', countryCode: 'IL', countdown: 30, threatType: 'rockets', lat: 32.919, lng: 35.296 },
+  { id: 'ra19', city: 'Nof HaGalil', cityHe: 'נוף הגליל', cityAr: 'نوف هجليل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفל', country: 'Israel', countryCode: 'IL', countdown: 30, threatType: 'uav_intrusion', lat: 32.700, lng: 35.320 },
+  { id: 'ra20', city: 'Jerusalem', cityHe: 'ירושלים', cityAr: 'القدس', region: 'Jerusalem', regionHe: 'ירושלים', regionAr: 'القدس', country: 'Israel', countryCode: 'IL', countdown: 90, threatType: 'missiles', lat: 31.769, lng: 35.216 },
+  // LEBANON
+  { id: 'ra21', city: 'Beirut', cityHe: 'ביירות', cityAr: 'بيروت', region: 'Beirut', regionHe: 'ביירות', regionAr: 'بيروت', country: 'Lebanon', countryCode: 'LB', countdown: 45, threatType: 'missiles', lat: 33.894, lng: 35.502 },
+  { id: 'ra22', city: 'Sidon', cityHe: 'צידון', cityAr: 'صيدا', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 30, threatType: 'missiles', lat: 33.563, lng: 35.376 },
+  { id: 'ra23', city: 'Tyre', cityHe: 'צור', cityAr: 'صور', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 15, threatType: 'missiles', lat: 33.273, lng: 35.194 },
+  { id: 'ra24', city: 'Tripoli', cityHe: 'טריפולי', cityAr: 'طرابلس', region: 'North Lebanon', regionHe: 'צפון לבנון', regionAr: 'شمال لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 60, threatType: 'missiles', lat: 34.437, lng: 35.850 },
+  { id: 'ra25', city: 'Baalbek', cityHe: 'בעלבכ', cityAr: 'بعلبك', region: 'Bekaa Valley', regionHe: 'בקעת הבקאע', regionAr: 'وادي البقاع', country: 'Lebanon', countryCode: 'LB', countdown: 30, threatType: 'missiles', lat: 34.006, lng: 36.218 },
+  { id: 'ra26', city: 'Nabatieh', cityHe: 'נבטייה', cityAr: 'النبطية', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.378, lng: 35.484 },
+  // IRAN
+  { id: 'ra27', city: 'Tehran', cityHe: 'טהרן', cityAr: 'طهران', region: 'Tehran Province', regionHe: 'מחוז טהרן', regionAr: 'محافظة طهران', country: 'Iran', countryCode: 'IR', countdown: 120, threatType: 'missiles', lat: 35.689, lng: 51.389 },
+  { id: 'ra28', city: 'Isfahan', cityHe: 'אספהאן', cityAr: 'أصفهان', region: 'Isfahan Province', regionHe: 'מחוז אספהאן', regionAr: 'محافظة أصفهان', country: 'Iran', countryCode: 'IR', countdown: 120, threatType: 'missiles', lat: 32.655, lng: 51.668 },
+  { id: 'ra29', city: 'Shiraz', cityHe: 'שיראז', cityAr: 'شيراز', region: 'Fars Province', regionHe: 'מחוז פארס', regionAr: 'محافظة فارس', country: 'Iran', countryCode: 'IR', countdown: 90, threatType: 'missiles', lat: 29.592, lng: 52.584 },
+  { id: 'ra30', city: 'Tabriz', cityHe: 'תבריז', cityAr: 'تبريز', region: 'East Azerbaijan', regionHe: 'אזרבייג\'ן מזרחי', regionAr: 'أذربيجان الشرقية', country: 'Iran', countryCode: 'IR', countdown: 90, threatType: 'missiles', lat: 38.080, lng: 46.292 },
+  { id: 'ra31', city: 'Kermanshah', cityHe: 'כרמנשאה', cityAr: 'كرمانشاه', region: 'Kermanshah Province', regionHe: 'מחוז כרמנשאה', regionAr: 'محافظة كرمانشاه', country: 'Iran', countryCode: 'IR', countdown: 60, threatType: 'missiles', lat: 34.314, lng: 47.065 },
+  { id: 'ra32', city: 'Bandar Abbas', cityHe: 'בנדר עבאס', cityAr: 'بندر عباس', region: 'Hormozgan', regionHe: 'הורמוזגן', regionAr: 'هرمزجان', country: 'Iran', countryCode: 'IR', countdown: 90, threatType: 'missiles', lat: 27.183, lng: 56.267 },
+  { id: 'ra33', city: 'Bushehr', cityHe: 'בושהר', cityAr: 'بوشهر', region: 'Bushehr Province', regionHe: 'מחוז בושהר', regionAr: 'محافظة بوشهر', country: 'Iran', countryCode: 'IR', countdown: 120, threatType: 'missiles', lat: 28.922, lng: 50.838 },
+  // SYRIA
+  { id: 'ra34', city: 'Damascus', cityHe: 'דמשק', cityAr: 'دمشق', region: 'Damascus', regionHe: 'דמשק', regionAr: 'دمشق', country: 'Syria', countryCode: 'SY', countdown: 60, threatType: 'missiles', lat: 33.514, lng: 36.277 },
+  { id: 'ra35', city: 'Aleppo', cityHe: 'חלב', cityAr: 'حلب', region: 'Aleppo Governorate', regionHe: 'מחוז חלב', regionAr: 'محافظة حلب', country: 'Syria', countryCode: 'SY', countdown: 90, threatType: 'missiles', lat: 36.202, lng: 37.160 },
+  { id: 'ra36', city: 'Homs', cityHe: 'חומס', cityAr: 'حمص', region: 'Homs Governorate', regionHe: 'מחוז חומס', regionAr: 'محافظة حمص', country: 'Syria', countryCode: 'SY', countdown: 45, threatType: 'missiles', lat: 34.730, lng: 36.720 },
+  { id: 'ra37', city: 'Latakia', cityHe: 'לטקיה', cityAr: 'اللاذقية', region: 'Latakia Governorate', regionHe: 'מחוז לטקיה', regionAr: 'محافظة اللاذقية', country: 'Syria', countryCode: 'SY', countdown: 60, threatType: 'missiles', lat: 35.540, lng: 35.770 },
+  { id: 'ra38', city: 'Deir ez-Zor', cityHe: 'דיר א-זור', cityAr: 'دير الزور', region: 'Deir ez-Zor', regionHe: 'דיר א-זור', regionAr: 'دير الزور', country: 'Syria', countryCode: 'SY', countdown: 30, threatType: 'uav_intrusion', lat: 35.336, lng: 40.146 },
+  // IRAQ
+  { id: 'ra39', city: 'Baghdad', cityHe: 'בגדד', cityAr: 'بغداد', region: 'Baghdad', regionHe: 'בגדד', regionAr: 'بغداد', country: 'Iraq', countryCode: 'IQ', countdown: 90, threatType: 'rockets', lat: 33.313, lng: 44.366 },
+  { id: 'ra40', city: 'Erbil', cityHe: 'ארביל', cityAr: 'أربيل', region: 'Kurdistan Region', regionHe: 'כורדיסטן', regionAr: 'إقليم كردستان', country: 'Iraq', countryCode: 'IQ', countdown: 60, threatType: 'missiles', lat: 36.191, lng: 44.009 },
+  { id: 'ra41', city: 'Basra', cityHe: 'בצרה', cityAr: 'البصرة', region: 'Basra Governorate', regionHe: 'מחוז בצרה', regionAr: 'محافظة البصرة', country: 'Iraq', countryCode: 'IQ', countdown: 90, threatType: 'rockets', lat: 30.508, lng: 47.783 },
+  { id: 'ra42', city: 'Sulaymaniyah', cityHe: 'סולימאניה', cityAr: 'السليمانية', region: 'Kurdistan Region', regionHe: 'כורדיסטן', regionAr: 'إقليم كردستان', country: 'Iraq', countryCode: 'IQ', countdown: 45, threatType: 'uav_intrusion', lat: 35.557, lng: 45.435 },
+  // SAUDI ARABIA
+  { id: 'ra43', city: 'Riyadh', cityHe: 'ריאד', cityAr: 'الرياض', region: 'Riyadh Region', regionHe: 'מחוז ריאד', regionAr: 'منطقة الرياض', country: 'Saudi Arabia', countryCode: 'SA', countdown: 120, threatType: 'missiles', lat: 24.713, lng: 46.675 },
+  { id: 'ra44', city: 'Jeddah', cityHe: 'ג\'דה', cityAr: 'جدة', region: 'Makkah Region', regionHe: 'מחוז מכה', regionAr: 'منطقة مكة المكرمة', country: 'Saudi Arabia', countryCode: 'SA', countdown: 120, threatType: 'missiles', lat: 21.486, lng: 39.177 },
+  { id: 'ra45', city: 'Dhahran', cityHe: 'דהרן', cityAr: 'الظهران', region: 'Eastern Province', regionHe: 'המחוז המזרחי', regionAr: 'المنطقة الشرقية', country: 'Saudi Arabia', countryCode: 'SA', countdown: 60, threatType: 'missiles', lat: 26.282, lng: 50.114 },
+  { id: 'ra46', city: 'Abha', cityHe: 'אבהא', cityAr: 'أبها', region: 'Asir Region', regionHe: 'מחוז עסיר', regionAr: 'منطقة عسير', country: 'Saudi Arabia', countryCode: 'SA', countdown: 45, threatType: 'uav_intrusion', lat: 18.216, lng: 42.505 },
+  { id: 'ra47', city: 'Jizan', cityHe: 'ג\'יזאן', cityAr: 'جيزان', region: 'Jizan Region', regionHe: 'מחוז ג\'יזאן', regionAr: 'منطقة جازان', country: 'Saudi Arabia', countryCode: 'SA', countdown: 30, threatType: 'rockets', lat: 16.889, lng: 42.551 },
+  // YEMEN
+  { id: 'ra48', city: 'Sanaa', cityHe: 'צנעא', cityAr: 'صنعاء', region: 'Sanaa Governorate', regionHe: 'מחוז צנעא', regionAr: 'محافظة صنعاء', country: 'Yemen', countryCode: 'YE', countdown: 30, threatType: 'missiles', lat: 15.355, lng: 44.207 },
+  { id: 'ra49', city: 'Aden', cityHe: 'עדן', cityAr: 'عدن', region: 'Aden Governorate', regionHe: 'מחוז עדן', regionAr: 'محافظة عدن', country: 'Yemen', countryCode: 'YE', countdown: 45, threatType: 'missiles', lat: 12.779, lng: 45.037 },
+  { id: 'ra50', city: 'Marib', cityHe: 'מאריב', cityAr: 'مأرب', region: 'Marib Governorate', regionHe: 'מחוז מאריב', regionAr: 'محافظة مأرب', country: 'Yemen', countryCode: 'YE', countdown: 15, threatType: 'rockets', lat: 15.454, lng: 45.323 },
+  // UAE
+  { id: 'ra51', city: 'Abu Dhabi', cityHe: 'אבו דאבי', cityAr: 'أبو ظبي', region: 'Abu Dhabi', regionHe: 'אבו דאבי', regionAr: 'أبو ظبي', country: 'UAE', countryCode: 'AE', countdown: 120, threatType: 'missiles', lat: 24.453, lng: 54.377 },
+  { id: 'ra52', city: 'Dubai', cityHe: 'דובאי', cityAr: 'دبي', region: 'Dubai', regionHe: 'דובאי', regionAr: 'دبي', country: 'UAE', countryCode: 'AE', countdown: 120, threatType: 'missiles', lat: 25.205, lng: 55.270 },
+  // JORDAN
+  { id: 'ra53', city: 'Amman', cityHe: 'עמאן', cityAr: 'عمان', region: 'Amman Governorate', regionHe: 'מחוז עמאן', regionAr: 'محافظة العاصمة', country: 'Jordan', countryCode: 'JO', countdown: 90, threatType: 'missiles', lat: 31.951, lng: 35.934 },
+  { id: 'ra54', city: 'Irbid', cityHe: 'ארביד', cityAr: 'إربد', region: 'Irbid Governorate', regionHe: 'מחוז ארביד', regionAr: 'محافظة إربد', country: 'Jordan', countryCode: 'JO', countdown: 60, threatType: 'uav_intrusion', lat: 32.556, lng: 35.850 },
+  // KUWAIT
+  { id: 'ra55', city: 'Kuwait City', cityHe: 'כווית סיטי', cityAr: 'مدينة الكويت', region: 'Al Asimah', regionHe: 'אל-עאצמה', regionAr: 'العاصمة', country: 'Kuwait', countryCode: 'KW', countdown: 90, threatType: 'missiles', lat: 29.376, lng: 47.977 },
+  // BAHRAIN
+  { id: 'ra56', city: 'Manama', cityHe: 'מנאמה', cityAr: 'المنامة', region: 'Capital Governorate', regionHe: 'מחוז הבירה', regionAr: 'محافظة العاصمة', country: 'Bahrain', countryCode: 'BH', countdown: 90, threatType: 'missiles', lat: 26.223, lng: 50.587 },
+  // QATAR
+  { id: 'ra57', city: 'Doha', cityHe: 'דוחא', cityAr: 'الدوحة', region: 'Ad Dawhah', regionHe: 'אד-דוחה', regionAr: 'الدوحة', country: 'Qatar', countryCode: 'QA', countdown: 120, threatType: 'missiles', lat: 25.286, lng: 51.534 },
 ];
 
 function generateRedAlerts(): RedAlert[] {
   const now = Date.now();
-  const count = 4 + Math.floor(Math.random() * 6);
+  const count = 8 + Math.floor(Math.random() * 10);
   const shuffled = [...RED_ALERT_POOL].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count).map(a => ({
     ...a,

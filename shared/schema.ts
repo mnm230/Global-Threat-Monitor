@@ -125,6 +125,8 @@ export interface RedAlert {
   region: string;
   regionHe: string;
   regionAr: string;
+  country: string;
+  countryCode: string;
   countdown: number;
   threatType: 'rockets' | 'missiles' | 'hostile_aircraft_intrusion' | 'uav_intrusion';
   timestamp: string;

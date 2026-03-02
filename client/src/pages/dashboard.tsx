@@ -252,7 +252,7 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   return (
     <div className="h-7 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
-        <span className="text-[14px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
+        <span className="text-[9px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
       </div>
       <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-12">
@@ -300,7 +300,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
           <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-400/80 font-mono whitespace-nowrap">
             {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
           </span>
-          <Badge variant="destructive" className="text-[14px] px-1 py-0 h-[16px] font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[11px] px-1 py-0 h-[16px] font-mono font-bold animate-pulse-dot">
             {sirens.length}
           </Badge>
         </div>
@@ -392,7 +392,7 @@ function PanelHeader({
       <span className="text-primary shrink-0">{icon}</span>
       <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-primary/90 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[14px] px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
+        <span className="text-[11px] px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
           {count}
         </span>
       )}
@@ -645,7 +645,7 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
                   style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
                 >▲</span>
                 <span className="text-[12px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
-                <span className={`text-[14px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                <span className={`text-[10px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
@@ -708,7 +708,7 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
     <div className="h-full flex flex-col" data-testid="adsb-panel">
       <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Radar className="w-3.5 h-3.5 text-cyan-400/70" />
-        <span className="text-[14px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           ADS-B
         </span>
         <span className="text-[14px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
@@ -1010,27 +1010,54 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [countryFilter, setCountryFilter] = useState<string>('ALL');
+
+  const countryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    alerts.forEach(a => {
+      const c = a.country || 'Unknown';
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    return counts;
+  }, [alerts]);
+
+  const countryOrder = ['Israel', 'Lebanon', 'Iran', 'Syria', 'Iraq', 'Saudi Arabia', 'Yemen', 'UAE', 'Jordan', 'Kuwait', 'Bahrain', 'Qatar'];
+
+  const activeCountries = useMemo(() => {
+    return countryOrder.filter(c => countryCounts[c]);
+  }, [countryCounts]);
+
   const filteredAlerts = useMemo(() => {
-    if (!searchQuery.trim()) return alerts;
+    let filtered = alerts;
+    if (countryFilter !== 'ALL') {
+      filtered = filtered.filter(a => a.country === countryFilter);
+    }
+    if (!searchQuery.trim()) return filtered;
     const q = searchQuery.toLowerCase();
-    return alerts.filter(a =>
+    return filtered.filter(a =>
       a.city.toLowerCase().includes(q) ||
       a.cityHe.includes(q) ||
       a.cityAr.includes(q) ||
-      a.region.toLowerCase().includes(q)
+      a.region.toLowerCase().includes(q) ||
+      a.country.toLowerCase().includes(q)
     );
-  }, [alerts, searchQuery]);
+  }, [alerts, searchQuery, countryFilter]);
 
-  const grouped = filteredAlerts.reduce<Record<string, RedAlert[]>>((acc, alert) => {
-    const key = language === 'ar' ? alert.regionAr : alert.region;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(alert);
+  const grouped = filteredAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>((acc, alert) => {
+    const regionKey = language === 'ar' ? alert.regionAr : alert.region;
+    const country = alert.country || 'Unknown';
+    const key = `${country}::${regionKey}`;
+    if (!acc[key]) acc[key] = { country, alerts: [] };
+    acc[key].alerts.push(alert);
     return acc;
   }, {});
 
   const sortedRegions = Object.entries(grouped).sort((a, b) => {
-    const minA = Math.min(...a[1].map(a => a.countdown));
-    const minB = Math.min(...b[1].map(b => b.countdown));
+    const countryIdxA = countryOrder.indexOf(a[1].country);
+    const countryIdxB = countryOrder.indexOf(b[1].country);
+    if (countryIdxA !== countryIdxB) return countryIdxA - countryIdxB;
+    const minA = Math.min(...a[1].alerts.map(a => a.countdown));
+    const minB = Math.min(...b[1].alerts.map(b => b.countdown));
     return minA - minB;
   });
 
@@ -1064,17 +1091,43 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
       </div>
 
       {hasActiveAlerts && (
-        <div className="px-2 py-1.5 border-b border-red-900/30 bg-red-950/20 shrink-0">
-          <div className="relative">
+        <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
+          <div className="px-2 py-1.5">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city name...'}
+              placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city / country...'}
               className="w-full h-7 text-[14px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
               data-testid="input-red-alert-search"
             />
           </div>
+          {activeCountries.length > 1 && (
+            <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
+              <button
+                onClick={() => setCountryFilter('ALL')}
+                className={`text-[14px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                  countryFilter === 'ALL' ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
+                }`}
+                data-testid="button-country-filter-all"
+              >ALL ({alerts.length})</button>
+              {activeCountries.map(c => {
+                const FLAG_MAP: Record<string, string> = { Israel: 'IL', Lebanon: 'LB', Iran: 'IR', Syria: 'SY', Iraq: 'IQ', 'Saudi Arabia': 'SA', Yemen: 'YE', UAE: 'AE', Jordan: 'JO', Kuwait: 'KW', Bahrain: 'BH', Qatar: 'QA' };
+                const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
+                const label = SHORT_NAMES[c] || c;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setCountryFilter(c)}
+                    className={`text-[14px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                      countryFilter === c ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
+                    }`}
+                    data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
+                  >{label} ({countryCounts[c]})</button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1089,9 +1142,22 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
 
       <ScrollArea className="flex-1">
         <div>
-          {sortedRegions.map(([regionName, regionAlerts]) => (
-            <div key={regionName}>
-              <div className="px-3 py-1 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-0 z-[100]">
+          {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
+            const regionName = compositeKey.split('::')[1];
+            const prevCountry = idx > 0 ? sortedRegions[idx - 1][1].country : null;
+            const showCountryHeader = country !== prevCountry;
+            const COUNTRY_COLORS: Record<string, string> = { Israel: 'bg-blue-900/30 text-blue-300/90 border-blue-800/30', Lebanon: 'bg-emerald-900/30 text-emerald-300/90 border-emerald-800/30', Iran: 'bg-purple-900/30 text-purple-300/90 border-purple-800/30', Syria: 'bg-yellow-900/30 text-yellow-300/90 border-yellow-800/30', Iraq: 'bg-orange-900/30 text-orange-300/90 border-orange-800/30', 'Saudi Arabia': 'bg-green-900/30 text-green-300/90 border-green-800/30', Yemen: 'bg-rose-900/30 text-rose-300/90 border-rose-800/30', UAE: 'bg-sky-900/30 text-sky-300/90 border-sky-800/30', Jordan: 'bg-amber-900/30 text-amber-300/90 border-amber-800/30', Kuwait: 'bg-teal-900/30 text-teal-300/90 border-teal-800/30', Bahrain: 'bg-pink-900/30 text-pink-300/90 border-pink-800/30', Qatar: 'bg-indigo-900/30 text-indigo-300/90 border-indigo-800/30' };
+            const countryColor = COUNTRY_COLORS[country] || 'bg-red-900/30 text-red-300/90 border-red-800/30';
+            const countryAlertCount = sortedRegions.filter(([_, g]) => g.country === country).reduce((sum, [_, g]) => sum + g.alerts.length, 0);
+            return (
+            <div key={compositeKey}>
+              {showCountryHeader && (
+                <div className={`px-3 py-1.5 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
+                  <span className="text-[14px] font-black uppercase tracking-[0.2em] font-mono">{country}</span>
+                  <span className="text-[14px] opacity-50 font-mono">({countryAlertCount})</span>
+                </div>
+              )}
+              <div className="px-3 py-1 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[28px] z-[100]">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
                   <span className="text-[14px] text-red-400/40 font-mono">{regionAlerts.length}</span>
@@ -1134,7 +1200,8 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </div>
       </ScrollArea>
 
@@ -1293,7 +1360,7 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
       <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Brain className="w-3.5 h-3.5 text-purple-400/70" />
-        <span className="text-[14px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
         <span className="text-[12px] px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
@@ -1443,7 +1510,7 @@ function MapSection({
     <div className="h-full flex flex-col">
       <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Target className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-        <span className="text-[14px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
         <div className="flex items-center gap-0.5 bg-card/50 rounded border border-border/30 p-0.5">
@@ -1521,7 +1588,7 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   return (
     <div className="h-7 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
-        <span className="text-[14px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
+        <span className="text-[9px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
       </div>
       <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
@@ -1715,7 +1782,7 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col leading-none">
               <span className="font-bold text-[14px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(145 72% 40% / 0.6)'}}>WARROOM</span>
-              <span className="text-[12px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
+              <span className="text-[10px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
                 {language === 'en' ? 'ME INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
@@ -1723,7 +1790,7 @@ export default function Dashboard() {
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-950/30 border border-red-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-            <span className="text-[14px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
+            <span className="text-[11px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1753,7 +1820,7 @@ export default function Dashboard() {
           <div className="w-px h-4 bg-border/30" />
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/30 border border-emerald-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[14px] text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
+            <span className="text-[11px] text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
               {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
@@ -1817,28 +1884,28 @@ export default function Dashboard() {
       <div className="h-9 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[14px] text-emerald-400/70 font-mono font-bold">ONLINE</span>
+          <span className="text-[11px] text-emerald-400/70 font-mono font-bold">ONLINE</span>
         </div>
         <div className="w-px h-4 bg-border/30" />
-        <div className="flex items-center gap-2 text-[14px] font-mono">
-          <span className="text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
-          <span className="text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
-          <span className="text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
-          <span className="text-muted-foreground/50"><span className="text-cyan-400/35">ADS</span> {adsbFlights.length}</span>
-          <span className="text-muted-foreground/50"><span className="text-foreground/35">VES</span> {ships.length}</span>
-          <span className="text-muted-foreground/50"><span className="text-foreground/35">MKT</span> {commodities.length}</span>
+        <div className="flex items-center gap-2 text-[11px] font-mono">
+          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
+          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
+          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
+          <span className="text-[11px] text-muted-foreground/50"><span className="text-cyan-400/35">ADS</span> {adsbFlights.length}</span>
+          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">VES</span> {ships.length}</span>
+          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">MKT</span> {commodities.length}</span>
         </div>
         {(redAlerts.length > 0 || sirens.length > 0) && (
           <>
             <div className="w-px h-4 bg-border/30" />
             <div className="flex items-center gap-2 text-[14px] font-mono">
               {redAlerts.length > 0 && (
-                <span className="text-red-400/90 font-bold animate-pulse px-1.5 py-0.5 rounded bg-red-950/30 border border-red-500/20">
+                <span className="text-[11px] text-red-400/90 font-bold animate-pulse px-1.5 py-0.5 rounded bg-red-950/30 border border-red-500/20">
                   RED {redAlerts.length}
                 </span>
               )}
               {sirens.length > 0 && (
-                <span className="text-red-400/70 font-bold px-1.5 py-0.5 rounded bg-red-950/20 border border-red-500/15">
+                <span className="text-[11px] text-red-400/70 font-bold px-1.5 py-0.5 rounded bg-red-950/20 border border-red-500/15">
                   SRN {sirens.length}
                 </span>
               )}
@@ -1857,7 +1924,7 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => openPanel(id)}
-                    className="group flex items-center gap-1 px-2 py-0.5 rounded text-[14px] font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
+                    className="group flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
                     title={`Restore ${cfg.label} panel`}
                     data-testid={`button-open-panel-${id}`}
                   >
