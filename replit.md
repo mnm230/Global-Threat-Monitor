@@ -24,13 +24,15 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
    - Conflict: Missile sites, airstrikes, ground ops, naval ops, nuclear facilities, air defense
    - Flights: Military, commercial, surveillance aircraft
    - Maritime: Ships in Strait of Hormuz (tankers, cargo, military, patrol)
-4. **40+ Infrastructure Data Layers** - Toggleable overlay layers:
-   - Military bases (15): US, Israeli, Iranian bases with coordinates
-   - Nuclear facilities (8): Natanz, Fordow, Bushehr, Dimona, etc.
-   - Air defense systems (8): Iron Dome, David's Sling, Arrow, S-300, Bavar-373
-   - Undersea cables (5): AAE-1, FLAG, SEA-ME-WE-5, EIG, FALCON
-   - Oil/gas pipelines (4): East-West, IGAT, Kirkuk-Ceyhan, Tapline
-   - Key infrastructure (8): Refineries, ports, desalination plants
+4. **37 Infrastructure Data Layers** (grouped into 7 categories, 40+ with operational layers):
+   - OPERATIONAL (6): Conflict Events, Flight Tracks, Ship Tracks, ADS-B Flights, Missile Trajectories, Strait of Hormuz
+   - MILITARY (6): Military Bases (18), Drone/UAV Bases (7), Command Centers (7), Special Forces (5), Radar/EW Stations (6), Arms Depots (5)
+   - STRATEGIC (6): Nuclear Facilities (8), Ballistic Missile Sites (6), Air Defense Systems (11), Anti-Ship Batteries (5), Cyber/SIGINT Centers (5), ELINT Stations (4)
+   - INFRASTRUCTURE (7): Airports (8), Refineries (7), Ports (8), Desalination Plants (5), Power Plants (5), Telecom/Cable Hubs (4), Oil/Gas Fields (8)
+   - ROUTES & ZONES (5): Undersea Cables (6), Pipelines (6), Supply Routes (3), Shipping Lanes (3), No-Fly Zones (3)
+   - HUMANITARIAN (5): Refugee Camps (6), Border Crossings (6), UN Positions (5), Hospitals (5), Embassies (6)
+   - THREAT ACTORS (2): Proxy Militias (7), Tunnel Networks (5)
+   - Layer panel: Collapsible groups with toggle-all/off, active count, color-coded indicators
 5. **Markets Panel** - Sectioned into Commodities, Major FX, and Regional FX -- 17 total instruments
 6. **Telegram Feed** - Intelligence channel messages from simulated Telegram channels
 7. **Scrolling Ticker** - Marquee-style ticker with fade edges, all 17 instruments
@@ -54,9 +56,9 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - `GET /api/adsb` - ADS-B flight tracking data, 24 aircraft (polled every 6s)
 
 ## Panel System
-- 8 panel IDs: news, intel, map, events, radar, adsb, alerts, markets
+- 9 panel IDs: news, telegram, intel, map, events, radar, adsb, alerts, markets
 - Two-row grid layout:
-  - Top row (58%): news, intel, map (44%), alerts
+  - Top row (58%): news (16%), telegram (14%), intel (16%), map (36%), alerts (18%)
   - Bottom row (42%): events, radar, adsb, markets
   - Horizontal resize between rows, vertical resize between panels in each row
 - All panels visible by default

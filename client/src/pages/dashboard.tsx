@@ -55,6 +55,9 @@ import {
   Zap,
   Loader2,
   Radar,
+  Plus,
+  Trash2,
+  Hash,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -172,12 +175,12 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'news' | 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
-  news: { icon: Newspaper, label: 'News', labelAr: '\u0623\u062E\u0628\u0627\u0631' },
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
   map: { icon: Target, label: 'Map', labelAr: '\u062E\u0631\u064A\u0637\u0629' },
+  telegram: { icon: Send, label: 'Telegram', labelAr: '\u062A\u0644\u063A\u0631\u0627\u0645' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   radar: { icon: Plane, label: 'Radar', labelAr: '\u0631\u0627\u062F\u0627\u0631' },
   adsb: { icon: Radar, label: 'ADS-B', labelAr: '\u0645\u0631\u0627\u0642\u0628\u0629 \u062C\u0648\u064A\u0629' },
@@ -380,12 +383,14 @@ function PanelHeader({
   live,
   count,
   onClose,
+  extra,
 }: {
   title: string;
   icon: React.ReactNode;
   live?: boolean;
   count?: number;
   onClose?: () => void;
+  extra?: React.ReactNode;
 }) {
   return (
     <div className="px-4 py-2 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
@@ -396,6 +401,7 @@ function PanelHeader({
           {count}
         </span>
       )}
+      {extra}
       <div className="flex-1" />
       {live && (
         <div className="flex items-center gap-1">
@@ -415,57 +421,6 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
   economic: { variant: 'outline', color: 'text-emerald-400' },
 };
 
-function NewsPanel({ news, language, onClose }: { news: NewsItem[]; language: 'en' | 'ar'; onClose?: () => void }) {
-  return (
-    <div className="h-full flex flex-col">
-      <PanelHeader
-        title={language === 'en' ? 'Breaking News' : '\u0623\u062E\u0628\u0627\u0631 \u0639\u0627\u062C\u0644\u0629'}
-        icon={<Newspaper className="w-3.5 h-3.5" />}
-        live
-        count={news.length}
-        onClose={onClose}
-      />
-      <ScrollArea className="flex-1">
-        <div className="divide-y divide-border/30">
-          {news.length === 0 && (
-            <div className="px-3 py-8 text-center">
-              <Activity className="w-6 h-6 text-muted-foreground mx-auto mb-2 animate-pulse" />
-              <p className="text-xs text-muted-foreground">Loading intelligence feeds...</p>
-            </div>
-          )}
-          {news.map((item, index) => {
-            const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES.breaking;
-            const isBreaking = item.category === 'breaking';
-            return (
-              <div
-                key={item.id}
-                className={`px-4 py-3 hover-elevate cursor-pointer animate-fade-in ${isBreaking ? 'border-l-2 border-l-red-500/50' : 'border-l-2 border-l-transparent'}`}
-                style={{ animationDelay: `${index * 30}ms` }}
-                data-testid={`news-item-${item.id}`}
-              >
-                <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                  <Badge variant={style.variant} className="text-[12px] px-1 py-0 h-[15px] font-bold tracking-wider rounded-sm">
-                    {item.category.toUpperCase()}
-                  </Badge>
-                  <span className="text-[12px] text-muted-foreground font-mono tabular-nums ml-auto">
-                    {timeAgo(item.timestamp)}
-                  </span>
-                </div>
-                <p className="text-xs text-foreground/85 leading-[1.5] font-medium">
-                  {language === 'ar' && item.titleAr ? item.titleAr : item.title}
-                </p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <Radio className="w-2.5 h-2.5 text-muted-foreground/50" />
-                  <span className="text-[12px] text-muted-foreground/60 font-medium">{item.source}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
 
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
@@ -1245,6 +1200,8 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
   );
 }
 
+const DEFAULT_CHANNELS = ['@WarMonitor', '@IntelCrab', '@MENAconflict', '@ShipTracker', '@AviationIntel', '@OilMarkets', '@OSINTdefender', '@GeoConfirmed'];
+
 function TelegramPanel({
   messages,
   language,
@@ -1254,35 +1211,133 @@ function TelegramPanel({
   language: 'en' | 'ar';
   onClose?: () => void;
 }) {
+  const [customChannels, setCustomChannels] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('warroom_tg_channels');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [newChannel, setNewChannel] = useState('');
+  const [showManager, setShowManager] = useState(false);
+
+  const allChannels = useMemo(() => [...DEFAULT_CHANNELS, ...customChannels], [customChannels]);
+
+  const addChannel = useCallback(() => {
+    const ch = newChannel.trim();
+    if (!ch) return;
+    const formatted = ch.startsWith('@') ? ch : `@${ch}`;
+    if (allChannels.includes(formatted)) return;
+    const updated = [...customChannels, formatted];
+    setCustomChannels(updated);
+    localStorage.setItem('warroom_tg_channels', JSON.stringify(updated));
+    setNewChannel('');
+  }, [newChannel, customChannels, allChannels]);
+
+  const removeChannel = useCallback((ch: string) => {
+    const updated = customChannels.filter(c => c !== ch);
+    setCustomChannels(updated);
+    localStorage.setItem('warroom_tg_channels', JSON.stringify(updated));
+  }, [customChannels]);
+
+  const filteredMessages = useMemo(() => {
+    return messages.filter(m => allChannels.includes(m.channel));
+  }, [messages, allChannels]);
+
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full" data-testid="telegram-panel">
       <PanelHeader
-        title={language === 'en' ? 'Telegram Feed' : '\u062A\u0644\u063A\u0631\u0627\u0645'}
-        icon={<Send className="w-3.5 h-3.5" />}
+        title={language === 'en' ? 'Telegram OSINT' : '\u062A\u0644\u063A\u0631\u0627\u0645 OSINT'}
+        icon={<SiTelegram className="w-3.5 h-3.5" />}
         live
-        count={messages.length}
+        count={filteredMessages.length}
         onClose={onClose}
+        extra={
+          <button
+            onClick={() => setShowManager(!showManager)}
+            className="w-5 h-5 flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+            data-testid="button-toggle-channel-manager"
+          >
+            <Plus className={`w-3.5 h-3.5 text-sky-400/70 transition-transform ${showManager ? 'rotate-45' : ''}`} />
+          </button>
+        }
       />
-      <div className="divide-y divide-border/20">
-        {messages.length === 0 && (
-          <div className="px-3 py-6 text-center">
-            <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Connecting to channels...</p>
-          </div>
-        )}
-        {messages.map((msg) => (
-          <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
-              <span className="text-[14px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
-              <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+
+      {showManager && (
+        <div className="border-b border-sky-900/30 bg-sky-950/15 px-2 py-2 shrink-0">
+          <div className="flex gap-1 mb-2">
+            <div className="flex-1 relative">
+              <Hash className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-sky-400/40" />
+              <input
+                type="text"
+                value={newChannel}
+                onChange={(e) => setNewChannel(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addChannel()}
+                placeholder={language === 'ar' ? '\u0627\u0633\u0645 \u0627\u0644\u0642\u0646\u0627\u0629...' : 'Channel name...'}
+                className="w-full h-7 text-[14px] font-mono pl-7 pr-2 rounded bg-sky-950/40 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/30 focus:outline-none focus:border-sky-500/50"
+                data-testid="input-telegram-channel"
+              />
             </div>
-            <p className="text-xs text-foreground/70 leading-[1.55]">
-              {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
-            </p>
+            <button
+              onClick={addChannel}
+              className="h-7 px-2 text-[14px] font-mono font-bold bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 rounded border border-sky-500/30 transition-colors"
+              data-testid="button-add-channel"
+            >
+              {language === 'ar' ? '\u0625\u0636\u0627\u0641\u0629' : 'Add'}
+            </button>
           </div>
-        ))}
-      </div>
+          <div className="flex flex-wrap gap-1">
+            {allChannels.map(ch => {
+              const isCustom = customChannels.includes(ch);
+              return (
+                <div
+                  key={ch}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[14px] font-mono ${
+                    isCustom
+                      ? 'bg-sky-600/20 text-sky-300/90 border border-sky-500/25'
+                      : 'bg-sky-950/30 text-sky-400/60 border border-sky-900/20'
+                  }`}
+                  data-testid={`channel-tag-${ch.replace('@', '')}`}
+                >
+                  <SiTelegram className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{ch}</span>
+                  {isCustom && (
+                    <button
+                      onClick={() => removeChannel(ch)}
+                      className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-red-500/30 transition-colors"
+                      data-testid={`button-remove-channel-${ch.replace('@', '')}`}
+                    >
+                      <X className="w-2.5 h-2.5 text-red-400/70" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <ScrollArea className="flex-1">
+        <div className="divide-y divide-border/20">
+          {filteredMessages.length === 0 && (
+            <div className="px-3 py-6 text-center">
+              <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">{language === 'ar' ? '\u062C\u0627\u0631\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0627\u0644\u0642\u0646\u0648\u0627\u062A...' : 'Connecting to channels...'}</p>
+            </div>
+          )}
+          {filteredMessages.map((msg) => (
+            <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
+                <span className="text-[14px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
+                <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+              </div>
+              <p className="text-xs text-foreground/70 leading-[1.55]">
+                {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -1611,7 +1666,7 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>({
-    news: true, intel: true, map: true, events: true, radar: true, adsb: true, alerts: true, markets: true,
+    intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true,
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -1628,7 +1683,7 @@ export default function Dashboard() {
     [visiblePanels]
   );
 
-  const { data: news = [], isLoading: newsLoading } = useQuery<NewsItem[]>({
+  const { data: news = [] } = useQuery<NewsItem[]>({
     queryKey: ['/api/news'],
     refetchInterval: 20000,
   });
@@ -1674,7 +1729,7 @@ export default function Dashboard() {
   useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
 
-  const topRow: PanelId[] = ['news', 'intel', 'map', 'alerts'];
+  const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts'];
   const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
@@ -1683,7 +1738,7 @@ export default function Dashboard() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWidths: Record<PanelId, number> = {
-    news: 18, intel: 18, map: 44, alerts: 20,
+    telegram: 16, intel: 16, map: 42, alerts: 26,
     events: 22, radar: 22, adsb: 28, markets: 28,
   };
   const [colWidths, setColWidths] = useState(defaultWidths);
@@ -1729,8 +1784,6 @@ export default function Dashboard() {
   const renderPanel = (id: PanelId) => {
     const close = () => closePanel(id);
     switch (id) {
-      case 'news':
-        return <NewsPanel news={news} language={language} onClose={close} />;
       case 'intel':
         return <AIIntelPanel language={language} onClose={close} />;
       case 'map':
@@ -1760,13 +1813,12 @@ export default function Dashboard() {
         return <AdsbPanel language={language} onClose={close} />;
       case 'alerts':
         return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} />;
+      case 'telegram':
+        return <TelegramPanel messages={telegramMessages} language={language} onClose={close} />;
       case 'markets':
         return (
           <ScrollArea className="h-full">
             <CommoditiesPanel commodities={commodities} language={language} onClose={close} />
-            <div className="border-t border-border">
-              <TelegramPanel messages={telegramMessages} language={language} />
-            </div>
           </ScrollArea>
         );
     }
