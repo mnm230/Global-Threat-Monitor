@@ -16,3 +16,66 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  titleAr?: string;
+  source: string;
+  category: 'breaking' | 'military' | 'diplomatic' | 'economic';
+  timestamp: string;
+  url?: string;
+}
+
+export interface CommodityData {
+  symbol: string;
+  name: string;
+  nameAr: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  currency: string;
+}
+
+export interface ConflictEvent {
+  id: string;
+  type: 'missile' | 'airstrike' | 'naval' | 'ground' | 'defense' | 'nuclear';
+  lat: number;
+  lng: number;
+  title: string;
+  titleAr?: string;
+  description: string;
+  descriptionAr?: string;
+  timestamp: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface FlightData {
+  id: string;
+  callsign: string;
+  type: 'military' | 'commercial' | 'surveillance';
+  lat: number;
+  lng: number;
+  altitude: number;
+  heading: number;
+  speed: number;
+}
+
+export interface ShipData {
+  id: string;
+  name: string;
+  type: 'tanker' | 'cargo' | 'military' | 'patrol';
+  lat: number;
+  lng: number;
+  heading: number;
+  speed: number;
+  flag: string;
+}
+
+export interface TelegramMessage {
+  id: string;
+  channel: string;
+  text: string;
+  textAr?: string;
+  timestamp: string;
+}
