@@ -112,10 +112,10 @@ export default function ConflictMap({ events, flights, ships, activeView, langua
               }}
             >
               <Popup>
-                <div className="text-xs p-1 min-w-[140px]">
+                <div className="text-sm p-1 min-w-[160px]">
                   <div className="font-bold text-foreground mb-1">{language === 'ar' && event.titleAr ? event.titleAr : event.title}</div>
-                  <div className="text-muted-foreground">{language === 'ar' && event.descriptionAr ? event.descriptionAr : event.description}</div>
-                  <div className="text-[10px] text-muted-foreground mt-1 uppercase">{event.type} - {event.severity}</div>
+                  <div className="text-muted-foreground text-xs">{language === 'ar' && event.descriptionAr ? event.descriptionAr : event.description}</div>
+                  <div className="text-xs text-muted-foreground mt-1 uppercase">{event.type} - {event.severity}</div>
                 </div>
               </Popup>
             </CircleMarker>
@@ -143,15 +143,15 @@ export default function ConflictMap({ events, flights, ships, activeView, langua
           }}
         >
           <Popup>
-            <div className="text-xs p-1 min-w-[120px]">
+            <div className="text-sm p-1 min-w-[140px]">
               <div className="font-bold">{flight.callsign}</div>
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground text-xs">
                 Alt: {flight.altitude.toLocaleString()}ft
               </div>
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground text-xs">
                 Speed: {flight.speed}kts | HDG: {flight.heading}
               </div>
-              <div className="text-[10px] uppercase mt-1">{language === 'ar' ? FLIGHT_TYPE_AR[flight.type] || flight.type : flight.type}</div>
+              <div className="text-xs uppercase mt-1">{language === 'ar' ? FLIGHT_TYPE_AR[flight.type] || flight.type : flight.type}</div>
             </div>
           </Popup>
         </CircleMarker>
@@ -177,10 +177,10 @@ export default function ConflictMap({ events, flights, ships, activeView, langua
               }}
             >
               <Popup>
-                <div className="text-xs p-1 min-w-[120px]">
+                <div className="text-sm p-1 min-w-[140px]">
                   <div className="font-bold">{ship.name}</div>
-                  <div className="text-muted-foreground capitalize">{language === 'ar' ? SHIP_TYPE_AR[ship.type] || ship.type : ship.type} | {ship.flag}</div>
-                  <div className="text-muted-foreground">
+                  <div className="text-muted-foreground text-xs capitalize">{language === 'ar' ? SHIP_TYPE_AR[ship.type] || ship.type : ship.type} | {ship.flag}</div>
+                  <div className="text-muted-foreground text-xs">
                     Speed: {ship.speed}kts | HDG: {ship.heading}
                   </div>
                 </div>

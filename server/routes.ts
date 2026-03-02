@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert } from "@shared/schema";
 
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
@@ -381,6 +381,40 @@ function generateSirens(): SirenAlert[] {
   return shuffled.slice(0, count);
 }
 
+const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
+  { id: 'ra1', city: 'Sderot', cityHe: 'שדרות', cityAr: 'سديروت', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15, threatType: 'rockets', lat: 31.525, lng: 34.596 },
+  { id: 'ra2', city: 'Ashkelon', cityHe: 'אשקלון', cityAr: 'عسقلان', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30, threatType: 'rockets', lat: 31.669, lng: 34.571 },
+  { id: 'ra3', city: 'Be\'er Sheva', cityHe: 'באר שבע', cityAr: 'بئر السبع', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60, threatType: 'rockets', lat: 31.252, lng: 34.791 },
+  { id: 'ra4', city: 'Tel Aviv', cityHe: 'תל אביב', cityAr: 'تل أبيب', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90, threatType: 'rockets', lat: 32.085, lng: 34.782 },
+  { id: 'ra5', city: 'Haifa', cityHe: 'חיפה', cityAr: 'حيفا', region: 'Haifa Bay', regionHe: 'מפרץ חיפה', regionAr: 'خليج حيفا', countdown: 60, threatType: 'rockets', lat: 32.794, lng: 34.990 },
+  { id: 'ra6', city: 'Kiryat Shmona', cityHe: 'קריית שמונה', cityAr: 'كريات شمونة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0, threatType: 'rockets', lat: 33.208, lng: 35.571 },
+  { id: 'ra7', city: 'Nahariya', cityHe: 'נהריה', cityAr: 'نهاريا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15, threatType: 'rockets', lat: 33.005, lng: 35.098 },
+  { id: 'ra8', city: 'Metula', cityHe: 'מטולה', cityAr: 'المطلة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0, threatType: 'rockets', lat: 33.280, lng: 35.578 },
+  { id: 'ra9', city: 'Tiberias', cityHe: 'טבריה', cityAr: 'طبريا', region: 'Sea of Galilee', regionHe: 'כנרת', regionAr: 'بحيرة طبريا', countdown: 30, threatType: 'missiles', lat: 32.796, lng: 35.530 },
+  { id: 'ra10', city: 'Netanya', cityHe: 'נתניה', cityAr: 'نتانيا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90, threatType: 'hostile_aircraft_intrusion', lat: 32.333, lng: 34.857 },
+  { id: 'ra11', city: 'Safed', cityHe: 'צפת', cityAr: 'صفد', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15, threatType: 'uav_intrusion', lat: 32.966, lng: 35.496 },
+  { id: 'ra12', city: 'Eilat', cityHe: 'אילת', cityAr: 'إيلات', region: 'Southern Negev', regionHe: 'דרום הנגב', regionAr: 'النقب الجنوبي', countdown: 90, threatType: 'missiles', lat: 29.558, lng: 34.952 },
+  { id: 'ra13', city: 'Rishon LeZion', cityHe: 'ראשון לציון', cityAr: 'ريشون لتسيون', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90, threatType: 'rockets', lat: 31.964, lng: 34.804 },
+  { id: 'ra14', city: 'Petah Tikva', cityHe: 'פתח תקווה', cityAr: 'بيتح تكفا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90, threatType: 'rockets', lat: 32.089, lng: 34.886 },
+  { id: 'ra15', city: 'Ashdod', cityHe: 'אשדוד', cityAr: 'أسدود', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 45, threatType: 'rockets', lat: 31.801, lng: 34.650 },
+  { id: 'ra16', city: 'Herzliya', cityHe: 'הרצליה', cityAr: 'هرتسليا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90, threatType: 'rockets', lat: 32.166, lng: 34.846 },
+  { id: 'ra17', city: 'Acre', cityHe: 'עכו', cityAr: 'عكا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 30, threatType: 'rockets', lat: 32.928, lng: 35.076 },
+  { id: 'ra18', city: 'Karmiel', cityHe: 'כרמיאל', cityAr: 'كرميئيل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30, threatType: 'rockets', lat: 32.919, lng: 35.296 },
+  { id: 'ra19', city: 'Nof HaGalil', cityHe: 'נוף הגליל', cityAr: 'نوف هجليل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30, threatType: 'uav_intrusion', lat: 32.700, lng: 35.320 },
+  { id: 'ra20', city: 'Jerusalem', cityHe: 'ירושלים', cityAr: 'القدس', region: 'Jerusalem', regionHe: 'ירושלים', regionAr: 'القدس', countdown: 90, threatType: 'missiles', lat: 31.769, lng: 35.216 },
+];
+
+function generateRedAlerts(): RedAlert[] {
+  const now = Date.now();
+  const count = 4 + Math.floor(Math.random() * 6);
+  const shuffled = [...RED_ALERT_POOL].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map(a => ({
+    ...a,
+    timestamp: new Date(now - Math.floor(Math.random() * 120000)).toISOString(),
+    active: true,
+  }));
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -407,6 +441,10 @@ export async function registerRoutes(
 
   app.get('/api/sirens', (_req, res) => {
     res.json(generateSirens());
+  });
+
+  app.get('/api/red-alerts', (_req, res) => {
+    res.json(generateRedAlerts());
   });
 
   return httpServer;

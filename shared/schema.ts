@@ -94,3 +94,19 @@ export interface SirenAlert {
   timestamp: string;
   active: boolean;
 }
+
+export interface RedAlert {
+  id: string;
+  city: string;
+  cityHe: string;
+  cityAr: string;
+  region: string;
+  regionHe: string;
+  regionAr: string;
+  countdown: number;
+  threatType: 'rockets' | 'missiles' | 'hostile_aircraft_intrusion' | 'uav_intrusion';
+  timestamp: string;
+  active: boolean;
+  lat: number;
+  lng: number;
+}

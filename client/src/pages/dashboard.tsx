@@ -14,6 +14,7 @@ import type {
   ShipData,
   TelegramMessage,
   SirenAlert,
+  RedAlert,
 } from '@shared/schema';
 import {
   Radio,
@@ -35,6 +36,9 @@ import {
   Siren,
   ShieldAlert,
   MapPin,
+  Timer,
+  AlertOctagon,
+  Shield,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -74,9 +78,9 @@ function LiveClock() {
 
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
-      <span className="text-[10px] text-muted-foreground font-mono hidden md:inline">{dateStr}</span>
+      <span className="text-xs text-muted-foreground font-mono hidden md:inline">{dateStr}</span>
       <span className="text-sm text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
-      <span className="text-[9px] text-muted-foreground">UTC</span>
+      <span className="text-[11px] text-muted-foreground">UTC</span>
     </div>
   );
 }
@@ -88,20 +92,20 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-border bg-card/20" />;
+  if (!commodities.length) return <div className="h-8 border-b border-border bg-card/20" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-border/50 bg-card/20 overflow-hidden relative" data-testid="ticker-bar">
+    <div className="h-8 border-b border-border/50 bg-card/20 overflow-hidden relative" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background to-transparent z-10" />
       <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap px-4">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-xs">
             <span className="text-primary font-bold">{c.symbol}</span>
             <span className="text-foreground/80">{formatPrice(c)}</span>
             <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+              {c.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
             <span className="text-border/40 mx-0.5">\u2502</span>
@@ -137,10 +141,10 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
           <div className="w-5 h-5 rounded bg-red-600/30 flex items-center justify-center animate-siren-flash border border-red-500">
             <Siren className="w-3.5 h-3.5 text-red-400" />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400 font-mono whitespace-nowrap">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-400 font-mono whitespace-nowrap">
             {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
           </span>
-          <Badge variant="destructive" className="text-[8px] px-1.5 py-0 h-4 font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold animate-pulse-dot">
             {sirens.length}
           </Badge>
         </div>
@@ -150,13 +154,13 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
             {[...sorted, ...sorted].map((s, i) => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
-                <span key={`${s.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
+                <span key={`${s.id}-${i}`} className="inline-flex items-center gap-1.5 text-xs font-mono">
                   <ShieldAlert className="w-3 h-3 text-red-400 shrink-0" />
                   <span className="text-red-300 font-bold">
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
                   <span className="text-red-500/70">\u2022</span>
-                  <span className="text-red-400/80 text-[9px]">
+                  <span className="text-red-400/80 text-[11px]">
                     {language === 'ar' ? threat.ar : threat.en}
                   </span>
                   <span className="text-red-900/60 mx-1">\u2502</span>
@@ -169,7 +173,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
         <Button
           size="sm"
           variant="ghost"
-          className="text-[9px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
+          className="text-[11px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
           data-testid="button-siren-expand"
         >
           {expanded ? '\u25B2' : '\u25BC'} {language === 'en' ? 'Details' : '\u062A\u0641\u0627\u0635\u064A\u0644'}
@@ -189,19 +193,19 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
                 >
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <MapPin className="w-3 h-3 text-red-400 shrink-0" />
-                    <span className="text-[11px] text-red-300 font-bold truncate">
+                    <span className="text-[13px] text-red-300 font-bold truncate">
                       {language === 'ar' ? s.locationAr : s.location}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="text-[7px] px-1 py-0 h-3.5 font-bold tracking-wider rounded-sm">
+                    <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 font-bold tracking-wider rounded-sm">
                       {language === 'ar' ? threat.ar : threat.en}
                     </Badge>
-                    <span className="text-[9px] text-muted-foreground font-mono ml-auto tabular-nums">
+                    <span className="text-[11px] text-muted-foreground font-mono ml-auto tabular-nums">
                       {timeAgo(s.timestamp)}
                     </span>
                   </div>
-                  <span className="text-[9px] text-red-400/60 mt-0.5 block">
+                  <span className="text-[11px] text-red-400/60 mt-0.5 block">
                     {language === 'ar' ? s.regionAr : s.region}
                   </span>
                 </div>
@@ -228,16 +232,16 @@ function PanelHeader({
   return (
     <div className="px-3 py-2 border-b border-border flex items-center gap-2 bg-card/50 shrink-0">
       <span className="text-primary">{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">{title}</span>
+      <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary">{title}</span>
       {count !== undefined && (
-        <Badge variant="outline" className="text-[8px] px-1.5 py-0 h-3.5 font-mono border-border/50">
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-mono border-border/50">
           {count}
         </Badge>
       )}
       {live && (
         <div className="ml-auto flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
         </div>
       )}
     </div>
@@ -279,19 +283,19 @@ function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar'
                 data-testid={`news-item-${item.id}`}
               >
                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                  <Badge variant={style.variant} className="text-[7px] px-1.5 py-0 h-3.5 font-bold tracking-wider rounded-sm">
+                  <Badge variant={style.variant} className="text-[9px] px-1.5 py-0 h-4 font-bold tracking-wider rounded-sm">
                     {item.category.toUpperCase()}
                   </Badge>
-                  <span className="text-[9px] text-muted-foreground font-mono tabular-nums ml-auto">
+                  <span className="text-[11px] text-muted-foreground font-mono tabular-nums ml-auto">
                     {timeAgo(item.timestamp)}
                   </span>
                 </div>
-                <p className="text-[11px] text-foreground/90 leading-[1.6] font-medium">
+                <p className="text-[13px] text-foreground/90 leading-[1.6] font-medium">
                   {language === 'ar' && item.titleAr ? item.titleAr : item.title}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <Radio className="w-2 h-2 text-muted-foreground/60" />
-                  <span className="text-[9px] text-muted-foreground/70 font-medium">{item.source}</span>
+                  <Radio className="w-2.5 h-2.5 text-muted-foreground/60" />
+                  <span className="text-[11px] text-muted-foreground/70 font-medium">{item.source}</span>
                 </div>
               </div>
             );
@@ -305,12 +309,12 @@ function NewsPanel({ news, language }: { news: NewsItem[]; language: 'en' | 'ar'
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 font-mono text-[10px] items-center hover-elevate transition-colors"
+      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 font-mono text-xs items-center hover-elevate transition-colors"
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground font-bold text-[10px] truncate">{c.symbol}</span>
-        <span className="text-[8px] text-muted-foreground leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground font-bold text-xs truncate">{c.symbol}</span>
+        <span className="text-[10px] text-muted-foreground leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
       <span className="text-foreground tabular-nums text-right font-semibold whitespace-nowrap">
         {formatPrice(c)}
@@ -326,7 +330,7 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 function SectionLabel({ label }: { label: string }) {
   return (
     <div className="px-3 py-1 bg-card/60 border-b border-border/30">
-      <span className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground font-bold">{label}</span>
+      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold">{label}</span>
     </div>
   );
 }
@@ -349,7 +353,7 @@ function CommoditiesPanel({
         icon={<BarChart3 className="w-3.5 h-3.5" />}
         live
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[8px] uppercase tracking-[0.15em] text-muted-foreground font-bold border-b border-border/30">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-bold border-b border-border/30">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
         <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
         <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
@@ -365,6 +369,256 @@ function CommoditiesPanel({
       <SectionLabel label={language === 'en' ? '\u25B8 Regional FX' : '\u25B8 \u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} />
       <div className="divide-y divide-border/10">
         {fxRegional.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+      </div>
+    </div>
+  );
+}
+
+const THREAT_COLORS: Record<string, string> = {
+  rocket: 'text-red-400 border-red-500/40 bg-red-950/30',
+  missile: 'text-orange-400 border-orange-500/40 bg-orange-950/30',
+  uav: 'text-yellow-400 border-yellow-500/40 bg-yellow-950/30',
+  hostile_aircraft: 'text-purple-400 border-purple-500/40 bg-purple-950/30',
+};
+
+function SirensPanel({ sirens, language }: { sirens: SirenAlert[]; language: 'en' | 'ar' }) {
+  const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return (
+    <div className="flex flex-col">
+      <PanelHeader
+        title={language === 'en' ? 'Siren Alerts' : 'صفارات الإنذار'}
+        icon={<Siren className="w-3.5 h-3.5" />}
+        live
+        count={sirens.length}
+      />
+      {sirens.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <ShieldAlert className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">No active alerts</p>
+        </div>
+      )}
+      <div className="divide-y divide-border/20">
+        {sorted.map((s) => {
+          const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
+          const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
+          return (
+            <div
+              key={s.id}
+              className="px-3 py-2 animate-fade-in hover-elevate border-l-2 border-l-red-500/50"
+              data-testid={`siren-panel-${s.id}`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
+                <span className="text-[13px] text-red-300 font-bold truncate flex-1">
+                  {language === 'ar' ? s.locationAr : s.location}
+                </span>
+                <span className="text-[11px] text-muted-foreground font-mono tabular-nums shrink-0">
+                  {timeAgo(s.timestamp)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
+                  {threat.icon} {language === 'ar' ? threat.ar : threat.en}
+                </span>
+                <span className="text-[11px] text-muted-foreground/70 truncate">
+                  {language === 'ar' ? s.regionAr : s.region}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const FLIGHT_TYPE_STYLES: Record<string, { color: string; bg: string; label: string }> = {
+  military:    { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    label: 'MIL' },
+  surveillance:{ color: 'text-yellow-400', bg: 'bg-yellow-950/40 border-yellow-500/30', label: 'ISR' },
+  commercial:  { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'CIV' },
+};
+
+function headingToCompass(deg: number): string {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function FlightRadarPanel({ flights, language }: { flights: FlightData[]; language: 'en' | 'ar' }) {
+  const sorted = [...flights].sort((a, b) => {
+    const order = { military: 0, surveillance: 1, commercial: 2 };
+    return (order[a.type] ?? 3) - (order[b.type] ?? 3);
+  });
+
+  return (
+    <div className="flex flex-col">
+      <PanelHeader
+        title={language === 'en' ? 'Flight Radar' : 'رادار الطيران'}
+        icon={<Plane className="w-3.5 h-3.5" />}
+        live
+        count={flights.length}
+      />
+      {flights.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <Plane className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+          <p className="text-[10px] text-muted-foreground">Scanning airspace...</p>
+        </div>
+      )}
+      <div className="divide-y divide-border/20">
+        {sorted.map((f) => {
+          const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
+          return (
+            <div
+              key={f.id}
+              className="px-3 py-2 hover-elevate animate-fade-in"
+              data-testid={`flight-${f.id}`}
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <span
+                  className="text-foreground/30 shrink-0 inline-block"
+                  style={{ transform: `rotate(${f.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
+                >▲</span>
+                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">{f.callsign}</span>
+                <span className={`text-[7px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                  {style.label}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-x-1 text-[9px] font-mono text-muted-foreground">
+                <span><span className="text-foreground/40">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
+                <span><span className="text-foreground/40">SPD</span> {f.speed}</span>
+                <span><span className="text-foreground/40">HDG</span> {headingToCompass(f.heading)}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const RED_ALERT_THREAT_LABELS: Record<string, { en: string; ar: string; he: string }> = {
+  rockets: { en: 'Rocket Fire', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', he: '\u05D9\u05E8\u05D9 \u05E8\u05E7\u05D8\u05D5\u05EA' },
+  missiles: { en: 'Missile Launch', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0627\u0631\u0648\u062E', he: '\u05D8\u05D9\u05DC \u05D1\u05DC\u05D9\u05E1\u05D8\u05D9' },
+  hostile_aircraft_intrusion: { en: 'Hostile Aircraft', ar: '\u0637\u0627\u0626\u0631\u0629 \u0645\u0639\u0627\u062F\u064A\u0629', he: '\u05D7\u05D3\u05D9\u05E8\u05EA \u05DB\u05DC\u05D9 \u05D8\u05D9\u05E1' },
+  uav_intrusion: { en: 'UAV Intrusion', ar: '\u0627\u062E\u062A\u0631\u0627\u0642 \u0637\u0627\u0626\u0631\u0629 \u0645\u0633\u064A\u0631\u0629', he: '\u05D7\u05D3\u05D9\u05E8\u05EA \u05DB\u05D8\u05DE"\u05D1' },
+};
+
+const RED_ALERT_THREAT_COLORS: Record<string, string> = {
+  rockets: 'bg-red-600',
+  missiles: 'bg-orange-600',
+  hostile_aircraft_intrusion: 'bg-purple-600',
+  uav_intrusion: 'bg-yellow-600',
+};
+
+function RedAlertCountdown({ alert }: { alert: RedAlert }) {
+  const [remaining, setRemaining] = useState(0);
+
+  useEffect(() => {
+    const calcRemaining = () => {
+      const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
+      return Math.max(0, alert.countdown - elapsed);
+    };
+    setRemaining(calcRemaining());
+    const interval = setInterval(() => setRemaining(calcRemaining()), 1000);
+    return () => clearInterval(interval);
+  }, [alert.timestamp, alert.countdown]);
+
+  const isUrgent = remaining <= 15 && remaining > 0;
+  const isImmediate = alert.countdown === 0;
+
+  return (
+    <div className={`font-mono text-center ${isImmediate ? 'text-red-400' : isUrgent ? 'text-red-400 animate-pulse' : remaining === 0 ? 'text-muted-foreground' : 'text-orange-400'}`}>
+      <div className="text-lg font-bold tabular-nums leading-none" data-testid={`red-alert-countdown-${alert.id}`}>
+        {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}s` : '--'}
+      </div>
+      <div className="text-[9px] text-muted-foreground mt-0.5">
+        {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'shelter' : 'expired'}
+      </div>
+    </div>
+  );
+}
+
+function RedAlertPanel({ alerts, language }: { alerts: RedAlert[]; language: 'en' | 'ar' }) {
+  const grouped = alerts.reduce<Record<string, RedAlert[]>>((acc, alert) => {
+    const key = language === 'ar' ? alert.regionAr : alert.region;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(alert);
+    return acc;
+  }, {});
+
+  const sortedRegions = Object.entries(grouped).sort((a, b) => {
+    const minA = Math.min(...a[1].map(a => a.countdown));
+    const minB = Math.min(...b[1].map(b => b.countdown));
+    return minA - minB;
+  });
+
+  return (
+    <div className="flex flex-col" data-testid="red-alert-panel">
+      <div className="px-3 py-2 border-b border-red-900/50 flex items-center gap-2 bg-red-950/40 shrink-0">
+        <div className="w-5 h-5 rounded bg-red-600/40 flex items-center justify-center animate-siren-flash border border-red-500">
+          <AlertOctagon className="w-3.5 h-3.5 text-red-400" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-xs font-bold uppercase tracking-[0.15em] text-red-400">
+            {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
+          </span>
+          <span className="text-[10px] text-red-400/70 font-mono" dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD \u2014 Tzeva Adom</span>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5 font-mono font-bold animate-pulse-dot">
+            {alerts.length}
+          </Badge>
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
+          <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
+        </div>
+      </div>
+
+      {alerts.length === 0 && (
+        <div className="px-3 py-8 text-center">
+          <Shield className="w-6 h-6 text-emerald-500/50 mx-auto mb-2" />
+          <p className="text-xs text-emerald-400/70 font-mono">{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No active alerts'}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA</p>
+        </div>
+      )}
+
+      <div className="divide-y divide-red-900/30">
+        {sortedRegions.map(([regionName, regionAlerts]) => (
+          <div key={regionName}>
+            <div className="px-3 py-1 bg-red-950/30 border-b border-red-900/20">
+              <span className="text-[10px] uppercase tracking-[0.15em] text-red-400/80 font-bold font-mono">{regionName}</span>
+            </div>
+            {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
+              const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
+              const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
+              return (
+                <div
+                  key={alert.id}
+                  className="px-3 py-2 flex items-center gap-3 animate-fade-in hover-elevate border-l-2 border-l-red-500/60"
+                  data-testid={`red-alert-${alert.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <MapPin className="w-3 h-3 text-red-400 shrink-0" />
+                      <span className="text-[13px] text-red-300 font-bold truncate">
+                        {language === 'ar' ? alert.cityAr : alert.city}
+                      </span>
+                      <span className="text-[11px] text-red-400/50 font-mono" dir="rtl">{alert.cityHe}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded text-white font-bold tracking-wider uppercase font-mono ${threatColor}`}>
+                        {language === 'ar' ? threat.ar : threat.en}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                        {timeAgo(alert.timestamp)}
+                      </span>
+                    </div>
+                  </div>
+                  <RedAlertCountdown alert={alert} />
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -389,17 +643,17 @@ function TelegramPanel({
         {messages.length === 0 && (
           <div className="px-3 py-6 text-center">
             <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-            <p className="text-[10px] text-muted-foreground">Connecting to channels...</p>
+            <p className="text-xs text-muted-foreground">Connecting to channels...</p>
           </div>
         )}
         {messages.map((msg) => (
           <div key={msg.id} className="px-3 py-2 animate-fade-in hover-elevate" data-testid={`telegram-msg-${msg.id}`}>
             <div className="flex items-center gap-1.5 mb-0.5">
-              <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
-              <span className="text-[11px] text-sky-400 font-bold truncate">{msg.channel}</span>
-              <span className="text-[10px] text-muted-foreground font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+              <SiTelegram className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span className="text-[13px] text-sky-400 font-bold truncate">{msg.channel}</span>
+              <span className="text-xs text-muted-foreground font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
             </div>
-            <p className="text-[12px] text-foreground/75 leading-[1.6]">
+            <p className="text-sm text-foreground/75 leading-[1.6]">
               {language === 'ar' && msg.textAr ? msg.textAr : msg.text}
             </p>
           </div>
@@ -412,7 +666,7 @@ function TelegramPanel({
 function MapLegend({ activeView, language }: { activeView: string; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm border border-border rounded-md p-2 text-[8px] space-y-0.5" dir="ltr">
+    <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm border border-border rounded-md p-2 text-[10px] space-y-0.5" dir="ltr">
       {activeView === 'conflict' && (
         <>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Missile/Strike', '\u0635\u0627\u0631\u0648\u062E/\u0636\u0631\u0628\u0629')}</span></div>
@@ -464,8 +718,8 @@ function MapSection({
   return (
     <div className="h-full flex flex-col">
       <div className="px-3 py-1.5 border-b border-border flex items-center gap-1.5 bg-card/40 shrink-0 flex-wrap">
-        <Target className="w-3.5 h-3.5 text-primary shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary mr-auto">
+        <Target className="w-4 h-4 text-primary shrink-0" />
+        <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary mr-auto">
           {language === 'en' ? 'Intelligence Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
         </span>
         <div className="flex items-center gap-0.5">
@@ -474,7 +728,7 @@ function MapSection({
               key={v.key}
               size="sm"
               variant={activeView === v.key ? 'default' : 'ghost'}
-              className="text-[9px] px-2"
+              className="text-[11px] px-2"
               onClick={() => setActiveView(v.key)}
               data-testid={`button-map-${v.key}`}
             >
@@ -485,7 +739,7 @@ function MapSection({
         </div>
         <div className="flex items-center gap-1 ml-1">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-bold">LIVE</span>
         </div>
       </div>
       <div className="flex-1 relative min-h-0">
@@ -495,7 +749,7 @@ function MapSection({
               <div className="w-full h-full flex items-center justify-center bg-card/20">
                 <div className="text-center">
                   <Globe className="w-8 h-8 text-primary mx-auto mb-2 animate-pulse" />
-                  <p className="text-xs text-muted-foreground">Loading map...</p>
+                  <p className="text-sm text-muted-foreground">Loading map...</p>
                 </div>
               </div>
             }
@@ -512,8 +766,8 @@ function MapSection({
         <MapLegend activeView={activeView} language={language} />
         <div className="absolute top-3 right-3 z-[1000] bg-background/90 backdrop-blur-sm border border-border rounded-md px-2 py-1">
           <div className="flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-emerald-400" />
-            <span className="text-[9px] text-foreground/70 font-mono">
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[11px] text-foreground/70 font-mono">
               {activeView === 'conflict' && `${events.length} events`}
               {activeView === 'flights' && `${flights.length} aircraft`}
               {activeView === 'maritime' && `${ships.length} vessels`}
@@ -557,6 +811,11 @@ export default function Dashboard() {
     refetchInterval: 10000,
   });
 
+  const { data: redAlerts = [] } = useQuery<RedAlert[]>({
+    queryKey: ['/api/red-alerts'],
+    refetchInterval: 8000,
+  });
+
   const events = intelData?.events || [];
   const flights = intelData?.flights || [];
   const ships = intelData?.ships || [];
@@ -571,11 +830,11 @@ export default function Dashboard() {
             </div>
             <span className="font-bold text-sm tracking-tight text-primary font-mono">WARROOM</span>
           </div>
-          <Badge variant="destructive" className="h-4 text-[7px] px-1.5 font-bold tracking-[0.15em] animate-pulse-dot">
+          <Badge variant="destructive" className="h-5 text-[9px] px-1.5 font-bold tracking-[0.15em] animate-pulse-dot">
             LIVE
           </Badge>
           <Separator orientation="vertical" className="h-5 hidden sm:block" />
-          <span className="text-[9px] text-muted-foreground hidden md:inline font-medium tracking-wide">
+          <span className="text-[11px] text-muted-foreground hidden md:inline font-medium tracking-wide">
             {language === 'en' ? 'Middle East Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u0627\u0644\u0634\u0631\u0642 \u0627\u0644\u0623\u0648\u0633\u0637'}
           </span>
         </div>
@@ -585,7 +844,7 @@ export default function Dashboard() {
           <Button
             size="sm"
             variant="outline"
-            className="text-[10px] px-2.5 h-7 font-mono border-border/50 bg-card/30"
+            className="text-xs px-2.5 h-7 font-mono border-border/50 bg-card/30"
             onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
             data-testid="button-language-toggle"
           >
@@ -594,7 +853,7 @@ export default function Dashboard() {
           </Button>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[8px] text-emerald-400 font-bold tracking-wider hidden sm:inline uppercase">
+            <span className="text-[10px] text-emerald-400 font-bold tracking-wider hidden sm:inline uppercase">
               {language === 'en' ? 'Connected' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
@@ -606,15 +865,30 @@ export default function Dashboard() {
       <SirenBanner sirens={sirens} language={language} />
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-px bg-border min-h-0 overflow-hidden">
-        <div className="col-span-1 lg:col-span-3 bg-background overflow-hidden flex flex-col min-h-0">
+        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden flex flex-col min-h-0">
           <NewsPanel news={news} language={language} />
         </div>
 
-        <div className="col-span-1 lg:col-span-6 bg-background overflow-hidden flex flex-col min-h-0">
+        <div className="col-span-1 lg:col-span-4 bg-background overflow-hidden flex flex-col min-h-0">
           <MapSection events={events} flights={flights} ships={ships} language={language} />
         </div>
 
-        <div className="col-span-1 lg:col-span-3 bg-background overflow-hidden min-h-0">
+        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden flex flex-col min-h-0">
+          <ScrollArea className="h-full">
+            <FlightRadarPanel flights={flights} language={language} />
+          </ScrollArea>
+        </div>
+
+        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden flex flex-col min-h-0">
+          <ScrollArea className="h-full">
+            <RedAlertPanel alerts={redAlerts} language={language} />
+            <div className="border-t border-border">
+              <SirensPanel sirens={sirens} language={language} />
+            </div>
+          </ScrollArea>
+        </div>
+
+        <div className="col-span-1 lg:col-span-2 bg-background overflow-hidden min-h-0">
           <ScrollArea className="h-full">
             <CommoditiesPanel commodities={commodities} language={language} />
             <div className="border-t border-border">
@@ -624,35 +898,40 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="h-6 border-t border-border/60 flex items-center px-4 bg-card/30 shrink-0 gap-4 overflow-hidden" data-testid="status-bar">
+      <div className="h-7 border-t border-border/60 flex items-center px-4 bg-card/30 shrink-0 gap-4 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[8px] text-muted-foreground font-mono font-medium">ONLINE</span>
+          <span className="text-[10px] text-muted-foreground font-mono font-medium">ONLINE</span>
         </div>
         <Separator orientation="vertical" className="h-3" />
         <div className="flex items-center gap-3">
-          <span className="text-[8px] text-muted-foreground font-mono">
+          <span className="text-[10px] text-muted-foreground font-mono">
             <span className="text-foreground/50">SRC</span> 12
           </span>
-          <span className="text-[8px] text-muted-foreground font-mono">
+          <span className="text-[10px] text-muted-foreground font-mono">
             <span className="text-foreground/50">EVT</span> {events.length}
           </span>
-          <span className="text-[8px] text-muted-foreground font-mono">
+          <span className="text-[10px] text-muted-foreground font-mono">
             <span className="text-foreground/50">FLT</span> {flights.length}
           </span>
-          <span className="text-[8px] text-muted-foreground font-mono">
+          <span className="text-[10px] text-muted-foreground font-mono">
             <span className="text-foreground/50">VES</span> {ships.length}
           </span>
-          <span className="text-[8px] text-muted-foreground font-mono">
+          <span className="text-[10px] text-muted-foreground font-mono">
             <span className="text-foreground/50">MKT</span> {commodities.length}
           </span>
+          {redAlerts.length > 0 && (
+            <span className="text-[10px] text-red-400 font-mono font-bold animate-pulse">
+              <span className="text-red-400/60">RED</span> {redAlerts.length}
+            </span>
+          )}
           {sirens.length > 0 && (
-            <span className="text-[8px] text-red-400 font-mono font-bold">
+            <span className="text-[10px] text-red-400 font-mono font-bold">
               <span className="text-red-400/60">SRN</span> {sirens.length}
             </span>
           )}
         </div>
-        <span className="text-[8px] text-muted-foreground font-mono ml-auto hidden sm:inline">
+        <span className="text-[10px] text-muted-foreground font-mono ml-auto hidden sm:inline">
           WARROOM v1.0 \u2502 {language === 'en' ? 'Iran-Israel-Lebanon Theater' : '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646'}
         </span>
       </div>
