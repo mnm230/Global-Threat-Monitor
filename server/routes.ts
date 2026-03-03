@@ -328,7 +328,7 @@ async function fetchMediastack(): Promise<NewsItem[]> {
   }
 }
 
-const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee', 'IntelCrab', 'sentdefender', 'IsraelRadar_', 'AuroraIntel', 'Faytuks', 'Conflicts'];
+const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee', 'IntelCrab', 'sentdefender', 'IsraelRadar_', 'AuroraIntel', 'Faytuks', 'Conflicts', 'BNONews', 'igaboriau', 'NotWoofers', 'ELINTNews', 'charles_lister'];
 const X_CACHE_TTL = 2 * 60 * 1000;
 const X_RATE_LIMIT_BACKOFF = 10 * 60 * 1000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
@@ -414,6 +414,11 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       AuroraIntel: 'Aurora Intel',
       Faytuks: 'Faytuks',
       Conflicts: 'Conflicts',
+      BNONews: 'BNO News',
+      igaboriau: 'Igor Sushko',
+      NotWoofers: 'OSINT (Woofers)',
+      ELINTNews: 'ELINT News',
+      charles_lister: 'Charles Lister',
     };
     const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
 
