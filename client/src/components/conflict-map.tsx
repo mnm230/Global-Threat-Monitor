@@ -647,17 +647,52 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     });
   }, []);
 
-  const handleMapClick = useCallback((info: { coordinate?: number[] }) => {
-    if (!measureMode || !info.coordinate) return;
-    const [lng, lat] = info.coordinate;
-    if (!measureCenter) {
-      setMeasureCenter({ lng, lat });
-      setMeasureCursor({ lng, lat });
-    } else {
-      setMeasureCenter(null);
-      setMeasureCursor(null);
+  const handleMapClick = useCallback((info: { coordinate?: number[]; object?: Record<string, unknown>; layer?: { id: string }; x: number; y: number }) => {
+    if (measureMode && info.coordinate) {
+      const [lng, lat] = info.coordinate;
+      if (!measureCenter) {
+        setMeasureCenter({ lng, lat });
+        setMeasureCursor({ lng, lat });
+      } else {
+        setMeasureCenter(null);
+        setMeasureCursor(null);
+      }
+      return;
     }
-  }, [measureMode, measureCenter]);
+    if (info.object && info.layer) {
+      const obj = info.object as Record<string, unknown>;
+      let text = '';
+      let detail = '';
+      const layerId = info.layer.id;
+
+      if (layerId === 'events-layer') {
+        const e = obj as unknown as ConflictEvent;
+        text = language === 'ar' && e.titleAr ? e.titleAr : e.title;
+        detail = `${e.type} | ${e.severity}`;
+      } else if (layerId === 'flights-layer') {
+        const f = obj as unknown as FlightData;
+        text = f.callsign;
+        detail = `${f.type} | Alt: ${f.altitude}ft | ${f.speed}kts`;
+      } else if (layerId === 'ships-layer') {
+        const s = obj as unknown as ShipData;
+        text = s.name;
+        detail = `${s.type} | ${s.flag} | ${s.speed}kts`;
+      } else if (layerId === 'adsb-layer') {
+        text = `${obj.callsign} (${obj.hex})`;
+        detail = `${obj.aircraft} | ${obj.country} | ${obj.altitude}ft`;
+      } else {
+        text = (obj.name as string) || '';
+        const detailParts = [obj.type || obj.system || obj.capacity, obj.operator || obj.group || obj.force, obj.country].filter(Boolean);
+        detail = detailParts.join(' | ');
+      }
+
+      if (text) {
+        setTooltip(prev => prev?.text === text ? null : { x: info.x, y: info.y, text, detail });
+      }
+    } else {
+      setTooltip(null);
+    }
+  }, [measureMode, measureCenter, language]);
 
   const handleMapHover = useCallback((info: { coordinate?: number[] }) => {
     if (measureMode && measureCenter && info.coordinate) {
@@ -1735,7 +1770,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           data-testid="button-toggle-globe"
           onClick={toggleGlobe}
           style={{
-            padding: '6px 12px',
+            padding: '8px 14px',
             fontSize: 12,
             fontWeight: 600,
             borderRadius: 6,
@@ -1744,6 +1779,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             color: '#fff',
             cursor: 'pointer',
             backdropFilter: 'blur(8px)',
+            minHeight: 36,
           }}
         >
           {isGlobe ? 'Globe' : 'Flat'}
@@ -1755,7 +1791,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
               data-testid={`button-region-${region}`}
               onClick={() => setRegion(region)}
               style={{
-                padding: '4px 8px',
+                padding: '6px 10px',
                 fontSize: 11,
                 fontWeight: 500,
                 borderRadius: 4,
@@ -1766,6 +1802,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
                 backdropFilter: 'blur(8px)',
+                minHeight: 32,
               }}
             >
               {region}
@@ -1776,7 +1813,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           data-testid="button-measure-tool"
           onClick={toggleMeasureMode}
           style={{
-            padding: '6px 12px',
+            padding: '8px 14px',
             fontSize: 11,
             fontWeight: 600,
             borderRadius: 6,
@@ -1788,6 +1825,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             display: 'flex',
             alignItems: 'center',
             gap: 6,
+            minHeight: 36,
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1837,7 +1875,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
-              padding: '2px 0',
+              padding: '6px 0',
+              minHeight: 36,
             }}
           >
             <span>Layers</span>
@@ -1870,11 +1909,12 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                           fontWeight: 700,
                           letterSpacing: '0.1em',
                           textTransform: 'uppercase',
-                          padding: 0,
+                          padding: '4px 0',
                           textAlign: 'left',
+                          minHeight: 32,
                         }}
                       >
-                        <span style={{ fontSize: 8, opacity: 0.7 }}>{isExpanded ? '\u25BC' : '\u25B6'}</span>
+                        <span style={{ fontSize: 9, opacity: 0.7 }}>{isExpanded ? '\u25BC' : '\u25B6'}</span>
                         <span>{group.label}</span>
                         <span style={{ color: '#666', fontSize: 9, fontWeight: 500, marginLeft: 2 }}>
                           {activeInGroup}/{groupLayers.length}
@@ -1886,12 +1926,13 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                         style={{
                           background: 'none',
                           border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: 3,
+                          borderRadius: 4,
                           color: '#888',
                           cursor: 'pointer',
-                          fontSize: 8,
-                          padding: '1px 4px',
+                          fontSize: 9,
+                          padding: '4px 8px',
                           lineHeight: 1,
+                          minHeight: 28,
                         }}
                       >
                         {activeInGroup === groupLayers.length ? 'OFF' : 'ALL'}
@@ -1906,12 +1947,13 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 5,
+                              gap: 6,
                               cursor: 'pointer',
-                              padding: '2px 0',
+                              padding: '4px 2px',
                               fontSize: 10,
                               color: layerVisibility[cfg.key] ? '#ddd' : '#555',
                               userSelect: 'none',
+                              minHeight: 28,
                             }}
                           >
                             <input
@@ -1922,12 +1964,12 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                             />
                             <span
                               style={{
-                                width: 8,
-                                height: 8,
+                                width: 12,
+                                height: 12,
                                 borderRadius: '50%',
+                                flexShrink: 0,
                                 background: layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.08)',
                                 border: `1.5px solid ${layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.15)'}`,
-                                flexShrink: 0,
                               }}
                             />
                             <span style={{ lineHeight: 1.2 }}>{cfg.label}</span>
@@ -1945,24 +1987,27 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
 
       {tooltip && (
         <div
+          onClick={() => setTooltip(null)}
           style={{
             position: 'absolute',
-            left: tooltip.x + 12,
-            top: tooltip.y - 12,
+            left: Math.min(tooltip.x + 12, (containerRef.current?.clientWidth || 400) - 260),
+            top: Math.max(tooltip.y - 12, 8),
             zIndex: 20,
-            background: 'rgba(0,0,0,0.85)',
+            background: 'rgba(0,0,0,0.9)',
             backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: 6,
-            padding: '6px 10px',
-            pointerEvents: 'none',
-            maxWidth: 240,
+            padding: '8px 12px',
+            pointerEvents: 'auto',
+            maxWidth: 260,
+            cursor: 'pointer',
           }}
         >
           <div style={{ color: '#eee', fontSize: 12, fontWeight: 600 }}>{tooltip.text}</div>
           {tooltip.detail && (
             <div style={{ color: '#999', fontSize: 11, marginTop: 2 }}>{tooltip.detail}</div>
           )}
+          <div style={{ color: '#555', fontSize: 9, marginTop: 4 }}>Tap to dismiss</div>
         </div>
       )}
 

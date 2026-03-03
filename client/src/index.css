@@ -255,3 +255,22 @@
     inset: -1px;
   }
 }
+
+@media (hover: none) and (pointer: coarse) {
+  .hover-elevate:hover:not(.no-default-hover-elevate)::after,
+  .hover-elevate-2:hover:not(.no-default-hover-elevate)::after {
+    background-color: transparent;
+  }
+
+  button, [role="button"], a, label[style*="cursor: pointer"] {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.08);
+  }
+
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .touch-scroll-snap {
+    scroll-snap-type: y mandatory;
+  }
+}

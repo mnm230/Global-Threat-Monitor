@@ -109,31 +109,60 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
 
 function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: number) => void; direction?: 'col' | 'row' }) {
   const [isDragging, setIsDragging] = useState(false);
+  const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!isDragging) return;
     const handleMouseMove = (e: MouseEvent) => {
       onResize(direction === 'col' ? e.movementX : e.movementY);
     };
-    const handleMouseUp = () => setIsDragging(false);
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (lastTouchRef.current) {
+        const delta = direction === 'col'
+          ? touch.clientX - lastTouchRef.current.x
+          : touch.clientY - lastTouchRef.current.y;
+        onResize(delta);
+      }
+      lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+    };
+    const handleEnd = () => {
+      setIsDragging(false);
+      lastTouchRef.current = null;
+    };
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
+    document.addEventListener('touchcancel', handleEnd);
     document.body.style.cursor = direction === 'col' ? 'col-resize' : 'row-resize';
     document.body.style.userSelect = 'none';
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener('touchcancel', handleEnd);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
   }, [isDragging, onResize, direction]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
+    setIsDragging(true);
+  };
+
   return (
     <div
-      className={`${direction === 'col' ? 'w-[2px] cursor-col-resize' : 'h-[2px] cursor-row-resize'} shrink-0 transition-all duration-150 relative group ${isDragging ? 'bg-primary/50' : 'bg-border/20 hover:bg-primary/20'}`}
+      className={`${direction === 'col' ? 'w-[2px] cursor-col-resize' : 'h-[2px] cursor-row-resize'} shrink-0 transition-all duration-150 relative group touch-none ${isDragging ? 'bg-primary/50' : 'bg-border/20 hover:bg-primary/20'}`}
       onMouseDown={() => setIsDragging(true)}
+      onTouchStart={handleTouchStart}
       data-testid="resize-handle"
     >
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-12 -ml-[5px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-12 -mt-[5px]'} rounded-full transition-colors ${isDragging ? 'bg-primary/30' : 'bg-transparent group-hover:bg-primary/20'}`} />
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-8' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-8'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/40'}`} />
     </div>
   );
@@ -209,7 +238,7 @@ function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/15 transition-colors"
+      className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors"
       title="Close panel"
       data-testid="button-panel-close"
     >
@@ -222,11 +251,11 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/15 transition-colors"
+      className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/15 active:bg-primary/25 transition-colors"
       title={isMaximized ? "Restore panel" : "Maximize panel"}
       data-testid="button-panel-maximize"
     >
-      {isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+      {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
     </button>
   );
 }
@@ -585,7 +614,7 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
           <div key={p.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-card/50 transition-colors group" data-testid={`preset-${p.name}`}>
             <button onClick={() => { onLoad(p); onClose(); }} className="flex-1 text-left text-[11px] font-mono text-foreground/80 hover:text-foreground">{p.name}</button>
             {!BUILT_IN_PRESETS.find(b => b.name === p.name) && (
-              <button onClick={() => onDelete(p.name)} className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded hover:bg-red-500/20"><Trash2 className="w-3 h-3 text-red-400/60" /></button>
+              <button onClick={() => onDelete(p.name)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/20 active:bg-red-500/30 opacity-60 hover:opacity-100"><Trash2 className="w-3 h-3 text-red-400/60" /></button>
             )}
           </div>
         ))}
@@ -645,12 +674,15 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
         {timelineEvents.map(e => (
           <div
             key={e.id}
-            className={`absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full cursor-pointer transition-transform hover:scale-150 ${sevColor[e.severity] || 'bg-blue-500'}`}
+            className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full cursor-pointer transition-transform hover:scale-125 active:scale-110 flex items-center justify-center ${hoveredEvent?.id === e.id ? 'scale-125' : ''}`}
             style={{ left: `${Math.max(2, Math.min(95, e.position))}%` }}
             onMouseEnter={() => setHoveredEvent(e)}
             onMouseLeave={() => setHoveredEvent(null)}
+            onClick={() => setHoveredEvent(hoveredEvent?.id === e.id ? null : e)}
             data-testid={`timeline-event-${e.id}`}
-          />
+          >
+            <div className={`w-2 h-2 rounded-full ${sevColor[e.severity] || 'bg-blue-500'}`} />
+          </div>
         ))}
         {hoveredEvent && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-background border border-border/60 rounded px-2 py-1 text-[11px] font-mono whitespace-nowrap z-10 shadow-lg">
@@ -1580,7 +1612,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           </div>
         )}
         {onShowHistory && (
-          <button onClick={onShowHistory} className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/15 transition-colors" title="Alert History" data-testid="button-alert-history">
+          <button onClick={onShowHistory} className="w-7 h-7 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/15 active:bg-white/25 transition-colors" title="Alert History" data-testid="button-alert-history">
             <History className="w-3 h-3" />
           </button>
         )}
@@ -2542,31 +2574,31 @@ export default function Dashboard() {
           <LiveClock />
           <div className="w-px h-4 bg-border/30" />
           <div className="flex items-center gap-0.5">
-            <Button size="sm" variant="ghost" className={`text-[12px] px-1.5 h-7 font-mono rounded ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`} onClick={toggleNotifications} data-testid="button-notifications-toggle" title="Desktop Notifications">
-              {notificationsEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+            <Button size="sm" variant="ghost" className={`text-[12px] px-2 h-8 font-mono rounded ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground active:bg-primary/20`} onClick={toggleNotifications} data-testid="button-notifications-toggle" title="Desktop Notifications">
+              {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </Button>
-            <Button size="sm" variant="ghost" className={`text-[12px] px-1.5 h-7 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle">
-              {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            <Button size="sm" variant="ghost" className={`text-[12px] px-2 h-8 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground active:bg-primary/20`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle">
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </Button>
-            <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-amber-400 rounded" onClick={() => setShowNotes(true)} data-testid="button-notes" title="Analyst Notes">
-              <StickyNote className="w-3.5 h-3.5" />
+            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-amber-400 active:bg-amber-500/20 rounded" onClick={() => setShowNotes(true)} data-testid="button-notes" title="Analyst Notes">
+              <StickyNote className="w-4 h-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-amber-400 rounded" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" title="Watchlist">
-              <Eye className="w-3.5 h-3.5" />
+            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-amber-400 active:bg-amber-500/20 rounded" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" title="Watchlist">
+              <Eye className="w-4 h-4" />
             </Button>
             <div className="relative">
-              <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-primary rounded" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" title="Layout Presets">
-                <Layout className="w-3.5 h-3.5" />
+              <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-primary active:bg-primary/20 rounded" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" title="Layout Presets">
+                <Layout className="w-4 h-4" />
               </Button>
               {showLayoutPresets && (
                 <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
               )}
             </div>
-            <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-emerald-400 rounded" onClick={handleExport} data-testid="button-export" title="Export Report">
-              <FileDown className="w-3.5 h-3.5" />
+            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-emerald-400 active:bg-emerald-500/20 rounded" onClick={handleExport} data-testid="button-export" title="Export Report">
+              <FileDown className="w-4 h-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-7 font-mono text-muted-foreground/60 hover:text-foreground rounded" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle">
-              <Languages className="w-3.5 h-3.5 mr-1" />
+            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/60 hover:text-foreground active:bg-primary/20 rounded" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle">
+              <Languages className="w-4 h-4 mr-1" />
               {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
             </Button>
           </div>

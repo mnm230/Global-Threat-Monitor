@@ -99,3 +99,15 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - Terminal-density text sizing: 10-11px for data labels, 9-10px for secondary info, 12px for headers/titles
 - No text-sm (14px) or text-[14px] in data panels - all reduced for Bloomberg terminal density
 - Overlay panels (notes, watchlist, history) use text-xs (12px) headers and text-[11px] body
+
+## Touch Screen Support
+- ResizeHandle supports touch events (touchstart/touchmove/touchend) with delta tracking and wider invisible hit area (12px wide)
+- Timeline events use 16px tap targets wrapping 8px dots, with click-to-toggle tooltips
+- Map tooltips appear on tap (click) with tap-to-dismiss; mouse hover still works for desktop
+- Layer toggle targets enlarged to 12px dots with 28px minHeight rows for easy tapping
+- Map toolbar buttons (Globe, Region, Measure) have minHeight 32-36px
+- Header buttons enlarged to h-8 (32px) with active:bg-* states for touch feedback
+- Panel minimize/maximize buttons enlarged to w-7 h-7 (28px) with active states
+- Preset delete buttons always visible (not hover-only) for touch accessibility
+- CSS @media (hover: none) and (pointer: coarse) suppresses sticky hover effects and adds tap highlights
+- All interactive elements have minimum 28px touch targets
