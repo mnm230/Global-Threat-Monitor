@@ -75,13 +75,236 @@ import {
   Layout,
   Ruler,
   Search,
+  Settings,
+  TriangleAlert,
+  Menu,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
 
-class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
+interface WARROOMSettings {
+  criticalThreshold: number;
+  highThreshold: number;
+  elevatedThreshold: number;
+  notifyRockets: boolean;
+  notifyMissiles: boolean;
+  notifyUav: boolean;
+  notifyAircraft: boolean;
+  soundEnabled: boolean;
+  defaultLanguage: 'en' | 'ar';
+}
+
+const DEFAULT_SETTINGS: WARROOMSettings = {
+  criticalThreshold: 15,
+  highThreshold: 8,
+  elevatedThreshold: 3,
+  notifyRockets: true,
+  notifyMissiles: true,
+  notifyUav: true,
+  notifyAircraft: true,
+  soundEnabled: true,
+  defaultLanguage: 'en',
+};
+
+function loadSettings(): WARROOMSettings {
+  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('warroom_settings') || '{}') }; } catch { return { ...DEFAULT_SETTINGS }; }
+}
+
+interface Anomaly {
+  id: string;
+  type: 'alert_spike' | 'siren_cluster' | 'flight_convergence' | 'price_spike' | 'telegram_surge';
+  severity: 'high' | 'medium';
+  description: string;
+  timestamp: string;
+}
+
+function useAnomalyDetection(
+  alerts: RedAlert[],
+  sirens: SirenAlert[],
+  flights: FlightData[],
+  commodities: CommodityData[],
+  telegramMessages: TelegramMessage[]
+): Anomaly[] {
+  const prevAlertCount = useRef(0);
+  const prevCommodityPrices = useRef<Record<string, number>>({});
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
+
+  useEffect(() => {
+    const now = new Date().toISOString();
+    const newAnomalies: Anomaly[] = [];
+
+    if (prevAlertCount.current > 0 && alerts.length - prevAlertCount.current >= 5) {
+      newAnomalies.push({
+        id: `anom-alert-${Date.now()}`,
+        type: 'alert_spike',
+        severity: 'high',
+        description: `Alert spike detected: ${alerts.length - prevAlertCount.current} new alerts in rapid succession`,
+        timestamp: now,
+      });
+    }
+    prevAlertCount.current = alerts.length;
+
+    const regionSirens: Record<string, number> = {};
+    sirens.forEach(s => {
+      regionSirens[s.region] = (regionSirens[s.region] || 0) + 1;
+    });
+    Object.entries(regionSirens).forEach(([region, count]) => {
+      if (count >= 3) {
+        newAnomalies.push({
+          id: `anom-siren-${region}-${Date.now()}`,
+          type: 'siren_cluster',
+          severity: 'high',
+          description: `Siren cluster: ${count} active sirens in ${region}`,
+          timestamp: now,
+        });
+      }
+    });
+
+    const milFlights = flights.filter(f => f.type === 'military' || f.type === 'surveillance');
+    for (let i = 0; i < milFlights.length; i++) {
+      let nearby = 0;
+      for (let j = i + 1; j < milFlights.length; j++) {
+        const dist = Math.sqrt(Math.pow(milFlights[i].lat - milFlights[j].lat, 2) + Math.pow(milFlights[i].lng - milFlights[j].lng, 2));
+        if (dist < 1) nearby++;
+      }
+      if (nearby >= 3) {
+        newAnomalies.push({
+          id: `anom-flight-${milFlights[i].callsign}-${Date.now()}`,
+          type: 'flight_convergence',
+          severity: 'medium',
+          description: `Military flight convergence: ${nearby + 1} aircraft within 1 degree near ${milFlights[i].callsign}`,
+          timestamp: now,
+        });
+        break;
+      }
+    }
+
+    const prevPrices = prevCommodityPrices.current;
+    commodities.forEach(c => {
+      if (Math.abs(c.changePercent) > 2) {
+        newAnomalies.push({
+          id: `anom-price-${c.symbol}-${Date.now()}`,
+          type: 'price_spike',
+          severity: 'medium',
+          description: `${c.symbol} price spike: ${c.changePercent > 0 ? '+' : ''}${c.changePercent.toFixed(2)}%`,
+          timestamp: now,
+        });
+      }
+    });
+    const newPrices: Record<string, number> = {};
+    commodities.forEach(c => { newPrices[c.symbol] = c.price; });
+    prevCommodityPrices.current = newPrices;
+
+    if (newAnomalies.length > 0) {
+      setAnomalies(prev => {
+        const tenMinAgo = Date.now() - 600000;
+        const filtered = prev.filter(a => new Date(a.timestamp).getTime() > tenMinAgo);
+        return [...newAnomalies, ...filtered].slice(0, 20);
+      });
+    } else {
+      setAnomalies(prev => {
+        const tenMinAgo = Date.now() - 600000;
+        const filtered = prev.filter(a => new Date(a.timestamp).getTime() > tenMinAgo);
+        if (filtered.length !== prev.length) return filtered;
+        return prev;
+      });
+    }
+  }, [alerts, sirens, flights, commodities, telegramMessages]);
+
+  return anomalies;
+}
+
+interface SSEData {
+  news: NewsItem[];
+  commodities: CommodityData[];
+  events: ConflictEvent[];
+  flights: FlightData[];
+  ships: ShipData[];
+  sirens: SirenAlert[];
+  redAlerts: RedAlert[];
+  adsbFlights: AdsbFlight[];
+  aiBrief: AIBrief | null;
+  connected: boolean;
+}
+
+function useSSE(): SSEData {
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [commodities, setCommodities] = useState<CommodityData[]>([]);
+  const [events, setEvents] = useState<ConflictEvent[]>([]);
+  const [flights, setFlights] = useState<FlightData[]>([]);
+  const [ships, setShips] = useState<ShipData[]>([]);
+  const [sirens, setSirens] = useState<SirenAlert[]>([]);
+  const [redAlerts, setRedAlerts] = useState<RedAlert[]>([]);
+  const [adsbFlights, setAdsbFlights] = useState<AdsbFlight[]>([]);
+  const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
+  const [connected, setConnected] = useState(false);
+  const retryCount = useRef(0);
+  const maxRetries = 5;
+
+  useEffect(() => {
+    let es: EventSource | null = null;
+    let retryTimeout: NodeJS.Timeout | null = null;
+
+    const connect = () => {
+      es = new EventSource('/api/stream');
+
+      es.onopen = () => {
+        setConnected(true);
+        retryCount.current = 0;
+      };
+
+      es.addEventListener('commodities', (e) => {
+        try { setCommodities(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('events', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          setEvents(d.events || []);
+          setFlights(d.flights || []);
+          setShips(d.ships || []);
+        } catch {}
+      });
+      es.addEventListener('news', (e) => {
+        try { setNews(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('sirens', (e) => {
+        try { setSirens(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('red-alerts', (e) => {
+        try { setRedAlerts(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('adsb', (e) => {
+        try { setAdsbFlights(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('ai-brief', (e) => {
+        try { setAiBrief(JSON.parse(e.data)); } catch {}
+      });
+
+      es.onerror = () => {
+        setConnected(false);
+        es?.close();
+        if (retryCount.current < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30000);
+          retryCount.current++;
+          retryTimeout = setTimeout(connect, delay);
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      es?.close();
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
+  }, []);
+
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, connected };
+}
+
+class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode; panelName?: string; icon?: ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -89,16 +312,23 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
     return { hasError: true };
   }
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Map component error:', error, errorInfo);
+    console.error(`Panel error (${this.props.panelName || 'unknown'}):`, error, errorInfo);
   }
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-full h-full flex items-center justify-center bg-card/50 text-muted-foreground" data-testid="map-error-fallback">
+        <div className="w-full h-full flex items-center justify-center bg-card/50 text-muted-foreground" data-testid={`panel-error-${this.props.panelName || 'unknown'}`}>
           <div className="text-center p-4">
-            <Globe className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-xs font-mono">WebGL required for 3D map</p>
-            <p className="text-[11px] mt-1 text-muted-foreground/60">Map rendering unavailable in this environment</p>
+            {this.props.icon || <TriangleAlert className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />}
+            <p className="text-xs font-mono mt-2">{this.props.panelName || 'Panel'} error</p>
+            <p className="text-[11px] mt-1 text-muted-foreground/60">Component failed to render</p>
+            <button
+              onClick={() => this.setState({ hasError: false })}
+              className="mt-3 px-3 py-1 text-[11px] font-mono bg-primary/10 border border-primary/30 rounded hover:bg-primary/20 text-primary transition-colors"
+              data-testid={`button-retry-${this.props.panelName || 'unknown'}`}
+            >
+              Retry
+            </button>
           </div>
         </div>
       );
@@ -106,6 +336,8 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
     return this.props.children;
   }
 }
+
+const MapErrorBoundary = PanelErrorBoundary;
 
 function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: number) => void; direction?: 'col' | 'row' }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -238,8 +470,9 @@ function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors"
+      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
       title="Close panel"
+      aria-label="Close panel"
       data-testid="button-panel-close"
     >
       <X className="w-3.5 h-3.5" />
@@ -251,8 +484,9 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/15 active:bg-primary/25 transition-colors"
+      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/15 active:bg-primary/25 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
       title={isMaximized ? "Restore panel" : "Maximize panel"}
+      aria-label={isMaximized ? "Restore panel" : "Maximize panel"}
       data-testid="button-panel-maximize"
     >
       {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -260,11 +494,12 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   );
 }
 
-function getThreatLevel(alertCount: number, sirenCount: number): { level: string; color: string; bg: string } {
+function getThreatLevel(alertCount: number, sirenCount: number, settings?: WARROOMSettings): { level: string; color: string; bg: string } {
   const total = alertCount + sirenCount;
-  if (total > 15) return { level: 'CRITICAL', color: 'text-red-400', bg: 'bg-red-950/50 border-red-500/40' };
-  if (total > 8) return { level: 'HIGH', color: 'text-orange-400', bg: 'bg-orange-950/50 border-orange-500/40' };
-  if (total > 3) return { level: 'ELEVATED', color: 'text-yellow-400', bg: 'bg-yellow-950/50 border-yellow-500/40' };
+  const s = settings || DEFAULT_SETTINGS;
+  if (total > s.criticalThreshold) return { level: 'CRITICAL', color: 'text-red-400', bg: 'bg-red-950/50 border-red-500/40' };
+  if (total > s.highThreshold) return { level: 'HIGH', color: 'text-orange-400', bg: 'bg-orange-950/50 border-orange-500/40' };
+  if (total > s.elevatedThreshold) return { level: 'ELEVATED', color: 'text-yellow-400', bg: 'bg-yellow-950/50 border-yellow-500/40' };
   return { level: 'LOW', color: 'text-emerald-400', bg: 'bg-emerald-950/50 border-emerald-500/40' };
 }
 

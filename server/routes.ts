@@ -837,6 +837,46 @@ export async function registerRoutes(
     res.json(generateDeduction(query));
   });
 
+  app.get('/api/stream', (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    res.write(':\n\n');
+
+    const intervals: NodeJS.Timeout[] = [];
+
+    const send = (event: string, data: unknown) => {
+      try {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      } catch {}
+    };
+
+    send('commodities', generateCommodities());
+    send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
+    send('news', generateNews());
+    send('sirens', generateSirens());
+    send('red-alerts', generateRedAlerts());
+    send('adsb', generateAdsbFlights());
+    send('ai-brief', generateAIBrief());
+
+    intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
+    intervals.push(setInterval(() => send('adsb', generateAdsbFlights()), 6000));
+    intervals.push(setInterval(() => send('red-alerts', generateRedAlerts()), 8000));
+    intervals.push(setInterval(() => send('sirens', generateSirens()), 10000));
+    intervals.push(setInterval(() => {
+      send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
+    }, 15000));
+    intervals.push(setInterval(() => send('news', generateNews()), 20000));
+    intervals.push(setInterval(() => send('ai-brief', generateAIBrief()), 60000));
+
+    req.on('close', () => {
+      intervals.forEach(clearInterval);
+    });
+  });
+
   app.get('/api/alert-history', (_req, res) => {
     const now = Date.now();
     const history: Array<RedAlert & { resolved: boolean; resolvedAt?: string }> = [];

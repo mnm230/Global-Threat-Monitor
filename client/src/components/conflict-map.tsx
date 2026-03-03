@@ -563,6 +563,116 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'tunnelNetworks', label: 'Tunnel Networks', color: '#a3a3a3', defaultOn: false, group: 'threat' },
 ];
 
+interface SearchItem {
+  name: string;
+  lat: number;
+  lng: number;
+  category: string;
+  detail: string;
+}
+
+const SEARCH_CATEGORY_ICONS: Record<string, string> = {
+  'Military Base': 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7',
+  'Nuclear Facility': 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
+  'Air Defense': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  'Drone Base': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  'Command Center': 'M3 3h18v18H3z M3 9h18 M9 21V9',
+  'Radar Site': 'M2 12a10 10 0 0 1 10-10 M2 12a10 10 0 0 0 10 10 M12 2v20',
+  'Ballistic Site': 'M12 19V5 M5 12l7-7 7 7',
+  'Arms Depot': 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z',
+  'Special Forces': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  'Anti-Ship Battery': 'M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3',
+  'Cyber Center': 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2',
+  'ELINT Site': 'M2 12a10 10 0 0 1 10-10',
+  'Airport': 'M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1l6.5 3.8-2.9 2.9L5 14c-.4 0-.8.2-1 .5l-.2.3c-.2.3-.1.8.2 1l3.2 2.2 2.2 3.2c.2.3.7.4 1 .2l.3-.2c.3-.2.5-.6.5-1l-.5-2.3 2.9-2.9 3.8 6.5c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z',
+  'Refinery': 'M14 2v6.172a2 2 0 0 0 .586 1.414l5.71 5.71a.5.5 0 0 1-.354.854H4.058a.5.5 0 0 1-.354-.854l5.71-5.71A2 2 0 0 0 10 8.172V2',
+  'Port': 'M22 17H2 M6 17V3 M10 17V9 M14 17V5 M18 17V9',
+  'Desalination': 'M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z',
+  'Power Plant': 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+  'Telecom Hub': 'M2 12h6 M14 12h6 M12 2v6 M12 14v6',
+  'Oil/Gas Field': 'M14 2v6.172a2 2 0 0 0 .586 1.414l5.71 5.71a.5.5 0 0 1-.354.854H4.058',
+  'Refugee Camp': 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+  'Border Crossing': 'M18 6L6 18 M6 6l12 12',
+  'UN Position': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  'Hospital': 'M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  'Embassy': 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z',
+  'Proxy Militia': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  'Tunnel Network': 'M12 22V8 M5 12H2a10 10 0 0 1 20 0h-3',
+  'Conflict Event': 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+  'Default': 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+};
+
+const SEARCH_CATEGORY_COLORS: Record<string, string> = {
+  'Military Base': '#3b82f6',
+  'Nuclear Facility': '#a855f7',
+  'Air Defense': '#22d3ee',
+  'Drone Base': '#818cf8',
+  'Command Center': '#f472b6',
+  'Radar Site': '#34d399',
+  'Ballistic Site': '#f43f5e',
+  'Arms Depot': '#fb923c',
+  'Special Forces': '#a78bfa',
+  'Anti-Ship Battery': '#fb7185',
+  'Cyber Center': '#2dd4bf',
+  'ELINT Site': '#38bdf8',
+  'Airport': '#94a3b8',
+  'Refinery': '#f59e0b',
+  'Port': '#60a5fa',
+  'Desalination': '#67e8f9',
+  'Power Plant': '#fbbf24',
+  'Telecom Hub': '#a3e635',
+  'Oil/Gas Field': '#ca8a04',
+  'Refugee Camp': '#22c55e',
+  'Border Crossing': '#facc15',
+  'UN Position': '#60a5fa',
+  'Hospital': '#f87171',
+  'Embassy': '#c084fc',
+  'Proxy Militia': '#f43f5e',
+  'Tunnel Network': '#a3a3a3',
+  'Conflict Event': '#ef4444',
+  'Default': '#9ca3af',
+};
+
+function buildSearchIndex(events: ConflictEvent[], redAlerts: RedAlert[]): SearchItem[] {
+  const items: SearchItem[] = [];
+
+  for (const b of MILITARY_BASES) items.push({ name: b.name, lat: b.lat, lng: b.lng, category: 'Military Base', detail: `${b.operator} - ${b.country}` });
+  for (const n of NUCLEAR_FACILITIES) items.push({ name: n.name, lat: n.lat, lng: n.lng, category: 'Nuclear Facility', detail: `${n.type} - ${n.country}` });
+  for (const a of AIR_DEFENSE) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Air Defense', detail: `${a.system} - ${a.country}` });
+  for (const d of DRONE_BASES) items.push({ name: d.name, lat: d.lat, lng: d.lng, category: 'Drone Base', detail: `${d.type} - ${d.country}` });
+  for (const c of COMMAND_CENTERS) items.push({ name: c.name, lat: c.lat, lng: c.lng, category: 'Command Center', detail: `${c.type} - ${c.country}` });
+  for (const r of RADAR_SITES) items.push({ name: r.name, lat: r.lat, lng: r.lng, category: 'Radar Site', detail: `${r.system} - ${r.country}` });
+  for (const b of BALLISTIC_SITES) items.push({ name: b.name, lat: b.lat, lng: b.lng, category: 'Ballistic Site', detail: `${b.type} - ${b.country}` });
+  for (const a of ARMS_DEPOTS) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Arms Depot', detail: `${a.type} - ${a.country}` });
+  for (const s of SPECIAL_FORCES) items.push({ name: s.name, lat: s.lat, lng: s.lng, category: 'Special Forces', detail: `${s.type} - ${s.country}` });
+  for (const a of ANTI_SHIP_BATTERIES) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Anti-Ship Battery', detail: `${a.system} - ${a.country}` });
+  for (const c of CYBER_CENTERS) items.push({ name: c.name, lat: c.lat, lng: c.lng, category: 'Cyber Center', detail: `${c.type} - ${c.country}` });
+  for (const e of ELINT_SITES) items.push({ name: e.name, lat: e.lat, lng: e.lng, category: 'ELINT Site', detail: `${e.type} - ${e.country}` });
+  for (const a of AIRPORTS) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Airport', detail: `${a.type} - ${a.country}` });
+  for (const r of REFINERIES) items.push({ name: r.name, lat: r.lat, lng: r.lng, category: 'Refinery', detail: `${r.capacity} - ${r.country}` });
+  for (const p of PORTS) items.push({ name: p.name, lat: p.lat, lng: p.lng, category: 'Port', detail: `${p.type} - ${p.country}` });
+  for (const d of DESALINATION) items.push({ name: d.name, lat: d.lat, lng: d.lng, category: 'Desalination', detail: `${d.capacity} - ${d.country}` });
+  for (const p of POWER_PLANTS) items.push({ name: p.name, lat: p.lat, lng: p.lng, category: 'Power Plant', detail: `${p.type} - ${p.country}` });
+  for (const t of TELECOM_HUBS) items.push({ name: t.name, lat: t.lat, lng: t.lng, category: 'Telecom Hub', detail: `${t.type} - ${t.country}` });
+  for (const o of OIL_GAS_FIELDS) items.push({ name: o.name, lat: o.lat, lng: o.lng, category: 'Oil/Gas Field', detail: `${o.type} - ${o.country}` });
+  for (const r of REFUGEE_CAMPS) items.push({ name: r.name, lat: r.lat, lng: r.lng, category: 'Refugee Camp', detail: `Pop: ${r.population} - ${r.country}` });
+  for (const b of BORDER_CROSSINGS) items.push({ name: b.name, lat: b.lat, lng: b.lng, category: 'Border Crossing', detail: `${b.type} - ${b.country}` });
+  for (const u of UN_POSITIONS) items.push({ name: u.name, lat: u.lat, lng: u.lng, category: 'UN Position', detail: `${u.force} - ${u.country}` });
+  for (const h of HOSPITALS) items.push({ name: h.name, lat: h.lat, lng: h.lng, category: 'Hospital', detail: `${h.type} - ${h.country}` });
+  for (const e of EMBASSIES) items.push({ name: e.name, lat: e.lat, lng: e.lng, category: 'Embassy', detail: `${e.type} - ${e.country}` });
+  for (const p of PROXY_MILITIA) items.push({ name: p.name, lat: p.lat, lng: p.lng, category: 'Proxy Militia', detail: `${p.group} - ${p.country}` });
+  for (const t of TUNNEL_NETWORKS) items.push({ name: t.name, lat: t.lat, lng: t.lng, category: 'Tunnel Network', detail: `${t.type} - ${t.country}` });
+
+  for (const ev of events) {
+    items.push({ name: ev.title, lat: ev.lat, lng: ev.lng, category: 'Conflict Event', detail: `${ev.type} - ${ev.severity}` });
+  }
+  for (const ra of redAlerts) {
+    items.push({ name: `Red Alert: ${ra.city}`, lat: ra.lat, lng: ra.lng, category: 'Conflict Event', detail: `${ra.threatType} - ${ra.country}` });
+  }
+
+  return items;
+}
+
 interface TooltipInfo {
   x: number;
   y: number;
@@ -611,6 +721,81 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
   const [measureCursor, setMeasureCursor] = useState<MeasurePoint | null>(null);
   const [arcTime, setArcTime] = useState(0);
   const arcAnimRef = useRef<number>(0);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
+  const [highlightedPoint, setHighlightedPoint] = useState<{ lat: number; lng: number } | null>(null);
+  const [highlightPulse, setHighlightPulse] = useState(0);
+  const highlightAnimRef = useRef<number>(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDropdownRef = useRef<HTMLDivElement>(null);
+
+  const searchIndex = useMemo(() => buildSearchIndex(events, redAlerts), [events, redAlerts]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    const matches: SearchItem[] = [];
+    for (const item of searchIndex) {
+      if (matches.length >= 8) break;
+      if (item.name.toLowerCase().includes(q) || item.category.toLowerCase().includes(q) || item.detail.toLowerCase().includes(q)) {
+        matches.push(item);
+      }
+    }
+    return matches;
+  }, [searchQuery, searchIndex]);
+
+  const selectSearchResult = useCallback((item: SearchItem) => {
+    setViewState({
+      longitude: item.lng,
+      latitude: item.lat,
+      zoom: 10,
+      pitch: 0,
+      bearing: 0,
+    });
+    setHighlightedPoint({ lat: item.lat, lng: item.lng });
+    setSearchQuery('');
+    setSearchOpen(false);
+    setSearchActiveIndex(-1);
+  }, []);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSearchActiveIndex(prev => Math.min(prev + 1, searchResults.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSearchActiveIndex(prev => Math.max(prev - 1, -1));
+    } else if (e.key === 'Enter' && searchActiveIndex >= 0 && searchActiveIndex < searchResults.length) {
+      e.preventDefault();
+      selectSearchResult(searchResults[searchActiveIndex]);
+    } else if (e.key === 'Escape') {
+      setSearchOpen(false);
+      setSearchQuery('');
+      setSearchActiveIndex(-1);
+      searchInputRef.current?.blur();
+    }
+  }, [searchResults, searchActiveIndex, selectSearchResult]);
+
+  useEffect(() => {
+    if (!highlightedPoint) return;
+    let running = true;
+    const animate = () => {
+      if (!running) return;
+      setHighlightPulse(t => (t + 0.02) % 1);
+      highlightAnimRef.current = requestAnimationFrame(animate);
+    };
+    highlightAnimRef.current = requestAnimationFrame(animate);
+    const timeout = setTimeout(() => {
+      setHighlightedPoint(null);
+    }, 8000);
+    return () => {
+      running = false;
+      cancelAnimationFrame(highlightAnimRef.current);
+      clearTimeout(timeout);
+    };
+  }, [highlightedPoint]);
 
   useEffect(() => {
     const vs = VIEW_CONFIG[activeView];
@@ -1716,8 +1901,42 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       }
     }
 
+    if (highlightedPoint) {
+      const pulseScale = 1 + Math.sin(highlightPulse * Math.PI * 2) * 0.5;
+      const pulseAlpha = Math.floor(120 + Math.sin(highlightPulse * Math.PI * 2) * 80);
+      result.push(
+        new ScatterplotLayer({
+          id: 'search-highlight-ring',
+          data: [{ position: [highlightedPoint.lng, highlightedPoint.lat] }],
+          getPosition: (d: { position: [number, number] }) => d.position,
+          getRadius: 15000 * pulseScale,
+          getFillColor: [59, 130, 246, 0],
+          getLineColor: [59, 130, 246, pulseAlpha] as [number, number, number, number],
+          stroked: true,
+          filled: false,
+          lineWidthMinPixels: 3,
+          radiusMinPixels: 12,
+          radiusMaxPixels: 40,
+        })
+      );
+      result.push(
+        new ScatterplotLayer({
+          id: 'search-highlight-center',
+          data: [{ position: [highlightedPoint.lng, highlightedPoint.lat] }],
+          getPosition: (d: { position: [number, number] }) => d.position,
+          getRadius: 4000,
+          getFillColor: [59, 130, 246, 200],
+          getLineColor: [255, 255, 255, 255],
+          stroked: true,
+          lineWidthMinPixels: 2,
+          radiusMinPixels: 6,
+          radiusMaxPixels: 12,
+        })
+      );
+    }
+
     return result;
-  }, [events, flights, ships, adsbFlights, layerVisibility, heatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance]);
+  }, [events, flights, ships, adsbFlights, layerVisibility, heatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1841,6 +2060,172 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           </svg>
           {measureMode ? (language === 'ar' ? 'قياس: فعال' : 'Measure: ON') : (language === 'ar' ? 'قياس' : 'Measure')}
         </button>
+
+        <div style={{ position: 'relative', marginTop: 4 }}>
+          <div style={{ position: 'relative' }}>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#999"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              data-testid="input-map-search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setSearchOpen(true);
+                setSearchActiveIndex(-1);
+              }}
+              onFocus={() => { if (searchQuery.trim()) setSearchOpen(true); }}
+              onBlur={() => { setTimeout(() => setSearchOpen(false), 200); }}
+              onKeyDown={handleSearchKeyDown}
+              placeholder={language === 'ar' ? 'بحث في الخريطة...' : 'Search map...'}
+              style={{
+                width: 220,
+                padding: '8px 10px 8px 32px',
+                fontSize: 12,
+                fontWeight: 500,
+                borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(0,0,0,0.7)',
+                color: '#eee',
+                backdropFilter: 'blur(8px)',
+                outline: 'none',
+                minHeight: 36,
+                fontFamily: 'inherit',
+              }}
+            />
+            {searchQuery && (
+              <button
+                data-testid="button-clear-search"
+                onClick={() => { setSearchQuery(''); setSearchOpen(false); setSearchActiveIndex(-1); }}
+                style={{
+                  position: 'absolute',
+                  right: 6,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#888',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  padding: '2px 4px',
+                  lineHeight: 1,
+                }}
+                aria-label="Clear search"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {searchOpen && searchResults.length > 0 && (
+            <div
+              ref={searchDropdownRef}
+              data-testid="search-results-dropdown"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: 4,
+                background: 'rgba(10, 10, 20, 0.95)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 6,
+                overflow: 'hidden',
+                zIndex: 30,
+                maxHeight: 320,
+                overflowY: 'auto',
+              }}
+            >
+              {searchResults.map((item, idx) => {
+                const iconPath = SEARCH_CATEGORY_ICONS[item.category] || SEARCH_CATEGORY_ICONS['Default'];
+                const iconColor = SEARCH_CATEGORY_COLORS[item.category] || SEARCH_CATEGORY_COLORS['Default'];
+                const isActive = idx === searchActiveIndex;
+                return (
+                  <button
+                    key={`${item.name}-${item.lat}-${item.lng}-${idx}`}
+                    data-testid={`search-result-${idx}`}
+                    onClick={() => selectSearchResult(item)}
+                    onMouseEnter={() => setSearchActiveIndex(idx)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                      border: 'none',
+                      borderBottom: idx < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      minHeight: 40,
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={iconColor}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <path d={iconPath} />
+                    </svg>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ color: '#eee', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.name}
+                      </div>
+                      <div style={{ color: '#888', fontSize: 9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.category} | {item.detail}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {searchOpen && searchQuery.trim() && searchResults.length === 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: 4,
+                background: 'rgba(10, 10, 20, 0.95)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 6,
+                padding: '12px 10px',
+                zIndex: 30,
+              }}
+            >
+              <div style={{ color: '#888', fontSize: 11, textAlign: 'center' }}>
+                {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div
