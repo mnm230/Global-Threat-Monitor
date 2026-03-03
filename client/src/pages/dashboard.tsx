@@ -196,11 +196,11 @@ function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="ml-auto w-5 h-4 rounded flex items-center justify-center text-muted-foreground/40 hover:text-amber-400/80 hover:bg-amber-400/10 transition-colors"
-      title="Minimize panel"
-      data-testid="button-panel-minimize"
+      className="ml-auto w-5 h-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/15 transition-colors"
+      title="Close panel"
+      data-testid="button-panel-close"
     >
-      <Minus className="w-3 h-3" />
+      <X className="w-3.5 h-3.5" />
     </button>
   );
 }
