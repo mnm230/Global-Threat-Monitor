@@ -157,7 +157,7 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
   return (
     <div
-      className={`${direction === 'col' ? 'w-[2px] cursor-col-resize' : 'h-[2px] cursor-row-resize'} shrink-0 transition-all duration-150 relative group touch-none ${isDragging ? 'bg-primary/50' : 'bg-border/20 hover:bg-primary/20'}`}
+      className={`${direction === 'col' ? 'w-[3px] cursor-col-resize' : 'h-[3px] cursor-row-resize'} shrink-0 transition-all duration-200 relative group touch-none ${isDragging ? 'bg-primary/60' : 'bg-border/10 hover:bg-primary/30'}`}
       onMouseDown={() => setIsDragging(true)}
       onTouchStart={handleTouchStart}
       data-testid="resize-handle"
@@ -238,7 +238,7 @@ function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors"
+      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors"
       title="Close panel"
       data-testid="button-panel-close"
     >
@@ -251,7 +251,7 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      className="w-7 h-7 rounded flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/15 active:bg-primary/25 transition-colors"
+      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/15 active:bg-primary/25 transition-colors"
       title={isMaximized ? "Restore panel" : "Maximize panel"}
       data-testid="button-panel-maximize"
     >
@@ -418,7 +418,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="notes-overlay">
-      <div className="w-[500px] max-h-[70vh] bg-background border border-border/50 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="w-[500px] max-h-[70vh] bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 0 1px hsl(var(--border) / 0.4)'}}>
         <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
@@ -490,7 +490,7 @@ function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClos
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="watchlist-overlay">
-      <div className="w-[400px] max-h-[60vh] bg-background border border-border/50 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="w-[400px] max-h-[60vh] bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 0 1px hsl(var(--border) / 0.4)'}}>
         <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
@@ -545,7 +545,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="alert-history-overlay">
-      <div className="w-[600px] max-h-[75vh] bg-background border border-red-500/30 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="w-[600px] max-h-[75vh] bg-background/95 backdrop-blur-xl border border-red-500/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px rgb(239 68 68 / 0.1)'}}>
         <div className="px-4 py-3 border-b border-red-900/40 bg-red-950/20 flex items-center gap-2 rounded-t-lg">
           <History className="w-4 h-4 text-red-400" />
           <span className="text-xs font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
@@ -602,7 +602,7 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
 }) {
   const [newName, setNewName] = useState('');
   return (
-    <div className="absolute top-10 right-0 z-[150] w-64 bg-background border border-border/50 rounded-lg shadow-2xl" data-testid="layout-presets-dropdown">
+    <div className="absolute top-10 right-0 z-[150] w-64 bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 20px 40px rgb(0 0 0 / 0.5), 0 0 0 1px hsl(var(--border) / 0.3)'}}>
       <div className="px-3 py-2 border-b border-border/30 flex items-center gap-2">
         <Layout className="w-3.5 h-3.5 text-primary/70" />
         <span className="text-xs font-bold font-mono text-foreground/80 uppercase tracking-wider">{language === 'en' ? 'Layout Presets' : '\u0642\u0648\u0627\u0644\u0628'}</span>
@@ -956,7 +956,8 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="px-4 py-3 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
+    <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-primary/[0.08] to-transparent shrink-0 relative">
+      <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-primary/80 via-primary/50 to-primary/10 rounded-r" />
       <span className="text-primary shrink-0">{icon}</span>
       <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary/90 font-mono">{title}</span>
       {count !== undefined && (
@@ -967,9 +968,9 @@ function PanelHeader({
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          <span className="text-xs uppercase tracking-[0.15em] text-emerald-400/70 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(52 211 153 / 0.8)'}} />
+          <span className="text-xs uppercase tracking-[0.15em] text-emerald-400/80 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -1233,8 +1234,9 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
 
   return (
     <div className="h-full flex flex-col" data-testid="adsb-panel">
-      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
-        <Radar className="w-3.5 h-3.5 text-cyan-400/70" />
+      <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-cyan-500/[0.08] to-transparent shrink-0 relative">
+        <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-cyan-400/80 via-cyan-400/50 to-cyan-400/10 rounded-r" />
+        <Radar className="w-3.5 h-3.5 text-cyan-400/80" />
         <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
           ADS-B
         </span>
@@ -1601,7 +1603,8 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   return (
     <div className="flex flex-col h-full" data-testid="red-alert-panel">
-      <div className={`px-3 py-2.5 border-b border-red-800/50 flex items-center gap-2 shrink-0 ${hasActiveAlerts ? 'bg-red-700' : 'bg-card/60'}`}>
+      <div className={`px-4 py-3 border-b flex items-center gap-2 shrink-0 relative ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-border/20 bg-gradient-to-r from-red-500/[0.08] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 12px rgb(239 68 68 / 0.3)'} : undefined}>
+        {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-red-500/70 via-red-500/40 to-red-500/10 rounded-r" />}
         <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'bg-white/20' : 'bg-red-950/30'}`}>
           <AlertOctagon className={`w-4 h-4 ${hasActiveAlerts ? 'text-white' : 'text-red-400/60'}`} />
         </div>
@@ -2122,8 +2125,9 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
 
   return (
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
-      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
-        <Brain className="w-3.5 h-3.5 text-purple-400/70" />
+      <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.08] to-transparent shrink-0 relative">
+        <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-purple-400/80 via-purple-400/50 to-purple-400/10 rounded-r" />
+        <Brain className="w-3.5 h-3.5 text-purple-400/80" />
         <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
@@ -2279,8 +2283,9 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
-        <Target className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+      <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-primary/[0.08] to-transparent shrink-0 relative">
+        <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-primary/80 via-primary/50 to-primary/10 rounded-r" />
+        <Target className="w-3.5 h-3.5 text-primary/80 shrink-0" />
         <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
@@ -2621,26 +2626,26 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-14 border-b-2 border-primary/15 flex items-center justify-between px-4 bg-card/50 shrink-0">
+      <header className="h-14 border-b border-primary/20 flex items-center justify-between px-5 bg-background/80 backdrop-blur-md shrink-0" style={{boxShadow:'0 1px 0 hsl(32 95% 50% / 0.08), 0 4px 16px hsl(0 0% 0% / 0.3)'}}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
               <Crosshair className="w-3 h-3 text-primary" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-bold text-[13px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(32 95% 50% / 0.6)'}}>WARROOM</span>
+              <span className="font-bold text-sm tracking-[0.12em] text-primary font-mono" style={{textShadow:'0 0 24px hsl(32 95% 50% / 0.8), 0 0 48px hsl(32 95% 50% / 0.3)'}}>WARROOM</span>
               <span className="text-[10px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
                 {language === 'en' ? 'ME INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
           </div>
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-950/30 border border-red-500/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-            <span className="text-xs text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-500/25" style={{boxShadow:'0 0 12px rgb(239 68 68 / 0.15)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.8)'}} />
+            <span className="text-xs text-red-400 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border ${threatLevel.bg}`} data-testid="threat-level-badge">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${threatLevel.bg}`} data-testid="threat-level-badge">
             <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
             <span className={`text-xs font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
@@ -2649,38 +2654,38 @@ export default function Dashboard() {
           <LiveClock />
           <div className="w-px h-4 bg-border/30" />
           <div className="flex items-center gap-0.5">
-            <Button size="sm" variant="ghost" className={`text-[12px] px-2 h-8 font-mono rounded ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground active:bg-primary/20`} onClick={toggleNotifications} data-testid="button-notifications-toggle" title="Desktop Notifications">
+            <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors`} onClick={toggleNotifications} data-testid="button-notifications-toggle" title="Desktop Notifications">
               {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             </Button>
-            <Button size="sm" variant="ghost" className={`text-[12px] px-2 h-8 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground active:bg-primary/20`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle">
+            <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${soundEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle">
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </Button>
-            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-amber-400 active:bg-amber-500/20 rounded" onClick={() => setShowNotes(true)} data-testid="button-notes" title="Analyst Notes">
+            <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors" onClick={() => setShowNotes(true)} data-testid="button-notes" title="Analyst Notes">
               <StickyNote className="w-4 h-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-amber-400 active:bg-amber-500/20 rounded" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" title="Watchlist">
+            <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" title="Watchlist">
               <Eye className="w-4 h-4" />
             </Button>
             <div className="relative">
-              <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-primary active:bg-primary/20 rounded" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" title="Layout Presets">
+              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-colors" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" title="Layout Presets">
                 <Layout className="w-4 h-4" />
               </Button>
               {showLayoutPresets && (
                 <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
               )}
             </div>
-            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/50 hover:text-emerald-400 active:bg-emerald-500/20 rounded" onClick={handleExport} data-testid="button-export" title="Export Report">
+            <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-emerald-400 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors" onClick={handleExport} data-testid="button-export" title="Export Report">
               <FileDown className="w-4 h-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-8 font-mono text-muted-foreground/60 hover:text-foreground active:bg-primary/20 rounded" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle">
+            <Button size="sm" variant="ghost" className="px-2.5 h-8 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors font-mono text-xs" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle">
               <Languages className="w-4 h-4 mr-1" />
               {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
             </Button>
           </div>
           <div className="w-px h-4 bg-border/30" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/30 border border-emerald-500/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-xs text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/25" style={{boxShadow:'0 0 12px rgb(34 197 94 / 0.12)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(34 197 94 / 0.8)'}} />
+            <span className="text-xs text-emerald-400 font-bold tracking-wider font-mono hidden sm:inline uppercase">
               {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
@@ -2712,7 +2717,7 @@ export default function Dashboard() {
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeTop, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-border/30' : ''}`}
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-border/15' : ''}`}
                       style={{ width: `${activeTopWidths[idx]}%`, background: 'hsl(var(--background))' }}
                     >
                       {renderPanel(id)}
@@ -2747,7 +2752,7 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-10 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
+      <div className="h-10 border-t border-border/20 flex items-center px-4 bg-background/60 backdrop-blur-sm shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-xs text-emerald-400/70 font-mono font-bold">ONLINE</span>
