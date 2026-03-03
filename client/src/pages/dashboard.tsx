@@ -1109,7 +1109,7 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative bg-card/80 backdrop-blur-xl sticky top-12 z-40" data-testid="ticker-bar">
+    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative bg-card/30 shrink-0" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card to-transparent z-10 flex items-center gap-1 pl-2.5">
         <div className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
         <span className="text-[8px] font-bold tracking-[0.25em] text-primary/35 font-mono">MKT</span>
@@ -1333,7 +1333,7 @@ function CommoditiesPanel({
   const fxRegional = commodities.filter(c => c.category === 'fx');
 
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader
         title={language === 'en' ? 'Markets' : '\u0627\u0644\u0623\u0633\u0648\u0627\u0642'}
         icon={<BarChart3 className="w-3.5 h-3.5" />}
@@ -1342,22 +1342,24 @@ function CommoditiesPanel({
         onMaximize={onMaximize}
         isMaximized={isMaximized}
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[9px] uppercase tracking-[0.2em] text-foreground/20 font-bold border-b border-white/[0.03]">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[9px] uppercase tracking-[0.2em] text-foreground/20 font-bold border-b border-white/[0.03] shrink-0">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
         <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
         <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
       </div>
-      <SectionLabel label={language === 'en' ? '\u25B8 Commodities' : '\u25B8 \u0627\u0644\u0633\u0644\u0639'} />
-      <div className="divide-y divide-white/[0.02]">
-        {cmdty.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
-      </div>
-      <SectionLabel label={language === 'en' ? '\u25B8 Major FX' : '\u25B8 \u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} />
-      <div className="divide-y divide-white/[0.02]">
-        {fxMajor.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
-      </div>
-      <SectionLabel label={language === 'en' ? '\u25B8 Regional FX' : '\u25B8 \u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} />
-      <div className="divide-y divide-white/[0.02]">
-        {fxRegional.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <SectionLabel label={language === 'en' ? '\u25B8 Commodities' : '\u25B8 \u0627\u0644\u0633\u0644\u0639'} />
+        <div className="divide-y divide-white/[0.02]">
+          {cmdty.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+        </div>
+        <SectionLabel label={language === 'en' ? '\u25B8 Major FX' : '\u25B8 \u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} />
+        <div className="divide-y divide-white/[0.02]">
+          {fxMajor.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+        </div>
+        <SectionLabel label={language === 'en' ? '\u25B8 Regional FX' : '\u25B8 \u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} />
+        <div className="divide-y divide-white/[0.02]">
+          {fxRegional.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+        </div>
       </div>
     </div>
   );
@@ -1374,7 +1376,7 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
   const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader
         title={language === 'en' ? 'Siren Alerts' : 'صفارات الإنذار'}
         icon={<Siren className="w-3.5 h-3.5" />}
@@ -1388,7 +1390,7 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           <p className="text-xs text-muted-foreground">No active alerts</p>
         </div>
       )}
-      <div className="divide-y divide-white/[0.02]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.02]">
         {sorted.map((s) => {
           const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
           const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
@@ -1441,7 +1443,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
   });
 
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader
         title={language === 'en' ? 'Flight Radar' : 'رادار الطيران'}
         icon={<Plane className="w-3.5 h-3.5" />}
@@ -1457,7 +1459,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
           <p className="text-[10px] text-foreground/25">Scanning airspace...</p>
         </div>
       )}
-      <div className="divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((f) => {
           const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
           return (
@@ -1528,7 +1530,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   }, [adsbFlights]);
 
   return (
-    <div className="h-full flex flex-col" data-testid="adsb-panel">
+    <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
       <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-cyan-500/[0.04] to-transparent shrink-0 relative overflow-hidden">
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/60 via-cyan-400/30 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
@@ -1681,7 +1683,7 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
   });
 
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader
         title={language === 'en' ? 'Conflict Events' : 'أحداث النزاع'}
         icon={<AlertTriangle className="w-3.5 h-3.5" />}
@@ -1697,7 +1699,7 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
           <p className="text-[10px] text-foreground/25">No active events</p>
         </div>
       )}
-      <div className="divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((e) => {
           const sev = SEVERITY_STYLES[e.severity] || SEVERITY_STYLES.low;
           const icon = EVENT_TYPE_ICONS[e.type] || '📍';
@@ -1747,7 +1749,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
   });
 
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader
         title={language === 'en' ? 'Maritime' : 'بحري'}
         icon={<Ship className="w-3.5 h-3.5" />}
@@ -1763,7 +1765,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
           <p className="text-[10px] text-foreground/25">Scanning waters...</p>
         </div>
       )}
-      <div className="divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((s) => {
           const style = SHIP_TYPE_STYLES[s.type] || SHIP_TYPE_STYLES.cargo;
           return (
@@ -1800,10 +1802,10 @@ function SeismicPanel({ earthquakes, language, onClose, onMaximize, isMaximized 
   const magColor = (m: number) => m >= 6 ? 'text-red-400 bg-red-950/40 border-red-500/30' : m >= 5 ? 'text-orange-400 bg-orange-950/40 border-orange-500/30' : m >= 4 ? 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30' : 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
   const magBorderColor = (m: number) => m >= 6 ? 'rgb(239 68 68 / 0.6)' : m >= 5 ? 'rgb(249 115 22 / 0.5)' : m >= 4 ? 'rgb(234 179 8 / 0.4)' : 'transparent';
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader title={language === 'en' ? 'Seismic Activity' : 'النشاط الزلزالي'} icon={<Activity className="w-3.5 h-3.5" />} live count={earthquakes.length} onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized} />
       {earthquakes.length === 0 && <div className="px-3 py-6 text-center"><Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" /><p className="text-[10px] text-foreground/25">Loading seismic data...</p></div>}
-      <div className="divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((eq) => (
           <div key={eq.id} className="px-3 py-3 hover-elevate animate-fade-in border-l-2" style={{ borderLeftColor: magBorderColor(eq.magnitude) }}>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -1819,7 +1821,7 @@ function SeismicPanel({ earthquakes, language, onClose, onMaximize, isMaximized 
           </div>
         ))}
       </div>
-      <div className="px-3 py-2 border-t border-white/[0.03]"><span className="text-[9px] text-foreground/15 font-mono">Source: USGS · M2.5+ Middle East</span></div>
+      <div className="px-3 py-2 border-t border-white/[0.03] shrink-0"><span className="text-[9px] text-foreground/15 font-mono">Source: USGS · M2.5+ Middle East</span></div>
     </div>
   );
 }
@@ -1832,10 +1834,10 @@ function CyberPanel({ cyberEvents, language, onClose, onMaximize, isMaximized }:
   const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.6)' : s === 'high' ? 'rgb(249 115 22 / 0.5)' : 'transparent';
   const sevText = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
   return (
-    <div className="flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <PanelHeader title={language === 'en' ? 'Cyber Threats' : 'التهديدات السيبرانية'} icon={<Cpu className="w-3.5 h-3.5" />} live count={cyberEvents.length} onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized} />
       {cyberEvents.length === 0 && <div className="px-3 py-6 text-center"><Cpu className="w-5 h-5 text-muted-foreground mx-auto mb-2" /><p className="text-[10px] text-foreground/25">No active threats</p></div>}
-      <div className="divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((ev) => (
           <div key={ev.id} className="px-3 py-3 hover-elevate animate-fade-in border-l-2" style={{ borderLeftColor: sevBorder(ev.severity) }}>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -1965,7 +1967,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
   const hasActiveAlerts = alerts.length > 0;
 
   return (
-    <div className="flex flex-col h-full" data-testid="red-alert-panel">
+    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel">
       <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3 py-2'} border-b flex items-center gap-2 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-white/[0.04] bg-gradient-to-r from-red-500/[0.04] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 16px rgb(239 68 68 / 0.35)'} : undefined}>
         {hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />}
         {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />}
@@ -2252,7 +2254,7 @@ function TelegramPanel({
   }, [messages, liveMessages, allChannels]);
 
   return (
-    <div className="flex flex-col h-full" data-testid="telegram-panel">
+    <div className="h-full flex flex-col min-h-0" data-testid="telegram-panel">
       <PanelHeader
         title={language === 'en' ? 'Telegram OSINT' : '\u062A\u0644\u063A\u0631\u0627\u0645 OSINT'}
         icon={<SiTelegram className="w-3.5 h-3.5" />}
@@ -2584,7 +2586,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
   };
 
   return (
-    <div className="h-full flex flex-col" data-testid="ai-intel-panel">
+    <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
       <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden">
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/60 via-purple-400/30 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
@@ -2772,7 +2774,7 @@ function MapSection({
   ];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-primary/[0.04] to-transparent shrink-0 relative">
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
         <Target className="w-3 h-3 text-primary/60 shrink-0" />
@@ -3093,23 +3095,15 @@ export default function Dashboard() {
         case 'map':
           return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'events':
-          return (
-            <ScrollArea className="h-full">
-              <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-            </ScrollArea>
-          );
+          return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'radar':
           return (
             <>
               <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-                <ScrollArea className="h-full">
-                  <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-                </ScrollArea>
+                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
               </div>
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <MaritimePanel ships={ships} language={language} onMaximize={maximize} isMaximized={isMax} />
-                </ScrollArea>
+                <MaritimePanel ships={ships} language={language} onMaximize={maximize} isMaximized={isMax} />
               </div>
             </>
           );
@@ -3120,23 +3114,11 @@ export default function Dashboard() {
         case 'telegram':
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'markets':
-          return (
-            <ScrollArea className="h-full">
-              <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-            </ScrollArea>
-          );
+          return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'seismic':
-          return (
-            <ScrollArea className="h-full">
-              <SeismicPanel earthquakes={earthquakes} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-            </ScrollArea>
-          );
+          return <SeismicPanel earthquakes={earthquakes} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'cyber':
-          return (
-            <ScrollArea className="h-full">
-              <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-            </ScrollArea>
-          );
+          return <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return (
@@ -3147,8 +3129,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground" data-testid="dashboard">
-      <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative sticky top-0 z-50" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
+    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
+      <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative z-50" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
         <div className="flex items-center gap-2 md:gap-3">
@@ -3246,7 +3228,7 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className="flex-1 flex flex-col min-h-[600px] overflow-auto" style={{ height: 'calc(100vh - 160px)' }} data-testid="resizable-panels">
+      <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden" data-testid="resizable-panels">
         {isMobile ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden">
@@ -3289,12 +3271,12 @@ export default function Dashboard() {
         ) : (
           <>
             {activeTop.length > 0 && (
-              <div className="flex overflow-hidden" style={{ minHeight: '350px', height: activeBottom.length > 0 ? `${rowSplit}%` : '100%' }}>
+              <div className="flex min-h-0 overflow-hidden" style={{ height: activeBottom.length > 0 ? `${rowSplit}%` : '100%' }}>
                 {activeTop.map((id, idx) => (
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeTop, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col ${idx < activeTop.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
                       style={{ width: `${activeTopWidths[idx]}%` }}
                     >
                       {renderPanel(id)}
@@ -3307,12 +3289,12 @@ export default function Dashboard() {
               <ResizeHandle onResize={makeVerticalResizer()} direction="row" />
             )}
             {activeBottom.length > 0 && (
-              <div className="flex overflow-hidden" style={{ minHeight: '350px', height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
+              <div className="flex min-h-0 overflow-hidden" style={{ height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
                 {activeBottom.map((id, idx) => (
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeBottom, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col ${idx < activeBottom.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeBottom.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
                       style={{ width: `${activeBottomWidths[idx]}%` }}
                     >
                       {renderPanel(id)}
@@ -3329,7 +3311,7 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-8 border-t border-white/[0.03] flex items-center px-3 bg-card/80 backdrop-blur-xl shrink-0 gap-2 overflow-hidden sticky bottom-0 z-50" data-testid="status-bar">
+      <div className="h-8 border-t border-white/[0.03] flex items-center px-3 bg-card/30 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
         <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-emerald-500/[0.05] border border-emerald-500/10">
           <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
           <span className="text-[9px] text-emerald-400/60 font-mono font-semibold tracking-wider">ONLINE</span>
