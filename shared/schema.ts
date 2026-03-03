@@ -163,3 +163,28 @@ export interface AIDeduction {
   timeframe: string;
   timestamp: string;
 }
+
+export interface EarthquakeEvent {
+  id: string;
+  magnitude: number;
+  place: string;
+  lat: number;
+  lng: number;
+  depth: number;
+  timestamp: string;
+  url?: string;
+  felt?: number;
+  tsunami?: number;
+}
+
+export interface CyberEvent {
+  id: string;
+  type: 'ddos' | 'intrusion' | 'malware' | 'phishing' | 'defacement' | 'data_exfil' | 'scada';
+  target: string;
+  attacker?: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  sector: 'government' | 'military' | 'financial' | 'energy' | 'telecom' | 'media' | 'infrastructure';
+  country: string;
+  timestamp: string;
+  description: string;
+}

@@ -19,6 +19,8 @@ import type {
   AIBrief,
   AIDeduction,
   AdsbFlight,
+  EarthquakeEvent,
+  CyberEvent,
 } from '@shared/schema';
 import {
   Radio,
@@ -78,6 +80,7 @@ import {
   Settings,
   TriangleAlert,
   Menu,
+  Cpu,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -226,6 +229,8 @@ interface SSEData {
   adsbFlights: AdsbFlight[];
   aiBrief: AIBrief | null;
   telegramMessages: TelegramMessage[];
+  earthquakes: EarthquakeEvent[];
+  cyberEvents: CyberEvent[];
   connected: boolean;
 }
 
@@ -240,6 +245,8 @@ function useSSE(): SSEData {
   const [adsbFlights, setAdsbFlights] = useState<AdsbFlight[]>([]);
   const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
+  const [earthquakes, setEarthquakes] = useState<EarthquakeEvent[]>([]);
+  const [cyberEvents, setCyberEvents] = useState<CyberEvent[]>([]);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
@@ -285,6 +292,12 @@ function useSSE(): SSEData {
       es.addEventListener('telegram', (e) => {
         try { setTelegramMessages(JSON.parse(e.data)); } catch {}
       });
+      es.addEventListener('earthquakes', (e) => {
+        try { setEarthquakes(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('cyber', (e) => {
+        try { setCyberEvents(JSON.parse(e.data)); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -305,7 +318,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -394,12 +407,12 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
   return (
     <div
-      className={`${direction === 'col' ? 'w-[3px] cursor-col-resize' : 'h-[3px] cursor-row-resize'} shrink-0 transition-all duration-200 relative group touch-none ${isDragging ? 'bg-primary/60' : 'bg-border/10 hover:bg-primary/30'}`}
+      className={`${direction === 'col' ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize'} shrink-0 transition-all duration-300 relative group touch-none ${isDragging ? 'bg-primary/50' : 'bg-white/[0.04] hover:bg-primary/25'}`}
       onMouseDown={() => setIsDragging(true)}
       onTouchStart={handleTouchStart}
       data-testid="resize-handle"
     >
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-12 -ml-[5px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-12 -mt-[5px]'} rounded-full transition-colors ${isDragging ? 'bg-primary/30' : 'bg-transparent group-hover:bg-primary/20'}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-16 -ml-[7px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-16 -mt-[7px]'} rounded-full transition-colors ${isDragging ? 'bg-primary/15' : 'bg-transparent group-hover:bg-primary/10'}`} />
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-8' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-8'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/40'}`} />
     </div>
   );
@@ -458,7 +471,7 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -469,6 +482,8 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   adsb: { icon: Radar, label: 'ADS-B', labelAr: '\u0645\u0631\u0627\u0642\u0628\u0629 \u062C\u0648\u064A\u0629' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
+  seismic: { icon: Activity, label: 'Seismic', labelAr: '\u0632\u0644\u0627\u0632\u0644' },
+  cyber: { icon: Cpu, label: 'Cyber', labelAr: '\u0633\u064A\u0628\u0631\u0627\u0646\u064A' },
 };
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
@@ -568,26 +583,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true },
-    colWidths: { telegram: 16, intel: 16, map: 42, alerts: 26, events: 22, radar: 22, adsb: 28, markets: 28 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false },
+    colWidths: { telegram: 16, intel: 16, map: 42, alerts: 26, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, events: 22, radar: 30, adsb: 40, markets: 30 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, events: 25, radar: 25, adsb: 50, markets: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, events: 100, radar: 100, adsb: 100, markets: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100 },
     rowSplit: 50,
   },
 ];
@@ -664,22 +679,22 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="notes-overlay">
-      <div className="w-[500px] max-h-[70vh] bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 0 1px hsl(var(--border) / 0.4)'}}>
-        <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
+      <div className="w-[500px] max-h-[70vh] bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6)'}}>
+        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
           <span className="text-xs text-muted-foreground/50 font-mono">{notes.length}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-notes"><X className="w-4 h-4" /></button>
         </div>
-        <div className="px-4 py-3 border-b border-border/30 space-y-2">
+        <div className="px-4 py-3 border-b border-white/[0.05] space-y-2">
           <div className="flex gap-2">
             <input
               value={newNote}
               onChange={e => setNewNote(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addNote()}
               placeholder={language === 'en' ? 'Add intelligence note...' : '\u0623\u0636\u0641 \u0645\u0644\u0627\u062D\u0638\u0629...'}
-              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
+              className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-3 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-primary/40 font-mono"
               data-testid="input-note"
             />
             <button onClick={addNote} className="px-3 py-1.5 rounded bg-primary/20 border border-primary/30 text-primary text-[11px] font-mono font-bold hover:bg-primary/30 transition-colors" data-testid="button-add-note">
@@ -688,12 +703,12 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
           </div>
           <div className="flex gap-1">
             {['general', 'threat', 'intel', 'maritime'].map(c => (
-              <button key={c} onClick={() => setCategory(c)} className={`text-xs px-2 py-0.5 rounded font-mono font-bold border transition-colors ${category === c ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-card/30 border-border/30 text-muted-foreground/60'}`}>{c.toUpperCase()}</button>
+              <button key={c} onClick={() => setCategory(c)} className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold border transition-colors ${category === c ? 'bg-primary/15 border-primary/25 text-primary/90' : 'bg-white/[0.02] border-white/[0.05] text-foreground/30'}`}>{c.toUpperCase()}</button>
             ))}
           </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
-          <div className="divide-y divide-border/20">
+          <div className="divide-y divide-white/[0.03]">
             {notes.length === 0 && (
               <div className="px-4 py-8 text-center">
                 <StickyNote className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
@@ -736,21 +751,21 @@ function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClos
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="watchlist-overlay">
-      <div className="w-[400px] max-h-[60vh] bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 0 1px hsl(var(--border) / 0.4)'}}>
-        <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
+      <div className="w-[400px] max-h-[60vh] bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6)'}}>
+        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-watchlist"><X className="w-4 h-4" /></button>
         </div>
-        <div className="px-4 py-3 border-b border-border/30">
+        <div className="px-4 py-3 border-b border-white/[0.05]">
           <div className="flex gap-2">
             <input
               value={newItem}
               onChange={e => setNewItem(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && add()}
               placeholder={language === 'en' ? 'Callsign, ship name, city...' : '\u0627\u0633\u0645 \u0627\u0644\u0637\u0627\u0626\u0631\u0629 \u0623\u0648 \u0627\u0644\u0633\u0641\u064A\u0646\u0629...'}
-              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-amber-500/50 font-mono"
+              className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-3 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-amber-500/40 font-mono"
               data-testid="input-watchlist"
             />
             <button onClick={add} className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/30 transition-colors" data-testid="button-add-watchlist">+</button>
@@ -848,8 +863,8 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
 }) {
   const [newName, setNewName] = useState('');
   return (
-    <div className="absolute top-10 right-0 z-[150] w-64 bg-background/95 backdrop-blur-xl border border-border/40 rounded-xl shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 20px 40px rgb(0 0 0 / 0.5), 0 0 0 1px hsl(var(--border) / 0.3)'}}>
-      <div className="px-3 py-2 border-b border-border/30 flex items-center gap-2">
+    <div className="absolute top-10 right-0 z-[150] w-64 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 20px 40px rgb(0 0 0 / 0.5)'}}>
+      <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2">
         <Layout className="w-3.5 h-3.5 text-primary/70" />
         <span className="text-xs font-bold font-mono text-foreground/80 uppercase tracking-wider">{language === 'en' ? 'Layout Presets' : '\u0642\u0648\u0627\u0644\u0628'}</span>
         <div className="flex-1" />
@@ -865,14 +880,14 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
           </div>
         ))}
       </div>
-      <div className="px-2 pb-2 border-t border-border/30 pt-2">
+      <div className="px-2 pb-2 border-t border-white/[0.05] pt-2">
         <div className="flex gap-1">
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSave(newName.trim()); setNewName(''); onClose(); } }}
             placeholder={language === 'en' ? 'Save current...' : '\u062D\u0641\u0638 \u0627\u0644\u062D\u0627\u0644\u064A...'}
-            className="flex-1 bg-card/50 border border-border/50 rounded px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none font-mono"
+            className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-2 py-1 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none font-mono"
             data-testid="input-preset-name"
           />
           <button
@@ -909,11 +924,11 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-10 border-t border-border/30 bg-card/20 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
-      <span className="text-[10px] text-muted-foreground/40 font-mono uppercase tracking-wider mr-3 shrink-0">
+    <div className="h-8 border-t border-white/[0.03] bg-card/15 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
+      <span className="text-[8px] text-foreground/20 font-mono uppercase tracking-[0.2em] mr-3 shrink-0">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
-      <div className="flex-1 relative h-4 bg-card/30 rounded border border-border/20">
+      <div className="flex-1 relative h-3 bg-white/[0.02] rounded-sm border border-white/[0.04]">
         <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/40" />
         <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-primary/40 font-mono">NOW</span>
         <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[8px] text-muted-foreground/30 font-mono">-1h</span>
@@ -931,7 +946,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
           </div>
         ))}
         {hoveredEvent && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-background border border-border/60 rounded px-2 py-1 text-[11px] font-mono whitespace-nowrap z-10 shadow-lg">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-card/95 border border-white/[0.08] rounded px-2 py-1 text-[10px] font-mono whitespace-nowrap z-10 shadow-lg">
             <span className="text-foreground/90 font-bold">{hoveredEvent.title}</span>
             <span className="text-muted-foreground/50 ml-2">{timeAgo(hoveredEvent.timestamp)}</span>
           </div>
@@ -1074,10 +1089,10 @@ function LiveClock() {
 
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
-      <span className="text-[11px] text-muted-foreground/45 font-mono hidden md:inline">{dateStr}</span>
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-card/50 border border-border/20">
-        <span className="text-xs text-foreground/85 font-mono font-semibold tabular-nums tracking-widest">{formatted}</span>
-        <span className="text-[9px] text-primary/40 font-mono font-bold tracking-widest">UTC</span>
+      <span className="text-[9px] text-foreground/20 font-mono hidden md:inline">{dateStr}</span>
+      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05]">
+        <span className="text-[10px] text-foreground/70 font-mono font-semibold tabular-nums tracking-widest">{formatted}</span>
+        <span className="text-[8px] text-primary/30 font-mono font-bold tracking-widest">UTC</span>
       </div>
     </div>
   );
@@ -1090,26 +1105,26 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-8 border-b border-border/20 bg-card/10" />;
+  if (!commodities.length) return <div className="h-7 border-b border-white/[0.03] bg-card/20" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-8 border-b border-border/25 overflow-hidden relative bg-gradient-to-r from-card/50 via-background to-background" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-10 flex items-center gap-1.5 pl-3">
-        <div className="w-1.5 h-1.5 rounded-full bg-primary/35 shrink-0" />
-        <span className="text-[9px] font-bold tracking-[0.3em] text-primary/45 font-mono">MKTS</span>
+    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative bg-card/30" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card to-transparent z-10 flex items-center gap-1 pl-2.5">
+        <div className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
+        <span className="text-[8px] font-bold tracking-[0.25em] text-primary/35 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-12">
+      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-card to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-4 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[11px]">
-            <span className="text-primary/80 font-bold">{c.symbol}</span>
-            <span className="text-foreground/60">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[10px]">
+            <span className="text-foreground/40 font-semibold">{c.symbol}</span>
+            <span className="text-foreground/55 tabular-nums">{formatPrice(c)}</span>
+            <span className={`inline-flex items-center gap-px tabular-nums ${c.change >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
               {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
-            <span className="text-border/30 mx-0.5">\u00B7</span>
+            <span className="text-white/[0.06] mx-0.5">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -1142,10 +1157,10 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
           <div className="w-4 h-4 rounded bg-red-600/25 flex items-center justify-center animate-siren-flash border border-red-500/60">
             <Siren className="w-3 h-3 text-red-400/90" />
           </div>
-          <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-400/80 font-mono whitespace-nowrap">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400/70 font-mono whitespace-nowrap">
             {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
           </span>
-          <Badge variant="destructive" className="text-[11px] px-1 py-0 h-[16px] font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[14px] font-mono font-bold animate-pulse-dot">
             {sirens.length}
           </Badge>
         </div>
@@ -1239,24 +1254,22 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2.5 bg-gradient-to-r from-primary/[0.07] to-transparent shrink-0 relative overflow-hidden">
-      <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-primary via-primary/50 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
-      <div className="w-5 h-5 rounded-[5px] bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
-        <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/70">{icon}</span>
-      </div>
-      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/55 font-mono">{title}</span>
+    <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-white/[0.02] to-transparent shrink-0 relative overflow-hidden">
+      <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/20 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
+      <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/50">{icon}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
+        <span className="text-[9px] px-1.5 py-px font-mono text-foreground/30 bg-white/[0.03] rounded-sm border border-white/[0.05] tabular-nums leading-none">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.6)'}} />
-          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-emerald-500/[0.06] border border-emerald-500/10">
+          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 3px rgb(52 211 153 / 0.5)'}} />
+          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-400/60 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -1276,18 +1289,17 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2.5 font-mono text-xs items-center hover-elevate transition-colors border-l-2 ${c.change >= 0 ? 'border-l-emerald-500/20' : 'border-l-red-500/20'}`}
+      className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2 font-mono text-[10px] items-center hover:bg-white/[0.015] transition-colors duration-150 border-l border-l-transparent ${c.change >= 0 ? 'border-l-emerald-500/15' : 'border-l-red-500/15'}`}
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground/90 font-bold text-xs truncate">{c.symbol}</span>
-        <span className="text-[11px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground/80 font-bold text-[10px] truncate">{c.symbol}</span>
+        <span className="text-[9px] text-foreground/25 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
-      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-xs">
+      <span className="text-foreground/65 tabular-nums text-right font-semibold whitespace-nowrap text-[10px]">
         {formatPrice(c)}
       </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[52px] text-xs ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-        <div className={`w-0.5 h-2.5 rounded-full ${c.change >= 0 ? 'bg-emerald-500/40' : 'bg-red-500/40'}`} />
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[10px] ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
         <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
       </div>
     </div>
@@ -1330,21 +1342,21 @@ function CommoditiesPanel({
         onMaximize={onMaximize}
         isMaximized={isMaximized}
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground/60 font-bold border-b border-border/20">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[9px] uppercase tracking-[0.2em] text-foreground/20 font-bold border-b border-white/[0.03]">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
         <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
         <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
       </div>
       <SectionLabel label={language === 'en' ? '\u25B8 Commodities' : '\u25B8 \u0627\u0644\u0633\u0644\u0639'} />
-      <div className="divide-y divide-border/10">
+      <div className="divide-y divide-white/[0.02]">
         {cmdty.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
       </div>
       <SectionLabel label={language === 'en' ? '\u25B8 Major FX' : '\u25B8 \u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} />
-      <div className="divide-y divide-border/10">
+      <div className="divide-y divide-white/[0.02]">
         {fxMajor.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
       </div>
       <SectionLabel label={language === 'en' ? '\u25B8 Regional FX' : '\u25B8 \u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} />
-      <div className="divide-y divide-border/10">
+      <div className="divide-y divide-white/[0.02]">
         {fxRegional.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
       </div>
     </div>
@@ -1376,7 +1388,7 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           <p className="text-xs text-muted-foreground">No active alerts</p>
         </div>
       )}
-      <div className="divide-y divide-border/15">
+      <div className="divide-y divide-white/[0.02]">
         {sorted.map((s) => {
           const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
           const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
@@ -1442,10 +1454,10 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
       {flights.length === 0 && (
         <div className="px-3 py-6 text-center">
           <Plane className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-          <p className="text-[12px] text-muted-foreground">Scanning airspace...</p>
+          <p className="text-[10px] text-foreground/25">Scanning airspace...</p>
         </div>
       )}
-      <div className="divide-y divide-border/20">
+      <div className="divide-y divide-white/[0.03]">
         {sorted.map((f) => {
           const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
           return (
@@ -1517,13 +1529,13 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
 
   return (
     <div className="h-full flex flex-col" data-testid="adsb-panel">
-      <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2.5 bg-gradient-to-r from-cyan-500/[0.07] to-transparent shrink-0 relative overflow-hidden">
-        <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-cyan-400 via-cyan-400/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
-        <div className="w-5 h-5 rounded-[5px] bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center shrink-0">
-          <Radar className="w-3 h-3 text-cyan-400/80" />
+      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-cyan-500/[0.04] to-transparent shrink-0 relative overflow-hidden">
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/60 via-cyan-400/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
+        <div className="w-4 h-4 rounded bg-cyan-500/[0.08] border border-cyan-500/10 flex items-center justify-center shrink-0">
+          <Radar className="w-2.5 h-2.5 text-cyan-400/70" />
         </div>
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/55 font-mono">ADS-B</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">ADS-B</span>
         <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
           {adsbFlights.length}
         </span>
@@ -1536,7 +1548,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      <div className="px-2 py-2 border-b border-border/30 flex gap-1 flex-wrap shrink-0">
+      <div className="px-2 py-1.5 border-b border-white/[0.03] flex gap-1 flex-wrap shrink-0">
         {[
           { key: 'all', label: 'All' },
           { key: 'flagged', label: 'Flagged' },
@@ -1551,10 +1563,10 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
             key={key}
             data-testid={`adsb-filter-${key}`}
             onClick={() => setFilter(key)}
-            className={`text-xs px-2 py-1 rounded font-bold font-mono border transition-colors ${
+            className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-mono border transition-colors ${
               filter === key
-                ? 'bg-cyan-950/50 border-cyan-500/40 text-cyan-300'
-                : 'bg-card/30 border-border/30 text-muted-foreground/60'
+                ? 'bg-cyan-950/40 border-cyan-500/25 text-cyan-300/90'
+                : 'bg-white/[0.02] border-white/[0.05] text-foreground/30'
             }`}
           >
             {label} {counts[key] ? `(${counts[key]})` : ''}
@@ -1566,7 +1578,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
         {isLoading && (
           <div className="px-3 py-8 text-center">
             <Radar className="w-6 h-6 text-cyan-400/40 mx-auto mb-2 animate-pulse" />
-            <p className="text-[12px] text-muted-foreground">Scanning ADS-B feeds...</p>
+            <p className="text-[10px] text-foreground/25">Scanning ADS-B feeds...</p>
           </div>
         )}
 
@@ -1576,7 +1588,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
               <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
               <button
                 onClick={() => setSelectedFlight(null)}
-                className="text-muted-foreground/40 text-[12px]"
+                className="text-foreground/25 text-[10px]"
                 data-testid="adsb-close-detail"
               >
                 <X className="w-3 h-3" />
@@ -1601,7 +1613,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
           </div>
         )}
 
-        <div className="divide-y divide-border/20">
+        <div className="divide-y divide-white/[0.03]">
           {sorted.map((f) => {
             const style = ADSB_TYPE_STYLES[f.type] || ADSB_TYPE_STYLES.commercial;
             return (
@@ -1677,10 +1689,10 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
       {events.length === 0 && (
         <div className="px-3 py-6 text-center">
           <Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-          <p className="text-[12px] text-muted-foreground">No active events</p>
+          <p className="text-[10px] text-foreground/25">No active events</p>
         </div>
       )}
-      <div className="divide-y divide-border/20">
+      <div className="divide-y divide-white/[0.03]">
         {sorted.map((e) => {
           const sev = SEVERITY_STYLES[e.severity] || SEVERITY_STYLES.low;
           const icon = EVENT_TYPE_ICONS[e.type] || '📍';
@@ -1743,10 +1755,10 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
       {ships.length === 0 && (
         <div className="px-3 py-6 text-center">
           <Anchor className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-          <p className="text-[12px] text-muted-foreground">Scanning waters...</p>
+          <p className="text-[10px] text-foreground/25">Scanning waters...</p>
         </div>
       )}
-      <div className="divide-y divide-border/20">
+      <div className="divide-y divide-white/[0.03]">
         {sorted.map((s) => {
           const style = SHIP_TYPE_STYLES[s.type] || SHIP_TYPE_STYLES.cargo;
           return (
@@ -1773,6 +1785,68 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function SeismicPanel({ earthquakes, language, onClose, onMaximize, isMaximized }: { earthquakes: EarthquakeEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const sorted = [...earthquakes].sort((a, b) => b.magnitude - a.magnitude);
+  const magColor = (m: number) => m >= 6 ? 'text-red-400 bg-red-950/40 border-red-500/30' : m >= 5 ? 'text-orange-400 bg-orange-950/40 border-orange-500/30' : m >= 4 ? 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30' : 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
+  const magBorderColor = (m: number) => m >= 6 ? 'rgb(239 68 68 / 0.6)' : m >= 5 ? 'rgb(249 115 22 / 0.5)' : m >= 4 ? 'rgb(234 179 8 / 0.4)' : 'transparent';
+  return (
+    <div className="flex flex-col">
+      <PanelHeader title={language === 'en' ? 'Seismic Activity' : 'النشاط الزلزالي'} icon={<Activity className="w-3.5 h-3.5" />} live count={earthquakes.length} onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized} />
+      {earthquakes.length === 0 && <div className="px-3 py-6 text-center"><Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" /><p className="text-[10px] text-foreground/25">Loading seismic data...</p></div>}
+      <div className="divide-y divide-white/[0.03]">
+        {sorted.map((eq) => (
+          <div key={eq.id} className="px-3 py-3 hover-elevate animate-fade-in border-l-2" style={{ borderLeftColor: magBorderColor(eq.magnitude) }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono shrink-0 tabular-nums ${magColor(eq.magnitude)}`}>M{eq.magnitude.toFixed(1)}</span>
+              <span className="text-xs font-bold font-mono text-foreground truncate flex-1">{eq.place}</span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
+              <span><span className="text-foreground/40">DEP</span> {eq.depth.toFixed(0)}km</span>
+              {eq.felt && <span><span className="text-foreground/40">FELT</span> {eq.felt}</span>}
+              {eq.tsunami === 1 && <span className="text-cyan-400 font-bold">TSUNAMI</span>}
+              <span className="ml-auto">{timeAgo(eq.timestamp)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="px-3 py-2 border-t border-white/[0.03]"><span className="text-[9px] text-foreground/15 font-mono">Source: USGS · M2.5+ Middle East</span></div>
+    </div>
+  );
+}
+
+const CYBER_TYPE_LABELS: Record<string, string> = { ddos: 'DDoS', intrusion: 'INTRU', malware: 'MALWR', phishing: 'PHISH', defacement: 'DEFAC', data_exfil: 'EXFIL', scada: 'SCADA' };
+const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-orange-950/40 border-orange-500/30', intrusion: 'text-red-400 bg-red-950/40 border-red-500/30', malware: 'text-purple-400 bg-purple-950/40 border-purple-500/30', phishing: 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30', defacement: 'text-blue-400 bg-blue-950/40 border-blue-500/30', data_exfil: 'text-red-400 bg-red-950/40 border-red-500/30', scada: 'text-red-400 bg-red-950/40 border-red-500/30' };
+
+function CyberPanel({ cyberEvents, language, onClose, onMaximize, isMaximized }: { cyberEvents: CyberEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const sorted = [...cyberEvents].sort((a, b) => { const o: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }; return (o[a.severity] ?? 4) - (o[b.severity] ?? 4); });
+  const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.6)' : s === 'high' ? 'rgb(249 115 22 / 0.5)' : 'transparent';
+  const sevText = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
+  return (
+    <div className="flex flex-col">
+      <PanelHeader title={language === 'en' ? 'Cyber Threats' : 'التهديدات السيبرانية'} icon={<Cpu className="w-3.5 h-3.5" />} live count={cyberEvents.length} onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized} />
+      {cyberEvents.length === 0 && <div className="px-3 py-6 text-center"><Cpu className="w-5 h-5 text-muted-foreground mx-auto mb-2" /><p className="text-[10px] text-foreground/25">No active threats</p></div>}
+      <div className="divide-y divide-white/[0.03]">
+        {sorted.map((ev) => (
+          <div key={ev.id} className="px-3 py-3 hover-elevate animate-fade-in border-l-2" style={{ borderLeftColor: sevBorder(ev.severity) }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono shrink-0 ${CYBER_TYPE_COLORS[ev.type] || 'text-foreground/60 bg-muted border-border'}`}>{CYBER_TYPE_LABELS[ev.type] || ev.type.toUpperCase()}</span>
+              <span className="text-xs font-bold font-mono text-foreground truncate flex-1">{ev.target}</span>
+              <span className={`text-[10px] font-mono font-bold shrink-0 ${sevText(ev.severity)}`}>{ev.severity.toUpperCase()}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1.5">{ev.description}</p>
+            <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
+              <span className="uppercase tracking-wider text-foreground/40">{ev.sector}</span>
+              <span className="text-foreground/20">·</span>
+              <span className="text-foreground/40">{ev.country}</span>
+              <span className="ml-auto">{timeAgo(ev.timestamp)}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1887,12 +1961,12 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   return (
     <div className="flex flex-col h-full" data-testid="red-alert-panel">
-      <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3.5 py-2.5'} border-b flex items-center gap-2.5 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-border/20 bg-gradient-to-r from-red-500/[0.07] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 16px rgb(239 68 68 / 0.35)'} : undefined}>
+      <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3 py-2'} border-b flex items-center gap-2 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-white/[0.04] bg-gradient-to-r from-red-500/[0.04] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 16px rgb(239 68 68 / 0.35)'} : undefined}>
         {hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />}
-        {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-red-500 via-red-500/50 to-transparent" />}
-        {!hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />}
-        <div className={`flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'w-6 h-6 rounded bg-white/20' : 'w-5 h-5 rounded-[5px] bg-red-500/10 border border-red-500/15'}`}>
-          <AlertOctagon className={`${hasActiveAlerts ? 'w-4 h-4 text-white' : 'w-3 h-3 text-red-400/70'}`} />
+        {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />}
+        {!hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />}
+        <div className={`flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'w-6 h-6 rounded bg-white/20' : 'w-4 h-4 rounded bg-red-500/[0.08] border border-red-500/10'}`}>
+          <AlertOctagon className={`${hasActiveAlerts ? 'w-4 h-4 text-white' : 'w-2.5 h-2.5 text-red-400/60'}`} />
         </div>
         <div className="flex flex-col leading-none">
           <span className={`text-xs font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
@@ -1901,7 +1975,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           <span className={`text-[10px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
         </div>
         {hasActiveAlerts && (
-          <span className="text-[12px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
+          <span className="text-[10px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
             {alerts.length}
           </span>
         )}
@@ -1909,7 +1983,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         {hasActiveAlerts && (
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse-dot" />
-            <span className="text-[12px] uppercase tracking-[0.2em] text-white/70 font-bold">LIVE</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-white/70 font-bold">LIVE</span>
           </div>
         )}
         {onShowHistory && (
@@ -1984,8 +2058,8 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         <div className="px-3 py-8 text-center flex-1 flex flex-col items-center justify-center">
           <Shield className="w-8 h-8 text-emerald-500/40 mb-3" />
           <p className="text-xs text-emerald-400/80 font-bold font-mono">{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No Active Alerts'}</p>
-          <p className="text-[12px] text-muted-foreground/40 mt-1 font-mono" dir="rtl">\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA</p>
-          <p className="text-[12px] text-muted-foreground/30 mt-2">All areas safe</p>
+          <p className="text-[10px] text-foreground/20 mt-1 font-mono" dir="rtl">\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA</p>
+          <p className="text-[10px] text-foreground/15 mt-2">All areas safe</p>
         </div>
       )}
 
@@ -2265,7 +2339,7 @@ function TelegramPanel({
       )}
 
       <ScrollArea className="flex-1">
-        <div className="divide-y divide-border/20">
+        <div className="divide-y divide-white/[0.03]">
           {filteredMessages.length === 0 && (
             <div className="px-3 py-6 text-center">
               <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
@@ -2343,7 +2417,7 @@ function TelegramPanel({
 function MapLegend({ activeView, language }: { activeView: string; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/15 rounded-md p-2 text-[12px] space-y-1" dir="ltr">
+    <div className="absolute bottom-3 left-3 z-[1000] bg-card/90 backdrop-blur-md border border-white/[0.06] rounded p-2 text-[9px] space-y-0.5" dir="ltr">
       {activeView === 'conflict' && (
         <>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Missile/Strike', '\u0635\u0627\u0631\u0648\u062E/\u0636\u0631\u0628\u0629')}</span></div>
@@ -2468,7 +2542,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
                     key={l}
                     onClick={() => setLocal(p => ({ ...p, defaultLanguage: l }))}
                     className={`text-xs px-4 py-1.5 rounded font-mono font-bold border transition-colors ${
-                      local.defaultLanguage === l ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-card/30 border-border/30 text-muted-foreground/60 hover:bg-card/50'
+                      local.defaultLanguage === l ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-white/[0.02] border-white/[0.05] text-foreground/30 hover:bg-white/[0.04]'
                     }`}
                     data-testid={`button-lang-${l}`}
                   >{l === 'en' ? 'English' : '\u0639\u0631\u0628\u064A'}</button>
@@ -2478,7 +2552,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
           </div>
         </ScrollArea>
         <div className="px-4 py-3 border-t border-primary/20 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="text-xs px-4 py-1.5 rounded font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:bg-card/50 transition-colors" data-testid="button-cancel-settings">{t('Cancel', '\u0625\u0644\u063A\u0627\u0621')}</button>
+          <button onClick={onClose} className="text-[10px] px-4 py-1.5 rounded font-mono text-foreground/40 hover:text-foreground border border-white/[0.06] hover:bg-white/[0.04] transition-colors" data-testid="button-cancel-settings">{t('Cancel', '\u0625\u0644\u063A\u0627\u0621')}</button>
           <button onClick={handleSave} className="text-xs px-4 py-1.5 rounded font-mono font-bold text-background bg-primary hover:bg-primary/90 transition-colors" data-testid="button-save-settings">{t('Save', '\u062D\u0641\u0638')}</button>
         </div>
       </div>
@@ -2506,20 +2580,20 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
-      <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2.5 bg-gradient-to-r from-purple-500/[0.07] to-transparent shrink-0 relative overflow-hidden">
-        <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-purple-400 via-purple-400/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
-        <div className="w-5 h-5 rounded-[5px] bg-purple-500/10 border border-purple-500/15 flex items-center justify-center shrink-0">
-          <Brain className="w-3 h-3 text-purple-400/80" />
+      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden">
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/60 via-purple-400/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
+        <div className="w-4 h-4 rounded bg-purple-500/[0.08] border border-purple-500/10 flex items-center justify-center shrink-0">
+          <Brain className="w-2.5 h-2.5 text-purple-400/70" />
         </div>
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/55 font-mono">
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/25 bg-white/[0.03] rounded border border-white/[0.05] tabular-nums leading-none">
           {brief?.model || '...'}
         </span>
         {anomalies.length > 0 && (
-          <span className="text-[11px] px-1.5 py-0.5 font-mono font-bold text-amber-300 bg-amber-950/40 rounded border border-amber-500/30 animate-pulse" data-testid="anomaly-badge">
+          <span className="text-[9px] px-1.5 py-0.5 font-mono font-bold text-amber-300/80 bg-amber-950/30 rounded border border-amber-500/20 animate-pulse" data-testid="anomaly-badge">
             {anomalies.length} ANOMALY
           </span>
         )}
@@ -2558,12 +2632,12 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
         {briefLoading && (
           <div className="px-3 py-8 text-center">
             <Brain className="w-6 h-6 text-purple-400/40 mx-auto mb-2 animate-pulse" />
-            <p className="text-[12px] text-muted-foreground">Synthesizing intelligence brief...</p>
+            <p className="text-[10px] text-foreground/25">Synthesizing intelligence brief...</p>
           </div>
         )}
 
         {brief && (
-          <div className="divide-y divide-border/30">
+          <div className="divide-y divide-white/[0.03]">
             <div className="px-3 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
@@ -2627,13 +2701,13 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
                   onChange={(e) => setDeductQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleDeduct()}
                   placeholder={language === 'en' ? 'What will happen in the next 24h?' : '\u0645\u0627\u0630\u0627 \u0633\u064A\u062D\u062F\u062B \u0641\u064A \u0627\u0644\u0640 24 \u0633\u0627\u0639\u0629 \u0627\u0644\u0642\u0627\u062F\u0645\u0629\u061F'}
-                  className="flex-1 bg-card/50 border border-border/50 rounded px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-purple-500/50 font-mono"
+                  className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-2.5 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-purple-500/40 font-mono"
                   data-testid="input-ai-deduction"
                 />
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="text-[12px] px-2 h-6 text-purple-400"
+                  className="text-[10px] px-1.5 h-5 text-purple-400/80"
                   onClick={handleDeduct}
                   disabled={deductMutation.isPending || !deductQuery.trim()}
                   data-testid="button-ai-deduct"
@@ -2643,7 +2717,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
               </div>
 
               {deductResult && (
-                <div className="bg-card/30 border border-border/30 rounded p-3 animate-fade-in">
+                <div className="bg-white/[0.02] border border-white/[0.05] rounded p-3 animate-fade-in">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Badge className="text-xs px-1.5 py-0.5 font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
                       {Math.round(deductResult.confidence * 100)}% confidence
@@ -2694,20 +2768,20 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-primary/[0.08] to-transparent shrink-0 relative">
-        <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-primary/80 via-primary/50 to-primary/10 rounded-r" />
-        <Target className="w-3.5 h-3.5 text-primary/80 shrink-0" />
-        <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
+      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-primary/[0.04] to-transparent shrink-0 relative">
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
+        <Target className="w-3 h-3 text-primary/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
           {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
-        <div className="flex items-center gap-0.5 bg-card/50 rounded border border-border/30 p-0.5">
+        <div className="flex items-center gap-px bg-white/[0.02] rounded border border-white/[0.05] p-0.5">
           {views.map((v) => (
             <button
               key={v.key}
-              className={`text-[11px] px-2 py-0.5 rounded font-mono font-bold transition-colors ${
+              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
                 activeView === v.key
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'text-muted-foreground/50 hover:text-foreground/70 border border-transparent'
+                  ? 'bg-primary/15 text-primary/90 border border-primary/20'
+                  : 'text-foreground/30 hover:text-foreground/60 border border-transparent'
               }`}
               onClick={() => setActiveView(v.key)}
               data-testid={`button-map-${v.key}`}
@@ -2775,15 +2849,15 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-8 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
-      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
-        <span className="text-[9px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
+    <div className="h-7 border-t border-white/[0.03] bg-card/20 overflow-hidden relative shrink-0" data-testid="news-ticker">
+      <div className="absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-card to-transparent z-10 flex items-center pl-2.5">
+        <span className="text-[8px] font-bold tracking-[0.25em] text-primary/35 font-mono">INTEL</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
+      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-card to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
-          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-2 text-[12px] font-mono">
-            <span className={`font-bold uppercase tracking-wider text-[12px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
+          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
+            <span className={`font-bold uppercase tracking-wider text-[9px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
               {item.category}
             </span>
             <span className="text-foreground/75">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
@@ -2816,7 +2890,7 @@ export default function Dashboard() {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
       if (saved.visiblePanels) return saved.visiblePanels;
     } catch {}
-    return { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true };
+    return { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false };
   });
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [maximizedPanel, setMaximizedPanel] = useState<PanelId | null>(null);
@@ -2834,7 +2908,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, connected } = sse;
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -2894,7 +2968,7 @@ export default function Dashboard() {
   }, [showWatchlist]);
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -2904,6 +2978,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 42, alerts: 26,
     events: 22, radar: 22, adsb: 28, markets: 28,
+    seismic: 22, cyber: 22,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -3045,6 +3120,18 @@ export default function Dashboard() {
               <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
             </ScrollArea>
           );
+        case 'seismic':
+          return (
+            <ScrollArea className="h-full">
+              <SeismicPanel earthquakes={earthquakes} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
+            </ScrollArea>
+          );
+        case 'cyber':
+          return (
+            <ScrollArea className="h-full">
+              <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
+            </ScrollArea>
+          );
       }
     })();
     return (
@@ -3056,29 +3143,30 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-14 border-b border-primary/20 flex items-center justify-between px-3 md:px-5 bg-background/80 backdrop-blur-md shrink-0 relative" style={{boxShadow:'0 1px 0 hsl(32 95% 50% / 0.08), 0 4px 20px hsl(0 0% 0% / 0.4)'}}>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center border border-primary/25" style={{boxShadow:'0 0 8px hsl(32 95% 50% / 0.2)'}}>
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20" style={{boxShadow:'0 0 12px hsl(36 90% 52% / 0.15), inset 0 1px 0 hsl(36 90% 52% / 0.1)'}}>
               <Crosshair className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-black text-sm tracking-[0.15em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(32 95% 50% / 0.7), 0 0 40px hsl(32 95% 50% / 0.25)'}}>WARROOM</span>
-              <span className="text-[9px] text-primary/30 tracking-[0.12em] font-mono hidden sm:block uppercase">
-                {language === 'en' ? 'ME Intel Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
+              <span className="font-black text-[13px] tracking-[0.2em] text-primary font-mono" style={{textShadow:'0 0 24px hsl(36 90% 52% / 0.6), 0 0 48px hsl(36 90% 52% / 0.15)'}}>WARROOM</span>
+              <span className="text-[8px] text-foreground/20 tracking-[0.15em] font-mono hidden sm:block uppercase">
+                {language === 'en' ? 'Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
           </div>
-          <div className="w-px h-5 bg-border/25 hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-950/30 border border-red-500/20 hidden sm:flex" style={{boxShadow:'0 0 10px rgb(239 68 68 / 0.12)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(239 68 68 / 0.8)'}} />
-            <span className="text-[10px] text-red-400/90 font-bold tracking-[0.2em] uppercase font-mono">LIVE</span>
+          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-500/[0.08] border border-red-500/15 hidden sm:flex" style={{boxShadow:'0 0 10px rgb(239 68 68 / 0.08)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(239 68 68 / 0.7)'}} />
+            <span className="text-[9px] text-red-400/80 font-bold tracking-[0.2em] uppercase font-mono">LIVE</span>
           </div>
-          <div className="w-px h-5 bg-border/25 hidden sm:block" />
+          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
           <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
             <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
-            <span className={`text-[10px] font-black tracking-[0.18em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+            <span className={`text-[9px] font-black tracking-[0.18em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -3094,44 +3182,44 @@ export default function Dashboard() {
               <Menu className="w-5 h-5" />
             </button>
           ) : (
-            <div className="flex items-center gap-0.5">
-              <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50`} onClick={toggleNotifications} data-testid="button-notifications-toggle" aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'} title="Desktop Notifications">
-                {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            <div className="flex items-center gap-px">
+              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded-md text-[11px] ${notificationsEnabled ? 'text-primary' : 'text-foreground/25'} hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40`} onClick={toggleNotifications} data-testid="button-notifications-toggle" aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'} title="Desktop Notifications">
+                {notificationsEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
               </Button>
-              <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${soundEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
-                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded-md text-[11px] ${soundEnabled ? 'text-primary' : 'text-foreground/25'} hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
+                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
-                <StickyNote className="w-4 h-4" />
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-amber-400/80 hover:bg-amber-500/[0.06] active:bg-amber-500/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
+                <StickyNote className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
-                <Eye className="w-4 h-4" />
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-amber-400/80 hover:bg-amber-500/[0.06] active:bg-amber-500/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
+                <Eye className="w-3.5 h-3.5" />
               </Button>
               <div className="relative">
-                <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" aria-label="Layout Presets" title="Layout Presets">
-                  <Layout className="w-4 h-4" />
+                <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-primary/80 hover:bg-primary/[0.06] active:bg-primary/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" aria-label="Layout Presets" title="Layout Presets">
+                  <Layout className="w-3.5 h-3.5" />
                 </Button>
                 {showLayoutPresets && (
                   <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
                 )}
               </div>
-              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-emerald-400 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={handleExport} data-testid="button-export" aria-label="Export Report" title="Export Report">
-                <FileDown className="w-4 h-4" />
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-emerald-400/80 hover:bg-emerald-500/[0.06] active:bg-emerald-500/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={handleExport} data-testid="button-export" aria-label="Export Report" title="Export Report">
+                <FileDown className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowSettings(true)} data-testid="button-settings" aria-label="Settings" title="Settings">
-                <Settings className="w-4 h-4" />
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowSettings(true)} data-testid="button-settings" aria-label="Settings" title="Settings">
+                <Settings className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2.5 h-8 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors font-mono text-xs focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle" aria-label={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                <Languages className="w-4 h-4 mr-1" />
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/30 hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 font-mono text-[10px] focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle" aria-label={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
+                <Languages className="w-3.5 h-3.5 mr-0.5" />
                 {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
               </Button>
             </div>
           )}
-          <div className="w-px h-4 bg-border/30" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${connected ? 'bg-emerald-950/40 border-emerald-500/25' : 'bg-red-950/40 border-red-500/25'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} style={{boxShadow: connected ? '0 0 12px rgb(34 197 94 / 0.12)' : '0 0 12px rgb(239 68 68 / 0.12)'}}>
-            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-500'}`} style={{boxShadow: connected ? '0 0 6px rgb(34 197 94 / 0.8)' : '0 0 6px rgb(239 68 68 / 0.8)'}} />
-            <span className={`text-xs font-bold tracking-wider font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400' : 'text-red-400'}`}>
-              {connected ? (language === 'en' ? 'SSE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'DISCONNECTED' : '\u0645\u0646\u0642\u0637\u0639')}
+          <div className="w-px h-4 bg-white/[0.06]" />
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${connected ? 'bg-emerald-500/[0.06] border-emerald-500/15' : 'bg-red-500/[0.06] border-red-500/15'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} style={{boxShadow: connected ? '0 0 8px rgb(34 197 94 / 0.06)' : '0 0 8px rgb(239 68 68 / 0.06)'}}>
+            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 4px rgb(34 197 94 / 0.6)' : '0 0 4px rgb(239 68 68 / 0.6)'}} />
+            <span className={`text-[10px] font-bold tracking-wider font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
+              {connected ? (language === 'en' ? 'SSE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'OFF' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
         </div>
@@ -3153,13 +3241,13 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden border-t border-border/20" data-testid="resizable-panels">
+      <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden" data-testid="resizable-panels">
         {isMobile ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden">
               {renderPanel(mobileActiveTab)}
             </div>
-            <div className="h-12 border-t border-border/20 flex items-center justify-around bg-background/90 backdrop-blur-sm shrink-0" data-testid="mobile-tab-bar" role="tablist" aria-label="Panel navigation">
+            <div className="h-12 border-t border-white/[0.04] flex items-center justify-around bg-card/60 backdrop-blur-md shrink-0" data-testid="mobile-tab-bar" role="tablist" aria-label="Panel navigation">
               {allPanels.filter(id => visiblePanels[id]).slice(0, 6).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -3201,8 +3289,8 @@ export default function Dashboard() {
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeTop, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-border/15' : ''}`}
-                      style={{ width: `${activeTopWidths[idx]}%`, background: 'hsl(var(--background))' }}
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
+                      style={{ width: `${activeTopWidths[idx]}%` }}
                     >
                       {renderPanel(id)}
                     </div>
@@ -3214,13 +3302,13 @@ export default function Dashboard() {
               <ResizeHandle onResize={makeVerticalResizer()} direction="row" />
             )}
             {activeBottom.length > 0 && (
-              <div className="flex min-h-0 overflow-hidden border-t border-border/20" style={{ height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
+              <div className="flex min-h-0 overflow-hidden" style={{ height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
                 {activeBottom.map((id, idx) => (
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeBottom, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeBottom.length - 1 ? 'border-r border-border/30' : ''}`}
-                      style={{ width: `${activeBottomWidths[idx]}%`, background: 'hsl(var(--background))' }}
+                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeBottom.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
+                      style={{ width: `${activeBottomWidths[idx]}%` }}
                     >
                       {renderPanel(id)}
                     </div>
@@ -3236,31 +3324,31 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-10 border-t border-border/20 flex items-center px-4 bg-background/60 backdrop-blur-sm shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-xs text-emerald-400/70 font-mono font-bold">ONLINE</span>
+      <div className="h-8 border-t border-white/[0.03] flex items-center px-3 bg-card/30 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
+        <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-emerald-500/[0.05] border border-emerald-500/10">
+          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
+          <span className="text-[9px] text-emerald-400/60 font-mono font-semibold tracking-wider">ONLINE</span>
         </div>
-        <div className="w-px h-4 bg-border/30" />
-        <div className="flex items-center gap-2.5 text-xs font-mono">
-          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
-          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
-          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
-          <span className="text-xs text-muted-foreground/50"><span className="text-cyan-400/35">ADS</span> {adsbFlights.length}</span>
-          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">VES</span> {ships.length}</span>
-          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">MKT</span> {commodities.length}</span>
+        <div className="w-px h-3 bg-white/[0.05]" />
+        <div className="flex items-center gap-2 text-[9px] font-mono tabular-nums">
+          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">SRC</span>12</span>
+          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">EVT</span>{events.length}</span>
+          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">FLT</span>{flights.length}</span>
+          <span className="text-foreground/20"><span className="text-cyan-400/30 mr-0.5">ADS</span>{adsbFlights.length}</span>
+          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">VES</span>{ships.length}</span>
+          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">MKT</span>{commodities.length}</span>
         </div>
         {(redAlerts.length > 0 || sirens.length > 0) && (
           <>
-            <div className="w-px h-4 bg-border/30" />
-            <div className="flex items-center gap-2 text-[10px] font-mono">
+            <div className="w-px h-3 bg-white/[0.05]" />
+            <div className="flex items-center gap-1.5 text-[9px] font-mono">
               {redAlerts.length > 0 && (
-                <span className="text-xs text-red-400/90 font-bold animate-pulse px-2 py-0.5 rounded bg-red-950/30 border border-red-500/20">
+                <span className="text-red-400/80 font-bold animate-pulse px-1.5 py-px rounded-sm bg-red-500/[0.08] border border-red-500/15">
                   RED {redAlerts.length}
                 </span>
               )}
               {sirens.length > 0 && (
-                <span className="text-xs text-red-400/70 font-bold px-2 py-0.5 rounded bg-red-950/20 border border-red-500/15">
+                <span className="text-red-400/60 font-bold px-1.5 py-px rounded-sm bg-red-500/[0.05] border border-red-500/10">
                   SRN {sirens.length}
                 </span>
               )}
@@ -3269,9 +3357,8 @@ export default function Dashboard() {
         )}
         {closedPanels.length > 0 && (
           <>
-            <div className="w-px h-4 bg-border/30" />
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground/40 font-mono uppercase tracking-wider hidden sm:inline">Restore:</span>
+            <div className="w-px h-3 bg-white/[0.05]" />
+            <div className="flex items-center gap-1">
               {closedPanels.map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -3279,12 +3366,11 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => openPanel(id)}
-                    className="group flex items-center gap-1 px-2 py-1 rounded text-xs font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
+                    className="group flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-semibold text-primary/60 bg-primary/[0.05] hover:bg-primary/15 hover:text-primary transition-all duration-150 border border-primary/15 hover:border-primary/30"
                     title={`Restore ${cfg.label} panel`}
                     data-testid={`button-open-panel-${id}`}
                   >
-                    <Maximize2 className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <Icon className="w-3 h-3" />
+                    <Icon className="w-2.5 h-2.5" />
                     {language === 'en' ? cfg.label : cfg.labelAr}
                   </button>
                 );
@@ -3294,15 +3380,15 @@ export default function Dashboard() {
         )}
         {correlations.length > 0 && (
           <>
-            <div className="w-px h-4 bg-border/30" />
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-purple-950/20 border border-purple-500/15">
-              <Link2 className="w-3 h-3 text-purple-400/60" />
-              <span className="text-xs text-purple-400/70 font-mono font-bold">{correlations.length} CORR</span>
+            <div className="w-px h-3 bg-white/[0.05]" />
+            <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-purple-500/[0.05] border border-purple-500/10">
+              <Link2 className="w-2.5 h-2.5 text-purple-400/50" />
+              <span className="text-[9px] text-purple-400/60 font-mono font-semibold">{correlations.length} CORR</span>
             </div>
           </>
         )}
-        <span className="text-xs text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
-          WARROOM v1.0
+        <span className="text-[8px] text-foreground/15 font-mono ml-auto hidden sm:inline tracking-[0.15em]">
+          WARROOM v2.0
         </span>
       </div>
 

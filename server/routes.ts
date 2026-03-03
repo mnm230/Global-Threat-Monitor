@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent } from "@shared/schema";
 
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
@@ -642,6 +642,58 @@ function generateDeduction(query: string): AIDeduction {
   };
 }
 
+let earthquakeCache: { data: EarthquakeEvent[]; fetchedAt: number } | null = null;
+const EQ_CACHE_TTL = 5 * 60 * 1000;
+
+async function fetchEarthquakes(): Promise<EarthquakeEvent[]> {
+  if (earthquakeCache && Date.now() - earthquakeCache.fetchedAt < EQ_CACHE_TTL) {
+    return earthquakeCache.data;
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 9000);
+    const resp = await fetch(
+      'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=12&maxlatitude=42&minlongitude=24&maxlongitude=63&minmagnitude=2.5&limit=25&orderby=time',
+      { headers: { 'User-Agent': 'WARROOM-Dashboard/1.0' }, signal: controller.signal }
+    );
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json() as { features: Array<{ id: string; properties: { mag: number; place: string; time: number; url: string; felt: number; tsunami: number }; geometry: { coordinates: [number, number, number] } }> };
+    const events: EarthquakeEvent[] = json.features.map(f => ({
+      id: f.id,
+      magnitude: Math.round(f.properties.mag * 10) / 10,
+      place: f.properties.place,
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0],
+      depth: Math.round(f.geometry.coordinates[2] * 10) / 10,
+      timestamp: new Date(f.properties.time).toISOString(),
+      url: f.properties.url,
+      felt: f.properties.felt || 0,
+      tsunami: f.properties.tsunami || 0,
+    }));
+    earthquakeCache = { data: events, fetchedAt: Date.now() };
+    return events;
+  } catch {
+    return earthquakeCache?.data || [];
+  }
+}
+
+function generateCyberEvents(): CyberEvent[] {
+  const now = Date.now();
+  return [
+    { id: 'cy1', type: 'ddos', target: 'Bank Hapoalim', attacker: 'Anonymous Sudan', severity: 'high', sector: 'financial', country: 'Israel', timestamp: new Date(now - 8 * 60000).toISOString(), description: 'Volumetric DDoS (80Gbps) against Israeli banking infrastructure. Killnet coordination suspected. Partial service degradation confirmed.' },
+    { id: 'cy2', type: 'intrusion', target: 'IRGC Command Network', attacker: 'Unit 8200', severity: 'critical', sector: 'military', country: 'Iran', timestamp: new Date(now - 38 * 60000).toISOString(), description: 'Unauthorized access detected in IRGC internal communications. SIGINT exfiltration activity observed on C2 nodes.' },
+    { id: 'cy3', type: 'scada', target: 'Saudi Aramco SCADA', attacker: 'APT34', severity: 'critical', sector: 'energy', country: 'Saudi Arabia', timestamp: new Date(now - 82 * 60000).toISOString(), description: 'TRITON-variant malware identified in Aramco ICS. Safety instrumented systems targeted. OT network segment isolated.' },
+    { id: 'cy4', type: 'phishing', target: 'IDF Personnel', attacker: 'Hamas Cyber', severity: 'medium', sector: 'military', country: 'Israel', timestamp: new Date(now - 150 * 60000).toISOString(), description: 'Spear-phishing via fake social/dating app profiles targeting IDF soldiers. 14 devices potentially compromised.' },
+    { id: 'cy5', type: 'data_exfil', target: 'UAE Ministry of Defense', attacker: 'APT35', severity: 'critical', sector: 'military', country: 'UAE', timestamp: new Date(now - 6 * 3600000).toISOString(), description: 'Data exfiltration via compromised supply-chain vendor. 4.2GB of classified documents transferred to Iranian-linked servers.' },
+    { id: 'cy6', type: 'defacement', target: 'Lebanese Gov Portal', severity: 'low', sector: 'government', country: 'Lebanon', timestamp: new Date(now - 9 * 3600000).toISOString(), description: 'Lebanese ministry sites defaced with pro-Hezbollah messaging. Attributed to Lebanese Cyber Army splinter group.' },
+    { id: 'cy7', type: 'intrusion', target: 'Bahrain Oil Pipeline', attacker: 'APT33', severity: 'high', sector: 'energy', country: 'Bahrain', timestamp: new Date(now - 14 * 3600000).toISOString(), description: 'Persistent access confirmed in Bahraini pipeline control systems. Wiper malware pre-positioned, not yet activated.' },
+    { id: 'cy8', type: 'ddos', target: 'Al Jazeera Streaming', attacker: 'Killnet', severity: 'medium', sector: 'media', country: 'Qatar', timestamp: new Date(now - 20 * 3600000).toISOString(), description: 'Al Jazeera live streaming disrupted for 3 hours. Russian-linked Killnet claimed responsibility via Telegram.' },
+    { id: 'cy9', type: 'malware', target: 'Jordan Power Grid', attacker: 'Unknown APT', severity: 'high', sector: 'infrastructure', country: 'Jordan', timestamp: new Date(now - 28 * 3600000).toISOString(), description: 'Industroyer-2 variant detected in SCADA systems managing Jordanian national grid substations.' },
+    { id: 'cy10', type: 'intrusion', target: 'Egyptian Intelligence HQ', attacker: 'NSO Pegasus', severity: 'critical', sector: 'government', country: 'Egypt', timestamp: new Date(now - 36 * 3600000).toISOString(), description: 'Pegasus spyware implant discovered on devices belonging to senior Egyptian intelligence officials.' },
+  ];
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -862,6 +914,8 @@ export async function registerRoutes(
     send('adsb', generateAdsbFlights());
     send('ai-brief', generateAIBrief());
     send('telegram', generateTelegram());
+    send('cyber', generateCyberEvents());
+    fetchEarthquakes().then(eqs => send('earthquakes', eqs));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
     intervals.push(setInterval(() => send('adsb', generateAdsbFlights()), 6000));
@@ -873,10 +927,21 @@ export async function registerRoutes(
     intervals.push(setInterval(() => send('news', generateNews()), 20000));
     intervals.push(setInterval(() => send('telegram', generateTelegram()), 25000));
     intervals.push(setInterval(() => send('ai-brief', generateAIBrief()), 60000));
+    intervals.push(setInterval(() => send('cyber', generateCyberEvents()), 45000));
+    intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
 
     req.on('close', () => {
       intervals.forEach(clearInterval);
     });
+  });
+
+  app.get('/api/earthquakes', async (_req, res) => {
+    const data = await fetchEarthquakes();
+    res.json(data);
+  });
+
+  app.get('/api/cyber', (_req, res) => {
+    res.json(generateCyberEvents());
   });
 
   app.get('/api/alert-history', (_req, res) => {

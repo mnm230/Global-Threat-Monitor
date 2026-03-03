@@ -77,37 +77,37 @@
   --button-outline: rgba(255,255,255, .08);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .025);
-  --elevate-2: rgba(255,255,255, .06);
-  --background: 225 30% 3%;
-  --foreground: 40 18% 88%;
-  --border: 225 18% 10%;
-  --card: 225 25% 4.5%;
-  --card-foreground: 40 15% 86%;
-  --card-border: 225 18% 9%;
-  --sidebar: 225 28% 4%;
-  --sidebar-foreground: 40 14% 84%;
-  --sidebar-border: 225 18% 8%;
-  --sidebar-primary: 32 95% 50%;
+  --elevate-1: rgba(255,255,255, .02);
+  --elevate-2: rgba(255,255,255, .05);
+  --background: 228 28% 4%;
+  --foreground: 45 15% 90%;
+  --border: 228 16% 11%;
+  --card: 228 24% 5.5%;
+  --card-foreground: 45 12% 88%;
+  --card-border: 228 16% 10%;
+  --sidebar: 228 26% 5%;
+  --sidebar-foreground: 45 12% 86%;
+  --sidebar-border: 228 16% 9%;
+  --sidebar-primary: 36 90% 52%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 225 18% 7%;
-  --sidebar-accent-foreground: 40 14% 84%;
-  --sidebar-ring: 32 95% 50%;
-  --popover: 225 25% 5%;
-  --popover-foreground: 40 14% 86%;
-  --popover-border: 225 18% 10%;
-  --primary: 32 95% 50%;
+  --sidebar-accent: 228 16% 8%;
+  --sidebar-accent-foreground: 45 12% 86%;
+  --sidebar-ring: 36 90% 52%;
+  --popover: 228 24% 6%;
+  --popover-foreground: 45 12% 88%;
+  --popover-border: 228 16% 11%;
+  --primary: 36 90% 52%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 225 18% 9%;
-  --secondary-foreground: 40 14% 84%;
-  --muted: 225 15% 7%;
-  --muted-foreground: 40 8% 40%;
-  --accent: 225 18% 6.5%;
-  --accent-foreground: 40 14% 84%;
-  --destructive: 0 82% 54%;
+  --secondary: 228 16% 10%;
+  --secondary-foreground: 45 12% 86%;
+  --muted: 228 14% 8%;
+  --muted-foreground: 45 6% 42%;
+  --accent: 228 16% 7.5%;
+  --accent-foreground: 45 12% 86%;
+  --destructive: 0 80% 55%;
   --destructive-foreground: 0 0% 100%;
-  --input: 225 15% 12%;
-  --ring: 32 95% 50%;
+  --input: 228 14% 13%;
+  --ring: 36 90% 52%;
   --chart-1: 32 95% 50%;
   --chart-2: 142 72% 40%;
   --chart-3: 0 82% 54%;
@@ -157,11 +157,11 @@
       repeating-linear-gradient(
         0deg,
         transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.04) 2px,
-        rgba(0, 0, 0, 0.04) 4px
+        transparent 3px,
+        rgba(0, 0, 0, 0.025) 3px,
+        rgba(0, 0, 0, 0.025) 6px
       ),
-      radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.18) 100%);
+      radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0, 0, 0, 0.15) 100%);
   }
 
   ::selection {
@@ -187,12 +187,11 @@
 
 @layer utilities {
 
-  /* Panel grid lines */
   .dark [data-testid="resizable-panels"] {
     background-image:
-      linear-gradient(hsl(var(--border) / 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border) / 0.045) 1px, transparent 1px);
-    background-size: 32px 32px;
+      linear-gradient(hsl(var(--border) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
 
   input[type="search"]::-webkit-search-cancel-button {

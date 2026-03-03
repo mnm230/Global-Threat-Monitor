@@ -102,17 +102,25 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - react-icons (for Telegram logo)
 - All standard shadcn/radix components
 
-## Theme & Text Sizing
-- Dark Bloomberg terminal aesthetic with amber/orange primary accent (--primary: 32 95% 50%)
-- Background: --background: 225 30% 3%
-- WARROOM logo: amber text shadow hsl(32 95% 50% / 0.6)
+## Theme & Text Sizing (v2 Style Refresh)
+- Dark Bloomberg terminal aesthetic with warm amber primary (--primary: 36 90% 52%)
+- Background: --background: 228 28% 4% (blue-tinted near-black)
+- Card: --card: 228 24% 5.5%
+- Border: --border: 228 16% 11% (very subtle, near-invisible)
+- Panel borders use border-white/[0.03] to border-white/[0.06] pattern (not border-border/)
+- Overlay/modal borders use border-white/[0.08]
+- Header: h-12 with bg-card/80 backdrop-blur-xl, WARROOM logo gradient box
+- Panel headers: h-10 style, 2px left accent, text-[10px] tracking-[0.2em], text-foreground/40
+- Status bar: h-8, text-[9px], bg-card/30
+- Event timeline: h-8, bg-card/15
+- News ticker: h-7, bg-card/20, text-[10px] items
+- Resize handles: 1px width (w-px/h-px), hover to bg-primary/25
+- WARROOM logo: amber text shadow hsl(36 90% 52% / 0.6)
 - JetBrains Mono for data/numbers, Inter for UI text
-- Green/red for market indicators
-- Purple accent for AI Intelligence panel
-- Pulsing red dots for LIVE indicators
-- Terminal-density text sizing: 10-11px for data labels, 9-10px for secondary info, 12px for headers/titles
-- No text-sm (14px) or text-[14px] in data panels - all reduced for Bloomberg terminal density
-- Overlay panels (notes, watchlist, history) use text-xs (12px) headers and text-[11px] body
+- Green/red for market indicators, cyan for ADS-B, purple for AI Intel
+- Text sizing: 9-10px for all data/labels, no text-[12px] or text-[14px] or text-sm in panels
+- Input fields: bg-white/[0.03] border-white/[0.07], text-[10px], placeholder text-foreground/20
+- Filter tabs: text-[9px], bg-white/[0.02] border-white/[0.05] inactive
 
 ## Touch Screen Support
 - ResizeHandle supports touch events (touchstart/touchmove/touchend) with delta tracking and wider invisible hit area (12px wide)
