@@ -85,6 +85,7 @@ export interface AdsbFlight {
   seen: number;
   country: string;
   flagged: boolean;
+  flagReason?: string;
 }
 
 export interface ShipData {

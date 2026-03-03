@@ -579,6 +579,12 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
     colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, events: 25, radar: 25, adsb: 50, markets: 28 },
     rowSplit: 55,
   },
+  {
+    name: 'Mobile',
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, events: 100, radar: 100, adsb: 100, markets: 100 },
+    rowSplit: 50,
+  },
 ];
 
 interface Correlation {
@@ -937,56 +943,90 @@ function generateExportReport(
   alerts: RedAlert[],
   sirens: SirenAlert[],
   commodities: CommodityData[],
-  threatLevel: { level: string },
+  adsbFlights: AdsbFlight[],
+  threatLevel: { level: string; color: string },
   language: 'en' | 'ar'
 ): string {
   const now = new Date().toISOString();
-  const lines: string[] = [];
-  lines.push('=' .repeat(60));
-  lines.push('WARROOM INTELLIGENCE REPORT');
-  lines.push('=' .repeat(60));
-  lines.push(`Generated: ${now}`);
-  lines.push(`Threat Level: ${threatLevel.level}`);
-  lines.push('');
-  lines.push('--- ALERT SUMMARY ---');
-  lines.push(`Active Red Alerts: ${alerts.length}`);
-  lines.push(`Active Sirens: ${sirens.length}`);
-  if (alerts.length > 0) {
-    lines.push('');
-    const byCountry: Record<string, number> = {};
-    alerts.forEach(a => { byCountry[a.country] = (byCountry[a.country] || 0) + 1; });
-    Object.entries(byCountry).forEach(([c, n]) => lines.push(`  ${c}: ${n} alerts`));
-  }
-  lines.push('');
-  lines.push('--- TOP EVENTS ---');
+  const threatColors: Record<string, string> = { CRITICAL: '#ef4444', HIGH: '#f97316', ELEVATED: '#eab308', LOW: '#22c55e' };
+  const tc = threatColors[threatLevel.level] || '#22c55e';
+
   const topEvents = [...events].sort((a, b) => {
     const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
-  }).slice(0, 8);
-  topEvents.forEach(e => {
-    lines.push(`[${e.severity.toUpperCase()}] ${e.title} - ${e.description}`);
-  });
-  lines.push('');
-  lines.push('--- MILITARY FLIGHTS ---');
+  }).slice(0, 5);
+
+  const byCountry: Record<string, number> = {};
+  alerts.forEach(a => { byCountry[a.country] = (byCountry[a.country] || 0) + 1; });
+
   const milFlights = flights.filter(f => f.type === 'military' || f.type === 'surveillance');
-  milFlights.forEach(f => {
-    lines.push(`${f.callsign} | ${f.type.toUpperCase()} | ALT ${f.altitude}ft | HDG ${Math.round(f.heading)}`);
-  });
-  lines.push('');
-  lines.push('--- MARITIME ---');
-  ships.forEach(s => {
-    lines.push(`${s.name} | ${s.type.toUpperCase()} | ${s.flag} | ${s.speed}kn`);
-  });
-  lines.push('');
-  lines.push('--- COMMODITY MOVERS ---');
-  const movers = [...commodities].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 5);
-  movers.forEach(c => {
-    lines.push(`${c.symbol}: ${c.price} (${c.changePercent >= 0 ? '+' : ''}${c.changePercent.toFixed(2)}%)`);
-  });
-  lines.push('');
-  lines.push('=' .repeat(60));
-  lines.push('END OF REPORT');
-  return lines.join('\n');
+  const flaggedAdsb = adsbFlights.filter(f => f.flagged);
+
+  const movers = [...commodities].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 6);
+
+  const sevColors: Record<string, string> = { critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#6b7280' };
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>WARROOM Intel Report - ${now}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0c10;color:#e0e0e0;font-family:'Courier New',monospace;padding:40px;max-width:900px;margin:0 auto}
+h1{color:#f59e0b;font-size:22px;letter-spacing:4px;border-bottom:2px solid #f59e0b33;padding-bottom:12px;margin-bottom:8px}
+h2{color:#f59e0b99;font-size:13px;letter-spacing:3px;text-transform:uppercase;margin:28px 0 12px;padding:8px 0;border-bottom:1px solid #ffffff15}
+.meta{font-size:11px;color:#888;margin-bottom:24px}
+.threat{display:inline-block;padding:4px 16px;border-radius:4px;font-weight:bold;font-size:13px;letter-spacing:2px;border:1px solid}
+table{width:100%;border-collapse:collapse;margin:8px 0}
+th{text-align:left;font-size:10px;color:#888;letter-spacing:2px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #ffffff20}
+td{padding:6px 8px;font-size:12px;border-bottom:1px solid #ffffff08}
+tr:hover{background:#ffffff05}
+.sev{font-size:10px;font-weight:bold;padding:2px 8px;border-radius:3px;letter-spacing:1px}
+.pos{color:#22c55e}.neg{color:#ef4444}
+.footer{margin-top:40px;padding-top:16px;border-top:1px solid #ffffff15;font-size:10px;color:#666;text-align:center}
+.country-row{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0}
+.country-badge{background:#1a1a2e;border:1px solid #ffffff15;padding:6px 14px;border-radius:4px;font-size:12px}
+.country-badge span{color:#ef4444;font-weight:bold}
+.print-btn{position:fixed;top:16px;right:16px;background:#f59e0b;color:#0a0c10;border:none;padding:8px 20px;cursor:pointer;font-family:inherit;font-weight:bold;font-size:12px;letter-spacing:2px;border-radius:4px}
+.print-btn:hover{background:#d97706}
+@media print{.print-btn{display:none}body{background:#fff;color:#222}h1{color:#b45309}h2{color:#92400e}table,th,td{border-color:#ddd}.country-badge{background:#f5f5f5;border-color:#ddd}}
+</style></head><body>
+<button class="print-btn" onclick="window.print()">PRINT / PDF</button>
+<h1>WARROOM INTELLIGENCE REPORT</h1>
+<div class="meta">Generated: ${new Date(now).toLocaleString()} UTC | Classification: OPEN SOURCE</div>
+<div style="margin-bottom:24px"><span class="threat" style="color:${tc};border-color:${tc}44;background:${tc}15">THREAT LEVEL: ${threatLevel.level}</span></div>
+
+<h2>Executive Summary</h2>
+<p style="font-size:12px;line-height:1.8;color:#ccc;margin:8px 0">${alerts.length} active red alerts across ${Object.keys(byCountry).length} countries. ${sirens.length} sirens active. ${events.length} conflict events tracked. ${milFlights.length} military/surveillance flights airborne. ${ships.length} vessels monitored in strait.</p>
+
+<h2>Red Alert Status (${alerts.length} Active)</h2>
+${alerts.length > 0 ? `<div class="country-row">${Object.entries(byCountry).map(([c, n]) => `<div class="country-badge">${c}: <span>${n}</span></div>`).join('')}</div>` : '<p style="font-size:12px;color:#22c55e">No active alerts</p>'}
+
+<h2>Top Events</h2>
+<table><thead><tr><th>Severity</th><th>Event</th><th>Description</th><th>Type</th></tr></thead><tbody>
+${topEvents.map(e => `<tr><td><span class="sev" style="color:${sevColors[e.severity] || '#6b7280'}">${e.severity.toUpperCase()}</span></td><td style="color:#fff">${e.title}</td><td style="color:#aaa">${e.description.slice(0, 120)}</td><td style="color:#888">${e.type}</td></tr>`).join('')}
+</tbody></table>
+
+<h2>Military Activity (${milFlights.length} Flights)</h2>
+<table><thead><tr><th>Callsign</th><th>Type</th><th>Altitude</th><th>Heading</th></tr></thead><tbody>
+${milFlights.map(f => `<tr><td style="color:#fff">${f.callsign}</td><td>${f.type.toUpperCase()}</td><td>${f.altitude.toLocaleString()} ft</td><td>${Math.round(f.heading)}</td></tr>`).join('')}
+</tbody></table>
+
+${flaggedAdsb.length > 0 ? `<h2>Flagged ADS-B Tracks (${flaggedAdsb.length})</h2>
+<table><thead><tr><th>Callsign</th><th>Type</th><th>Altitude</th><th>Squawk</th><th>Note</th></tr></thead><tbody>
+${flaggedAdsb.map(f => `<tr><td style="color:#ef4444;font-weight:bold">${f.callsign}</td><td>${f.type}</td><td>${f.altitude.toLocaleString()} ft</td><td>${f.squawk}</td><td style="color:#aaa">${f.flagReason || ''}</td></tr>`).join('')}
+</tbody></table>` : ''}
+
+<h2>Maritime Situation (${ships.length} Vessels)</h2>
+<table><thead><tr><th>Vessel</th><th>Type</th><th>Flag</th><th>Speed</th><th>Heading</th></tr></thead><tbody>
+${ships.map(s => `<tr><td style="color:#fff">${s.name}</td><td>${s.type.toUpperCase()}</td><td>${s.flag}</td><td>${s.speed} kn</td><td>${headingToCompass(s.heading)}</td></tr>`).join('')}
+</tbody></table>
+
+<h2>Market Impact</h2>
+<table><thead><tr><th>Symbol</th><th>Price</th><th>Change</th></tr></thead><tbody>
+${movers.map(c => `<tr><td style="color:#fff">${c.symbol}</td><td>${c.currency === 'USD' ? '$' : ''}${c.price.toFixed(c.price < 10 ? 4 : 2)}</td><td class="${c.changePercent >= 0 ? 'pos' : 'neg'}">${c.changePercent >= 0 ? '+' : ''}${c.changePercent.toFixed(2)}%</td></tr>`).join('')}
+</tbody></table>
+
+<div class="footer">WARROOM v1.0 | Open Source Intelligence Terminal | ${now}</div>
+</body></html>`;
+  return html;
 }
 
 function isWatchlisted(text: string, watchlist: string[]): boolean {
@@ -2335,14 +2375,109 @@ const DEV_SEVERITY_STYLES: Record<string, string> = {
   medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-950/30',
 };
 
-function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WARROOMSettings; onSave: (s: WARROOMSettings) => void; onClose: () => void; language: 'en' | 'ar' }) {
+  const [local, setLocal] = useState({ ...settings });
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  const handleSave = () => {
+    localStorage.setItem('warroom_settings', JSON.stringify(local));
+    onSave(local);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="settings-overlay">
+      <div className="w-[480px] max-h-[80vh] bg-background/95 backdrop-blur-xl border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px hsl(32 95% 50% / 0.1)'}}>
+        <div className="px-4 py-3 border-b border-primary/20 bg-primary/5 flex items-center gap-2 rounded-t-xl">
+          <Settings className="w-4 h-4 text-primary" />
+          <span className="text-xs font-bold font-mono text-primary tracking-wider">{t('SETTINGS', '\u0625\u0639\u062F\u0627\u062F\u0627\u062A')}</span>
+          <div className="flex-1" />
+          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-primary/20" aria-label="Close settings" data-testid="button-close-settings"><X className="w-4 h-4 text-primary/60" /></button>
+        </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-4 space-y-5">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Threat Thresholds', '\u0639\u062A\u0628\u0627\u062A \u0627\u0644\u062A\u0647\u062F\u064A\u062F')}</span>
+              {([
+                { key: 'criticalThreshold' as const, label: 'CRITICAL', color: 'text-red-400' },
+                { key: 'highThreshold' as const, label: 'HIGH', color: 'text-orange-400' },
+                { key: 'elevatedThreshold' as const, label: 'ELEVATED', color: 'text-yellow-400' },
+              ] as const).map(({ key, label, color }) => (
+                <div key={key} className="flex items-center gap-3 mb-2">
+                  <span className={`text-[11px] font-mono font-bold w-20 ${color}`}>{label}</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={30}
+                    value={local[key]}
+                    onChange={e => setLocal(p => ({ ...p, [key]: parseInt(e.target.value) }))}
+                    className="flex-1 accent-primary h-1"
+                    data-testid={`slider-${key}`}
+                  />
+                  <span className="text-xs font-mono text-foreground/60 w-8 text-right">{local[key]}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Notification Types', '\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062A')}</span>
+              {([
+                { key: 'notifyRockets' as const, label: 'Rockets' },
+                { key: 'notifyMissiles' as const, label: 'Missiles' },
+                { key: 'notifyUav' as const, label: 'UAV Intrusion' },
+                { key: 'notifyAircraft' as const, label: 'Hostile Aircraft' },
+              ] as const).map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-3 mb-2 cursor-pointer group" data-testid={`toggle-${key}`}>
+                  <div
+                    className={`w-8 h-4 rounded-full transition-colors relative ${local[key] ? 'bg-primary' : 'bg-border/50'}`}
+                    onClick={() => setLocal(p => ({ ...p, [key]: !p[key] }))}
+                  >
+                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${local[key] ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </div>
+                  <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90 transition-colors">{label}</span>
+                </label>
+              ))}
+            </div>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Sound', '\u0635\u0648\u062A')}</span>
+              <label className="flex items-center gap-3 cursor-pointer group" data-testid="toggle-sound">
+                <div
+                  className={`w-8 h-4 rounded-full transition-colors relative ${local.soundEnabled ? 'bg-primary' : 'bg-border/50'}`}
+                  onClick={() => setLocal(p => ({ ...p, soundEnabled: !p.soundEnabled }))}
+                >
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${local.soundEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+                <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90">{t('Alert sounds', '\u0623\u0635\u0648\u0627\u062A \u0627\u0644\u0625\u0646\u0630\u0627\u0631')}</span>
+              </label>
+            </div>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Default Language', '\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629')}</span>
+              <div className="flex gap-2">
+                {(['en', 'ar'] as const).map(l => (
+                  <button
+                    key={l}
+                    onClick={() => setLocal(p => ({ ...p, defaultLanguage: l }))}
+                    className={`text-xs px-4 py-1.5 rounded font-mono font-bold border transition-colors ${
+                      local.defaultLanguage === l ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-card/30 border-border/30 text-muted-foreground/60 hover:bg-card/50'
+                    }`}
+                    data-testid={`button-lang-${l}`}
+                  >{l === 'en' ? 'English' : '\u0639\u0631\u0628\u064A'}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+        <div className="px-4 py-3 border-t border-primary/20 flex items-center justify-end gap-2">
+          <button onClick={onClose} className="text-xs px-4 py-1.5 rounded font-mono text-muted-foreground hover:text-foreground border border-border/30 hover:bg-card/50 transition-colors" data-testid="button-cancel-settings">{t('Cancel', '\u0625\u0644\u063A\u0627\u0621')}</button>
+          <button onClick={handleSave} className="text-xs px-4 py-1.5 rounded font-mono font-bold text-background bg-primary hover:bg-primary/90 transition-colors" data-testid="button-save-settings">{t('Save', '\u062D\u0641\u0638')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, briefLoading, anomalies = [] }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; brief?: AIBrief | null; briefLoading?: boolean; anomalies?: Anomaly[] }) {
   const [deductQuery, setDeductQuery] = useState('');
   const [deductResult, setDeductResult] = useState<AIDeduction | null>(null);
-
-  const { data: brief, isLoading: briefLoading } = useQuery<AIBrief>({
-    queryKey: ['/api/ai-brief'],
-    refetchInterval: 60000,
-  });
 
   const deductMutation = useMutation({
     mutationFn: async (query: string) => {
@@ -2369,6 +2504,11 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
         <span className="text-xs px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
           {brief?.model || '...'}
         </span>
+        {anomalies.length > 0 && (
+          <span className="text-[11px] px-1.5 py-0.5 font-mono font-bold text-amber-300 bg-amber-950/40 rounded border border-amber-500/30 animate-pulse" data-testid="anomaly-badge">
+            {anomalies.length} ANOMALY
+          </span>
+        )}
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
@@ -2379,6 +2519,28 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
       </div>
 
       <ScrollArea className="flex-1">
+        {anomalies.length > 0 && (
+          <div className="border-b border-amber-500/20 bg-amber-950/10">
+            <div className="px-3 py-2 flex items-center gap-1.5">
+              <TriangleAlert className="w-3 h-3 text-amber-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400/80">{language === 'en' ? 'Anomalies Detected' : '\u0634\u0630\u0648\u0630 \u0645\u0643\u062A\u0634\u0641\u0629'}</span>
+            </div>
+            <div className="divide-y divide-amber-900/20">
+              {anomalies.map(a => (
+                <div key={a.id} className="px-3 py-2" data-testid={`anomaly-${a.id}`}>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border ${a.severity === 'high' ? 'text-red-400 bg-red-950/30 border-red-500/30' : 'text-amber-400 bg-amber-950/30 border-amber-500/30'}`}>
+                      {a.severity.toUpperCase()}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground/50">{a.type.replace(/_/g, ' ').toUpperCase()}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground/30 ml-auto">{timeAgo(a.timestamp)}</span>
+                  </div>
+                  <p className="text-[11px] text-foreground/70 leading-relaxed">{a.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {briefLoading && (
           <div className="px-3 py-8 text-center">
             <Brain className="w-6 h-6 text-purple-400/40 mx-auto mb-2 animate-pulse" />
@@ -2623,22 +2785,57 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
 
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
-  const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>({
-    intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true,
+  const [settings, setSettings] = useState<WARROOMSettings>(loadSettings);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
+      if (saved.visiblePanels) return saved.visiblePanels;
+    } catch {}
+    return { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true };
   });
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [maximizedPanel, setMaximizedPanel] = useState<PanelId | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [showAlertHistory, setShowAlertHistory] = useState(false);
   const [showLayoutPresets, setShowLayoutPresets] = useState(false);
+  const [mobileActiveTab, setMobileActiveTab] = useState<PanelId>('map');
   const [savedPresets, setSavedPresets] = useState<LayoutPreset[]>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_layouts') || '[]');
       return [...BUILT_IN_PRESETS, ...saved];
     } catch { return [...BUILT_IN_PRESETS]; }
   });
+
+  const sse = useSSE();
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, connected } = sse;
+
+  const { data: telegramMessages = [] } = useQuery<TelegramMessage[]>({
+    queryKey: ['/api/telegram'],
+    refetchInterval: 25000,
+  });
+
+  const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
+
+  const panelPersistTimeout = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (panelPersistTimeout.current) clearTimeout(panelPersistTimeout.current);
+    panelPersistTimeout.current = setTimeout(() => {
+      localStorage.setItem('warroom_panel_state', JSON.stringify({ visiblePanels }));
+    }, 500);
+  }, [visiblePanels]);
 
   const closePanel = useCallback((id: PanelId) => {
     setVisiblePanels(prev => ({ ...prev, [id]: false }));
@@ -2676,54 +2873,11 @@ export default function Dashboard() {
     [visiblePanels]
   );
 
-  const { data: news = [] } = useQuery<NewsItem[]>({
-    queryKey: ['/api/news'],
-    refetchInterval: 20000,
-  });
-
-  const { data: commodities = [] } = useQuery<CommodityData[]>({
-    queryKey: ['/api/commodities'],
-    refetchInterval: 5000,
-  });
-
-  const { data: intelData } = useQuery<{
-    events: ConflictEvent[];
-    flights: FlightData[];
-    ships: ShipData[];
-  }>({
-    queryKey: ['/api/events'],
-    refetchInterval: 15000,
-  });
-
-  const { data: telegramMessages = [] } = useQuery<TelegramMessage[]>({
-    queryKey: ['/api/telegram'],
-    refetchInterval: 25000,
-  });
-
-  const { data: sirens = [] } = useQuery<SirenAlert[]>({
-    queryKey: ['/api/sirens'],
-    refetchInterval: 10000,
-  });
-
-  const { data: redAlerts = [] } = useQuery<RedAlert[]>({
-    queryKey: ['/api/red-alerts'],
-    refetchInterval: 8000,
-  });
-
-  const { data: adsbFlights = [] } = useQuery<AdsbFlight[]>({
-    queryKey: ['/api/adsb'],
-    refetchInterval: 6000,
-  });
-
-  const events = intelData?.events || [];
-  const flights = intelData?.flights || [];
-  const ships = intelData?.ships || [];
-
   useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
   useDesktopNotifications(redAlerts, sirens, notificationsEnabled);
 
-  const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length), [redAlerts.length, sirens.length]);
+  const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings), [redAlerts.length, sirens.length, settings]);
   const correlations = useCorrelations(events, redAlerts, sirens, flights);
 
   const watchlist = useMemo<string[]>(() => {
@@ -2742,8 +2896,27 @@ export default function Dashboard() {
     telegram: 16, intel: 16, map: 42, alerts: 26,
     events: 22, radar: 22, adsb: 28, markets: 28,
   };
-  const [colWidths, setColWidths] = useState(defaultWidths);
-  const [rowSplit, setRowSplit] = useState(58);
+  const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
+      if (saved.colWidths) return saved.colWidths;
+    } catch {}
+    return defaultWidths;
+  });
+  const [rowSplit, setRowSplit] = useState<number>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
+      if (saved.rowSplit) return saved.rowSplit;
+    } catch {}
+    return 58;
+  });
+
+  useEffect(() => {
+    if (panelPersistTimeout.current) clearTimeout(panelPersistTimeout.current);
+    panelPersistTimeout.current = setTimeout(() => {
+      localStorage.setItem('warroom_panel_state', JSON.stringify({ visiblePanels, colWidths, rowSplit }));
+    }, 500);
+  }, [visiblePanels, colWidths, rowSplit]);
 
   const savePreset = useCallback((name: string) => {
     const preset: LayoutPreset = { name, visiblePanels: { ...visiblePanels }, colWidths: { ...colWidths }, rowSplit };
@@ -2767,15 +2940,21 @@ export default function Dashboard() {
   }, [savedPresets]);
 
   const handleExport = useCallback(() => {
-    const report = generateExportReport(events, flights, ships, redAlerts, sirens, commodities, threatLevel, language);
-    const blob = new Blob([report], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `warroom-report-${new Date().toISOString().slice(0, 16).replace(':', '')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [events, flights, ships, redAlerts, sirens, commodities, threatLevel, language]);
+    const html = generateExportReport(events, flights, ships, redAlerts, sirens, commodities, adsbFlights, threatLevel, language);
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    } else {
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `warroom-report-${new Date().toISOString().slice(0, 16).replace(':', '')}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }, [events, flights, ships, redAlerts, sirens, commodities, adsbFlights, threatLevel, language]);
 
   const computeWidths = useCallback((panels: PanelId[]) => {
     const raw = panels.map(id => colWidths[id]);
@@ -2818,51 +2997,58 @@ export default function Dashboard() {
     const close = () => closePanel(id);
     const maximize = () => toggleMaximize(id);
     const isMax = maximizedPanel === id;
-    switch (id) {
-      case 'intel':
-        return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-      case 'map':
-        return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-      case 'events':
-        return (
-          <ScrollArea className="h-full">
-            <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-          </ScrollArea>
-        );
-      case 'radar':
-        return (
-          <>
-            <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-              <ScrollArea className="h-full">
-                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-              </ScrollArea>
-            </div>
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <ScrollArea className="h-full">
-                <MaritimePanel ships={ships} language={language} onMaximize={maximize} isMaximized={isMax} />
-              </ScrollArea>
-            </div>
-          </>
-        );
-      case 'adsb':
-        return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-      case 'alerts':
-        return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
-      case 'telegram':
-        return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-      case 'markets':
-        return (
-          <ScrollArea className="h-full">
-            <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-          </ScrollArea>
-        );
-    }
+    const panel = (() => {
+      switch (id) {
+        case 'intel':
+          return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
+        case 'map':
+          return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'events':
+          return (
+            <ScrollArea className="h-full">
+              <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
+            </ScrollArea>
+          );
+        case 'radar':
+          return (
+            <>
+              <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
+                <ScrollArea className="h-full">
+                  <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
+                </ScrollArea>
+              </div>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <ScrollArea className="h-full">
+                  <MaritimePanel ships={ships} language={language} onMaximize={maximize} isMaximized={isMax} />
+                </ScrollArea>
+              </div>
+            </>
+          );
+        case 'adsb':
+          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'alerts':
+          return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
+        case 'telegram':
+          return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'markets':
+          return (
+            <ScrollArea className="h-full">
+              <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
+            </ScrollArea>
+          );
+      }
+    })();
+    return (
+      <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
+        {panel}
+      </PanelErrorBoundary>
+    );
   };
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-14 border-b border-primary/20 flex items-center justify-between px-5 bg-background/80 backdrop-blur-md shrink-0" style={{boxShadow:'0 1px 0 hsl(32 95% 50% / 0.08), 0 4px 16px hsl(0 0% 0% / 0.3)'}}>
-        <div className="flex items-center gap-3">
+      <header className="h-14 border-b border-primary/20 flex items-center justify-between px-3 md:px-5 bg-background/80 backdrop-blur-md shrink-0" style={{boxShadow:'0 1px 0 hsl(32 95% 50% / 0.08), 0 4px 16px hsl(0 0% 0% / 0.3)'}}>
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
               <Crosshair className="w-3 h-3 text-primary" />
@@ -2875,64 +3061,117 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-500/25" style={{boxShadow:'0 0 12px rgb(239 68 68 / 0.15)'}}>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-500/25 hidden sm:flex" style={{boxShadow:'0 0 12px rgb(239 68 68 / 0.15)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.8)'}} />
             <span className="text-xs text-red-400 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${threatLevel.bg}`} data-testid="threat-level-badge">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
             <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
             <span className={`text-xs font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <LiveClock />
-          <div className="w-px h-4 bg-border/30" />
-          <div className="flex items-center gap-0.5">
-            <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors`} onClick={toggleNotifications} data-testid="button-notifications-toggle" title="Desktop Notifications">
-              {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-            </Button>
-            <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${soundEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle">
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </Button>
-            <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors" onClick={() => setShowNotes(true)} data-testid="button-notes" title="Analyst Notes">
-              <StickyNote className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" title="Watchlist">
-              <Eye className="w-4 h-4" />
-            </Button>
-            <div className="relative">
-              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-colors" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" title="Layout Presets">
-                <Layout className="w-4 h-4" />
+          <div className="hidden md:flex items-center"><LiveClock /></div>
+          <div className="w-px h-4 bg-border/30 hidden md:block" />
+          {isMobile ? (
+            <button
+              onClick={() => setShowMobileMenu(p => !p)}
+              className="w-10 h-10 flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-white/5 transition-colors"
+              aria-label="Open menu"
+              data-testid="button-mobile-menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-0.5">
+              <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50`} onClick={toggleNotifications} data-testid="button-notifications-toggle" aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'} title="Desktop Notifications">
+                {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
               </Button>
-              {showLayoutPresets && (
-                <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
-              )}
+              <Button size="sm" variant="ghost" className={`px-2 h-8 rounded-lg ${soundEnabled ? 'text-primary' : 'text-muted-foreground/40'} hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </Button>
+              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
+                <StickyNote className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
+                <Eye className="w-4 h-4" />
+              </Button>
+              <div className="relative">
+                <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" aria-label="Layout Presets" title="Layout Presets">
+                  <Layout className="w-4 h-4" />
+                </Button>
+                {showLayoutPresets && (
+                  <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
+                )}
+              </div>
+              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-emerald-400 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={handleExport} data-testid="button-export" aria-label="Export Report" title="Export Report">
+                <FileDown className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setShowSettings(true)} data-testid="button-settings" aria-label="Settings" title="Settings">
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="px-2.5 h-8 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors font-mono text-xs focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle" aria-label={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
+                <Languages className="w-4 h-4 mr-1" />
+                {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
+              </Button>
             </div>
-            <Button size="sm" variant="ghost" className="px-2 h-8 rounded-lg text-muted-foreground/40 hover:text-emerald-400 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors" onClick={handleExport} data-testid="button-export" title="Export Report">
-              <FileDown className="w-4 h-4" />
-            </Button>
-            <Button size="sm" variant="ghost" className="px-2.5 h-8 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-white/5 active:bg-primary/20 transition-colors font-mono text-xs" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle">
-              <Languages className="w-4 h-4 mr-1" />
-              {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
-            </Button>
-          </div>
+          )}
           <div className="w-px h-4 bg-border/30" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/25" style={{boxShadow:'0 0 12px rgb(34 197 94 / 0.12)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(34 197 94 / 0.8)'}} />
-            <span className="text-xs text-emerald-400 font-bold tracking-wider font-mono hidden sm:inline uppercase">
-              {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${connected ? 'bg-emerald-950/40 border-emerald-500/25' : 'bg-red-950/40 border-red-500/25'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} style={{boxShadow: connected ? '0 0 12px rgb(34 197 94 / 0.12)' : '0 0 12px rgb(239 68 68 / 0.12)'}}>
+            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-500'}`} style={{boxShadow: connected ? '0 0 6px rgb(34 197 94 / 0.8)' : '0 0 6px rgb(239 68 68 / 0.8)'}} />
+            <span className={`text-xs font-bold tracking-wider font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400' : 'text-red-400'}`}>
+              {connected ? (language === 'en' ? 'SSE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'DISCONNECTED' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
         </div>
       </header>
+
+      {showMobileMenu && isMobile && (
+        <div className="border-b border-primary/20 bg-background/95 backdrop-blur-md px-3 py-2 flex flex-wrap gap-1.5 shrink-0 z-50" data-testid="mobile-menu">
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { toggleNotifications(); setShowMobileMenu(false); }} aria-label="Notifications"><Bell className="w-4 h-4 mr-1" />Notif</Button>
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setSoundEnabled(p => !p); setShowMobileMenu(false); }} aria-label="Sound"><Volume2 className="w-4 h-4 mr-1" />Sound</Button>
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowNotes(true); setShowMobileMenu(false); }} aria-label="Notes"><StickyNote className="w-4 h-4 mr-1" />Notes</Button>
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowWatchlist(true); setShowMobileMenu(false); }} aria-label="Watchlist"><Eye className="w-4 h-4 mr-1" />Watch</Button>
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { handleExport(); setShowMobileMenu(false); }} aria-label="Export"><FileDown className="w-4 h-4 mr-1" />Export</Button>
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowSettings(true); setShowMobileMenu(false); }} aria-label="Settings"><Settings className="w-4 h-4 mr-1" />Settings</Button>
+          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setLanguage(language === 'en' ? 'ar' : 'en'); setShowMobileMenu(false); }} aria-label="Language"><Languages className="w-4 h-4 mr-1" />{language === 'en' ? 'AR' : 'EN'}</Button>
+        </div>
+      )}
 
       <TickerBar commodities={commodities} />
 
       <SirenBanner sirens={sirens} language={language} />
 
       <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden border-t border-border/20" data-testid="resizable-panels">
-        {maximizedPanel && visiblePanels[maximizedPanel] ? (
+        {isMobile ? (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {renderPanel(mobileActiveTab)}
+            </div>
+            <div className="h-12 border-t border-border/20 flex items-center justify-around bg-background/90 backdrop-blur-sm shrink-0" data-testid="mobile-tab-bar" role="tablist" aria-label="Panel navigation">
+              {allPanels.filter(id => visiblePanels[id]).slice(0, 6).map(id => {
+                const cfg = PANEL_CONFIG[id];
+                const Icon = cfg.icon;
+                const isActive = mobileActiveTab === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setMobileActiveTab(id)}
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-label={cfg.label}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] justify-center ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground/40'}`}
+                    data-testid={`mobile-tab-${id}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider">{cfg.label.slice(0, 4)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : maximizedPanel && visiblePanels[maximizedPanel] ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {renderPanel(maximizedPanel)}
           </div>
@@ -3060,6 +3299,7 @@ export default function Dashboard() {
       {showNotes && <NotesOverlay language={language} onClose={() => setShowNotes(false)} />}
       {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} />}
       {showAlertHistory && <AlertHistoryOverlay language={language} onClose={() => setShowAlertHistory(false)} />}
+      {showSettings && <SettingsOverlay settings={settings} onSave={setSettings} onClose={() => setShowSettings(false)} language={language} />}
     </div>
   );
 }

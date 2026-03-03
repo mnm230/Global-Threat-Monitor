@@ -282,3 +282,86 @@
     scroll-snap-type: y mandatory;
   }
 }
+
+@media (max-width: 767px) {
+  .warroom-header {
+    padding: 4px 8px;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .warroom-header .header-title {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  .warroom-ticker {
+    height: 22px;
+    font-size: 10px;
+  }
+
+  .warroom-panel {
+    border-radius: 4px;
+    min-height: 180px;
+  }
+
+  .warroom-panel-header {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .warroom-panel-body {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .warroom-mobile-tabs {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: hsl(225 30% 5%);
+    border-top: 1px solid hsl(225 20% 15%);
+    overflow-x: auto;
+  }
+
+  .warroom-mobile-tabs button {
+    flex: 1;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px 4px;
+    font-size: 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: hsl(225 10% 55%);
+    background: transparent;
+    border: none;
+    white-space: nowrap;
+  }
+
+  .warroom-mobile-tabs button.active {
+    color: hsl(32 95% 50%);
+    border-top: 2px solid hsl(32 95% 50%);
+  }
+
+  .warroom-mobile-tabs button svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .warroom-panel-body {
+    font-size: 12px;
+  }
+
+  .warroom-ticker {
+    height: 26px;
+    font-size: 11px;
+  }
+}

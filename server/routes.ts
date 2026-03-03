@@ -683,7 +683,7 @@ export async function registerRoutes(
     const otherRatio = (cyrillicChars + cjkChars) / total;
     if (otherRatio > 0.3) return false;
     if (enArRatio > 0.15) return true;
-    const digitsPunct = (sample.match(/[\d\s\p{P}#@]/gu) || []).length;
+    const digitsPunct = (sample.match(/[\d\s#@.,!?;:()\-]/g) || []).length;
     if ((latinChars + arabicChars + digitsPunct) / total > 0.5) return true;
     return false;
   }
@@ -800,7 +800,7 @@ export async function registerRoutes(
     if (telegramCache.size > MAX_CACHE_CHANNELS) {
       let oldest = '';
       let oldestTime = Infinity;
-      for (const [key, val] of telegramCache) {
+      for (const [key, val] of Array.from(telegramCache)) {
         if (val.fetchedAt < oldestTime) { oldest = key; oldestTime = val.fetchedAt; }
       }
       if (oldest) telegramCache.delete(oldest);

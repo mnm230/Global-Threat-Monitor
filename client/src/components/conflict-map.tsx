@@ -2,7 +2,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { Deck } from '@deck.gl/core';
-import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer } from '@deck.gl/layers';
+import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
 import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert } from '@shared/schema';
@@ -372,6 +372,81 @@ const TUNNEL_NETWORKS = [
   { name: 'Natanz Underground Halls', lat: 33.720, lng: 51.725, country: 'Iran', type: 'Hardened Enrichment' },
 ];
 
+const EEZ_ZONES = [
+  {
+    name: 'Iran EEZ',
+    color: [220, 50, 50, 40] as [number, number, number, number],
+    borderColor: [220, 50, 50, 120] as [number, number, number, number],
+    polygon: [[53.0, 25.0], [56.3, 26.5], [57.0, 25.4], [57.3, 24.0], [56.0, 22.0], [54.5, 22.5], [53.5, 23.5], [53.0, 25.0]] as [number, number][],
+  },
+  {
+    name: 'Saudi Arabia EEZ',
+    color: [34, 197, 94, 30] as [number, number, number, number],
+    borderColor: [34, 197, 94, 100] as [number, number, number, number],
+    polygon: [[50.5, 28.0], [50.0, 26.5], [50.2, 25.0], [50.8, 24.5], [51.0, 24.0], [50.5, 22.0], [49.0, 22.0], [48.5, 23.0], [48.8, 25.0], [49.5, 27.0], [50.5, 28.0]] as [number, number][],
+  },
+  {
+    name: 'UAE EEZ',
+    color: [59, 130, 246, 30] as [number, number, number, number],
+    borderColor: [59, 130, 246, 100] as [number, number, number, number],
+    polygon: [[52.0, 25.2], [54.0, 26.2], [55.5, 26.0], [56.3, 25.5], [56.0, 24.5], [55.0, 24.0], [54.0, 24.0], [53.0, 24.5], [52.0, 25.2]] as [number, number][],
+  },
+  {
+    name: 'Oman EEZ',
+    color: [168, 85, 247, 30] as [number, number, number, number],
+    borderColor: [168, 85, 247, 100] as [number, number, number, number],
+    polygon: [[56.5, 26.5], [57.5, 25.0], [59.5, 23.5], [59.8, 22.0], [58.5, 20.5], [57.0, 20.0], [56.0, 21.0], [55.0, 23.0], [56.0, 25.5], [56.5, 26.5]] as [number, number][],
+  },
+  {
+    name: 'Kuwait EEZ',
+    color: [250, 204, 21, 35] as [number, number, number, number],
+    borderColor: [250, 204, 21, 110] as [number, number, number, number],
+    polygon: [[48.0, 29.5], [48.5, 29.8], [49.0, 29.3], [48.8, 28.8], [48.3, 28.8], [48.0, 29.5]] as [number, number][],
+  },
+  {
+    name: 'Qatar EEZ',
+    color: [139, 92, 246, 30] as [number, number, number, number],
+    borderColor: [139, 92, 246, 100] as [number, number, number, number],
+    polygon: [[51.0, 26.2], [51.8, 26.5], [52.0, 25.8], [51.8, 24.8], [51.0, 24.5], [50.5, 25.0], [50.7, 25.8], [51.0, 26.2]] as [number, number][],
+  },
+  {
+    name: 'Bahrain EEZ',
+    color: [236, 72, 153, 35] as [number, number, number, number],
+    borderColor: [236, 72, 153, 110] as [number, number, number, number],
+    polygon: [[50.3, 26.3], [50.7, 26.4], [50.8, 26.0], [50.6, 25.8], [50.3, 25.9], [50.3, 26.3]] as [number, number][],
+  },
+  {
+    name: 'Iraq EEZ',
+    color: [245, 158, 11, 30] as [number, number, number, number],
+    borderColor: [245, 158, 11, 100] as [number, number, number, number],
+    polygon: [[47.8, 30.0], [48.5, 30.0], [48.8, 29.5], [48.5, 29.4], [47.8, 29.5], [47.8, 30.0]] as [number, number][],
+  },
+  {
+    name: 'Yemen EEZ',
+    color: [239, 68, 68, 25] as [number, number, number, number],
+    borderColor: [239, 68, 68, 80] as [number, number, number, number],
+    polygon: [[42.5, 12.5], [43.5, 12.8], [45.0, 13.0], [48.0, 14.0], [52.0, 16.5], [51.0, 14.0], [48.5, 12.0], [45.0, 11.5], [42.5, 12.5]] as [number, number][],
+  },
+  {
+    name: 'Israel EEZ',
+    color: [96, 165, 250, 30] as [number, number, number, number],
+    borderColor: [96, 165, 250, 100] as [number, number, number, number],
+    polygon: [[34.0, 33.3], [34.8, 33.5], [34.8, 31.5], [34.3, 31.2], [33.5, 31.5], [33.5, 33.0], [34.0, 33.3]] as [number, number][],
+  },
+  {
+    name: 'Lebanon EEZ',
+    color: [16, 185, 129, 30] as [number, number, number, number],
+    borderColor: [16, 185, 129, 100] as [number, number, number, number],
+    polygon: [[35.1, 34.7], [35.5, 34.7], [35.0, 34.0], [34.5, 33.8], [34.0, 33.5], [34.0, 34.2], [35.1, 34.7]] as [number, number][],
+  },
+  {
+    name: 'Egypt EEZ (Red Sea)',
+    color: [245, 158, 11, 25] as [number, number, number, number],
+    borderColor: [245, 158, 11, 80] as [number, number, number, number],
+    polygon: [[33.5, 28.0], [35.0, 28.5], [36.5, 27.5], [37.5, 24.0], [36.0, 22.0], [35.0, 22.5], [34.0, 24.0], [33.5, 28.0]] as [number, number][],
+  },
+];
+
 const OIL_GAS_FIELDS = [
   { name: 'Ghawar Oil Field', lat: 25.400, lng: 49.200, country: 'Saudi Arabia', type: 'Oil (Largest)' },
   { name: 'South Pars / North Dome', lat: 26.000, lng: 52.000, country: 'Iran/Qatar', type: 'Gas (Largest)' },
@@ -474,6 +549,7 @@ type LayerKey =
   | 'embassies'
   | 'proxyMilitia'
   | 'tunnelNetworks'
+  | 'eezBoundaries'
   | 'supplyRoutes'
   | 'shippingLanes'
   | 'noFlyZones';
@@ -513,6 +589,7 @@ const LAYER_GROUPS = [
   { id: 'linear', label: 'ROUTES & ZONES', color: '#06b6d4' },
   { id: 'humanitarian', label: 'HUMANITARIAN', color: '#22c55e' },
   { id: 'threat', label: 'THREAT ACTORS', color: '#f43f5e' },
+  { id: 'maritime', label: 'MARITIME', color: '#0ea5e9' },
 ];
 
 const LAYER_CONFIGS: LayerConfig[] = [
@@ -561,6 +638,8 @@ const LAYER_CONFIGS: LayerConfig[] = [
 
   { key: 'proxyMilitia', label: 'Proxy Militias', color: '#f43f5e', defaultOn: false, group: 'threat' },
   { key: 'tunnelNetworks', label: 'Tunnel Networks', color: '#a3a3a3', defaultOn: false, group: 'threat' },
+
+  { key: 'eezBoundaries', label: 'EEZ Boundaries', color: '#0ea5e9', defaultOn: false, group: 'maritime' },
 ];
 
 interface SearchItem {
@@ -1024,6 +1103,9 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       } else if (layerId === 'tunnel-networks-layer') {
         text = obj.name as string;
         detail = `${obj.type} | ${obj.country}`;
+      } else if (layerId === 'eez-boundaries-layer') {
+        text = obj.name as string;
+        detail = 'Exclusive Economic Zone';
       } else if (layerId === 'animated-arcs-layer') {
         text = obj.label as string;
         detail = `${obj.type} trajectory`;
@@ -1711,6 +1793,20 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           lineWidthMinPixels: 2,
           radiusMinPixels: 4,
           radiusMaxPixels: 12,
+          pickable: true,
+        })
+      );
+    }
+
+    if (layerVisibility.eezBoundaries) {
+      result.push(
+        new PolygonLayer({
+          id: 'eez-boundaries-layer',
+          data: EEZ_ZONES,
+          getPolygon: (d: (typeof EEZ_ZONES)[0]) => d.polygon,
+          getFillColor: (d: (typeof EEZ_ZONES)[0]) => d.color,
+          getLineColor: (d: (typeof EEZ_ZONES)[0]) => d.borderColor,
+          lineWidthMinPixels: 1,
           pickable: true,
         })
       );
