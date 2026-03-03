@@ -8,13 +8,13 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - **Backend**: Express.js REST API
 - **Map**: deck.gl + MapLibre GL with CARTO dark basemap, 3D globe support
 - **Styling**: Bloomberg Terminal dark theme (dark mode forced)
-- **Data**: Simulated real-time data with periodic polling via React Query
+- **Data**: Live ADS-B flight data via adsb.lol API + simulated data for other feeds, streamed via SSE
 
 ## Key Files
 - `client/src/pages/dashboard.tsx` - Main dashboard page with all panels (7 panels: news, intel, map, events, radar, alerts, markets)
 - `client/src/components/conflict-map.tsx` - deck.gl + MapLibre GL interactive 3D globe map with infrastructure layers
 - `client/src/components/theme-provider.tsx` - Dark theme + language (EN/AR) context
-- `server/routes.ts` - API endpoints returning simulated intelligence data
+- `server/routes.ts` - API endpoints with live ADS-B (adsb.lol) + simulated intelligence data
 - `shared/schema.ts` - Shared TypeScript types for all data models
 
 ## Features
@@ -42,7 +42,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 11. **Israel Red Alert (Tzeva Adom)** - Multi-country alert system (57 cities across 12 countries: Israel, Lebanon, Iran, Syria, Iraq, Saudi Arabia, Yemen, UAE, Jordan, Kuwait, Bahrain, Qatar). Redesigned after tzevaadom.co.il: solid red header when active, city/country search filter, country filter tabs (ALL + per-country), country-grouped headers with distinct colors, region-grouped alerts with sticky headers, countdown timers, pulsing active indicators, integrated sirens section (amber), trilingual support (EN/AR/HE)
 12. **Alert Sound System** - Web Audio API sine-wave tone on new red alerts/sirens, with sound toggle
 13. **Panel Close/Reopen** - 8 closeable panels with reopen tabs in status bar
-14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 40 tracked aircraft (23 commercial, 6 military, 6 surveillance, 3 cargo, 1 government, 1 private), filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Civil aviation includes BAW, DLH, AFR, AAL, KAL, CCA, SIA, ETH, IRM, UAL, ACA, VIR, QFA, JAL, GFA, ETD. Also rendered as toggleable layer on the 3D map.
+14. **ADS-B Flight Tracker** - Live ADS-B data from adsb.lol API (free, no key required). Queries 4 geographic zones (Levant, Persian Gulf, UAE, Iraq) + global military feed. Auto-classifies aircraft as military/surveillance/commercial/cargo/private/government. Flags emergency squawks (7700/7600/7500), military aircraft, ISR platforms, high-altitude flights. Falls back to simulated 40-aircraft dataset when API unavailable. LIVE/SIM indicator shows data source. Filter by type (MIL/ISR/CIV/CGO/GOV/PVT), detailed flight cards with hex, registration, aircraft type, altitude, ground speed, vertical rate, squawk, RSSI. Streamed via SSE every 6s with 5s server-side cache.
 
 ## Enhancement Features (v2: T001-T010)
 29. **Error Boundaries** - Generic PanelErrorBoundary wraps all panels, catches errors and shows retry button

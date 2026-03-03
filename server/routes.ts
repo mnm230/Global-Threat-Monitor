@@ -2,6 +2,225 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent } from "@shared/schema";
 
+const ADSB_API_BASE = 'https://api.adsb.lol/v2';
+
+const ADSB_QUERY_POINTS = [
+  { lat: 32.0, lon: 35.0, dist: 200 },
+  { lat: 28.0, lon: 50.0, dist: 250 },
+  { lat: 25.5, lon: 55.0, dist: 200 },
+  { lat: 33.5, lon: 44.0, dist: 200 },
+];
+
+const MILITARY_HEX_PREFIXES = [
+  'AE', 'AF', '3F', '43C', '43D',
+  '738', '06A',
+];
+
+const MILITARY_CALLSIGN_PATTERNS = [
+  /^FORTE/i, /^DUKE/i, /^HOMER/i, /^JAKE/i, /^RCH/i, /^NCHO/i,
+  /^EVAC/i, /^RFF/i, /^LAGR/i, /^TOPCAT/i, /^DARKS/i,
+  /^IAF/i, /^IRGC/i, /^IRIAF/i, /^GAF/i,
+  /^VIPER/i, /^COBRA/i, /^HAWK/i, /^REAPER/i,
+];
+
+const SURVEILLANCE_TYPES = ['GLEX', 'GL5T', 'E3CF', 'E3TF', 'E6', 'RC135', 'P8', 'RQ4', 'MQ9', 'U2'];
+
+function classifyAircraftType(ac: Record<string, unknown>): AdsbFlight['type'] {
+  const hex = ((ac.hex as string) || '').toUpperCase();
+  const callsign = ((ac.flight as string) || '').trim().toUpperCase();
+  const category = (ac.category as string) || '';
+  const dbType = ((ac.t as string) || '').toUpperCase();
+
+  if (SURVEILLANCE_TYPES.some(st => dbType.includes(st))) return 'surveillance';
+
+  for (const prefix of MILITARY_HEX_PREFIXES) {
+    if (hex.startsWith(prefix)) {
+      if (MILITARY_CALLSIGN_PATTERNS.some(p => p.test(callsign))) return 'military';
+    }
+  }
+  if (MILITARY_CALLSIGN_PATTERNS.some(p => p.test(callsign))) return 'military';
+
+  if (category === 'A5' || category === 'A4') {
+    if (dbType.includes('C17') || dbType.includes('C130') || dbType.includes('C5') ||
+        dbType.includes('B74') || dbType.includes('B77') || dbType.includes('A33')) {
+      const reg = ((ac.r as string) || '').toUpperCase();
+      if (/^\d{2}-\d{4}/.test(reg) || /^N\d{5}/.test(reg)) return 'cargo';
+    }
+  }
+
+  if (category === 'B2' || category === 'B1' || category === 'B4') return 'military';
+
+  if (dbType.includes('GLEX') || dbType.includes('GL5T') || dbType.includes('GLF') ||
+      dbType.includes('CL60') || dbType.includes('FA50') || dbType.includes('FA7X') ||
+      dbType.includes('G280') || dbType.includes('LJ')) {
+    if (!callsign.match(/^[A-Z]{3}\d/)) return 'private';
+  }
+
+  if (callsign.match(/^[A-Z]{3}\d/) || category === 'A3' || category === 'A5') return 'commercial';
+
+  if (dbType.includes('C17') || dbType.includes('C130') || dbType.includes('KC') ||
+      dbType.includes('B74') && !callsign.match(/^[A-Z]{3}\d/)) return 'cargo';
+
+  return 'commercial';
+}
+
+function isFlaggedFlight(ac: Record<string, unknown>, acType: AdsbFlight['type']): { flagged: boolean; flagReason?: string } {
+  const squawk = (ac.squawk as string) || '';
+  const emergency = (ac.emergency as string) || 'none';
+  const alt = (typeof ac.alt_baro === 'number' ? ac.alt_baro : 0) as number;
+  const callsign = ((ac.flight as string) || '').trim();
+
+  if (emergency !== 'none' && emergency !== '') return { flagged: true, flagReason: `EMERGENCY: ${emergency}` };
+  if (squawk === '7700') return { flagged: true, flagReason: 'SQUAWK 7700 - EMERGENCY' };
+  if (squawk === '7600') return { flagged: true, flagReason: 'SQUAWK 7600 - COMM FAILURE' };
+  if (squawk === '7500') return { flagged: true, flagReason: 'SQUAWK 7500 - HIJACK' };
+  if (acType === 'military') return { flagged: true, flagReason: 'Military aircraft' };
+  if (acType === 'surveillance') return { flagged: true, flagReason: 'ISR/Surveillance platform' };
+  if (acType === 'government') return { flagged: true, flagReason: 'Government aircraft' };
+  if (alt > 50000) return { flagged: true, flagReason: `High altitude: ${alt}ft` };
+
+  return { flagged: false };
+}
+
+function countryFromHex(hex: string): string {
+  const h = hex.toUpperCase();
+  if (h.startsWith('738') || h.startsWith('739') || h.startsWith('73A')) return 'Israel';
+  if (h.startsWith('06A') || h.startsWith('06B')) return 'Iran';
+  if (h.startsWith('AE') || h.startsWith('AF') || h.startsWith('A')) return 'USA';
+  if (h.startsWith('710') || h.startsWith('711')) return 'Saudi Arabia';
+  if (h.startsWith('400') || h.startsWith('401') || h.startsWith('43')) return 'UK';
+  if (h.startsWith('3C') || h.startsWith('3D')) return 'Germany';
+  if (h.startsWith('47')) return 'France';
+  if (h.startsWith('896') || h.startsWith('897')) return 'South Korea';
+  if (h.startsWith('780')) return 'China';
+  if (h.startsWith('4CA')) return 'Ireland';
+  if (h.startsWith('4B')) return 'Bahrain';
+  if (h.startsWith('A6') || h.startsWith('896E')) return 'UAE';
+  if (h.startsWith('760')) return 'Qatar';
+  if (h.startsWith('800') || h.startsWith('801')) return 'India';
+  if (h.startsWith('C0')) return 'Canada';
+  if (h.startsWith('50')) return 'Australia';
+  if (h.startsWith('86')) return 'Japan';
+  return 'Unknown';
+}
+
+function transformAdsbAircraft(ac: Record<string, unknown>, index: number): AdsbFlight | null {
+  const hex = (ac.hex as string) || '';
+  const altBaro = ac.alt_baro;
+  if (!hex || altBaro === 'ground' || altBaro === undefined) return null;
+
+  const lat = ac.lat as number | undefined;
+  const lon = ac.lon as number | undefined;
+  if (lat === undefined || lon === undefined) return null;
+
+  const callsign = ((ac.flight as string) || 'N/A').trim() || 'N/A';
+  const acType = classifyAircraftType(ac);
+  const { flagged, flagReason } = isFlaggedFlight(ac, acType);
+
+  return {
+    id: `live-${hex}`,
+    hex: hex.toUpperCase(),
+    callsign,
+    type: acType,
+    aircraft: ((ac.t as string) || 'Unknown').toUpperCase(),
+    registration: ((ac.r as string) || hex.toUpperCase()),
+    origin: '',
+    destination: '',
+    lat,
+    lng: lon,
+    altitude: typeof altBaro === 'number' ? altBaro : 0,
+    groundSpeed: (ac.gs as number) || 0,
+    verticalRate: (ac.baro_rate as number) || (ac.geom_rate as number) || 0,
+    heading: (ac.track as number) || (ac.true_heading as number) || 0,
+    squawk: (ac.squawk as string) || '0000',
+    rssi: (ac.rssi as number) || -30,
+    seen: (ac.seen as number) || 0,
+    country: countryFromHex(hex),
+    flagged,
+    flagReason,
+  };
+}
+
+let cachedLiveFlights: AdsbFlight[] = [];
+let lastFetchTime = 0;
+const FETCH_COOLDOWN_MS = 5000;
+
+async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
+  const now = Date.now();
+  if (now - lastFetchTime < FETCH_COOLDOWN_MS && cachedLiveFlights.length > 0) {
+    return cachedLiveFlights;
+  }
+
+  try {
+    const seenHexes = new Set<string>();
+    const allFlights: AdsbFlight[] = [];
+
+    const geoQueries = ADSB_QUERY_POINTS.map(async (pt) => {
+      const url = `${ADSB_API_BASE}/lat/${pt.lat}/lon/${pt.lon}/dist/${pt.dist}`;
+      const resp = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!resp.ok) return [];
+      const data = await resp.json() as { ac?: Record<string, unknown>[] };
+      return data.ac || [];
+    });
+
+    const milQuery = (async () => {
+      try {
+        const resp = await fetch(`${ADSB_API_BASE}/mil`, {
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) return [];
+        const data = await resp.json() as { ac?: Record<string, unknown>[] };
+        return (data.ac || []).filter((a: Record<string, unknown>) => {
+          const lat = a.lat as number | undefined;
+          const lon = a.lon as number | undefined;
+          if (lat === undefined || lon === undefined) return false;
+          return lat > 15 && lat < 42 && lon > 25 && lon < 65;
+        });
+      } catch { return []; }
+    })();
+
+    const results = await Promise.allSettled([...geoQueries, milQuery]);
+
+    let idx = 0;
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        for (const ac of result.value) {
+          const hex = ((ac.hex as string) || '').toLowerCase();
+          if (seenHexes.has(hex)) continue;
+          seenHexes.add(hex);
+          const flight = transformAdsbAircraft(ac, idx++);
+          if (flight) allFlights.push(flight);
+        }
+      }
+    }
+
+    if (allFlights.length > 0) {
+      allFlights.sort((a, b) => {
+        const priority: Record<string, number> = { military: 0, surveillance: 1, government: 2, cargo: 3, commercial: 4, private: 5 };
+        return (priority[a.type] ?? 5) - (priority[b.type] ?? 5);
+      });
+      cachedLiveFlights = allFlights;
+      lastFetchTime = now;
+      console.log(`[ADSB] Fetched ${allFlights.length} live aircraft from adsb.lol`);
+    } else if (cachedLiveFlights.length > 0) {
+      return cachedLiveFlights;
+    } else {
+      console.log('[ADSB] No live data available, falling back to simulated');
+      return generateAdsbFlights();
+    }
+
+    return allFlights;
+  } catch (err) {
+    console.error('[ADSB] API fetch failed, using fallback:', (err as Error).message);
+    if (cachedLiveFlights.length > 0) return cachedLiveFlights;
+    return generateAdsbFlights();
+  }
+}
+
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
 }
@@ -873,8 +1092,9 @@ export async function registerRoutes(
     res.json(generateRedAlerts());
   });
 
-  app.get('/api/adsb', (_req, res) => {
-    res.json(generateAdsbFlights());
+  app.get('/api/adsb', async (_req, res) => {
+    const flights = await fetchLiveAdsbFlights();
+    res.json(flights);
   });
 
   app.get('/api/ai-brief', (_req, res) => {
@@ -911,14 +1131,14 @@ export async function registerRoutes(
     send('news', generateNews());
     send('sirens', generateSirens());
     send('red-alerts', generateRedAlerts());
-    send('adsb', generateAdsbFlights());
+    fetchLiveAdsbFlights().then(flights => send('adsb', flights));
     send('ai-brief', generateAIBrief());
     send('telegram', generateTelegram());
     send('cyber', generateCyberEvents());
     fetchEarthquakes().then(eqs => send('earthquakes', eqs));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
-    intervals.push(setInterval(() => send('adsb', generateAdsbFlights()), 6000));
+    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 6000));
     intervals.push(setInterval(() => send('red-alerts', generateRedAlerts()), 8000));
     intervals.push(setInterval(() => send('sirens', generateSirens()), 10000));
     intervals.push(setInterval(() => {

@@ -1540,10 +1540,15 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
           {adsbFlights.length}
         </span>
         <div className="flex-1" />
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(34 197 94 / 0.6)'}} />
-          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
-        </div>
+        {(() => {
+          const isLive = adsbFlights.length > 0 && adsbFlights[0]?.id?.startsWith('live-');
+          return (
+            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${isLive ? 'bg-emerald-500/[0.08] border border-emerald-500/[0.15]' : 'bg-amber-500/[0.08] border border-amber-500/[0.15]'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse-dot`} style={{boxShadow: isLive ? '0 0 4px rgb(34 197 94 / 0.6)' : '0 0 4px rgb(245 158 11 / 0.6)'}} />
+              <span className={`text-[9px] uppercase tracking-[0.2em] font-bold font-mono ${isLive ? 'text-emerald-400/70' : 'text-amber-400/70'}`}>{isLive ? 'LIVE' : 'SIM'}</span>
+            </div>
+          );
+        })()}
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
