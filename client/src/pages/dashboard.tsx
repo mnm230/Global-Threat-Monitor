@@ -46,6 +46,7 @@ import {
   X,
   Minus,
   Maximize2,
+  Minimize2,
   Volume2,
   VolumeX,
   PanelLeft,
@@ -62,6 +63,18 @@ import {
   Plus,
   Trash2,
   Hash,
+  Bell,
+  BellOff,
+  FileDown,
+  StickyNote,
+  Eye,
+  Star,
+  Link2,
+  History,
+  Save,
+  Layout,
+  Ruler,
+  Search,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -196,13 +209,523 @@ function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="ml-auto w-5 h-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/15 transition-colors"
+      className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/15 transition-colors"
       title="Close panel"
       data-testid="button-panel-close"
     >
       <X className="w-3.5 h-3.5" />
     </button>
   );
+}
+
+function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/15 transition-colors"
+      title={isMaximized ? "Restore panel" : "Maximize panel"}
+      data-testid="button-panel-maximize"
+    >
+      {isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+    </button>
+  );
+}
+
+function getThreatLevel(alertCount: number, sirenCount: number): { level: string; color: string; bg: string } {
+  const total = alertCount + sirenCount;
+  if (total > 15) return { level: 'CRITICAL', color: 'text-red-400', bg: 'bg-red-950/50 border-red-500/40' };
+  if (total > 8) return { level: 'HIGH', color: 'text-orange-400', bg: 'bg-orange-950/50 border-orange-500/40' };
+  if (total > 3) return { level: 'ELEVATED', color: 'text-yellow-400', bg: 'bg-yellow-950/50 border-yellow-500/40' };
+  return { level: 'LOW', color: 'text-emerald-400', bg: 'bg-emerald-950/50 border-emerald-500/40' };
+}
+
+function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabled: boolean) {
+  const prevAlertIds = useRef<Set<string>>(new Set());
+  const prevSirenIds = useRef<Set<string>>(new Set());
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+    if (!initialized.current) {
+      initialized.current = true;
+      prevAlertIds.current = new Set(alerts.map(a => a.id));
+      prevSirenIds.current = new Set(sirens.map(s => s.id));
+      return;
+    }
+
+    const currentAlertIds = new Set(alerts.map(a => a.id));
+    const currentSirenIds = new Set(sirens.map(s => s.id));
+
+    alerts.forEach(a => {
+      if (!prevAlertIds.current.has(a.id)) {
+        new Notification('RED ALERT - ' + a.city, {
+          body: `${a.threatType.replace(/_/g, ' ').toUpperCase()} - ${a.region}, ${a.country}`,
+          icon: '/favicon.ico',
+          tag: a.id,
+        });
+      }
+    });
+
+    sirens.forEach(s => {
+      if (!prevSirenIds.current.has(s.id)) {
+        new Notification('SIREN - ' + s.location, {
+          body: `${s.threatType.toUpperCase()} - ${s.region}`,
+          icon: '/favicon.ico',
+          tag: s.id,
+        });
+      }
+    });
+
+    prevAlertIds.current = currentAlertIds;
+    prevSirenIds.current = currentSirenIds;
+  }, [alerts, sirens, enabled]);
+}
+
+interface AnalystNote {
+  id: string;
+  text: string;
+  timestamp: string;
+  category: string;
+}
+
+interface LayoutPreset {
+  name: string;
+  visiblePanels: Record<PanelId, boolean>;
+  colWidths: Record<PanelId, number>;
+  rowSplit: number;
+}
+
+const BUILT_IN_PRESETS: LayoutPreset[] = [
+  {
+    name: 'Default',
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true },
+    colWidths: { telegram: 16, intel: 16, map: 42, alerts: 26, events: 22, radar: 22, adsb: 28, markets: 28 },
+    rowSplit: 58,
+  },
+  {
+    name: 'Maritime Focus',
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, events: 22, radar: 30, adsb: 40, markets: 30 },
+    rowSplit: 60,
+  },
+  {
+    name: 'Air Defense',
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, events: 25, radar: 25, adsb: 50, markets: 28 },
+    rowSplit: 55,
+  },
+];
+
+interface Correlation {
+  id: string;
+  items: { type: 'event' | 'alert' | 'siren' | 'flight'; id: string; label: string }[];
+  reason: string;
+}
+
+function useCorrelations(events: ConflictEvent[], alerts: RedAlert[], sirens: SirenAlert[], flights: FlightData[]): Correlation[] {
+  return useMemo(() => {
+    const correlations: Correlation[] = [];
+    let cId = 0;
+
+    events.forEach(evt => {
+      if (evt.type === 'missile' || evt.type === 'airstrike') {
+        const relatedAlerts = alerts.filter(a => {
+          const dist = Math.sqrt(Math.pow(a.lat - evt.lat, 2) + Math.pow(a.lng - evt.lng, 2));
+          return dist < 2;
+        });
+        const relatedSirens = sirens.filter(s => {
+          const timeDiff = Math.abs(new Date(s.timestamp).getTime() - new Date(evt.timestamp).getTime());
+          return timeDiff < 300000;
+        });
+        if (relatedAlerts.length > 0 || relatedSirens.length > 0) {
+          const items: Correlation['items'] = [{ type: 'event', id: evt.id, label: evt.title }];
+          relatedAlerts.forEach(a => items.push({ type: 'alert', id: a.id, label: a.city }));
+          relatedSirens.forEach(s => items.push({ type: 'siren', id: s.id, label: s.location }));
+          correlations.push({ id: `corr-${cId++}`, items, reason: 'Spatial/temporal proximity' });
+        }
+      }
+
+      if (evt.type === 'defense') {
+        const nearbyFlights = flights.filter(f => {
+          if (f.type !== 'military') return false;
+          const dist = Math.sqrt(Math.pow(f.lat - evt.lat, 2) + Math.pow(f.lng - evt.lng, 2));
+          return dist < 3;
+        });
+        if (nearbyFlights.length > 0) {
+          const items: Correlation['items'] = [{ type: 'event', id: evt.id, label: evt.title }];
+          nearbyFlights.forEach(f => items.push({ type: 'flight', id: f.id, label: f.callsign }));
+          correlations.push({ id: `corr-${cId++}`, items, reason: 'Military response pattern' });
+        }
+      }
+    });
+
+    return correlations;
+  }, [events, alerts, sirens, flights]);
+}
+
+function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: () => void }) {
+  const [notes, setNotes] = useState<AnalystNote[]>(() => {
+    try { return JSON.parse(localStorage.getItem('warroom_notes') || '[]'); } catch { return []; }
+  });
+  const [newNote, setNewNote] = useState('');
+  const [category, setCategory] = useState('general');
+
+  const saveNotes = useCallback((updated: AnalystNote[]) => {
+    setNotes(updated);
+    localStorage.setItem('warroom_notes', JSON.stringify(updated));
+  }, []);
+
+  const addNote = useCallback(() => {
+    if (!newNote.trim()) return;
+    const note: AnalystNote = { id: `n-${Date.now()}`, text: newNote.trim(), timestamp: new Date().toISOString(), category };
+    saveNotes([note, ...notes]);
+    setNewNote('');
+  }, [newNote, category, notes, saveNotes]);
+
+  const deleteNote = useCallback((id: string) => {
+    saveNotes(notes.filter(n => n.id !== id));
+  }, [notes, saveNotes]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="notes-overlay">
+      <div className="w-[500px] max-h-[70vh] bg-background border border-border/50 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
+          <StickyNote className="w-4 h-4 text-amber-400" />
+          <span className="text-sm font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
+          <span className="text-xs text-muted-foreground/50 font-mono">{notes.length}</span>
+          <div className="flex-1" />
+          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-notes"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="px-4 py-3 border-b border-border/30 space-y-2">
+          <div className="flex gap-2">
+            <input
+              value={newNote}
+              onChange={e => setNewNote(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addNote()}
+              placeholder={language === 'en' ? 'Add intelligence note...' : '\u0623\u0636\u0641 \u0645\u0644\u0627\u062D\u0638\u0629...'}
+              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
+              data-testid="input-note"
+            />
+            <button onClick={addNote} className="px-3 py-1.5 rounded bg-primary/20 border border-primary/30 text-primary text-sm font-mono font-bold hover:bg-primary/30 transition-colors" data-testid="button-add-note">
+              {language === 'en' ? 'Add' : '\u0625\u0636\u0627\u0641\u0629'}
+            </button>
+          </div>
+          <div className="flex gap-1">
+            {['general', 'threat', 'intel', 'maritime'].map(c => (
+              <button key={c} onClick={() => setCategory(c)} className={`text-xs px-2 py-0.5 rounded font-mono font-bold border transition-colors ${category === c ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-card/30 border-border/30 text-muted-foreground/60'}`}>{c.toUpperCase()}</button>
+            ))}
+          </div>
+        </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="divide-y divide-border/20">
+            {notes.length === 0 && (
+              <div className="px-4 py-8 text-center">
+                <StickyNote className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground/50">{language === 'en' ? 'No notes yet' : '\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A'}</p>
+              </div>
+            )}
+            {notes.map(n => (
+              <div key={n.id} className="px-4 py-2.5 hover:bg-card/30 transition-colors" data-testid={`note-${n.id}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary/70 font-mono font-bold uppercase">{n.category}</span>
+                  <span className="text-[11px] text-muted-foreground/50 font-mono ml-auto">{timeAgo(n.timestamp)}</span>
+                  <button onClick={() => deleteNote(n.id)} className="w-4 h-4 flex items-center justify-center rounded hover:bg-red-500/20" data-testid={`button-delete-note-${n.id}`}><Trash2 className="w-3 h-3 text-red-400/60" /></button>
+                </div>
+                <p className="text-sm text-foreground/80 leading-relaxed">{n.text}</p>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
+function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: () => void }) {
+  const [items, setItems] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
+  });
+  const [newItem, setNewItem] = useState('');
+
+  const save = useCallback((updated: string[]) => {
+    setItems(updated);
+    localStorage.setItem('warroom_watchlist', JSON.stringify(updated));
+  }, []);
+
+  const add = useCallback(() => {
+    if (!newItem.trim() || items.includes(newItem.trim())) return;
+    save([...items, newItem.trim()]);
+    setNewItem('');
+  }, [newItem, items, save]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="watchlist-overlay">
+      <div className="w-[400px] max-h-[60vh] bg-background border border-border/50 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
+          <Eye className="w-4 h-4 text-amber-400" />
+          <span className="text-sm font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
+          <div className="flex-1" />
+          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-watchlist"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="px-4 py-3 border-b border-border/30">
+          <div className="flex gap-2">
+            <input
+              value={newItem}
+              onChange={e => setNewItem(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && add()}
+              placeholder={language === 'en' ? 'Callsign, ship name, city...' : '\u0627\u0633\u0645 \u0627\u0644\u0637\u0627\u0626\u0631\u0629 \u0623\u0648 \u0627\u0644\u0633\u0641\u064A\u0646\u0629...'}
+              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-amber-500/50 font-mono"
+              data-testid="input-watchlist"
+            />
+            <button onClick={add} className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-mono font-bold hover:bg-amber-500/30 transition-colors" data-testid="button-add-watchlist">+</button>
+          </div>
+        </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-4">
+            {items.length === 0 && (
+              <p className="text-sm text-muted-foreground/50 text-center py-4">{language === 'en' ? 'Add items to track across all panels' : '\u0623\u0636\u0641 \u0639\u0646\u0627\u0635\u0631 \u0644\u0644\u062A\u062A\u0628\u0639'}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {items.map(item => (
+                <div key={item} className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-950/30 border border-amber-500/30 text-amber-300 text-sm font-mono" data-testid={`watchlist-item-${item}`}>
+                  <Star className="w-3 h-3 text-amber-400" />
+                  <span>{item}</span>
+                  <button onClick={() => save(items.filter(i => i !== item))} className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-500/30"><X className="w-3 h-3 text-red-400/70" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
+function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: () => void }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: history = [], isLoading } = useQuery<Array<RedAlert & { resolved: boolean; resolvedAt?: string }>>({
+    queryKey: ['/api/alert-history'],
+  });
+
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return history;
+    const q = searchQuery.toLowerCase();
+    return history.filter(a => a.city.toLowerCase().includes(q) || a.country.toLowerCase().includes(q) || a.threatType.toLowerCase().includes(q));
+  }, [history, searchQuery]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="alert-history-overlay">
+      <div className="w-[600px] max-h-[75vh] bg-background border border-red-500/30 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-red-900/40 bg-red-950/20 flex items-center gap-2 rounded-t-lg">
+          <History className="w-4 h-4 text-red-400" />
+          <span className="text-sm font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
+          <span className="text-xs text-red-400/50 font-mono">{filtered.length}</span>
+          <div className="flex-1" />
+          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/20" data-testid="button-close-history"><X className="w-4 h-4 text-red-300" /></button>
+        </div>
+        <div className="px-4 py-2 border-b border-red-900/20">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-red-400/40" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={language === 'en' ? 'Search alerts...' : '\u0628\u062D\u062B...'}
+              className="w-full bg-red-950/30 border border-red-800/30 rounded pl-8 pr-3 py-1.5 text-sm text-red-100 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 font-mono"
+              data-testid="input-history-search"
+            />
+          </div>
+        </div>
+        <ScrollArea className="flex-1 min-h-0">
+          {isLoading && <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-red-400/40 animate-spin mx-auto" /></div>}
+          <div className="divide-y divide-red-900/15">
+            {filtered.map(a => (
+              <div key={a.id} className="px-4 py-2 hover:bg-red-950/10 transition-colors" data-testid={`history-alert-${a.id}`}>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className={`w-2 h-2 rounded-full ${a.resolved ? 'bg-emerald-500/50' : 'bg-red-500 animate-pulse'}`} />
+                  <span className="text-sm font-bold text-foreground/90">{a.city}</span>
+                  <span className="text-xs text-muted-foreground/50 font-mono">{a.country}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-mono uppercase ${a.resolved ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-400' : 'bg-red-950/40 border border-red-500/30 text-red-400'}`}>
+                    {a.resolved ? 'RESOLVED' : 'ACTIVE'}
+                  </span>
+                  <span className="text-xs text-muted-foreground/40 font-mono ml-auto">{new Date(a.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground/60 font-mono uppercase">{a.threatType.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-muted-foreground/40">{a.region}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}
+
+function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, onClose }: {
+  language: 'en' | 'ar';
+  presets: LayoutPreset[];
+  onLoad: (preset: LayoutPreset) => void;
+  onSave: (name: string) => void;
+  onDelete: (name: string) => void;
+  onClose: () => void;
+}) {
+  const [newName, setNewName] = useState('');
+  return (
+    <div className="absolute top-10 right-0 z-[150] w-64 bg-background border border-border/50 rounded-lg shadow-2xl" data-testid="layout-presets-dropdown">
+      <div className="px-3 py-2 border-b border-border/30 flex items-center gap-2">
+        <Layout className="w-3.5 h-3.5 text-primary/70" />
+        <span className="text-xs font-bold font-mono text-foreground/80 uppercase tracking-wider">{language === 'en' ? 'Layout Presets' : '\u0642\u0648\u0627\u0644\u0628'}</span>
+        <div className="flex-1" />
+        <button onClick={onClose} className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted"><X className="w-3 h-3" /></button>
+      </div>
+      <div className="p-2 space-y-1">
+        {presets.map(p => (
+          <div key={p.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-card/50 transition-colors group" data-testid={`preset-${p.name}`}>
+            <button onClick={() => { onLoad(p); onClose(); }} className="flex-1 text-left text-sm font-mono text-foreground/80 hover:text-foreground">{p.name}</button>
+            {!BUILT_IN_PRESETS.find(b => b.name === p.name) && (
+              <button onClick={() => onDelete(p.name)} className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded hover:bg-red-500/20"><Trash2 className="w-3 h-3 text-red-400/60" /></button>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="px-2 pb-2 border-t border-border/30 pt-2">
+        <div className="flex gap-1">
+          <input
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSave(newName.trim()); setNewName(''); onClose(); } }}
+            placeholder={language === 'en' ? 'Save current...' : '\u062D\u0641\u0638 \u0627\u0644\u062D\u0627\u0644\u064A...'}
+            className="flex-1 bg-card/50 border border-border/50 rounded px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none font-mono"
+            data-testid="input-preset-name"
+          />
+          <button
+            onClick={() => { if (newName.trim()) { onSave(newName.trim()); setNewName(''); onClose(); } }}
+            className="px-2 py-1 rounded bg-primary/20 border border-primary/30 text-primary text-xs font-mono font-bold hover:bg-primary/30"
+            data-testid="button-save-preset"
+          >
+            <Save className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventTimeline({ events, language }: { events: ConflictEvent[]; language: 'en' | 'ar' }) {
+  const [hoveredEvent, setHoveredEvent] = useState<ConflictEvent | null>(null);
+
+  const now = Date.now();
+  const oneHourAgo = now - 3600000;
+
+  const timelineEvents = useMemo(() => {
+    return events.filter(e => new Date(e.timestamp).getTime() > oneHourAgo).map(e => ({
+      ...e,
+      position: ((new Date(e.timestamp).getTime() - oneHourAgo) / 3600000) * 100,
+    }));
+  }, [events, oneHourAgo]);
+
+  const sevColor: Record<string, string> = {
+    critical: 'bg-red-500',
+    high: 'bg-orange-500',
+    medium: 'bg-yellow-500',
+    low: 'bg-blue-500',
+  };
+
+  return (
+    <div className="h-8 border-t border-border/30 bg-card/20 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
+      <span className="text-[9px] text-muted-foreground/40 font-mono uppercase tracking-wider mr-3 shrink-0">
+        {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
+      </span>
+      <div className="flex-1 relative h-4 bg-card/30 rounded border border-border/20">
+        <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/40" />
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-primary/40 font-mono">NOW</span>
+        <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[8px] text-muted-foreground/30 font-mono">-1h</span>
+        {timelineEvents.map(e => (
+          <div
+            key={e.id}
+            className={`absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full cursor-pointer transition-transform hover:scale-150 ${sevColor[e.severity] || 'bg-blue-500'}`}
+            style={{ left: `${Math.max(2, Math.min(95, e.position))}%` }}
+            onMouseEnter={() => setHoveredEvent(e)}
+            onMouseLeave={() => setHoveredEvent(null)}
+            data-testid={`timeline-event-${e.id}`}
+          />
+        ))}
+        {hoveredEvent && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-background border border-border/60 rounded px-2 py-1 text-[11px] font-mono whitespace-nowrap z-10 shadow-lg">
+            <span className="text-foreground/90 font-bold">{hoveredEvent.title}</span>
+            <span className="text-muted-foreground/50 ml-2">{timeAgo(hoveredEvent.timestamp)}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function generateExportReport(
+  events: ConflictEvent[],
+  flights: FlightData[],
+  ships: ShipData[],
+  alerts: RedAlert[],
+  sirens: SirenAlert[],
+  commodities: CommodityData[],
+  threatLevel: { level: string },
+  language: 'en' | 'ar'
+): string {
+  const now = new Date().toISOString();
+  const lines: string[] = [];
+  lines.push('=' .repeat(60));
+  lines.push('WARROOM INTELLIGENCE REPORT');
+  lines.push('=' .repeat(60));
+  lines.push(`Generated: ${now}`);
+  lines.push(`Threat Level: ${threatLevel.level}`);
+  lines.push('');
+  lines.push('--- ALERT SUMMARY ---');
+  lines.push(`Active Red Alerts: ${alerts.length}`);
+  lines.push(`Active Sirens: ${sirens.length}`);
+  if (alerts.length > 0) {
+    lines.push('');
+    const byCountry: Record<string, number> = {};
+    alerts.forEach(a => { byCountry[a.country] = (byCountry[a.country] || 0) + 1; });
+    Object.entries(byCountry).forEach(([c, n]) => lines.push(`  ${c}: ${n} alerts`));
+  }
+  lines.push('');
+  lines.push('--- TOP EVENTS ---');
+  const topEvents = [...events].sort((a, b) => {
+    const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
+  }).slice(0, 8);
+  topEvents.forEach(e => {
+    lines.push(`[${e.severity.toUpperCase()}] ${e.title} - ${e.description}`);
+  });
+  lines.push('');
+  lines.push('--- MILITARY FLIGHTS ---');
+  const milFlights = flights.filter(f => f.type === 'military' || f.type === 'surveillance');
+  milFlights.forEach(f => {
+    lines.push(`${f.callsign} | ${f.type.toUpperCase()} | ALT ${f.altitude}ft | HDG ${Math.round(f.heading)}`);
+  });
+  lines.push('');
+  lines.push('--- MARITIME ---');
+  ships.forEach(s => {
+    lines.push(`${s.name} | ${s.type.toUpperCase()} | ${s.flag} | ${s.speed}kn`);
+  });
+  lines.push('');
+  lines.push('--- COMMODITY MOVERS ---');
+  const movers = [...commodities].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 5);
+  movers.forEach(c => {
+    lines.push(`${c.symbol}: ${c.price} (${c.changePercent >= 0 ? '+' : ''}${c.changePercent.toFixed(2)}%)`);
+  });
+  lines.push('');
+  lines.push('=' .repeat(60));
+  lines.push('END OF REPORT');
+  return lines.join('\n');
+}
+
+function isWatchlisted(text: string, watchlist: string[]): boolean {
+  if (watchlist.length === 0) return false;
+  const lower = text.toLowerCase();
+  return watchlist.some(w => lower.includes(w.toLowerCase()));
 }
 
 function timeAgo(timestamp: string): string {
