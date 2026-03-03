@@ -663,8 +663,8 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-8 border-t border-border/30 bg-card/20 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
-      <span className="text-[9px] text-muted-foreground/40 font-mono uppercase tracking-wider mr-3 shrink-0">
+    <div className="h-10 border-t border-border/30 bg-card/20 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
+      <span className="text-[10px] text-muted-foreground/40 font-mono uppercase tracking-wider mr-3 shrink-0">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
       <div className="flex-1 relative h-4 bg-card/30 rounded border border-border/20">
@@ -795,8 +795,8 @@ function LiveClock() {
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-xs text-muted-foreground font-mono hidden md:inline">{dateStr}</span>
-      <span className="text-[11px] text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
-      <span className="text-[10px] text-muted-foreground/60">UTC</span>
+      <span className="text-xs text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
+      <span className="text-[11px] text-muted-foreground/60">UTC</span>
     </div>
   );
 }
@@ -808,11 +808,11 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-border/20 bg-card/10" />;
+  if (!commodities.length) return <div className="h-8 border-b border-border/20 bg-card/10" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
+    <div className="h-8 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
         <span className="text-[9px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
       </div>
@@ -855,7 +855,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
         onClick={() => setExpanded(!expanded)}
         data-testid="button-siren-toggle"
       >
-        <div className="flex items-center gap-2 py-1 shrink-0">
+        <div className="flex items-center gap-2 py-1.5 shrink-0">
           <div className="w-4 h-4 rounded bg-red-600/25 flex items-center justify-center animate-siren-flash border border-red-500/60">
             <Siren className="w-3 h-3 text-red-400/90" />
           </div>
@@ -956,11 +956,11 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="px-4 py-2 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
+    <div className="px-4 py-3 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
       <span className="text-primary shrink-0">{icon}</span>
-      <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-primary/90 font-mono">{title}</span>
+      <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary/90 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[11px] px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
+        <span className="text-xs px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
           {count}
         </span>
       )}
@@ -969,7 +969,7 @@ function PanelHeader({
       {live && (
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -989,17 +989,17 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2 font-mono text-xs items-center hover-elevate transition-colors"
+      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2.5 font-mono text-xs items-center hover-elevate transition-colors"
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground/90 font-bold text-[11px] truncate">{c.symbol}</span>
-        <span className="text-[10px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground/90 font-bold text-xs truncate">{c.symbol}</span>
+        <span className="text-[11px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
-      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-[11px]">
+      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-xs">
         {formatPrice(c)}
       </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[11px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[52px] text-xs ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
         <div className={`w-0.5 h-2.5 rounded-full ${c.change >= 0 ? 'bg-emerald-500/40' : 'bg-red-500/40'}`} />
         <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
       </div>
@@ -1009,8 +1009,8 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3 py-0.5 bg-primary/5 border-y border-primary/10">
-      <span className="text-[12px] uppercase tracking-[0.2em] text-primary/50 font-bold font-mono">{label}</span>
+    <div className="px-3 py-1 bg-primary/5 border-y border-primary/10">
+      <span className="text-xs uppercase tracking-[0.15em] text-primary/50 font-bold font-mono">{label}</span>
     </div>
   );
 }
@@ -1036,7 +1036,7 @@ function CommoditiesPanel({
         live
         onClose={onClose}
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-0.5 text-[12px] uppercase tracking-[0.2em] text-muted-foreground/60 font-bold border-b border-border/20">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground/60 font-bold border-b border-border/20">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
         <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
         <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
@@ -1089,23 +1089,23 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           return (
             <div
               key={s.id}
-              className="px-4 py-2.5 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
+              className="px-4 py-3 animate-fade-in hover-elevate border-l-2 border-l-red-500/40"
               data-testid={`siren-panel-${s.id}`}
             >
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
-                <span className="text-[11px] text-red-300/90 font-bold truncate flex-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
+                <span className="text-xs text-red-300/90 font-bold truncate flex-1">
                   {language === 'ar' ? s.locationAr : s.location}
                 </span>
-                <span className="text-[12px] text-muted-foreground/60 font-mono tabular-nums shrink-0">
+                <span className="text-xs text-muted-foreground/60 font-mono tabular-nums shrink-0">
                   {timeAgo(s.timestamp)}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[12px] px-1 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
                   {language === 'ar' ? threat.ar : threat.en}
                 </span>
-                <span className="text-[12px] text-muted-foreground/50 truncate">
+                <span className="text-xs text-muted-foreground/50 truncate">
                   {language === 'ar' ? s.regionAr : s.region}
                 </span>
               </div>
@@ -1155,20 +1155,20 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
           return (
             <div
               key={f.id}
-              className="px-4 py-3 hover-elevate animate-fade-in"
+              className="px-4 py-3.5 hover-elevate animate-fade-in"
               data-testid={`flight-${f.id}`}
             >
-              <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="flex items-center gap-1.5 mb-1">
                 <span
                   className="text-foreground/25 shrink-0 inline-block"
                   style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
                 >▲</span>
-                <span className="text-[12px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
-                <span className={`text-[10px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                <span className="text-xs font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-1 text-[12px] font-mono text-muted-foreground/70">
+              <div className="grid grid-cols-3 gap-x-2 text-xs font-mono text-muted-foreground/70">
                 <span><span className="text-foreground/30">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
                 <span><span className="text-foreground/30">SPD</span> {f.speed}</span>
                 <span><span className="text-foreground/30">HDG</span> {headingToCompass(f.heading)}</span>
@@ -1225,24 +1225,24 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
 
   return (
     <div className="h-full flex flex-col" data-testid="adsb-panel">
-      <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
+      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Radar className="w-3.5 h-3.5 text-cyan-400/70" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
           ADS-B
         </span>
-        <span className="text-[10px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
+        <span className="text-xs px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
           {adsbFlights.length}
         </span>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      <div className="px-2 py-1.5 border-b border-border/30 flex gap-1 flex-wrap shrink-0">
+      <div className="px-2 py-2 border-b border-border/30 flex gap-1 flex-wrap shrink-0">
         {[
           { key: 'all', label: 'All' },
           { key: 'flagged', label: 'Flagged' },
@@ -1257,7 +1257,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
             key={key}
             data-testid={`adsb-filter-${key}`}
             onClick={() => setFilter(key)}
-            className={`text-[12px] px-1.5 py-0.5 rounded font-bold font-mono border transition-colors ${
+            className={`text-xs px-2 py-1 rounded font-bold font-mono border transition-colors ${
               filter === key
                 ? 'bg-cyan-950/50 border-cyan-500/40 text-cyan-300'
                 : 'bg-card/30 border-border/30 text-muted-foreground/60'
@@ -1288,7 +1288,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
                 <X className="w-3 h-3" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[12px] font-mono">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-mono">
               <div><span className="text-foreground/30">HEX</span> <span className="text-foreground/70">{selectedFlight.hex}</span></div>
               <div><span className="text-foreground/30">REG</span> <span className="text-foreground/70">{selectedFlight.registration}</span></div>
               <div><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>
@@ -1313,27 +1313,27 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
             return (
               <div
                 key={f.id}
-                className={`px-3 py-1.5 cursor-pointer transition-colors ${
+                className={`px-3 py-2.5 cursor-pointer transition-colors ${
                   selectedFlight?.id === f.id ? 'bg-cyan-950/30' : ''
                 } ${f.flagged ? 'border-l-2 border-l-amber-500/60' : ''}`}
                 onClick={() => setSelectedFlight(f)}
                 data-testid={`adsb-flight-${f.id}`}
               >
-                <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="flex items-center gap-1.5 mb-1">
                   <span
                     className="text-foreground/25 shrink-0 inline-block"
-                    style={{ transform: `rotate(${f.heading}deg)`, fontSize: '8px', lineHeight: 1 }}
+                    style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
                   >
                     {'\u25B2'}
                   </span>
-                  <span className="text-[11px] font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
-                  <span className="text-[10px] text-muted-foreground/40 font-mono">{f.hex}</span>
-                  <span className={`text-[10px] px-1 py-0 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
+                  <span className="text-xs font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
+                  <span className="text-[11px] text-muted-foreground/40 font-mono">{f.hex}</span>
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
                     {style.label}
                   </span>
-                  {f.flagged && <span className="text-[10px] px-1 py-0 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
+                  {f.flagged && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/50">
+                <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50">
                   <span>{f.aircraft}</span>
                   <span>{f.origin} {'\u2192'} {f.destination}</span>
                   <span className="ml-auto">{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
@@ -1391,23 +1391,23 @@ function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEv
           return (
             <div
               key={e.id}
-              className="px-3 py-2 hover-elevate animate-fade-in border-l-2"
+              className="px-3 py-3 hover-elevate animate-fade-in border-l-2"
               style={{ borderLeftColor: e.severity === 'critical' ? 'rgb(239 68 68 / 0.6)' : e.severity === 'high' ? 'rgb(249 115 22 / 0.6)' : 'transparent' }}
               data-testid={`conflict-event-${e.id}`}
             >
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[11px] shrink-0">{icon}</span>
-                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-xs shrink-0">{icon}</span>
+                <span className="text-xs font-bold font-mono text-foreground truncate flex-1">
                   {language === 'ar' && e.titleAr ? e.titleAr : e.title}
                 </span>
-                <span className={`text-[10px] px-1 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
+                <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
                   {e.severity.toUpperCase()}
                 </span>
               </div>
-              <p className="text-[10px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1">
+              <p className="text-[11px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1.5">
                 {language === 'ar' && e.descriptionAr ? e.descriptionAr : e.description}
               </p>
-              <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+              <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
                 <span className="uppercase tracking-wider text-foreground/40">{e.type}</span>
                 <span className="text-foreground/20">·</span>
                 <span>{timeAgo(e.timestamp)}</span>
@@ -1454,7 +1454,7 @@ function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; langua
           return (
             <div
               key={s.id}
-              className="px-3 py-2 hover-elevate animate-fade-in"
+              className="px-3 py-3 hover-elevate animate-fade-in"
               data-testid={`ship-${s.id}`}
             >
               <div className="flex items-center gap-1.5 mb-1">
@@ -1462,12 +1462,12 @@ function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; langua
                   className="text-foreground/30 shrink-0 inline-block"
                   style={{ transform: `rotate(${s.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
                 >▲</span>
-                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
-                <span className={`text-[10px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                <span className="text-xs font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-1 text-[10px] font-mono text-muted-foreground">
+              <div className="grid grid-cols-3 gap-x-2 text-xs font-mono text-muted-foreground">
                 <span><span className="text-foreground/40">SPD</span> {s.speed}kn</span>
                 <span><span className="text-foreground/40">HDG</span> {headingToCompass(s.heading)}</span>
                 <span className="truncate"><span className="text-foreground/30">FLG</span> {s.flag}</span>
@@ -1589,15 +1589,15 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   return (
     <div className="flex flex-col h-full" data-testid="red-alert-panel">
-      <div className={`px-3 py-2 border-b border-red-800/50 flex items-center gap-2 shrink-0 ${hasActiveAlerts ? 'bg-red-700' : 'bg-card/60'}`}>
+      <div className={`px-3 py-2.5 border-b border-red-800/50 flex items-center gap-2 shrink-0 ${hasActiveAlerts ? 'bg-red-700' : 'bg-card/60'}`}>
         <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'bg-white/20' : 'bg-red-950/30'}`}>
           <AlertOctagon className={`w-4 h-4 ${hasActiveAlerts ? 'text-white' : 'text-red-400/60'}`} />
         </div>
         <div className="flex flex-col leading-none">
-          <span className={`text-[11px] font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
+          <span className={`text-xs font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className={`text-[9px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
+          <span className={`text-[10px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
         </div>
         {hasActiveAlerts && (
           <span className="text-[12px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
@@ -1632,7 +1632,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               data-testid="input-red-alert-search"
             />
           </div>
-          <div className="px-1.5 pb-1 flex flex-wrap gap-1">
+          <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
             {[
               { key: 'all', label: 'ALL' },
               { key: 'rockets', label: 'ROCKETS' },
@@ -1643,7 +1643,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               <button
                 key={key}
                 onClick={() => setThreatFilter(key)}
-                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[11px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
                   threatFilter === key ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
                 data-testid={`button-threat-filter-${key}`}
@@ -1651,10 +1651,10 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             ))}
           </div>
           {activeCountries.length > 1 && (
-            <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
+            <div className="px-1.5 pb-2 flex flex-wrap gap-1">
               <button
                 onClick={() => setCountryFilter('ALL')}
-                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[11px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
                   countryFilter === 'ALL' ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
                 data-testid="button-country-filter-all"
@@ -1667,7 +1667,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   <button
                     key={c}
                     onClick={() => setCountryFilter(c)}
-                    className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                    className={`text-[11px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
                       countryFilter === c ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                     }`}
                     data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
@@ -1700,15 +1700,15 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             return (
             <div key={compositeKey}>
               {showCountryHeader && (
-                <div className={`px-3 py-1.5 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] font-mono">{country}</span>
-                  <span className="text-[10px] opacity-50 font-mono">({countryAlertCount})</span>
+                <div className={`px-3 py-2 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
+                  <span className="text-xs font-black uppercase tracking-[0.15em] font-mono">{country}</span>
+                  <span className="text-xs opacity-50 font-mono">({countryAlertCount})</span>
                 </div>
               )}
-              <div className="px-3 py-1 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[28px] z-[100]">
+              <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[33px] z-[100]">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
-                  <span className="text-[10px] text-red-400/40 font-mono">{regionAlerts.length}</span>
+                  <span className="text-xs uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
+                  <span className="text-[11px] text-red-400/40 font-mono">{regionAlerts.length}</span>
                 </div>
               </div>
               {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
@@ -1719,26 +1719,26 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                 return (
                   <div
                     key={alert.id}
-                    className={`px-3 py-2 flex items-center gap-3 border-b border-red-900/15 transition-colors ${
+                    className={`px-3 py-2.5 flex items-center gap-3 border-b border-red-900/15 transition-colors ${
                       isActive ? 'bg-red-950/30 border-l-[3px] border-l-red-500' : 'bg-transparent border-l-[3px] border-l-red-900/20'
                     }`}
                     data-testid={`red-alert-${alert.id}`}
                   >
                     <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className={`text-[12px] font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`text-xs font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
                           {language === 'ar' ? alert.cityAr : alert.city}
                         </span>
-                        <span className="text-[9px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                        <span className="text-[10px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-[12px] px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
+                        <span className={`text-xs px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
                           isActive ? `text-white/90 ${threatColor}` : 'text-red-400/30 bg-red-950/30'
                         }`}>
                           {language === 'ar' ? threat.ar : threat.en}
                         </span>
-                        <span className="text-[10px] text-red-400/30 font-mono tabular-nums">
+                        <span className="text-[11px] text-red-400/30 font-mono tabular-nums">
                           {timeAgo(alert.timestamp)}
                         </span>
                       </div>
@@ -1755,12 +1755,12 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
       {sirens.length > 0 && (
         <div className="border-t border-amber-900/30 shrink-0">
-          <div className="px-3 py-1 bg-amber-950/20 flex items-center gap-2">
+          <div className="px-3 py-1.5 bg-amber-950/20 flex items-center gap-2">
             <Siren className="w-3 h-3 text-amber-400/60" />
-            <span className="text-[9px] uppercase tracking-[0.15em] text-amber-400/70 font-bold font-mono">
+            <span className="text-[11px] uppercase tracking-[0.15em] text-amber-400/70 font-bold font-mono">
               {language === 'ar' ? '\u0635\u0641\u0627\u0631\u0627\u062A' : 'Sirens'}
             </span>
-            <span className="text-[8px] px-1 py-0 font-mono text-amber-400/50 bg-amber-950/30 rounded border border-amber-500/15">
+            <span className="text-[10px] px-1.5 py-0.5 font-mono text-amber-400/50 bg-amber-950/30 rounded border border-amber-500/15">
               {sirens.length}
             </span>
             <div className="flex-1" />
@@ -1770,12 +1770,12 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
-                <div key={s.id} className="px-3 py-1 flex items-center gap-2 border-t border-amber-900/10" data-testid={`siren-panel-${s.id}`}>
+                <div key={s.id} className="px-3 py-1.5 flex items-center gap-2 border-t border-amber-900/10" data-testid={`siren-panel-${s.id}`}>
                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot shrink-0" />
-                  <span className="text-[10px] text-amber-300/80 font-bold truncate flex-1">
+                  <span className="text-xs text-amber-300/80 font-bold truncate flex-1">
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span className="text-[8px] text-amber-400/40 font-mono">{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span className="text-[10px] text-amber-400/40 font-mono">{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
@@ -1783,9 +1783,9 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         </div>
       )}
 
-      <div className="px-3 py-1 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
-        <span className="text-[8px] text-red-400/40 font-mono">tzevaadom.co.il</span>
-        <span className="text-[8px] text-red-400/40 font-mono tabular-nums">
+      <div className="px-3 py-1.5 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
+        <span className="text-[10px] text-red-400/40 font-mono">tzevaadom.co.il</span>
+        <span className="text-[10px] text-red-400/40 font-mono tabular-nums">
           {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'}
         </span>
       </div>
@@ -1813,8 +1813,29 @@ function TelegramPanel({
   const [newChannel, setNewChannel] = useState('');
   const [showManager, setShowManager] = useState(false);
   const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
   const allChannels = useMemo(() => [...DEFAULT_CHANNELS, ...customChannels], [customChannels]);
+
+  const channelsQueryParam = useMemo(() => allChannels.map(c => c.replace('@', '')).join(','), [allChannels]);
+
+  const { data: liveMessages = [], isLoading: liveLoading } = useQuery<TelegramMessage[]>({
+    queryKey: ['/api/telegram/live', channelsQueryParam],
+    queryFn: async () => {
+      try {
+        setLiveError(null);
+        const resp = await fetch(`/api/telegram/live?channels=${encodeURIComponent(channelsQueryParam)}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+      } catch (err: any) {
+        setLiveError(err.message || 'Failed to fetch live feeds');
+        return [];
+      }
+    },
+    refetchInterval: 30000,
+    staleTime: 15000,
+    enabled: allChannels.length > 0,
+  });
 
   const addChannel = useCallback(() => {
     const ch = newChannel.trim();
@@ -1834,8 +1855,15 @@ function TelegramPanel({
   }, [customChannels]);
 
   const filteredMessages = useMemo(() => {
+    if (liveMessages.length > 0) {
+      const liveIds = new Set(liveMessages.map(m => m.id));
+      const fallbackFiltered = messages.filter(m => allChannels.includes(m.channel) && !liveIds.has(m.id));
+      const merged = [...liveMessages, ...fallbackFiltered];
+      merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return merged;
+    }
     return messages.filter(m => allChannels.includes(m.channel));
-  }, [messages, allChannels]);
+  }, [messages, liveMessages, allChannels]);
 
   return (
     <div className="flex flex-col h-full" data-testid="telegram-panel">
@@ -1846,13 +1874,30 @@ function TelegramPanel({
         count={filteredMessages.length}
         onClose={onClose}
         extra={
-          <button
-            onClick={() => setShowManager(!showManager)}
-            className="w-5 h-5 flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-            data-testid="button-toggle-channel-manager"
-          >
-            <Plus className={`w-3.5 h-3.5 text-sky-400/70 transition-transform ${showManager ? 'rotate-45' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1">
+            {liveMessages.length > 0 && (
+              <span className="text-[9px] font-mono text-emerald-400/80 px-1 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20" data-testid="text-live-feed-count">
+                {liveMessages.length} LIVE
+              </span>
+            )}
+            {liveLoading && (
+              <span className="text-[9px] font-mono text-sky-400/60 animate-pulse" data-testid="text-live-loading">
+                FETCHING...
+              </span>
+            )}
+            {liveError && (
+              <span className="text-[9px] font-mono text-red-400/70 px-1" data-testid="text-live-error" title={liveError}>
+                ERR
+              </span>
+            )}
+            <button
+              onClick={() => setShowManager(!showManager)}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+              data-testid="button-toggle-channel-manager"
+            >
+              <Plus className={`w-3.5 h-3.5 text-sky-400/70 transition-transform ${showManager ? 'rotate-45' : ''}`} />
+            </button>
+          </div>
         }
       />
 
@@ -1915,25 +1960,35 @@ function TelegramPanel({
           {filteredMessages.length === 0 && (
             <div className="px-3 py-6 text-center">
               <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">{language === 'ar' ? '\u062C\u0627\u0631\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0627\u0644\u0642\u0646\u0648\u0627\u062A...' : 'Connecting to channels...'}</p>
+              <p className="text-xs text-muted-foreground">
+                {liveLoading
+                  ? (language === 'ar' ? 'جاري جلب البيانات الحية...' : 'Fetching live feeds...')
+                  : liveError
+                    ? (language === 'ar' ? 'خطأ في الاتصال بالقنوات' : 'Error connecting to channels')
+                    : (language === 'ar' ? 'لا توجد رسائل حتى الآن' : 'No messages yet - add public channels')}
+              </p>
             </div>
           )}
           {filteredMessages.map((msg) => {
             const isExpanded = expandedMsgId === msg.id;
+            const isLive = msg.id.startsWith('live_');
             const text = language === 'ar' && msg.textAr ? msg.textAr : msg.text;
             return (
               <div
                 key={msg.id}
-                className={`px-3 py-2 animate-fade-in cursor-pointer transition-colors ${
-                  isExpanded ? 'bg-sky-950/30' : 'hover:bg-sky-950/15'
-                }`}
+                className={`px-3 py-3 animate-fade-in cursor-pointer transition-colors ${
+                  isLive ? 'border-l-2 border-l-emerald-500/30 ' : ''
+                }${isExpanded ? 'bg-sky-950/30' : 'hover:bg-sky-950/15'}`}
                 onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
                 data-testid={`telegram-msg-${msg.id}`}
               >
-                <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="flex items-center gap-1.5 mb-1">
                   <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
-                  <span className="text-[11px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
-                  <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                  <span className="text-xs text-sky-400/90 font-bold truncate">{msg.channel}</span>
+                  {isLive && (
+                    <span className="text-[8px] font-mono font-bold text-emerald-400/90 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
+                  )}
+                  <span className="text-xs text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
                   {isExpanded
                     ? <ChevronDown className="w-3 h-3 text-sky-400/50 shrink-0" />
                     : <ChevronRight className="w-3 h-3 text-sky-400/30 shrink-0" />
@@ -1965,7 +2020,7 @@ function TelegramPanel({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-foreground/70 leading-[1.55] line-clamp-2">{text}</p>
+                  <p className="text-xs text-foreground/70 leading-relaxed line-clamp-2">{text}</p>
                 )}
               </div>
             );
@@ -2047,18 +2102,18 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
 
   return (
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
-      <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
+      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Brain className="w-3.5 h-3.5 text-purple-400/70" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
-        <span className="text-[12px] px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
+        <span className="text-xs px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
           {brief?.model || '...'}
         </span>
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
-          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -2074,47 +2129,47 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
 
         {brief && (
           <div className="divide-y divide-border/30">
-            <div className="px-3 py-2">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-foreground/70">
+            <div className="px-3 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
                   {language === 'en' ? 'World Brief' : '\u0645\u0648\u062C\u0632 \u0639\u0627\u0644\u0645\u064A'}
                 </span>
                 {brief.riskLevel && (
-                  <Badge className={`text-[12px] px-1 py-0 h-[15px] font-bold border ${RISK_COLORS[brief.riskLevel] || ''}`}>
+                  <Badge className={`text-xs px-1.5 py-0.5 font-bold border ${RISK_COLORS[brief.riskLevel] || ''}`}>
                     {brief.riskLevel}
                   </Badge>
                 )}
               </div>
-              <p className="text-[11px] text-foreground/70 leading-[1.6]">
+              <p className="text-xs text-foreground/70 leading-relaxed">
                 {language === 'ar' ? brief.summaryAr : brief.summary}
               </p>
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
                 {brief.focalPoints.map((fp, i) => (
-                  <span key={i} className="text-[12px] px-1.5 py-0.5 rounded bg-purple-950/30 border border-purple-500/20 text-purple-300/70 font-mono">
+                  <span key={i} className="text-xs px-2 py-0.5 rounded bg-purple-950/30 border border-purple-500/20 text-purple-300/70 font-mono">
                     {fp}
                   </span>
                 ))}
               </div>
-              <div className="text-[10px] text-muted-foreground/40 font-mono mt-1.5">
+              <div className="text-[11px] text-muted-foreground/40 font-mono mt-2">
                 {new Date(brief.generatedAt).toLocaleTimeString()} UTC
               </div>
             </div>
 
-            <div className="px-3 py-2">
-              <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-foreground/70 mb-1.5 block">
+            <div className="px-3 py-3">
+              <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70 mb-2 block">
                 {language === 'en' ? 'Key Developments' : '\u062A\u0637\u0648\u0631\u0627\u062A \u0631\u0626\u064A\u0633\u064A\u0629'}
               </span>
-              <div className="space-y-1.5">
+              <div className="space-y-2.5">
                 {brief.keyDevelopments.map((dev, i) => (
                   <div key={i} className="flex gap-2 items-start">
                     <div className="mt-0.5 shrink-0">
-                      <Badge className={`text-[10px] px-1 py-0 h-[13px] font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
+                      <Badge className={`text-[11px] px-1.5 py-0.5 font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
                         {dev.severity.toUpperCase()}
                       </Badge>
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[12px] text-muted-foreground/50 font-bold uppercase tracking-wider">{dev.category}</span>
-                      <p className="text-[12px] text-foreground/75 leading-[1.5]">
+                      <span className="text-xs text-muted-foreground/50 font-bold uppercase tracking-wider">{dev.category}</span>
+                      <p className="text-xs text-foreground/75 leading-relaxed">
                         {language === 'ar' ? dev.textAr : dev.text}
                       </p>
                     </div>
@@ -2123,21 +2178,21 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
               </div>
             </div>
 
-            <div className="px-3 py-2">
-              <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="px-3 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
                 <Zap className="w-3 h-3 text-amber-400/70" />
-                <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-foreground/70">
+                <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
                   {language === 'en' ? 'AI Deduction' : '\u0627\u0633\u062A\u0646\u062A\u0627\u062C \u0630\u0643\u064A'}
                 </span>
               </div>
-              <div className="flex gap-1.5 mb-2">
+              <div className="flex gap-1.5 mb-2.5">
                 <input
                   type="text"
                   value={deductQuery}
                   onChange={(e) => setDeductQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleDeduct()}
                   placeholder={language === 'en' ? 'What will happen in the next 24h?' : '\u0645\u0627\u0630\u0627 \u0633\u064A\u062D\u062F\u062B \u0641\u064A \u0627\u0644\u0640 24 \u0633\u0627\u0639\u0629 \u0627\u0644\u0642\u0627\u062F\u0645\u0629\u061F'}
-                  className="flex-1 bg-card/50 border border-border/50 rounded px-2 py-1 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-purple-500/50 font-mono"
+                  className="flex-1 bg-card/50 border border-border/50 rounded px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-purple-500/50 font-mono"
                   data-testid="input-ai-deduction"
                 />
                 <Button
@@ -2153,14 +2208,14 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
               </div>
 
               {deductResult && (
-                <div className="bg-card/30 border border-border/30 rounded p-2 animate-fade-in">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge className="text-[12px] px-1 py-0 h-[14px] font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
+                <div className="bg-card/30 border border-border/30 rounded p-3 animate-fade-in">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Badge className="text-xs px-1.5 py-0.5 font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
                       {Math.round(deductResult.confidence * 100)}% confidence
                     </Badge>
-                    <span className="text-[12px] text-muted-foreground/40 font-mono">{deductResult.timeframe}</span>
+                    <span className="text-xs text-muted-foreground/40 font-mono">{deductResult.timeframe}</span>
                   </div>
-                  <p className="text-[12px] text-foreground/75 leading-[1.6] whitespace-pre-line">
+                  <p className="text-xs text-foreground/75 leading-relaxed whitespace-pre-line">
                     {language === 'ar' ? deductResult.responseAr : deductResult.response}
                   </p>
                 </div>
@@ -2204,16 +2259,16 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-1.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
+      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2 bg-card/40 shrink-0">
         <Target className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
+        <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
           {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
         <div className="flex items-center gap-0.5 bg-card/50 rounded border border-border/30 p-0.5">
           {views.map((v) => (
             <button
               key={v.key}
-              className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
+              className={`text-[11px] px-2 py-0.5 rounded font-mono font-bold transition-colors ${
                 activeView === v.key
                   ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'text-muted-foreground/50 hover:text-foreground/70 border border-transparent'
@@ -2228,7 +2283,7 @@ function MapSection({
         <div className="flex-1" />
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -2284,7 +2339,7 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-7 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
+    <div className="h-8 border-t border-primary/10 bg-primary/3 overflow-hidden relative shrink-0" data-testid="news-ticker">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
         <span className="text-[9px] font-bold tracking-[0.25em] text-primary/60 font-mono">INTEL</span>
       </div>
@@ -2546,7 +2601,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-12 border-b-2 border-primary/15 flex items-center justify-between px-4 bg-card/50 shrink-0">
+      <header className="h-14 border-b-2 border-primary/15 flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
@@ -2560,14 +2615,14 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-950/30 border border-red-500/20">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-950/30 border border-red-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-            <span className="text-[11px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
+            <span className="text-xs text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
           <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${threatLevel.bg}`} data-testid="threat-level-badge">
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border ${threatLevel.bg}`} data-testid="threat-level-badge">
             <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
-            <span className={`text-[11px] font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+            <span className={`text-xs font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -2603,9 +2658,9 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="w-px h-4 bg-border/30" />
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/30 border border-emerald-500/20">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/30 border border-emerald-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[11px] text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
+            <span className="text-xs text-emerald-400/80 font-bold tracking-wider font-mono hidden sm:inline uppercase">
               {language === 'en' ? 'CONNECTED' : '\u0645\u062A\u0635\u0644'}
             </span>
           </div>
@@ -2672,31 +2727,31 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-9 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
-        <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
+      <div className="h-10 border-t border-border/40 flex items-center px-3 bg-card/20 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/20 border border-emerald-500/15">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[11px] text-emerald-400/70 font-mono font-bold">ONLINE</span>
+          <span className="text-xs text-emerald-400/70 font-mono font-bold">ONLINE</span>
         </div>
         <div className="w-px h-4 bg-border/30" />
-        <div className="flex items-center gap-2 text-[11px] font-mono">
-          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
-          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
-          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
-          <span className="text-[11px] text-muted-foreground/50"><span className="text-cyan-400/35">ADS</span> {adsbFlights.length}</span>
-          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">VES</span> {ships.length}</span>
-          <span className="text-[11px] text-muted-foreground/50"><span className="text-foreground/35">MKT</span> {commodities.length}</span>
+        <div className="flex items-center gap-2.5 text-xs font-mono">
+          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">SRC</span> 12</span>
+          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">EVT</span> {events.length}</span>
+          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">FLT</span> {flights.length}</span>
+          <span className="text-xs text-muted-foreground/50"><span className="text-cyan-400/35">ADS</span> {adsbFlights.length}</span>
+          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">VES</span> {ships.length}</span>
+          <span className="text-xs text-muted-foreground/50"><span className="text-foreground/35">MKT</span> {commodities.length}</span>
         </div>
         {(redAlerts.length > 0 || sirens.length > 0) && (
           <>
             <div className="w-px h-4 bg-border/30" />
             <div className="flex items-center gap-2 text-[10px] font-mono">
               {redAlerts.length > 0 && (
-                <span className="text-[11px] text-red-400/90 font-bold animate-pulse px-1.5 py-0.5 rounded bg-red-950/30 border border-red-500/20">
+                <span className="text-xs text-red-400/90 font-bold animate-pulse px-2 py-0.5 rounded bg-red-950/30 border border-red-500/20">
                   RED {redAlerts.length}
                 </span>
               )}
               {sirens.length > 0 && (
-                <span className="text-[11px] text-red-400/70 font-bold px-1.5 py-0.5 rounded bg-red-950/20 border border-red-500/15">
+                <span className="text-xs text-red-400/70 font-bold px-2 py-0.5 rounded bg-red-950/20 border border-red-500/15">
                   SRN {sirens.length}
                 </span>
               )}
@@ -2707,7 +2762,7 @@ export default function Dashboard() {
           <>
             <div className="w-px h-4 bg-border/30" />
             <div className="flex items-center gap-1.5">
-              <span className="text-[12px] text-muted-foreground/40 font-mono uppercase tracking-wider hidden sm:inline">Restore:</span>
+              <span className="text-xs text-muted-foreground/40 font-mono uppercase tracking-wider hidden sm:inline">Restore:</span>
               {closedPanels.map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -2715,12 +2770,12 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => openPanel(id)}
-                    className="group flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
+                    className="group flex items-center gap-1 px-2 py-1 rounded text-xs font-mono font-bold text-primary/80 bg-primary/10 hover:bg-primary/25 hover:text-primary transition-all border border-primary/25 hover:border-primary/40"
                     title={`Restore ${cfg.label} panel`}
                     data-testid={`button-open-panel-${id}`}
                   >
-                    <Maximize2 className="w-2.5 h-2.5 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <Icon className="w-2.5 h-2.5" />
+                    <Maximize2 className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <Icon className="w-3 h-3" />
                     {language === 'en' ? cfg.label : cfg.labelAr}
                   </button>
                 );
@@ -2731,13 +2786,13 @@ export default function Dashboard() {
         {correlations.length > 0 && (
           <>
             <div className="w-px h-4 bg-border/30" />
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-950/20 border border-purple-500/15">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-purple-950/20 border border-purple-500/15">
               <Link2 className="w-3 h-3 text-purple-400/60" />
-              <span className="text-[11px] text-purple-400/70 font-mono font-bold">{correlations.length} CORR</span>
+              <span className="text-xs text-purple-400/70 font-mono font-bold">{correlations.length} CORR</span>
             </div>
           </>
         )}
-        <span className="text-[12px] text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
+        <span className="text-xs text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
           WARROOM v1.0
         </span>
       </div>

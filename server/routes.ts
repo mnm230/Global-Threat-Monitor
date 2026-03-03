@@ -666,6 +666,97 @@ export async function registerRoutes(
     res.json(generateTelegram());
   });
 
+  app.get('/api/telegram/live', async (req, res) => {
+    const channelsParam = req.query.channels as string;
+    if (!channelsParam) {
+      return res.json([]);
+    }
+    const channels = channelsParam.split(',').map(c => c.trim().replace(/^@/, '')).filter(Boolean);
+    const allMessages: TelegramMessage[] = [];
+
+    await Promise.all(channels.map(async (channel) => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const response = await fetch(`https://t.me/s/${channel}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) return;
+
+        const html = await response.text();
+
+        const msgRegex = /<div class="tgme_widget_message_wrap[^"]*"[^>]*data-post="([^"]*)"[^>]*>[\s\S]*?<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>[\s\S]*?<time[^>]*datetime="([^"]*)"[^>]*>/g;
+        let match;
+        let count = 0;
+        while ((match = msgRegex.exec(html)) !== null && count < 15) {
+          const postId = match[1];
+          let textHtml = match[2];
+          const datetime = match[3];
+
+          let text = textHtml
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&nbsp;/g, ' ')
+            .trim();
+
+          if (!text || text.length < 5) continue;
+
+          if (text.length > 500) {
+            text = text.substring(0, 497) + '...';
+          }
+
+          allMessages.push({
+            id: `live_${channel}_${postId.replace('/', '_')}`,
+            channel: `@${channel}`,
+            text,
+            timestamp: datetime || new Date().toISOString(),
+          });
+          count++;
+        }
+
+        if (count === 0) {
+          const altRegex = /class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+          const timeRegex = /<time[^>]*datetime="([^"]*)"[^>]*>/g;
+          const texts: string[] = [];
+          const times: string[] = [];
+          let m;
+          while ((m = altRegex.exec(html)) !== null) {
+            let t = m[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
+            if (t.length >= 5) texts.push(t.length > 500 ? t.substring(0, 497) + '...' : t);
+          }
+          while ((m = timeRegex.exec(html)) !== null) {
+            times.push(m[1]);
+          }
+          const limit = Math.min(texts.length, times.length, 15);
+          for (let i = 0; i < limit; i++) {
+            allMessages.push({
+              id: `live_${channel}_alt_${i}`,
+              channel: `@${channel}`,
+              text: texts[i],
+              timestamp: times[i] || new Date().toISOString(),
+            });
+          }
+        }
+      } catch {
+      }
+    }));
+
+    allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    res.json(allMessages);
+  });
+
   app.get('/api/sirens', (_req, res) => {
     res.json(generateSirens());
   });
