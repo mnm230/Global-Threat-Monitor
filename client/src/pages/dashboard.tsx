@@ -2535,6 +2535,18 @@ function TelegramPanel({
                 </div>
                 {isExpanded ? (
                   <div className="mt-1.5 space-y-2">
+                    {msg.image && (
+                      <div className="rounded overflow-hidden border border-sky-800/20">
+                        <img
+                          src={msg.image}
+                          alt=""
+                          className="w-full max-h-48 object-cover bg-black/30"
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          data-testid={`img-telegram-${msg.id}`}
+                        />
+                      </div>
+                    )}
                     <p className="text-xs text-foreground/85 leading-[1.7] whitespace-pre-wrap">{text}</p>
                     <div className="flex items-center gap-3 pt-1 border-t border-sky-800/20">
                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
@@ -2559,7 +2571,20 @@ function TelegramPanel({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-xs text-foreground/70 leading-relaxed line-clamp-2">{text}</p>
+                  <div className="flex gap-2">
+                    <p className="text-xs text-foreground/70 leading-relaxed line-clamp-2 flex-1">{text}</p>
+                    {msg.image && (
+                      <div className="w-12 h-12 rounded overflow-hidden border border-sky-800/20 shrink-0">
+                        <img
+                          src={msg.image}
+                          alt=""
+                          className="w-full h-full object-cover bg-black/30"
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             );

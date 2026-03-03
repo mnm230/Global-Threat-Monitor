@@ -1332,26 +1332,46 @@ export async function registerRoutes(
 
       const html = await response.text();
 
-      const msgRegex = /<div class="tgme_widget_message_wrap[^"]*"[^>]*data-post="([^"]*)"[^>]*>[\s\S]*?<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>[\s\S]*?<time[^>]*datetime="([^"]*)"[^>]*>/g;
-      let match;
+      const blocks = html.split(/<div class="tgme_widget_message_wrap/);
       let count = 0;
-      while ((match = msgRegex.exec(html)) !== null && count < 15) {
-        const postId = match[1];
-        let text = stripHtmlToText(match[2]);
-        const datetime = match[3];
+      for (let bi = 1; bi < blocks.length && count < 15; bi++) {
+        const block = blocks[bi];
 
-        if (!text || text.length < 5) continue;
-        if (!isLikelyEnglishOrArabic(text)) continue;
+        const postMatch = block.match(/data-post="([^"]*)"/);
+        if (!postMatch) continue;
+        const postId = postMatch[1];
 
-        if (text.length > 500) {
+        const textMatch = block.match(/tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+        let text = textMatch ? stripHtmlToText(textMatch[1]) : '';
+
+        const timeMatch = block.match(/<time[^>]*datetime="([^"]*)"[^>]*>/);
+        const datetime = timeMatch ? timeMatch[1] : '';
+
+        let image: string | undefined;
+        const photoMatch = block.match(/tgme_widget_message_photo_wrap[\s\S]*?background-image:\s*url\('([^']+)'\)/);
+        if (photoMatch && photoMatch[1] && !photoMatch[1].includes('emoji')) {
+          image = photoMatch[1];
+        }
+        if (!image) {
+          const videoThumb = block.match(/tgme_widget_message_video_thumb[\s\S]*?background-image:\s*url\('([^']+)'\)/);
+          if (videoThumb && videoThumb[1] && !videoThumb[1].includes('emoji')) {
+            image = videoThumb[1];
+          }
+        }
+
+        if ((!text || text.length < 5) && !image) continue;
+        if (text && !isLikelyEnglishOrArabic(text) && !image) continue;
+
+        if (text && text.length > 500) {
           text = text.substring(0, 497) + '...';
         }
 
         msgs.push({
           id: `live_${channel}_${postId.replace('/', '_')}`,
           channel: `@${channel}`,
-          text,
+          text: text || (image ? '[Photo]' : ''),
           timestamp: datetime || new Date().toISOString(),
+          ...(image ? { image } : {}),
         });
         count++;
       }

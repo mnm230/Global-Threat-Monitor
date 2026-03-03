@@ -105,6 +105,7 @@ export interface TelegramMessage {
   text: string;
   textAr?: string;
   timestamp: string;
+  image?: string;
 }
 
 export interface SirenAlert {
