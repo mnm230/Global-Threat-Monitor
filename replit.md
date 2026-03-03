@@ -20,7 +20,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 **Technical Implementations:**
 - **Frontend:** Developed using React, TypeScript, Vite, TailwindCSS, and Shadcn UI for a robust and efficient user interface.
 - **Backend:** An Express.js REST API serves data and handles external API integrations.
-- **Mapping & Visualization:** Utilizes deck.gl and MapLibre GL with a CARTO Dark Matter basemap, styled in a liveuamap.com-inspired ultra-dark aesthetic. Custom overrides: near-black water (#080c14), very dark background (#06090f), dark land (#0c1018), subtle borders (#2a3344 at 35% opacity), dimmed labels/roads/buildings. Event markers use 3-layer rendering (outer glow + ring + core dot) for a glowing effect. Flights, ships, and bases also have glow layers. Click popup cards are liveuamap-style with left accent color bar, category tag, timestamp, coordinates, and Google Maps link. Tools panel (top-left) and Layers panel (top-right) are minimal and semi-transparent. Zoom +/- controls on bottom-right. Supports 2D/3D globe, distance measurement, search, and 40+ toggleable layers with dot indicators. Alert Map panel uses separate MapLibre instance for red alert heatmap visualization.
+- **Mapping & Visualization:** Utilizes deck.gl and MapLibre GL with CARTO Dark Matter basemap (OpenStreetMap data). Proper OSM attribution displayed on all maps. Styled in liveuamap.com-inspired ultra-dark aesthetic. Custom overrides: near-black water (#080c14), very dark background (#06090f), dark land (#0c1018), subtle borders (#2a3344 at 35% opacity), dimmed labels/roads/buildings. Event markers use 3-layer rendering (outer glow + ring + core dot). Click popup cards are liveuamap-style with left accent color bar, category tag, timestamp, coordinates, and Google Maps link. Tools panel (top-left) and Layers panel (top-right) are minimal and semi-transparent. Zoom +/- controls on bottom-right. 40+ toggleable layers with dot indicators. Alert Map panel uses separate MapLibre instance for red alert heatmap visualization.
 - **Real-time Data:** Employs Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates across all data types (commodities, ADS-B, red-alerts, sirens, events, news, telegram, AI-brief).
 - **Data Handling:** Shared TypeScript types (`shared/schema.ts`) ensure data consistency across frontend and backend.
 - **Red Alert System:** Integrates multiple primary and fallback APIs for real-time Israeli Red Alerts (Tzeva Adom), displaying alerts with visual urgency tiers and trilingual support.
@@ -33,7 +33,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 
 **Feature Specifications:**
 - **Breaking News Feed:** Displays 15 categorized news items.
-- **Markets Panel:** Monitors 17 instruments across commodities, major FX, and regional FX, with a scrolling ticker. FX rates sourced live from Open Exchange Rates API (5-min cache), commodities simulate micro-ticks around live base prices.
+- **Markets Panel:** Monitors 17 instruments across commodities, major FX, and regional FX, with a scrolling ticker. FX rates sourced live from Open Exchange Rates API (5-min cache). Commodity prices use real FX rates with no simulated jitter.
 - **Language Toggle:** Supports English and Arabic (RTL).
 - **Live Sirens:** Displays active rocket/missile/UAV sirens via a scrolling red alert banner.
 - **YouTube Live Feed Panel:** Embeds live YouTube streams, configurable via settings.

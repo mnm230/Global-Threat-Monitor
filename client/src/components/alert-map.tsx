@@ -60,7 +60,8 @@ export default function AlertMap({
       style: MAP_STYLE,
       center: [35.2, 31.5],
       zoom: 7,
-      attributionControl: false,
+      attributionControl: true,
+      customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     });
 
     mapRef.current = map;

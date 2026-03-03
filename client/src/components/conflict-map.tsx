@@ -1018,7 +1018,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         pitch: viewState.pitch,
         bearing: viewState.bearing,
         interactive: false,
-        attributionControl: false,
+        attributionControl: true,
+        customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       });
 
       map.on('style.load', () => {

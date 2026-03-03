@@ -215,8 +215,8 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
     } else if (cachedLiveFlights.length > 0) {
       return cachedLiveFlights;
     } else {
-      console.log('[ADSB] No live data available, falling back to simulated');
-      return generateAdsbFlights();
+      console.log('[ADSB] No live data available');
+      return [];
     }
 
     return allFlights;
@@ -716,15 +716,13 @@ function generateCommodities(): CommodityData[] {
     }
 
     const prev = commodityPriceState[item.symbol];
-    const volatility = item.category === 'commodity' ? 0.0015 : item.category === 'fx-major' ? 0.0003 : 0.0004;
-    const tick = (Math.random() - 0.48) * volatility * basePrice;
-    const currentPrice = prev ? prev.price + tick : basePrice;
+    const currentPrice = basePrice;
     const prevPrice = prev ? prev.price : basePrice;
 
     commodityPriceState[item.symbol] = { price: currentPrice, prevPrice };
 
-    const change = currentPrice - basePrice;
-    const changePercent = (change / basePrice) * 100;
+    const change = currentPrice - prevPrice;
+    const changePercent = prevPrice !== 0 ? (change / prevPrice) * 100 : 0;
 
     return {
       symbol: item.symbol,
@@ -742,101 +740,178 @@ function generateCommodities(): CommodityData[] {
 fetchLiveFxRates();
 setInterval(() => fetchLiveFxRates(), FX_CACHE_TTL);
 
-function generateEvents(): ConflictEvent[] {
-  const now = Date.now();
-  return [
-    {
-      id: 'e1', type: 'missile', lat: 35.6892, lng: 51.389,
-      title: 'Tehran', titleAr: '\u0637\u0647\u0631\u0627\u0646',
-      description: 'IRGC missile launch complex - Emad-2 ballistic missile site',
-      descriptionAr: '\u0645\u062C\u0645\u0639 \u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E \u0627\u0644\u062D\u0631\u0633 \u0627\u0644\u062B\u0648\u0631\u064A',
-      timestamp: new Date(now - 10 * 60000).toISOString(), severity: 'critical',
-    },
-    {
-      id: 'e2', type: 'defense', lat: 32.0853, lng: 34.7818,
-      title: 'Tel Aviv', titleAr: '\u062A\u0644 \u0623\u0628\u064A\u0628',
-      description: 'Iron Dome battery active - multiple interceptions confirmed',
-      descriptionAr: '\u0628\u0637\u0627\u0631\u064A\u0629 \u0627\u0644\u0642\u0628\u0629 \u0627\u0644\u062D\u062F\u064A\u062F\u064A\u0629 \u0646\u0634\u0637\u0629',
-      timestamp: new Date(now - 5 * 60000).toISOString(), severity: 'critical',
-    },
-    {
-      id: 'e3', type: 'missile', lat: 33.8938, lng: 35.5018,
-      title: 'Beirut', titleAr: '\u0628\u064A\u0631\u0648\u062A',
-      description: 'Hezbollah rocket launch sites in southern suburbs',
-      descriptionAr: '\u0645\u0648\u0627\u0642\u0639 \u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E \u062D\u0632\u0628 \u0627\u0644\u0644\u0647 \u0641\u064A \u0627\u0644\u0636\u0627\u062D\u064A\u0629 \u0627\u0644\u062C\u0646\u0648\u0628\u064A\u0629',
-      timestamp: new Date(now - 15 * 60000).toISOString(), severity: 'high',
-    },
-    {
-      id: 'e4', type: 'naval', lat: jitter(26.56, 0.2), lng: jitter(56.25, 0.2),
-      title: 'Strait of Hormuz', titleAr: '\u0645\u0636\u064A\u0642 \u0647\u0631\u0645\u0632',
-      description: 'IRGC Navy fast attack craft patrol - increased activity',
-      descriptionAr: '\u062F\u0648\u0631\u064A\u0629 \u0632\u0648\u0627\u0631\u0642 \u0647\u062C\u0648\u0645\u064A\u0629 \u0633\u0631\u064A\u0639\u0629 \u0644\u0628\u062D\u0631\u064A\u0629 \u0627\u0644\u062D\u0631\u0633 \u0627\u0644\u062B\u0648\u0631\u064A',
-      timestamp: new Date(now - 20 * 60000).toISOString(), severity: 'high',
-    },
-    {
-      id: 'e5', type: 'nuclear', lat: 32.6546, lng: 51.668,
-      title: 'Isfahan - Natanz', titleAr: '\u0623\u0635\u0641\u0647\u0627\u0646 - \u0646\u0637\u0646\u0632',
-      description: 'Nuclear enrichment facility - IAEA monitoring active',
-      descriptionAr: '\u0645\u0646\u0634\u0623\u0629 \u062A\u062E\u0635\u064A\u0628 \u0646\u0648\u0648\u064A - \u0645\u0631\u0627\u0642\u0628\u0629 \u0627\u0644\u0648\u0643\u0627\u0644\u0629 \u0627\u0644\u062F\u0648\u0644\u064A\u0629 \u0646\u0634\u0637\u0629',
-      timestamp: new Date(now - 60 * 60000).toISOString(), severity: 'medium',
-    },
-    {
-      id: 'e6', type: 'ground', lat: 33.15, lng: 35.35,
-      title: 'South Lebanon', titleAr: '\u062C\u0646\u0648\u0628 \u0644\u0628\u0646\u0627\u0646',
-      description: 'IDF ground incursion - armored units advancing',
-      descriptionAr: '\u062A\u0648\u063A\u0644 \u0628\u0631\u064A \u0644\u0644\u062C\u064A\u0634 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A - \u0648\u062D\u062F\u0627\u062A \u0645\u062F\u0631\u0639\u0629 \u062A\u062A\u0642\u062F\u0645',
-      timestamp: new Date(now - 8 * 60000).toISOString(), severity: 'critical',
-    },
-    {
-      id: 'e7', type: 'airstrike', lat: 33.5138, lng: 36.2765,
-      title: 'Damascus', titleAr: '\u062F\u0645\u0634\u0642',
-      description: 'Israeli airstrikes on Iranian military assets',
-      descriptionAr: '\u063A\u0627\u0631\u0627\u062A \u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A\u0629 \u0639\u0644\u0649 \u0623\u0635\u0648\u0644 \u0639\u0633\u0643\u0631\u064A\u0629 \u0625\u064A\u0631\u0627\u0646\u064A\u0629',
-      timestamp: new Date(now - 30 * 60000).toISOString(), severity: 'high',
-    },
-    {
-      id: 'e8', type: 'defense', lat: 32.794, lng: 34.9896,
-      title: 'Haifa', titleAr: '\u062D\u064A\u0641\u0627',
-      description: "David's Sling interceptor battery activated",
-      descriptionAr: '\u062A\u0641\u0639\u064A\u0644 \u0628\u0637\u0627\u0631\u064A\u0629 \u0627\u0639\u062A\u0631\u0627\u0636 \u0645\u0642\u0644\u0627\u0639 \u062F\u0627\u0648\u062F',
-      timestamp: new Date(now - 3 * 60000).toISOString(), severity: 'critical',
-    },
-    {
-      id: 'e9', type: 'nuclear', lat: 31.0695, lng: 35.2063,
-      title: 'Dimona', titleAr: '\u062F\u064A\u0645\u0648\u0646\u0627',
-      description: 'Israeli nuclear research center - heightened security',
-      descriptionAr: '\u0645\u0631\u0643\u0632 \u0627\u0644\u0623\u0628\u062D\u0627\u062B \u0627\u0644\u0646\u0648\u0648\u064A\u0629 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A - \u0623\u0645\u0646 \u0645\u0634\u062F\u062F',
-      timestamp: new Date(now - 45 * 60000).toISOString(), severity: 'medium',
-    },
-    {
-      id: 'e10', type: 'naval', lat: 27.1832, lng: 56.2666,
-      title: 'Bandar Abbas', titleAr: '\u0628\u0646\u062F\u0631 \u0639\u0628\u0627\u0633',
-      description: 'Iranian Navy main base - submarine activity detected',
-      descriptionAr: '\u0627\u0644\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u062D\u0631\u064A\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u0627\u0644\u0625\u064A\u0631\u0627\u0646\u064A\u0629 - \u0646\u0634\u0627\u0637 \u063A\u0648\u0627\u0635\u0627\u062A',
-      timestamp: new Date(now - 25 * 60000).toISOString(), severity: 'high',
-    },
-    {
-      id: 'e11', type: 'missile', lat: 34.33, lng: 47.08,
-      title: 'Kermanshah', titleAr: '\u0643\u0631\u0645\u0627\u0646\u0634\u0627\u0647',
-      description: 'IRGC ballistic missile base - launch preparations reported',
-      descriptionAr: '\u0642\u0627\u0639\u062F\u0629 \u0635\u0648\u0627\u0631\u064A\u062E \u0628\u0627\u0644\u064A\u0633\u062A\u064A\u0629 - \u0627\u0633\u062A\u0639\u062F\u0627\u062F\u0627\u062A \u0625\u0637\u0644\u0627\u0642',
-      timestamp: new Date(now - 18 * 60000).toISOString(), severity: 'high',
-    },
-    {
-      id: 'e12', type: 'airstrike', lat: 34.73, lng: 36.72,
-      title: 'Homs', titleAr: '\u062D\u0645\u0635',
-      description: 'Airstrikes on weapons depot - secondary explosions',
-      descriptionAr: '\u063A\u0627\u0631\u0627\u062A \u0639\u0644\u0649 \u0645\u0633\u062A\u0648\u062F\u0639 \u0623\u0633\u0644\u062D\u0629 - \u0627\u0646\u0641\u062C\u0627\u0631\u0627\u062A \u062B\u0627\u0646\u0648\u064A\u0629',
-      timestamp: new Date(now - 40 * 60000).toISOString(), severity: 'medium',
-    },
-    {
-      id: 'e13', type: 'ground', lat: 31.78, lng: 35.23,
-      title: 'Jerusalem', titleAr: '\u0627\u0644\u0642\u062F\u0633',
-      description: 'Heightened military presence - security level raised',
-      descriptionAr: '\u062A\u0639\u0632\u064A\u0632 \u0627\u0644\u062A\u0648\u0627\u062C\u062F \u0627\u0644\u0639\u0633\u0643\u0631\u064A - \u0631\u0641\u0639 \u0645\u0633\u062A\u0648\u0649 \u0627\u0644\u0623\u0645\u0646',
-      timestamp: new Date(now - 55 * 60000).toISOString(), severity: 'medium',
-    },
-  ];
+const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
+  'tel aviv': { lat: 32.085, lng: 34.782 }, 'jerusalem': { lat: 31.769, lng: 35.216 },
+  'haifa': { lat: 32.794, lng: 34.990 }, 'gaza': { lat: 31.510, lng: 34.447 },
+  'beirut': { lat: 33.894, lng: 35.502 }, 'damascus': { lat: 33.514, lng: 36.277 },
+  'tehran': { lat: 35.689, lng: 51.389 }, 'isfahan': { lat: 32.655, lng: 51.668 },
+  'baghdad': { lat: 33.312, lng: 44.366 }, 'riyadh': { lat: 24.713, lng: 46.675 },
+  'sanaa': { lat: 15.370, lng: 44.191 }, 'aden': { lat: 12.782, lng: 45.037 },
+  'amman': { lat: 31.956, lng: 35.946 }, 'cairo': { lat: 30.044, lng: 31.236 },
+  'tripoli': { lat: 34.437, lng: 35.850 }, 'aleppo': { lat: 36.202, lng: 37.134 },
+  'homs': { lat: 34.730, lng: 36.720 }, 'tabriz': { lat: 38.080, lng: 46.292 },
+  'israel': { lat: 31.5, lng: 34.8 }, 'iran': { lat: 32.4, lng: 53.7 },
+  'lebanon': { lat: 33.9, lng: 35.9 }, 'syria': { lat: 35.0, lng: 38.0 },
+  'yemen': { lat: 15.5, lng: 48.5 }, 'iraq': { lat: 33.2, lng: 43.7 },
+  'sderot': { lat: 31.525, lng: 34.596 }, 'ashkelon': { lat: 31.669, lng: 34.571 },
+  'nahariya': { lat: 33.005, lng: 35.098 }, 'kiryat shmona': { lat: 33.208, lng: 35.571 },
+  'west bank': { lat: 31.95, lng: 35.20 }, 'rafah': { lat: 31.297, lng: 34.255 },
+  'khan younis': { lat: 31.345, lng: 34.305 }, 'nablus': { lat: 32.222, lng: 35.262 },
+  'hebron': { lat: 31.529, lng: 35.095 }, 'jenin': { lat: 32.461, lng: 35.300 },
+  'ramallah': { lat: 31.903, lng: 35.204 }, 'sidon': { lat: 33.563, lng: 35.376 },
+  'tyre': { lat: 33.273, lng: 35.194 }, 'baalbek': { lat: 34.006, lng: 36.218 },
+  'deir ez-zor': { lat: 35.336, lng: 40.145 }, 'idlib': { lat: 35.931, lng: 36.634 },
+  'latakia': { lat: 35.524, lng: 35.791 }, 'basra': { lat: 30.508, lng: 47.784 },
+  'mosul': { lat: 36.340, lng: 43.130 }, 'erbil': { lat: 36.191, lng: 44.009 },
+  'kirkuk': { lat: 35.468, lng: 44.392 }, 'hodeidah': { lat: 14.798, lng: 42.954 },
+  'marib': { lat: 15.454, lng: 45.326 }, 'strait of hormuz': { lat: 26.56, lng: 56.25 },
+  'red sea': { lat: 20.0, lng: 38.5 }, 'persian gulf': { lat: 27.0, lng: 51.0 },
+  'golan': { lat: 33.0, lng: 35.8 }, 'negev': { lat: 30.8, lng: 34.8 },
+  'sinai': { lat: 29.5, lng: 33.8 }, 'suez': { lat: 29.97, lng: 32.55 },
+  'bandar abbas': { lat: 27.183, lng: 56.267 }, 'natanz': { lat: 33.51, lng: 51.73 },
+  'dimona': { lat: 31.07, lng: 35.21 }, 'palmyra': { lat: 34.56, lng: 38.27 },
+  'kermanshah': { lat: 34.31, lng: 47.07 }, 'shiraz': { lat: 29.59, lng: 52.58 },
+};
+
+function classifyGDELTEventType(title: string): ConflictEvent['type'] {
+  const t = title.toLowerCase();
+  if (/missile|ballistic|icbm|scud|launch/i.test(t)) return 'missile';
+  if (/airstrike|air strike|bombing|bomb|strike|sortie/i.test(t)) return 'airstrike';
+  if (/drone|uav|unmanned/i.test(t)) return 'airstrike';
+  if (/naval|ship|maritime|vessel|boat|submarine|fleet/i.test(t)) return 'naval';
+  if (/intercept|defense|iron dome|patriot|sling|arrow/i.test(t)) return 'defense';
+  if (/nuclear|enrichment|uranium|centrifuge|iaea/i.test(t)) return 'nuclear';
+  if (/troop|infantry|ground|incursion|invasion|tank|armored/i.test(t)) return 'ground';
+  if (/rocket|mortar|shell|artillery/i.test(t)) return 'missile';
+  return 'ground';
+}
+
+function classifyGDELTSeverity(tone: number, title: string): ConflictEvent['severity'] {
+  const t = title.toLowerCase();
+  if (/breaking|urgent|critical|mass casualt|nuclear/i.test(t) || tone < -8) return 'critical';
+  if (/attack|strike|killed|destroy|launch|intercept/i.test(t) || tone < -5) return 'high';
+  if (/warning|tension|deploy|threat|military/i.test(t) || tone < -2) return 'medium';
+  return 'low';
+}
+
+function geocodeFromTitle(title: string): { lat: number; lng: number } | null {
+  const lower = title.toLowerCase();
+  for (const [place, coords] of Object.entries(GDELT_GEOCODE_MAP)) {
+    if (lower.includes(place)) return coords;
+  }
+  return null;
+}
+
+let gdeltCache: { data: ConflictEvent[]; fetchedAt: number } | null = null;
+const GDELT_CACHE_TTL = 5 * 60 * 1000;
+
+async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
+  if (gdeltCache && Date.now() - gdeltCache.fetchedAt < GDELT_CACHE_TTL) {
+    return gdeltCache.data;
+  }
+
+  const events: ConflictEvent[] = [];
+
+  try {
+    const redAlerts = await fetchOrefAlerts();
+    for (let i = 0; i < redAlerts.length; i++) {
+      const alert = redAlerts[i];
+      if (!alert.lat || !alert.lng) continue;
+      events.push({
+        id: `alert_${alert.id}`,
+        type: alert.threatType === 'rockets' ? 'missile' : alert.threatType === 'missiles' ? 'missile' : alert.threatType === 'uav_intrusion' ? 'airstrike' : 'defense',
+        lat: alert.lat,
+        lng: alert.lng,
+        title: alert.city,
+        description: `Active alert: ${alert.threatType} - ${alert.region}`,
+        timestamp: alert.timestamp,
+        severity: alert.countdown <= 15 ? 'critical' : alert.countdown <= 45 ? 'high' : 'medium',
+      });
+    }
+  } catch {}
+
+  try {
+    const hotspots = await fetchThermalHotspots();
+    const recentHotspots = hotspots
+      .filter(h => Date.now() - new Date(h.timestamp).getTime() < 24 * 3600 * 1000)
+      .slice(0, 30);
+    for (let i = 0; i < recentHotspots.length; i++) {
+      const h = recentHotspots[i];
+      events.push({
+        id: `thermal_${i}`,
+        type: 'airstrike',
+        lat: h.lat,
+        lng: h.lng,
+        title: `Thermal anomaly (${h.confidence}% confidence)`,
+        description: `NASA FIRMS satellite detection - ${h.brightness.toFixed(0)}K brightness`,
+        timestamp: h.timestamp,
+        severity: h.confidence >= 80 ? 'high' : h.confidence >= 50 ? 'medium' : 'low',
+      });
+    }
+  } catch {}
+
+  try {
+    const eqs = await fetchEarthquakes();
+    for (let i = 0; i < eqs.length; i++) {
+      const eq = eqs[i];
+      events.push({
+        id: `eq_${i}`,
+        type: 'ground',
+        lat: eq.lat,
+        lng: eq.lng,
+        title: `M${eq.magnitude} Earthquake`,
+        description: `${eq.place || 'Unknown location'} - Depth: ${eq.depth}km`,
+        timestamp: eq.timestamp,
+        severity: eq.magnitude >= 5 ? 'critical' : eq.magnitude >= 4 ? 'high' : eq.magnitude >= 3 ? 'medium' : 'low',
+      });
+    }
+  } catch {}
+
+  try {
+    const query = encodeURIComponent('(missile OR airstrike OR attack OR military) (Israel OR Iran OR Lebanon OR Syria OR Gaza)');
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=artlist&maxrecords=50&format=json&sort=datedesc&timespan=24h`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (resp.ok) {
+      const data = await resp.json() as { articles?: Array<{ title: string; seendate: string; domain: string; sourcecountry?: string }> };
+      if (data.articles) {
+        for (let i = 0; i < data.articles.length; i++) {
+          const article = data.articles[i];
+          const coords = geocodeFromTitle(article.title);
+          if (!coords) continue;
+          const type = classifyGDELTEventType(article.title);
+          const severity = classifyGDELTSeverity(-3, article.title);
+          const ts = article.seendate
+            ? new Date(article.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString()
+            : new Date().toISOString();
+          events.push({
+            id: `gdelt_${i}`,
+            type,
+            lat: coords.lat + (Math.random() - 0.5) * 0.05,
+            lng: coords.lng + (Math.random() - 0.5) * 0.05,
+            title: article.title.length > 80 ? article.title.substring(0, 77) + '...' : article.title,
+            description: `Source: ${article.domain} | ${article.sourcecountry || 'International'}`,
+            timestamp: ts,
+            severity,
+          });
+        }
+        console.log(`[GDELT] Fetched ${data.articles.length} articles`);
+      }
+    }
+  } catch {
+    console.log('[GDELT] API unavailable, using other real sources');
+  }
+
+  const seen = new Set<string>();
+  const deduped = events.filter(e => {
+    const key = `${e.lat.toFixed(2)}_${e.lng.toFixed(2)}_${e.type}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  gdeltCache = { data: deduped, fetchedAt: Date.now() };
+  console.log(`[EVENTS] ${deduped.length} real conflict events (alerts: ${events.filter(e => e.id.startsWith('alert_')).length}, thermal: ${events.filter(e => e.id.startsWith('thermal_')).length}, seismic: ${events.filter(e => e.id.startsWith('eq_')).length}, gdelt: ${events.filter(e => e.id.startsWith('gdelt_')).length})`);
+  return deduped;
 }
 
 function generateFlights(): FlightData[] {
@@ -1032,25 +1107,7 @@ function generateTelegram(): TelegramMessage[] {
 }
 
 function generateSirens(): SirenAlert[] {
-  const now = Date.now();
-  const allSirens: SirenAlert[] = [
-    { id: 's1', location: 'Tel Aviv - Gush Dan', locationAr: '\u062A\u0644 \u0623\u0628\u064A\u0628 - \u063A\u0648\u0634 \u062F\u0627\u0646', region: 'Central Israel', regionAr: '\u0648\u0633\u0637 \u0625\u0633\u0631\u0627\u0626\u064A\u0644', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 120000)).toISOString(), active: true },
-    { id: 's2', location: 'Haifa Bay', locationAr: '\u062E\u0644\u064A\u062C \u062D\u064A\u0641\u0627', region: 'Northern Israel', regionAr: '\u0634\u0645\u0627\u0644 \u0625\u0633\u0631\u0627\u0626\u064A\u0644', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 180000)).toISOString(), active: true },
-    { id: 's3', location: 'Kiryat Shmona', locationAr: '\u0643\u0631\u064A\u0627\u062A \u0634\u0645\u0648\u0646\u0629', region: 'Upper Galilee', regionAr: '\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u0623\u0639\u0644\u0649', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 90000)).toISOString(), active: true },
-    { id: 's4', location: 'Nahariya', locationAr: '\u0646\u0647\u0627\u0631\u064A\u0627', region: 'Western Galilee', regionAr: '\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u063A\u0631\u0628\u064A', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 60000)).toISOString(), active: true },
-    { id: 's5', location: 'Ashkelon', locationAr: '\u0639\u0633\u0642\u0644\u0627\u0646', region: 'Southern Israel', regionAr: '\u062C\u0646\u0648\u0628 \u0625\u0633\u0631\u0627\u0626\u064A\u0644', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 150000)).toISOString(), active: true },
-    { id: 's6', location: 'Sderot', locationAr: '\u0633\u062F\u064A\u0631\u0648\u062A', region: 'Gaza Envelope', regionAr: '\u063A\u0644\u0627\u0641 \u063A\u0632\u0629', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 45000)).toISOString(), active: true },
-    { id: 's7', location: 'Tiberias', locationAr: '\u0637\u0628\u0631\u064A\u0627', region: 'Sea of Galilee', regionAr: '\u0628\u062D\u064A\u0631\u0629 \u0637\u0628\u0631\u064A\u0627', threatType: 'missile', timestamp: new Date(now - Math.floor(Math.random() * 200000)).toISOString(), active: true },
-    { id: 's8', location: 'Be\'er Sheva', locationAr: '\u0628\u0626\u0631 \u0627\u0644\u0633\u0628\u0639', region: 'Negev', regionAr: '\u0627\u0644\u0646\u0642\u0628', threatType: 'rocket', timestamp: new Date(now - Math.floor(Math.random() * 100000)).toISOString(), active: true },
-    { id: 's9', location: 'Safed', locationAr: '\u0635\u0641\u062F', region: 'Upper Galilee', regionAr: '\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u0623\u0639\u0644\u0649', threatType: 'uav', timestamp: new Date(now - Math.floor(Math.random() * 130000)).toISOString(), active: true },
-    { id: 's10', location: 'Netanya', locationAr: '\u0646\u062A\u0627\u0646\u064A\u0627', region: 'Sharon Plain', regionAr: '\u0633\u0647\u0644 \u0627\u0644\u0634\u0627\u0631\u0648\u0646', threatType: 'hostile_aircraft', timestamp: new Date(now - Math.floor(Math.random() * 170000)).toISOString(), active: true },
-    { id: 's11', location: 'Riyadh', locationAr: '\u0627\u0644\u0631\u064A\u0627\u0636', region: 'Saudi Arabia', regionAr: '\u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629', threatType: 'missile', timestamp: new Date(now - Math.floor(Math.random() * 250000)).toISOString(), active: true },
-    { id: 's12', location: 'Erbil', locationAr: '\u0623\u0631\u0628\u064A\u0644', region: 'Iraqi Kurdistan', regionAr: '\u0643\u0631\u062F\u0633\u062A\u0627\u0646 \u0627\u0644\u0639\u0631\u0627\u0642', threatType: 'uav', timestamp: new Date(now - Math.floor(Math.random() * 300000)).toISOString(), active: true },
-  ];
-
-  const count = 3 + Math.floor(Math.random() * 5);
-  const shuffled = allSirens.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  return [];
 }
 
 const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
@@ -1531,33 +1588,9 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
   return orefCache.data;
 }
 
-function generateSimAlerts(): RedAlert[] {
-  const now = Date.now();
-  const count = 8 + Math.floor(Math.random() * 10);
-  const shuffled = [...RED_ALERT_POOL].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count).map(a => ({
-    ...a,
-    timestamp: new Date(now - Math.floor(Math.random() * 120000)).toISOString(),
-    active: true,
-    source: 'sim' as const,
-  }));
-}
-
 async function generateRedAlerts(): Promise<RedAlert[]> {
   const liveAlerts = await fetchOrefAlerts();
-  if (liveAlerts.length > 0) {
-    const simCount = 3 + Math.floor(Math.random() * 5);
-    const nonIsraelPool = RED_ALERT_POOL.filter(a => a.countryCode !== 'IL');
-    const shuffled = [...nonIsraelPool].sort(() => Math.random() - 0.5);
-    const regionalSim = shuffled.slice(0, simCount).map(a => ({
-      ...a,
-      timestamp: new Date(Date.now() - Math.floor(Math.random() * 120000)).toISOString(),
-      active: true,
-      source: 'sim' as const,
-    }));
-    return [...liveAlerts, ...regionalSim];
-  }
-  return generateSimAlerts();
+  return liveAlerts;
 }
 
 const alertHistory: RedAlert[] = [];
@@ -2242,20 +2275,155 @@ async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
   }
 }
 
-function generateCyberEvents(): CyberEvent[] {
-  const now = Date.now();
-  return [
-    { id: 'cy1', type: 'ddos', target: 'Bank Hapoalim', attacker: 'Anonymous Sudan', severity: 'high', sector: 'financial', country: 'Israel', timestamp: new Date(now - 8 * 60000).toISOString(), description: 'Volumetric DDoS (80Gbps) against Israeli banking infrastructure. Killnet coordination suspected. Partial service degradation confirmed.' },
-    { id: 'cy2', type: 'intrusion', target: 'IRGC Command Network', attacker: 'Unit 8200', severity: 'critical', sector: 'military', country: 'Iran', timestamp: new Date(now - 38 * 60000).toISOString(), description: 'Unauthorized access detected in IRGC internal communications. SIGINT exfiltration activity observed on C2 nodes.' },
-    { id: 'cy3', type: 'scada', target: 'Saudi Aramco SCADA', attacker: 'APT34', severity: 'critical', sector: 'energy', country: 'Saudi Arabia', timestamp: new Date(now - 82 * 60000).toISOString(), description: 'TRITON-variant malware identified in Aramco ICS. Safety instrumented systems targeted. OT network segment isolated.' },
-    { id: 'cy4', type: 'phishing', target: 'IDF Personnel', attacker: 'Hamas Cyber', severity: 'medium', sector: 'military', country: 'Israel', timestamp: new Date(now - 150 * 60000).toISOString(), description: 'Spear-phishing via fake social/dating app profiles targeting IDF soldiers. 14 devices potentially compromised.' },
-    { id: 'cy5', type: 'data_exfil', target: 'UAE Ministry of Defense', attacker: 'APT35', severity: 'critical', sector: 'military', country: 'UAE', timestamp: new Date(now - 6 * 3600000).toISOString(), description: 'Data exfiltration via compromised supply-chain vendor. 4.2GB of classified documents transferred to Iranian-linked servers.' },
-    { id: 'cy6', type: 'defacement', target: 'Lebanese Gov Portal', severity: 'low', sector: 'government', country: 'Lebanon', timestamp: new Date(now - 9 * 3600000).toISOString(), description: 'Lebanese ministry sites defaced with pro-Hezbollah messaging. Attributed to Lebanese Cyber Army splinter group.' },
-    { id: 'cy7', type: 'intrusion', target: 'Bahrain Oil Pipeline', attacker: 'APT33', severity: 'high', sector: 'energy', country: 'Bahrain', timestamp: new Date(now - 14 * 3600000).toISOString(), description: 'Persistent access confirmed in Bahraini pipeline control systems. Wiper malware pre-positioned, not yet activated.' },
-    { id: 'cy8', type: 'ddos', target: 'Al Jazeera Streaming', attacker: 'Killnet', severity: 'medium', sector: 'media', country: 'Qatar', timestamp: new Date(now - 20 * 3600000).toISOString(), description: 'Al Jazeera live streaming disrupted for 3 hours. Russian-linked Killnet claimed responsibility via Telegram.' },
-    { id: 'cy9', type: 'malware', target: 'Jordan Power Grid', attacker: 'Unknown APT', severity: 'high', sector: 'infrastructure', country: 'Jordan', timestamp: new Date(now - 28 * 3600000).toISOString(), description: 'Industroyer-2 variant detected in SCADA systems managing Jordanian national grid substations.' },
-    { id: 'cy10', type: 'intrusion', target: 'Egyptian Intelligence HQ', attacker: 'NSO Pegasus', severity: 'critical', sector: 'government', country: 'Egypt', timestamp: new Date(now - 36 * 3600000).toISOString(), description: 'Pegasus spyware implant discovered on devices belonging to senior Egyptian intelligence officials.' },
-  ];
+// --- Real Cyber Threat Intelligence ---
+const CYBER_CACHE_TTL = 15 * 60 * 1000; // 15 min
+let cyberCache: { data: CyberEvent[]; fetchedAt: number } | null = null;
+
+const CYBER_RSS_FEEDS = [
+  'https://www.bleepingcomputer.com/feed/',
+  'https://feeds.feedburner.com/TheHackersNews',
+  'https://therecord.media/feed/',
+  'https://www.darkreading.com/rss.xml',
+];
+
+async function fetchCyberRSSArticles(): Promise<Array<{ title: string; description: string; pubDate: string; link: string }>> {
+  const results: Array<{ title: string; description: string; pubDate: string; link: string }> = [];
+  await Promise.allSettled(CYBER_RSS_FEEDS.map(async (url) => {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(9000), headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!res.ok) return;
+      const xml = await res.text();
+      const items = xml.split(/<item[\s>]/i).slice(1);
+      for (const item of items.slice(0, 15)) {
+        const cdataTitle = item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i)?.[1];
+        const plainTitle = item.match(/<title>([\s\S]*?)<\/title>/i)?.[1];
+        const title = (cdataTitle || plainTitle || '').replace(/<[^>]+>/g, '').trim();
+        const cdataDesc = item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/i)?.[1];
+        const plainDesc = item.match(/<description>([\s\S]*?)<\/description>/i)?.[1];
+        const description = (cdataDesc || plainDesc || '').replace(/<[^>]+>/g, '').trim().slice(0, 300);
+        const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1]?.trim() || '';
+        const link = item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim() || '';
+        if (title.length > 10) results.push({ title, description, pubDate, link });
+      }
+    } catch {}
+  }));
+  return results;
+}
+
+async function fetchOTXPulses(): Promise<CyberEvent[]> {
+  const key = process.env.OTX_API_KEY;
+  if (!key) return [];
+  try {
+    const res = await fetch('https://otx.alienvault.com/api/v1/pulses/subscribed?limit=20&page=1', {
+      headers: { 'X-OTX-API-KEY': key },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return [];
+    const json = await res.json() as { results?: Array<{ id: string; name: string; description: string; created: string; tags: string[]; targeted_countries: string[]; malware_families: string[] }> };
+    const events: CyberEvent[] = [];
+    for (const pulse of (json.results || []).slice(0, 8)) {
+      const country = pulse.targeted_countries?.[0] || 'Unknown';
+      const tags = (pulse.tags || []).join(' ').toLowerCase();
+      const type: CyberEvent['type'] =
+        tags.includes('ransomware') || tags.includes('malware') ? 'malware' :
+        tags.includes('phish') ? 'phishing' :
+        tags.includes('ddos') ? 'ddos' :
+        tags.includes('scada') || tags.includes('ics') || tags.includes('ot') ? 'scada' :
+        tags.includes('exfil') || tags.includes('data theft') ? 'data_exfil' :
+        tags.includes('defac') ? 'defacement' : 'intrusion';
+      const sector: CyberEvent['sector'] =
+        tags.includes('government') || tags.includes('gov') ? 'government' :
+        tags.includes('military') || tags.includes('defense') ? 'military' :
+        tags.includes('financial') || tags.includes('bank') ? 'financial' :
+        tags.includes('energy') || tags.includes('oil') || tags.includes('gas') ? 'energy' :
+        tags.includes('telecom') ? 'telecom' :
+        tags.includes('media') ? 'media' : 'infrastructure';
+      events.push({
+        id: `otx_${pulse.id.slice(0, 8)}`,
+        type,
+        target: pulse.name.slice(0, 60),
+        attacker: pulse.malware_families?.[0] || undefined,
+        severity: tags.includes('critical') ? 'critical' : tags.includes('high') ? 'high' : tags.includes('low') ? 'low' : 'medium',
+        sector,
+        country,
+        timestamp: pulse.created,
+        description: (pulse.description || pulse.name).slice(0, 200),
+      });
+    }
+    console.log(`[CYBER] OTX returned ${events.length} pulses`);
+    return events;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchCyberEvents(): Promise<CyberEvent[]> {
+  if (cyberCache && Date.now() - cyberCache.fetchedAt < CYBER_CACHE_TTL) return cyberCache.data;
+
+  try {
+    const [articles, otxEvents] = await Promise.all([fetchCyberRSSArticles(), fetchOTXPulses()]);
+
+    let gptEvents: CyberEvent[] = [];
+    if (articles.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+      const articlesText = articles.slice(0, 25).map((a, i) =>
+        `${i + 1}. TITLE: ${a.title}\nDATE: ${a.pubDate}\nSUMMARY: ${a.description}`
+      ).join('\n\n');
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_completion_tokens: 2500,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a cyber threat intelligence analyst for a Middle East OSINT dashboard. Extract real cybersecurity incidents from news articles. Focus on: Iran, Israel, Gulf states (UAE, Saudi Arabia, Qatar, Bahrain), Lebanon, Egypt, Jordan, Turkey. Also include global APT campaigns, ransomware, and critical infrastructure attacks.
+
+Return a JSON array of 6-12 events. Each object MUST have:
+- id: string (e.g. "cy_001")
+- type: exactly one of "ddos"|"intrusion"|"malware"|"phishing"|"defacement"|"data_exfil"|"scada"
+- target: string (targeted org/system, max 60 chars)
+- attacker: string (threat actor/group if known, omit if unknown)
+- severity: exactly one of "critical"|"high"|"medium"|"low"
+- sector: exactly one of "government"|"military"|"financial"|"energy"|"telecom"|"media"|"infrastructure"
+- country: string (target country name)
+- timestamp: ISO 8601 string (use article pub date)
+- description: string (1-2 sentence intelligence-style summary, max 200 chars)
+
+Return ONLY a valid JSON array. No markdown, no explanation.`,
+          },
+          {
+            role: 'user',
+            content: `Extract cyber events from these recent cybersecurity news articles:\n\n${articlesText}`,
+          },
+        ],
+      });
+
+      const content = response.choices[0]?.message?.content?.trim() || '[]';
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as CyberEvent[];
+        gptEvents = parsed.filter(e => e.id && e.type && e.target && e.severity && e.sector && e.country && e.timestamp && e.description);
+      }
+      console.log(`[CYBER] GPT extracted ${gptEvents.length} events from ${articles.length} RSS articles`);
+    }
+
+    const merged = [...gptEvents, ...otxEvents];
+    const seen = new Set<string>();
+    const deduped = merged.filter(e => {
+      const key = e.target.toLowerCase().slice(0, 20);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 15);
+
+    if (deduped.length > 0) {
+      cyberCache = { data: deduped, fetchedAt: Date.now() };
+      return deduped;
+    }
+    throw new Error('No events extracted');
+  } catch (err) {
+    console.error('[CYBER] Fetch error:', err instanceof Error ? err.message : err);
+    return cyberCache?.data || [];
+  }
 }
 
 export async function registerRoutes(
@@ -2270,17 +2438,16 @@ export async function registerRoutes(
     res.json(generateCommodities());
   });
 
-  app.get('/api/events', (_req, res) => {
+  app.get('/api/events', async (_req, res) => {
+    const events = await fetchGDELTConflictEvents();
     res.json({
-      events: generateEvents(),
-      flights: generateFlights(),
-      ships: generateShips(),
+      events,
+      flights: [],
+      ships: [],
     });
   });
 
-  app.get('/api/telegram', (_req, res) => {
-    res.json(generateTelegram());
-  });
+  const LIVE_TELEGRAM_CHANNELS = ['CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel'];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
   const TELEGRAM_CACHE_TTL = 30 * 1000;
@@ -2442,6 +2609,23 @@ export async function registerRoutes(
     return promise;
   }
 
+  async function fetchLiveTelegram(): Promise<TelegramMessage[]> {
+    const results = await Promise.all(
+      LIVE_TELEGRAM_CHANNELS.map(ch => scrapeChannel(ch).catch(() => []))
+    );
+    const allMessages = results.flat();
+    allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return allMessages.slice(0, 50);
+  }
+
+  app.get('/api/telegram', async (_req, res) => {
+    try {
+      res.json(await fetchLiveTelegram());
+    } catch {
+      res.json([]);
+    }
+  });
+
   app.get('/api/telegram/live', async (req, res) => {
     const channelsParam = req.query.channels as string;
     if (!channelsParam) {
@@ -2542,22 +2726,27 @@ export async function registerRoutes(
     };
 
     send('commodities', generateCommodities());
-    send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
+    fetchGDELTConflictEvents().then(events => send('events', { events, flights: [], ships: [] }));
     generateNews().then(news => send('news', news));
-    send('sirens', generateSirens());
+    send('sirens', []);
     generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
     });
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
-    generateAIBriefLive([], generateTelegram().map(m => ({ ...m }) as ClassifiedMessage)).then(brief => send('ai-brief', brief));
-    send('telegram', generateTelegram());
-    send('cyber', generateCyberEvents());
+    fetchLiveTelegram().then(tgMsgs => {
+      send('telegram', tgMsgs);
+      const classified = tgMsgs.map(m => ({ ...m }) as ClassifiedMessage);
+      generateAIBriefLive([], classified).then(brief => send('ai-brief', brief));
+      classifyMessages(tgMsgs).then(c => send('classified', c));
+    }).catch(() => {
+      send('telegram', []);
+    });
+    fetchCyberEvents().then(events => send('cyber', events));
     fetchXFeeds().then(xPosts => send('x-feed', xPosts));
     fetchEarthquakes().then(eqs => send('earthquakes', eqs));
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
-    classifyMessages(generateTelegram()).then(classified => send('classified', classified));
     generateRedAlerts().then(alerts => {
       const analytics = generateAnalytics(alerts, classifiedMessageCache);
       send('analytics', analytics);
@@ -2569,26 +2758,30 @@ export async function registerRoutes(
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
     }), 8000));
-    intervals.push(setInterval(() => send('sirens', generateSirens()), 10000));
     intervals.push(setInterval(() => {
-      send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
-    }, 15000));
+      fetchGDELTConflictEvents().then(events => send('events', { events, flights: [], ships: [] }));
+    }, 60000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 20000));
-    intervals.push(setInterval(() => send('telegram', generateTelegram()), 25000));
+    intervals.push(setInterval(() => {
+      fetchLiveTelegram().then(tgMsgs => send('telegram', tgMsgs)).catch(() => {});
+    }, 30000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
-      const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
+      const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];
       const brief = await generateAIBriefLive(alerts, messages);
       send('ai-brief', brief);
     }, 60000));
-    intervals.push(setInterval(() => send('cyber', generateCyberEvents()), 45000));
     intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 30000));
     intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 15 * 60000));
+    intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 15 * 60000));
 
     intervals.push(setInterval(async () => {
-      const classified = await classifyMessages(generateTelegram());
-      send('classified', classified);
+      const tgMsgs = await fetchLiveTelegram().catch(() => []);
+      if (tgMsgs.length > 0) {
+        const classified = await classifyMessages(tgMsgs);
+        send('classified', classified);
+      }
     }, 30000));
 
     intervals.push(setInterval(async () => {
@@ -2612,8 +2805,9 @@ export async function registerRoutes(
     res.json(data);
   });
 
-  app.get('/api/cyber', (_req, res) => {
-    res.json(generateCyberEvents());
+  app.get('/api/cyber', async (_req, res) => {
+    const data = await fetchCyberEvents();
+    res.json(data);
   });
 
   app.get('/api/x-feed', async (_req, res) => {
