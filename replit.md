@@ -42,7 +42,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 11. **Israel Red Alert (Tzeva Adom)** - Multi-country alert system (57 cities across 12 countries: Israel, Lebanon, Iran, Syria, Iraq, Saudi Arabia, Yemen, UAE, Jordan, Kuwait, Bahrain, Qatar). Redesigned after tzevaadom.co.il: solid red header when active, city/country search filter, country filter tabs (ALL + per-country), country-grouped headers with distinct colors, region-grouped alerts with sticky headers, countdown timers, pulsing active indicators, integrated sirens section (amber), trilingual support (EN/AR/HE)
 12. **Alert Sound System** - Web Audio API sine-wave tone on new red alerts/sirens, with sound toggle
 13. **Panel Close/Reopen** - 8 closeable panels with reopen tabs in status bar
-14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 24 tracked aircraft, filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Also rendered as toggleable layer on the 3D map.
+14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 40 tracked aircraft (23 commercial, 6 military, 6 surveillance, 3 cargo, 1 government, 1 private), filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Civil aviation includes BAW, DLH, AFR, AAL, KAL, CCA, SIA, ETH, IRM, UAL, ACA, VIR, QFA, JAL, GFA, ETD. Also rendered as toggleable layer on the 3D map.
 
 ## Enhancement Features (T001-T005)
 15. **Fullscreen/Maximize Panels** - PanelMaximizeButton on all major panels (Map, ADS-B, AI Intel, Red Alert). Click to expand to 100% of panel area. Escape key restores.
@@ -69,7 +69,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - `GET /api/telegram` - Telegram channel messages (polled every 25s)
 - `GET /api/ai-brief` - AI intelligence brief with key developments (polled every 60s)
 - `POST /api/ai-deduct` - AI deduction/forecasting (on-demand)
-- `GET /api/adsb` - ADS-B flight tracking data, 24 aircraft (polled every 6s)
+- `GET /api/adsb` - ADS-B flight tracking data, 40 aircraft (polled every 6s)
 - `GET /api/alert-history` - 50 historical alerts with resolved status (on-demand)
 
 ## Panel System
