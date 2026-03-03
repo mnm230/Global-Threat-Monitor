@@ -766,6 +766,10 @@ interface TooltipInfo {
   y: number;
   text: string;
   detail?: string;
+  category?: string;
+  accentColor?: string;
+  coords?: { lat: number; lng: number };
+  timestamp?: string;
 }
 
 interface MeasurePoint {
@@ -942,29 +946,53 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       let detail = '';
       const layerId = info.layer.id;
 
+      let category = '';
+      let accentColor = '#ef4444';
+      let coords: { lat: number; lng: number } | undefined;
+      let timestamp: string | undefined;
+
       if (layerId === 'events-layer') {
         const e = obj as unknown as ConflictEvent;
         text = language === 'ar' && e.titleAr ? e.titleAr : e.title;
-        detail = `${e.type} | ${e.severity}`;
+        detail = `${e.type.toUpperCase()} · ${e.severity}`;
+        category = e.type;
+        const c = EVENT_COLORS[e.type] || [239, 68, 68];
+        accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
+        coords = { lat: e.lat, lng: e.lng };
+        timestamp = e.timestamp;
       } else if (layerId === 'flights-layer') {
         const f = obj as unknown as FlightData;
         text = f.callsign;
-        detail = `${f.type} | Alt: ${f.altitude}ft | ${f.speed}kts`;
+        detail = `${f.type} · Alt: ${f.altitude}ft · ${f.speed}kts`;
+        category = 'flight';
+        const c = FLIGHT_COLORS[f.type] || [34, 197, 94];
+        accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
+        coords = { lat: f.lat, lng: f.lng };
       } else if (layerId === 'ships-layer') {
         const s = obj as unknown as ShipData;
         text = s.name;
-        detail = `${s.type} | ${s.flag} | ${s.speed}kts`;
+        detail = `${s.type} · ${s.flag} · ${s.speed}kts`;
+        category = 'ship';
+        const c = SHIP_COLORS[s.type] || [59, 130, 246];
+        accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
+        coords = { lat: s.lat, lng: s.lng };
       } else if (layerId === 'adsb-layer') {
         text = `${obj.callsign} (${obj.hex})`;
-        detail = `${obj.aircraft} | ${obj.country} | ${obj.altitude}ft`;
+        detail = `${obj.aircraft} · ${obj.country} · ${obj.altitude}ft`;
+        category = 'adsb';
+        accentColor = '#22d3ee';
+        coords = { lat: obj.lat as number, lng: obj.lng as number };
       } else {
         text = (obj.name as string) || '';
         const detailParts = [obj.type || obj.system || obj.capacity, obj.operator || obj.group || obj.force, obj.country].filter(Boolean);
-        detail = detailParts.join(' | ');
+        detail = detailParts.join(' · ');
+        category = 'infrastructure';
+        accentColor = '#3b82f6';
+        if (obj.lat && obj.lng) coords = { lat: obj.lat as number, lng: obj.lng as number };
       }
 
       if (text) {
-        setTooltip(prev => prev?.text === text ? null : { x: info.x, y: info.y, text, detail });
+        setTooltip(prev => prev?.text === text ? null : { x: info.x, y: info.y, text, detail, category, accentColor, coords, timestamp });
       }
     } else {
       setTooltip(null);
@@ -999,26 +1027,54 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           if (layer.id.includes('boundary') || layer.id.includes('border') || layer.id.includes('admin')) {
             try {
               if (layer.type === 'line') {
-                map.setPaintProperty(layer.id, 'line-opacity', 0.7);
-                map.setPaintProperty(layer.id, 'line-color', '#556677');
+                map.setPaintProperty(layer.id, 'line-opacity', 0.35);
+                map.setPaintProperty(layer.id, 'line-color', '#2a3344');
+                map.setPaintProperty(layer.id, 'line-width', 0.6);
               }
             } catch {}
           }
           if (layer.id.includes('water') && layer.type === 'fill') {
             try {
-              map.setPaintProperty(layer.id, 'fill-color', '#0d1b2a');
+              map.setPaintProperty(layer.id, 'fill-color', '#080c14');
             } catch {}
           }
           if (layer.type === 'background') {
             try {
-              map.setPaintProperty(layer.id, 'background-color', '#0a0e17');
+              map.setPaintProperty(layer.id, 'background-color', '#06090f');
             } catch {}
           }
           if (layer.id.includes('landcover') || layer.id.includes('landuse')) {
             try {
               if (layer.type === 'fill') {
-                map.setPaintProperty(layer.id, 'fill-opacity', 0.15);
+                map.setPaintProperty(layer.id, 'fill-opacity', 0.06);
               }
+            } catch {}
+          }
+          if (layer.id.includes('label') || layer.id.includes('place') || layer.id.includes('poi')) {
+            try {
+              if (layer.type === 'symbol') {
+                map.setPaintProperty(layer.id, 'text-opacity', 0.4);
+                map.setPaintProperty(layer.id, 'text-color', '#4a5568');
+              }
+            } catch {}
+          }
+          if (layer.id.includes('road') || layer.id.includes('highway') || layer.id.includes('tunnel') || layer.id.includes('bridge')) {
+            try {
+              if (layer.type === 'line') {
+                map.setPaintProperty(layer.id, 'line-opacity', 0.12);
+              }
+            } catch {}
+          }
+          if (layer.id.includes('building')) {
+            try {
+              if (layer.type === 'fill') {
+                map.setPaintProperty(layer.id, 'fill-opacity', 0.04);
+              }
+            } catch {}
+          }
+          if (layer.id.includes('land') && layer.type === 'fill' && !layer.id.includes('landcover') && !layer.id.includes('landuse')) {
+            try {
+              map.setPaintProperty(layer.id, 'fill-color', '#0c1018');
             } catch {}
           }
         }
@@ -1242,16 +1298,44 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     if (layerVisibility.events) {
       result.push(
         new ScatterplotLayer({
+          id: 'events-glow-layer',
+          data: events,
+          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 2200,
+          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 25] as [number, number, number, number],
+          stroked: false,
+          radiusMinPixels: 12,
+          radiusMaxPixels: 50,
+          pickable: false,
+        })
+      );
+      result.push(
+        new ScatterplotLayer({
+          id: 'events-ring-layer',
+          data: events,
+          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 1400,
+          getFillColor: [0, 0, 0, 0],
+          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 60] as [number, number, number, number],
+          stroked: true,
+          lineWidthMinPixels: 1,
+          radiusMinPixels: 8,
+          radiusMaxPixels: 35,
+          pickable: false,
+        })
+      );
+      result.push(
+        new ScatterplotLayer({
           id: 'events-layer',
           data: events,
           getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 800,
-          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 120] as [number, number, number, number],
-          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 200] as [number, number, number, number],
+          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 600,
+          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 200] as [number, number, number, number],
+          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 255] as [number, number, number, number],
           stroked: true,
-          lineWidthMinPixels: 2,
+          lineWidthMinPixels: 1.5,
           radiusMinPixels: 4,
-          radiusMaxPixels: 20,
+          radiusMaxPixels: 14,
           pickable: true,
         })
       );
@@ -1284,16 +1368,29 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     if (layerVisibility.flights) {
       result.push(
         new ScatterplotLayer({
+          id: 'flights-glow-layer',
+          data: flights,
+          getPosition: (d: FlightData) => [d.lng, d.lat],
+          getRadius: 12000,
+          getFillColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 20] as [number, number, number, number],
+          stroked: false,
+          radiusMinPixels: 8,
+          radiusMaxPixels: 30,
+          pickable: false,
+        })
+      );
+      result.push(
+        new ScatterplotLayer({
           id: 'flights-layer',
           data: flights,
           getPosition: (d: FlightData) => [d.lng, d.lat],
-          getRadius: 4000,
-          getFillColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 180] as [number, number, number, number],
-          getLineColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 230] as [number, number, number, number],
+          getRadius: 3000,
+          getFillColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 220] as [number, number, number, number],
+          getLineColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 255] as [number, number, number, number],
           stroked: true,
-          lineWidthMinPixels: 2,
+          lineWidthMinPixels: 1,
           radiusMinPixels: 3,
-          radiusMaxPixels: 12,
+          radiusMaxPixels: 10,
           pickable: true,
         })
       );
@@ -1302,16 +1399,29 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     if (layerVisibility.ships) {
       result.push(
         new ScatterplotLayer({
+          id: 'ships-glow-layer',
+          data: ships,
+          getPosition: (d: ShipData) => [d.lng, d.lat],
+          getRadius: 14000,
+          getFillColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 18] as [number, number, number, number],
+          stroked: false,
+          radiusMinPixels: 8,
+          radiusMaxPixels: 30,
+          pickable: false,
+        })
+      );
+      result.push(
+        new ScatterplotLayer({
           id: 'ships-layer',
           data: ships,
           getPosition: (d: ShipData) => [d.lng, d.lat],
-          getRadius: 5000,
-          getFillColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 150] as [number, number, number, number],
-          getLineColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 220] as [number, number, number, number],
+          getRadius: 4000,
+          getFillColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 200] as [number, number, number, number],
+          getLineColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 255] as [number, number, number, number],
           stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
+          lineWidthMinPixels: 1,
+          radiusMinPixels: 3,
+          radiusMaxPixels: 12,
           pickable: true,
         })
       );
@@ -1336,16 +1446,29 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     if (layerVisibility.militaryBases) {
       result.push(
         new ScatterplotLayer({
+          id: 'military-bases-glow',
+          data: MILITARY_BASES,
+          getPosition: (d: (typeof MILITARY_BASES)[0]) => [d.lng, d.lat],
+          getRadius: 18000,
+          getFillColor: [59, 130, 246, 15],
+          stroked: false,
+          radiusMinPixels: 10,
+          radiusMaxPixels: 35,
+          pickable: false,
+        })
+      );
+      result.push(
+        new ScatterplotLayer({
           id: 'military-bases-layer',
           data: MILITARY_BASES,
           getPosition: (d: (typeof MILITARY_BASES)[0]) => [d.lng, d.lat],
-          getRadius: 8000,
-          getFillColor: [59, 130, 246, 140],
-          getLineColor: [59, 130, 246, 220],
+          getRadius: 5000,
+          getFillColor: [59, 130, 246, 180],
+          getLineColor: [59, 130, 246, 255],
           stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 16,
+          lineWidthMinPixels: 1,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 10,
           pickable: true,
         })
       );
@@ -1357,13 +1480,13 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           id: 'nuclear-layer',
           data: NUCLEAR_FACILITIES,
           getPosition: (d: (typeof NUCLEAR_FACILITIES)[0]) => [d.lng, d.lat],
-          getRadius: 10000,
-          getFillColor: [168, 85, 247, 160],
-          getLineColor: [168, 85, 247, 240],
+          getRadius: 6000,
+          getFillColor: [168, 85, 247, 180],
+          getLineColor: [168, 85, 247, 255],
           stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 18,
+          lineWidthMinPixels: 1,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 12,
           pickable: true,
         })
       );
@@ -2222,12 +2345,13 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           style={{
             display: 'flex',
             flexDirection: 'column',
-            background: 'rgba(5,8,16,0.92)',
-            backdropFilter: 'blur(14px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 10,
+            background: 'rgba(6,9,15,0.85)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 8,
             overflow: 'hidden',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+            minWidth: mapToolsOpen ? 180 : 'auto',
           }}
         >
           <button
@@ -2237,50 +2361,50 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              padding: '7px 10px',
+              padding: '6px 10px',
               background: 'none',
               border: 'none',
-              borderBottom: mapToolsOpen ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              borderBottom: mapToolsOpen ? '1px solid rgba(255,255,255,0.04)' : 'none',
               cursor: 'pointer',
-              color: '#d1d5db',
-              minHeight: 32,
+              color: '#8892a4',
+              minHeight: 30,
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5a6577" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
               {language === 'ar' ? 'أدوات' : 'TOOLS'}
             </span>
-            <span style={{ fontSize: 8, color: '#6b7280', marginLeft: 'auto' }}>{mapToolsOpen ? '▲' : '▼'}</span>
+            <span style={{ fontSize: 7, color: '#3d4555', marginLeft: 'auto' }}>{mapToolsOpen ? '▲' : '▼'}</span>
           </button>
 
           {mapToolsOpen && (
-            <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ padding: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ display: 'flex', gap: 3 }}>
                 <button
                   data-testid="button-toggle-globe"
                   onClick={toggleGlobe}
                   style={{
                     flex: 1,
-                    padding: '5px 8px',
-                    fontSize: 10,
+                    padding: '4px 6px',
+                    fontSize: 9,
                     fontWeight: 600,
                     fontFamily: 'monospace',
-                    borderRadius: 5,
-                    border: `1px solid ${isGlobe ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                    background: isGlobe ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
-                    color: isGlobe ? '#93c5fd' : '#9ca3af',
+                    borderRadius: 4,
+                    border: `1px solid ${isGlobe ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    background: isGlobe ? 'rgba(59,130,246,0.12)' : 'rgba(255,255,255,0.02)',
+                    color: isGlobe ? '#93c5fd' : '#5a6577',
                     cursor: 'pointer',
-                    minHeight: 28,
+                    minHeight: 26,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: 3,
                   }}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
                   </svg>
                   {isGlobe ? '3D' : '2D'}
@@ -2290,23 +2414,23 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                   onClick={toggleMeasureMode}
                   style={{
                     flex: 1,
-                    padding: '5px 8px',
-                    fontSize: 10,
+                    padding: '4px 6px',
+                    fontSize: 9,
                     fontWeight: 600,
                     fontFamily: 'monospace',
-                    borderRadius: 5,
-                    border: `1px solid ${measureMode ? 'rgba(250,204,21,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                    background: measureMode ? 'rgba(250,204,21,0.15)' : 'rgba(255,255,255,0.04)',
-                    color: measureMode ? '#fde047' : '#9ca3af',
+                    borderRadius: 4,
+                    border: `1px solid ${measureMode ? 'rgba(250,204,21,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    background: measureMode ? 'rgba(250,204,21,0.1)' : 'rgba(255,255,255,0.02)',
+                    color: measureMode ? '#fde047' : '#5a6577',
                     cursor: 'pointer',
-                    minHeight: 28,
+                    minHeight: 26,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 4,
+                    gap: 3,
                   }}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
                     <path d="m14.5 12.5 2-2" /><path d="m11.5 9.5 2-2" /><path d="m8.5 6.5 2-2" /><path d="m17.5 15.5 2-2" />
                   </svg>
@@ -2314,7 +2438,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                 </button>
               </div>
 
-              <div style={{ display: 'flex', gap: 3 }}>
+              <div style={{ display: 'flex', gap: 2 }}>
                 {(['global', 'mena', 'gulf', 'levant'] as const).map(region => (
                   <button
                     key={region}
@@ -2322,18 +2446,18 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                     onClick={() => setRegion(region)}
                     style={{
                       flex: 1,
-                      padding: '4px 2px',
-                      fontSize: 9,
+                      padding: '3px 2px',
+                      fontSize: 8,
                       fontWeight: 600,
                       fontFamily: 'monospace',
-                      borderRadius: 4,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      background: 'rgba(255,255,255,0.04)',
-                      color: '#9ca3af',
+                      borderRadius: 3,
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      background: 'rgba(255,255,255,0.02)',
+                      color: '#5a6577',
                       cursor: 'pointer',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
-                      minHeight: 24,
+                      minHeight: 22,
                     }}
                   >
                     {region === 'global' ? 'ALL' : region === 'levant' ? 'LEV' : region.toUpperCase()}
@@ -2343,15 +2467,15 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
 
               <div style={{ position: 'relative' }}>
                 <svg
-                  width="12"
-                  height="12"
+                  width="11"
+                  height="11"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#666"
+                  stroke="#3d4555"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}
+                  style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}
                 >
                   <circle cx="11" cy="11" r="8" />
                   <path d="M21 21l-4.35-4.35" />
@@ -2372,16 +2496,16 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                   placeholder={language === 'ar' ? 'بحث...' : 'Search...'}
                   style={{
                     width: '100%',
-                    padding: '6px 26px 6px 26px',
-                    fontSize: 11,
+                    padding: '5px 24px 5px 24px',
+                    fontSize: 10,
                     fontWeight: 500,
-                    borderRadius: 5,
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(255,255,255,0.04)',
-                    color: '#ddd',
+                    borderRadius: 4,
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(255,255,255,0.02)',
+                    color: '#aaa',
                     backdropFilter: 'blur(8px)',
                     outline: 'none',
-                    minHeight: 28,
+                    minHeight: 26,
                     fontFamily: 'monospace',
                     boxSizing: 'border-box',
                   }}
@@ -2397,15 +2521,15 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
-                      color: '#666',
+                      color: '#444',
                       cursor: 'pointer',
-                      fontSize: 13,
+                      fontSize: 12,
                       padding: '2px 4px',
                       lineHeight: 1,
                     }}
                     aria-label="Clear search"
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 6L6 18" /><path d="M6 6l12 12" />
                     </svg>
                   </button>
@@ -2420,14 +2544,14 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                       top: '100%',
                       left: 0,
                       right: 0,
-                      marginTop: 4,
-                      background: 'rgba(10, 10, 20, 0.95)',
-                      backdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(255,255,255,0.12)',
+                      marginTop: 3,
+                      background: 'rgba(8, 10, 18, 0.96)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
                       borderRadius: 6,
                       overflow: 'hidden',
                       zIndex: 30,
-                      maxHeight: 260,
+                      maxHeight: 240,
                       overflowY: 'auto',
                     }}
                   >
@@ -2446,24 +2570,24 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                             display: 'flex',
                             alignItems: 'center',
                             gap: 6,
-                            padding: '6px 8px',
-                            background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                            padding: '5px 8px',
+                            background: isActive ? 'rgba(59,130,246,0.15)' : 'transparent',
                             border: 'none',
-                            borderBottom: idx < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                            borderBottom: idx < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                             cursor: 'pointer',
                             textAlign: 'left',
-                            minHeight: 34,
+                            minHeight: 32,
                           }}
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.7 }}>
                             <path d={iconPath} />
                           </svg>
                           <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{ color: '#eee', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ color: '#ccc', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.name}
                             </div>
-                            <div style={{ color: '#666', fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.category} | {item.detail}
+                            <div style={{ color: '#444', fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.category} · {item.detail}
                             </div>
                           </div>
                         </button>
@@ -2479,16 +2603,16 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                       top: '100%',
                       left: 0,
                       right: 0,
-                      marginTop: 4,
-                      background: 'rgba(10, 10, 20, 0.95)',
-                      backdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(255,255,255,0.12)',
+                      marginTop: 3,
+                      background: 'rgba(8, 10, 18, 0.96)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(255,255,255,0.08)',
                       borderRadius: 6,
-                      padding: '10px 8px',
+                      padding: '8px',
                       zIndex: 30,
                     }}
                   >
-                    <div style={{ color: '#666', fontSize: 10, textAlign: 'center', fontFamily: 'monospace' }}>
+                    <div style={{ color: '#444', fontSize: 9, textAlign: 'center', fontFamily: 'monospace' }}>
                       {language === 'ar' ? 'لا توجد نتائج' : 'No results'}
                     </div>
                   </div>
@@ -2499,38 +2623,95 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         </div>
       </div>
 
-      <div className="absolute top-3 right-3 z-10 flex flex-col" style={{ maxHeight: 'calc(100% - 24px)' }}>
+      {/* Zoom controls - liveuamap style */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 12,
+          bottom: 60,
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+        }}
+      >
+        <button
+          data-testid="button-zoom-in"
+          onClick={() => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 1, 18) }))}
+          style={{
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(6,9,15,0.8)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '6px 6px 0 0',
+            color: '#8892a4',
+            cursor: 'pointer',
+            fontSize: 16,
+            fontWeight: 300,
+            lineHeight: 1,
+          }}
+        >
+          +
+        </button>
+        <button
+          data-testid="button-zoom-out"
+          onClick={() => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 1) }))}
+          style={{
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(6,9,15,0.8)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderTop: 'none',
+            borderRadius: '0 0 6px 6px',
+            color: '#8892a4',
+            cursor: 'pointer',
+            fontSize: 16,
+            fontWeight: 300,
+            lineHeight: 1,
+          }}
+        >
+          −
+        </button>
+      </div>
+
+      <div className="absolute top-3 right-3 z-10 flex flex-col" style={{ maxHeight: 'calc(100% - 80px)' }}>
         <div
           className="flex flex-col overflow-hidden"
           style={{
-            background: 'rgba(5,8,16,0.93)',
-            backdropFilter: 'blur(14px)',
-            border: '1px solid rgba(245,158,11,0.18)',
-            borderRadius: 10,
-            boxShadow: '0 4px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
-            minWidth: panelOpen ? 210 : 'auto',
-            maxWidth: 230,
+            background: 'rgba(6,9,15,0.85)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.05)',
+            borderRadius: 8,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+            minWidth: panelOpen ? 190 : 'auto',
+            maxWidth: 210,
           }}
         >
-          {/* Header */}
           <button
             data-testid="button-toggle-layers-panel"
             onClick={() => setPanelOpen(!panelOpen)}
-            className="flex items-center justify-between gap-2 px-3 py-2 w-full text-left"
-            style={{ borderBottom: panelOpen ? '1px solid rgba(245,158,11,0.12)' : 'none' }}
+            className="flex items-center justify-between gap-2 px-2.5 py-1.5 w-full text-left"
+            style={{ borderBottom: panelOpen ? '1px solid rgba(255,255,255,0.04)' : 'none', minHeight: 30 }}
           >
             <div className="flex items-center gap-2">
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px #f59e0b' }} />
-              <span style={{ color: '#e5c97a', fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#8892a4', boxShadow: '0 0 4px #8892a455' }} />
+              <span style={{ color: '#8892a4', fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
                 LAYERS
               </span>
             </div>
-            <span style={{ color: '#6b7280', fontSize: 9, fontFamily: 'monospace', fontWeight: 600 }}>
+            <span style={{ color: '#3d4555', fontSize: 8, fontFamily: 'monospace', fontWeight: 600 }}>
               {activeLayerCount}{panelOpen ? ' ▲' : ' ▼'}
             </span>
           </button>
 
-          {/* Groups */}
           {panelOpen && (
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
               {LAYER_GROUPS.map(group => {
@@ -2538,19 +2719,19 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                 const activeInGroup = groupLayers.filter(c => layerVisibility[c.key]).length;
                 const isExpanded = expandedGroups[group.id];
                 return (
-                  <div key={group.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div className="flex items-center" style={{ padding: '3px 6px 3px 8px', gap: 4 }}>
+                  <div key={group.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                    <div className="flex items-center" style={{ padding: '2px 5px 2px 7px', gap: 3 }}>
                       <button
                         data-testid={`toggle-group-${group.id}`}
                         onClick={() => toggleGroup(group.id)}
                         className="flex items-center gap-1.5 flex-1 text-left"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 0', minHeight: 26 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', minHeight: 24 }}
                       >
-                        <span style={{ color: group.color, fontSize: 7, opacity: 0.8 }}>{isExpanded ? '▼' : '▶'}</span>
-                        <span style={{ color: group.color, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+                        <span style={{ color: group.color, fontSize: 6, opacity: 0.6 }}>{isExpanded ? '▼' : '▶'}</span>
+                        <span style={{ color: group.color, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', fontFamily: 'monospace', textTransform: 'uppercase', opacity: 0.8 }}>
                           {group.label}
                         </span>
-                        <span style={{ color: '#374151', fontSize: 8, fontFamily: 'monospace', marginLeft: 2 }}>
+                        <span style={{ color: '#2a3040', fontSize: 7, fontFamily: 'monospace', marginLeft: 2 }}>
                           {activeInGroup}/{groupLayers.length}
                         </span>
                       </button>
@@ -2558,33 +2739,33 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                         data-testid={`toggle-all-${group.id}`}
                         onClick={() => toggleAllInGroup(group.id, activeInGroup < groupLayers.length)}
                         style={{
-                          background: activeInGroup > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
+                          background: activeInGroup > 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.05)',
                           borderRadius: 3,
-                          color: activeInGroup > 0 ? '#d97706' : '#4b5563',
+                          color: activeInGroup > 0 ? '#5a6577' : '#2a3040',
                           cursor: 'pointer',
-                          fontSize: 8,
+                          fontSize: 7,
                           fontFamily: 'monospace',
                           fontWeight: 700,
-                          padding: '2px 5px',
+                          padding: '1px 4px',
                           letterSpacing: '0.05em',
-                          minHeight: 20,
+                          minHeight: 18,
                         }}
                       >
                         {activeInGroup === groupLayers.length ? 'OFF' : 'ALL'}
                       </button>
                     </div>
                     {isExpanded && (
-                      <div style={{ paddingBottom: 2 }}>
+                      <div style={{ paddingBottom: 1 }}>
                         {groupLayers.map(cfg => (
                           <label
                             key={cfg.key}
                             data-testid={`toggle-layer-${cfg.key}`}
-                            className="flex items-center gap-2 cursor-pointer select-none"
+                            className="flex items-center gap-1.5 cursor-pointer select-none"
                             style={{
-                              padding: '3px 8px 3px 20px',
-                              minHeight: 24,
-                              background: layerVisibility[cfg.key] ? 'rgba(255,255,255,0.025)' : 'transparent',
+                              padding: '2px 6px 2px 16px',
+                              minHeight: 22,
+                              background: layerVisibility[cfg.key] ? 'rgba(255,255,255,0.015)' : 'transparent',
                               transition: 'background 0.15s',
                             }}
                           >
@@ -2595,26 +2776,14 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                               style={{ display: 'none' }}
                             />
                             <span style={{
-                              width: 22, height: 11, borderRadius: 6, flexShrink: 0,
-                              background: layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.06)',
-                              border: `1px solid ${layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.1)'}`,
-                              boxShadow: layerVisibility[cfg.key] ? `0 0 6px ${cfg.color}55` : 'none',
-                              position: 'relative',
-                              display: 'inline-flex',
-                              alignItems: 'center',
+                              width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                              background: layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.08)',
+                              boxShadow: layerVisibility[cfg.key] ? `0 0 5px ${cfg.color}66` : 'none',
                               transition: 'all 0.15s',
-                            }}>
-                              <span style={{
-                                position: 'absolute',
-                                width: 7, height: 7, borderRadius: '50%',
-                                background: layerVisibility[cfg.key] ? '#fff' : 'rgba(255,255,255,0.25)',
-                                left: layerVisibility[cfg.key] ? 13 : 2,
-                                transition: 'left 0.15s',
-                              }} />
-                            </span>
+                            }} />
                             <span style={{
-                              fontSize: 10,
-                              color: layerVisibility[cfg.key] ? '#d1d5db' : '#4b5563',
+                              fontSize: 9,
+                              color: layerVisibility[cfg.key] ? '#9aa3b4' : '#2d3545',
                               fontFamily: 'monospace',
                               lineHeight: 1.2,
                               transition: 'color 0.15s',
@@ -2635,27 +2804,89 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
 
       {tooltip && (
         <div
+          data-testid="map-popup-card"
           onClick={() => setTooltip(null)}
           style={{
             position: 'absolute',
-            left: Math.min(tooltip.x + 12, (containerRef.current?.clientWidth || 400) - 260),
-            top: Math.max(tooltip.y - 12, 8),
+            left: Math.min(tooltip.x + 14, (containerRef.current?.clientWidth || 400) - 300),
+            top: Math.max(tooltip.y - 14, 8),
             zIndex: 20,
-            background: 'rgba(0,0,0,0.9)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 6,
-            padding: '8px 12px',
+            background: 'rgba(8,10,18,0.95)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 8,
+            overflow: 'hidden',
             pointerEvents: 'auto',
-            maxWidth: 260,
+            maxWidth: 300,
+            minWidth: 200,
             cursor: 'pointer',
+            boxShadow: `0 8px 32px rgba(0,0,0,0.7), 0 0 1px ${tooltip.accentColor || '#ef4444'}40`,
+            display: 'flex',
+            flexDirection: 'row',
           }}
         >
-          <div style={{ color: '#eee', fontSize: 12, fontWeight: 600 }}>{tooltip.text}</div>
-          {tooltip.detail && (
-            <div style={{ color: '#999', fontSize: 11, marginTop: 2 }}>{tooltip.detail}</div>
-          )}
-          <div style={{ color: '#555', fontSize: 9, marginTop: 4 }}>Tap to dismiss</div>
+          <div style={{
+            width: 3,
+            minHeight: '100%',
+            background: tooltip.accentColor || '#ef4444',
+            flexShrink: 0,
+            boxShadow: `0 0 8px ${tooltip.accentColor || '#ef4444'}60`,
+          }} />
+          <div style={{ padding: '10px 14px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              {tooltip.category && (
+                <span style={{
+                  fontSize: 8,
+                  fontWeight: 700,
+                  fontFamily: 'monospace',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: tooltip.accentColor || '#ef4444',
+                  background: `${tooltip.accentColor || '#ef4444'}15`,
+                  padding: '2px 6px',
+                  borderRadius: 3,
+                }}>
+                  {tooltip.category}
+                </span>
+              )}
+              {tooltip.timestamp && (
+                <span style={{ fontSize: 9, color: '#555', fontFamily: 'monospace', marginLeft: 'auto' }}>
+                  {new Date(tooltip.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+            <div style={{
+              color: '#e8e8e8',
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: 1.3,
+              marginBottom: 4,
+              wordBreak: 'break-word',
+            }}>
+              {tooltip.text}
+            </div>
+            {tooltip.detail && (
+              <div style={{ color: '#777', fontSize: 10, fontFamily: 'monospace', marginBottom: 4 }}>
+                {tooltip.detail}
+              </div>
+            )}
+            {tooltip.coords && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <span style={{ fontSize: 9, color: '#444', fontFamily: 'monospace' }}>
+                  {tooltip.coords.lat.toFixed(4)}°, {tooltip.coords.lng.toFixed(4)}°
+                </span>
+                <a
+                  href={`https://www.google.com/maps?q=${tooltip.coords.lat},${tooltip.coords.lng}&z=10&t=k`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ fontSize: 8, color: '#4a90d9', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
+                >
+                  MAP ↗
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -2667,32 +2898,33 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             bottom: 12,
             left: 12,
             zIndex: 20,
-            background: 'rgba(0,0,0,0.9)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,0,0.3)',
-            borderRadius: 8,
-            padding: '8px 14px',
+            background: 'rgba(6,9,15,0.9)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(250,204,21,0.15)',
+            borderRadius: 6,
+            padding: '8px 12px',
             pointerEvents: 'none',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
           }}
         >
-          <div style={{ color: '#ffff00', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-            {language === 'ar' ? 'اداة القياس' : 'Distance Tool'}
+          <div style={{ color: '#b8a44e', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4, fontFamily: 'monospace' }}>
+            {language === 'ar' ? 'اداة القياس' : 'Distance'}
           </div>
           {measureCenter && measureDistance !== null ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ color: '#ddd', fontSize: 13, fontWeight: 600, fontFamily: 'monospace' }}>
                 {measureDistance < 1 ? `${(measureDistance * 1000).toFixed(0)} m` : `${measureDistance.toFixed(1)} km`}
               </div>
-              <div style={{ color: '#888', fontSize: 10 }}>
-                {(measureDistance * 0.539957).toFixed(1)} nm | {(measureDistance * 0.621371).toFixed(1)} mi
+              <div style={{ color: '#5a6577', fontSize: 9, fontFamily: 'monospace' }}>
+                {(measureDistance * 0.539957).toFixed(1)} nm · {(measureDistance * 0.621371).toFixed(1)} mi
               </div>
-              <div style={{ color: '#666', fontSize: 9, marginTop: 2 }}>
+              <div style={{ color: '#3d4555', fontSize: 8, marginTop: 2 }}>
                 {language === 'ar' ? 'انقر لمسح' : 'Click to clear'}
               </div>
             </div>
           ) : (
-            <div style={{ color: '#888', fontSize: 11 }}>
-              {language === 'ar' ? 'انقر على الخريطة لتعيين نقطة المركز' : 'Click map to set center point'}
+            <div style={{ color: '#5a6577', fontSize: 10 }}>
+              {language === 'ar' ? 'انقر على الخريطة لتعيين نقطة المركز' : 'Click map to set center'}
             </div>
           )}
         </div>
