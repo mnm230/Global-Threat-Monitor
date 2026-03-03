@@ -2205,7 +2205,7 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
       <div className="flex-1 min-h-0 bg-black relative">
         <iframe
           key={currentVideoId}
-          src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1`}
+          src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0&rel=0&modestbranding=1`}
           className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
