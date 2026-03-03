@@ -777,8 +777,8 @@ const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
   { id: 'ra57', city: 'Doha', cityHe: 'דוחא', cityAr: 'الدوحة', region: 'Ad Dawhah', regionHe: 'אד-דוחה', regionAr: 'الدوحة', country: 'Qatar', countryCode: 'QA', countdown: 120, threatType: 'missiles', lat: 25.286, lng: 51.534 },
 ];
 
+const TZEVAADOM_API_URL = 'https://api.tzevaadom.co.il/notifications';
 const OREF_API_URL = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
-const OREF_HISTORY_URL = 'https://www.oref.org.il/WarningMessages/alert/History/AlertsHistory.json';
 
 const OREF_THREAT_MAP: Record<number, RedAlert['threatType']> = {
   1: 'rockets',
@@ -786,6 +786,9 @@ const OREF_THREAT_MAP: Record<number, RedAlert['threatType']> = {
   3: 'hostile_aircraft_intrusion',
   4: 'uav_intrusion',
   5: 'rockets',
+  6: 'rockets',
+  7: 'uav_intrusion',
+  13: 'missiles',
 };
 
 const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; ar: string; region: string; regionHe: string; regionAr: string; countdown: number }> = {
@@ -817,10 +820,243 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
   'עפולה': { lat: 32.608, lng: 35.289, en: 'Afula', ar: 'العفولة', region: 'Jezreel Valley', regionHe: 'עמק יזרעאל', regionAr: 'مرج ابن عامر', countdown: 45 },
   'דימונה': { lat: 31.069, lng: 35.033, en: 'Dimona', ar: 'ديمونا', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
   'ערד': { lat: 31.261, lng: 35.213, en: 'Arad', ar: 'عراد', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'גשר הזיו': { lat: 33.053, lng: 35.142, en: 'Gesher HaZiv', ar: 'جسر الزيو', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'מצובה': { lat: 33.076, lng: 35.191, en: 'Matzuva', ar: 'متسوبا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'סער': { lat: 33.030, lng: 35.114, en: "Sa'ar", ar: 'سعر', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'יערה': { lat: 33.065, lng: 35.238, en: "Ya'ara", ar: 'يعرا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'שלומי': { lat: 33.079, lng: 35.146, en: 'Shlomi', ar: 'شلومي', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'חניתה': { lat: 33.094, lng: 35.194, en: 'Hanita', ar: 'حنيتا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'ראש הנקרה': { lat: 33.104, lng: 35.114, en: 'Rosh HaNikra', ar: 'رأس الناقورة', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'בצת': { lat: 33.060, lng: 35.175, en: 'Betzet', ar: 'بيتست', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'לימן': { lat: 33.058, lng: 35.147, en: 'Liman', ar: 'ليمان', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'כברי': { lat: 33.025, lng: 35.141, en: 'Kabri', ar: 'كابري', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'אביבים': { lat: 33.136, lng: 35.545, en: 'Avivim', ar: 'أفيفيم', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'יפתח': { lat: 33.120, lng: 35.518, en: 'Yiftah', ar: 'يفتاح', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'מלכיה': { lat: 33.232, lng: 35.575, en: 'Malkia', ar: 'ملكية', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعלى', countdown: 0 },
+  'דפנה': { lat: 33.225, lng: 35.632, en: 'Dafna', ar: 'دافنا', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'שניר': { lat: 33.253, lng: 35.646, en: 'Snir', ar: 'سنير', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'מנרה': { lat: 33.233, lng: 35.541, en: 'Manara', ar: 'منارة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'יראון': { lat: 33.113, lng: 35.436, en: "Yir'on", ar: 'يرعون', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'מרגליות': { lat: 33.190, lng: 35.575, en: 'Margaliot', ar: 'مرغليوت', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'בירנית': { lat: 33.086, lng: 35.370, en: 'Biranit', ar: 'بيرانيت', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'זרעית': { lat: 33.093, lng: 35.278, en: 'Zar\'it', ar: 'زرعيت', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'שתולה': { lat: 33.091, lng: 35.322, en: 'Shtula', ar: 'شتولا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'דובב': { lat: 33.112, lng: 35.388, en: 'Dovev', ar: 'دوبيف', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'מעלות תרשיחא': { lat: 33.017, lng: 35.270, en: "Ma'alot-Tarshiha", ar: 'معالوت ترشيحا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'הגושרים': { lat: 33.218, lng: 35.625, en: 'HaGoshrim', ar: 'هجوشريم', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'בית הלל': { lat: 33.196, lng: 35.603, en: 'Beit Hillel', ar: 'بيت هيلل', region: 'Upper Galilee', regionHe: 'גליل עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'חוף בצת': { lat: 33.065, lng: 35.104, en: 'Hof Betzet', ar: 'شاطئ بيتست', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'חוף אכזיב': { lat: 33.049, lng: 35.106, en: 'Achziv Beach', ar: 'شاطئ أخزيف', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'עבדון': { lat: 33.020, lng: 35.176, en: 'Avdon', ar: 'عبدون', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'בן עמי': { lat: 33.007, lng: 35.133, en: "Ben Ami", ar: 'بن عمي', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'רמת טראמפ': { lat: 33.130, lng: 35.771, en: 'Ramat Trump', ar: 'رامات ترامب', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'שעל': { lat: 33.100, lng: 35.770, en: "Sha'al", ar: 'شعال', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'יונתן': { lat: 33.033, lng: 35.768, en: 'Yonatan', ar: 'يوناتان', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'כפר סבא': { lat: 32.175, lng: 34.907, en: 'Kfar Saba', ar: 'كفار سابا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'לוד': { lat: 31.951, lng: 34.892, en: 'Lod', ar: 'اللد', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'רמלה': { lat: 31.929, lng: 34.871, en: 'Ramla', ar: 'الرملة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'רחובות': { lat: 31.898, lng: 34.811, en: 'Rehovot', ar: 'رحوفوت', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'יבנה': { lat: 31.877, lng: 34.739, en: 'Yavne', ar: 'يبنة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 60 },
+  'גבעתיים': { lat: 32.071, lng: 34.812, en: "Giv'atayim", ar: 'جفعاتايم', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'ראש העין': { lat: 32.096, lng: 34.957, en: "Rosh HaAyin", ar: 'رأس العين', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'הוד השרון': { lat: 32.155, lng: 34.888, en: 'Hod HaSharon', ar: 'هود هشارون', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'רעננה': { lat: 32.184, lng: 34.871, en: "Ra'anana", ar: 'رعنانا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'רמת השרון': { lat: 32.145, lng: 34.839, en: 'Ramat HaSharon', ar: 'رمات هشارون', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'גני תקווה': { lat: 32.063, lng: 34.872, en: 'Ganei Tikva', ar: 'غاني تكفا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'קריית אונו': { lat: 32.063, lng: 34.855, en: 'Kiryat Ono', ar: 'كريات أونو', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'גבעת שמואל': { lat: 32.077, lng: 34.853, en: "Giv'at Shmuel", ar: 'جفعات شموئيل', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'אור יהודה': { lat: 32.031, lng: 34.852, en: 'Or Yehuda', ar: 'أور يهودا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'יהוד מונוסון': { lat: 32.033, lng: 34.886, en: 'Yehud-Monosson', ar: 'يهود', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'אלעד': { lat: 32.052, lng: 34.952, en: 'Elad', ar: 'إلعاد', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'שוהם': { lat: 31.996, lng: 34.946, en: 'Shoham', ar: 'شوهام', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'שדרות, איבים': { lat: 31.525, lng: 34.596, en: 'Sderot / Ivim', ar: 'سديروت', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'נתיב העשרה': { lat: 31.556, lng: 34.520, en: 'Netiv HaAsara', ar: 'نتيف هعسارا', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 0 },
+  'יד מרדכי': { lat: 31.588, lng: 34.557, en: 'Yad Mordechai', ar: 'ياد مردخاي', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'ניצנים': { lat: 31.711, lng: 34.544, en: 'Nitzanim', ar: 'نتسانيم', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30 },
+  'כרמיה': { lat: 31.579, lng: 34.540, en: 'Karmia', ar: 'كرميا', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'אפרת': { lat: 31.654, lng: 35.155, en: 'Efrat', ar: 'إفرات', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
+  'כפר עציון': { lat: 31.651, lng: 35.118, en: 'Kfar Etzion', ar: 'كفار عتصيون', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
+  'אריאל': { lat: 32.106, lng: 35.174, en: 'Ariel', ar: 'أريئيل', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'קרני שומרון': { lat: 32.178, lng: 35.098, en: 'Karnei Shomron', ar: 'كرني شومرون', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'כפר קאסם': { lat: 32.113, lng: 34.976, en: 'Kafr Qasim', ar: 'كفر قاسم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'עין בוקק': { lat: 31.200, lng: 35.363, en: 'Ein Bokek', ar: 'عين بوقيق', region: 'Dead Sea', regionHe: 'ים המלח', regionAr: 'البحر الميت', countdown: 90 },
+  'מצדה': { lat: 31.316, lng: 35.354, en: 'Masada', ar: 'مسادا', region: 'Dead Sea', regionHe: 'ים המלח', regionAr: 'البحر الميت', countdown: 90 },
+  'מרעית': { lat: 31.240, lng: 34.625, en: "Mar'it", ar: 'مرعيت', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'כסייפה': { lat: 31.230, lng: 34.974, en: 'Kuseife', ar: 'كسيفة', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'תל ערד': { lat: 31.280, lng: 35.130, en: 'Tel Arad', ar: 'تل عراد', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'תל אביב - דרום העיר ויפו': { lat: 32.052, lng: 34.759, en: 'Tel Aviv - South & Jaffa', ar: 'تل أبيب جنوب ويافا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'תל אביב - מזרח': { lat: 32.087, lng: 34.800, en: 'Tel Aviv - East', ar: 'تل أبيب شرق', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'תל אביב - מרכז העיר': { lat: 32.075, lng: 34.775, en: 'Tel Aviv - Center', ar: 'تل أبيب وسط', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'תל אביב - עבר הירקון': { lat: 32.100, lng: 34.790, en: 'Tel Aviv - North Yarkon', ar: 'تل أبيب شمال', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'הרצליה - מערב': { lat: 32.163, lng: 34.793, en: 'Herzliya West', ar: 'هرتسليا غرب', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'הרצליה - מרכז וגליל ים': { lat: 32.166, lng: 34.830, en: 'Herzliya Center', ar: 'هرتسليا وسط', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'ראשון לציון - מזרח': { lat: 31.970, lng: 34.820, en: 'Rishon LeZion East', ar: 'ريشون لتسيون شرق', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'ראשון לציון - מערב': { lat: 31.960, lng: 34.790, en: 'Rishon LeZion West', ar: 'ريشون لتسيون غرب', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'רמת גן - מזרח': { lat: 32.068, lng: 34.840, en: 'Ramat Gan East', ar: 'رمات غان شرق', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'רמת גן - מערב': { lat: 32.068, lng: 34.810, en: 'Ramat Gan West', ar: 'رمات غان غرب', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'סביון': { lat: 32.044, lng: 34.866, en: 'Savyon', ar: 'سافيون', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'מזרעה': { lat: 33.040, lng: 35.135, en: "Mazra'a", ar: 'مزرعة', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'שבי ציון': { lat: 33.005, lng: 35.082, en: 'Shavei Tzion', ar: 'شافي تسيون', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'רגבה': { lat: 33.016, lng: 35.156, en: 'Regba', ar: 'رجبة', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'איזור תעשייה מילואות צפון': { lat: 33.070, lng: 35.130, en: 'Northern Industrial Zone', ar: 'منطقة صناعية شمالية', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'אל פורעה': { lat: 31.193, lng: 34.776, en: "Al-Fur'a", ar: 'الفرعة', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'כפר הנוקדים': { lat: 31.521, lng: 35.218, en: 'Kfar HaNokdim', ar: 'كفار هنوقديم', region: 'Judean Desert', regionHe: 'מדבר יהודה', regionAr: 'صحراء يهودا', countdown: 60 },
+  'מלונות ים המלח מרכז': { lat: 31.170, lng: 35.363, en: 'Dead Sea Hotels Central', ar: 'فنادق البحر الميت', region: 'Dead Sea', regionHe: 'ים המלח', regionAr: 'البحر الميت', countdown: 90 },
+  'מרחצאות עין גדי': { lat: 31.454, lng: 35.384, en: 'Ein Gedi Spa', ar: 'حمامات عين جدي', region: 'Dead Sea', regionHe: 'ים המלח', regionAr: 'البحر الميت', countdown: 90 },
+  'חוות מנחם': { lat: 31.220, lng: 35.350, en: 'Havat Menachem', ar: 'حافات مناحيم', region: 'Dead Sea', regionHe: 'ים המלח', regionAr: 'البحر الميت', countdown: 90 },
+  'בית שקמה': { lat: 31.614, lng: 34.549, en: 'Beit Shikma', ar: 'بيت شقمة', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'ארז': { lat: 31.538, lng: 34.539, en: 'Erez', ar: 'إيرز', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 0 },
+  'דורות': { lat: 31.489, lng: 34.568, en: 'Dorot', ar: 'دوروت', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'גברעם': { lat: 31.530, lng: 34.602, en: "Gav'ram", ar: 'غافرام', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'חלץ': { lat: 31.547, lng: 34.608, en: 'Heletz', ar: 'حيلتس', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 30 },
+  'ניר עם': { lat: 31.550, lng: 34.565, en: 'Nir Am', ar: 'نير عام', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'עזר': { lat: 31.629, lng: 34.553, en: 'Ezer', ar: 'عيزر', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30 },
+  'מבקיעים': { lat: 31.558, lng: 34.560, en: "Mavki'im", ar: 'مافقيعيم', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'ברור חיל': { lat: 31.582, lng: 34.573, en: 'Bror Hayil', ar: 'برور حايل', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'משען': { lat: 31.621, lng: 34.559, en: "Mash'en", ar: 'مشعن', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'כפר סילבר': { lat: 31.578, lng: 34.553, en: 'Kfar Silver', ar: 'كفار سيلفر', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'גיאה': { lat: 31.613, lng: 34.563, en: "Ge'a", ar: 'جيعا', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30 },
+  'אור הנר': { lat: 31.539, lng: 34.598, en: 'Or HaNer', ar: 'أور هنير', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'בת הדר': { lat: 31.624, lng: 34.554, en: 'Bat HaDar', ar: 'بات هدار', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30 },
+  'תלמי יפה': { lat: 31.609, lng: 34.553, en: 'Talme Yafe', ar: 'تلمي يافا', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30 },
+  'נירית': { lat: 32.164, lng: 34.913, en: 'Nirit', ar: 'نيريت', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'צופית': { lat: 32.148, lng: 34.935, en: 'Tzofit', ar: 'تسوفيت', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'כפר שמריהו': { lat: 32.184, lng: 34.804, en: 'Kfar Shmaryahu', ar: 'كفار شمارياهو', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'אלקנה': { lat: 32.109, lng: 35.033, en: 'Elkana', ar: 'ألكانا', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'בית דגן': { lat: 32.004, lng: 34.833, en: 'Beit Dagan', ar: 'بيت دجن', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'באר יעקב': { lat: 31.943, lng: 34.834, en: "Be'er Ya'akov", ar: 'بئير يعقوب', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'נווה דניאל': { lat: 31.657, lng: 35.135, en: 'Neve Daniel', ar: 'نيفي دانيال', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
+  'אלון שבות': { lat: 31.655, lng: 35.127, en: 'Alon Shvut', ar: 'ألون شفوت', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
+  'ניר ישראל': { lat: 31.611, lng: 34.547, en: 'Nir Yisrael', ar: 'نير إسرائيل', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
 };
 
 let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
 const OREF_CACHE_TTL = 5000;
+
+function parseCityAlerts(cities: string[], threat: number, timestamp: string): RedAlert[] {
+  const alerts: RedAlert[] = [];
+  const threatType = OREF_THREAT_MAP[threat] || 'rockets';
+  for (const cityHe of cities) {
+    const trimmed = cityHe.trim();
+    if (!trimmed) continue;
+    const known = OREF_CITY_COORDS[trimmed];
+    alerts.push({
+      id: `oref-${trimmed}-${threat}-${timestamp}`,
+      city: known?.en || trimmed,
+      cityHe: trimmed,
+      cityAr: known?.ar || trimmed,
+      region: known?.region || 'Israel',
+      regionHe: known?.regionHe || 'ישראל',
+      regionAr: known?.regionAr || 'إسرائيل',
+      country: 'Israel',
+      countryCode: 'IL',
+      countdown: known?.countdown ?? 30,
+      threatType,
+      timestamp,
+      active: true,
+      lat: known?.lat ?? 31.5 + Math.random() * 2,
+      lng: known?.lng ?? 34.5 + Math.random() * 1,
+      source: 'live',
+    });
+  }
+  return alerts;
+}
+
+const TZEVAADOM_HISTORY_URL = 'https://api.tzevaadom.co.il/alerts-history';
+
+async function fetchFromTzevaadom(): Promise<RedAlert[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  const resp = await fetch(TZEVAADOM_API_URL, {
+    signal: controller.signal,
+    headers: { 'Accept': 'application/json' },
+  });
+  clearTimeout(timeout);
+  if (!resp.ok) return [];
+  const raw = await resp.json();
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const alerts: RedAlert[] = [];
+  for (const item of raw) {
+    if (item.isDrill) continue;
+    const cities: string[] = item.cities || [];
+    const threat = item.threat || 1;
+    let ts: string;
+    if (typeof item.time === 'number') {
+      ts = new Date(item.time * 1000).toISOString();
+    } else if (typeof item.time === 'string') {
+      ts = new Date(item.time).toISOString();
+    } else {
+      ts = new Date().toISOString();
+    }
+    alerts.push(...parseCityAlerts(cities, threat, ts));
+  }
+  return alerts;
+}
+
+async function fetchTzevaadomHistory(): Promise<RedAlert[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  const resp = await fetch(TZEVAADOM_HISTORY_URL, {
+    signal: controller.signal,
+    headers: { 'Accept': 'application/json' },
+  });
+  clearTimeout(timeout);
+  if (!resp.ok) return [];
+  const raw = await resp.json();
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const alerts: RedAlert[] = [];
+  const now = Date.now();
+  const recentGroups = raw.filter((g: any) => {
+    if (!g.alerts || g.alerts.length === 0) return false;
+    const groupTime = g.alerts[0].time * 1000;
+    return (now - groupTime) < 3600000;
+  }).slice(0, 10);
+  for (const group of recentGroups) {
+    for (const item of group.alerts) {
+      if (item.isDrill) continue;
+      const cities: string[] = item.cities || [];
+      const threat = item.threat || 1;
+      let ts: string;
+      if (typeof item.time === 'number') {
+        ts = new Date(item.time * 1000).toISOString();
+      } else if (typeof item.time === 'string') {
+        ts = new Date(item.time).toISOString();
+      } else {
+        ts = new Date().toISOString();
+      }
+      alerts.push(...parseCityAlerts(cities, threat, ts));
+    }
+  }
+  return alerts;
+}
+
+async function fetchFromOrefDirect(): Promise<RedAlert[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  const resp = await fetch(OREF_API_URL, {
+    signal: controller.signal,
+    headers: {
+      'Referer': 'https://www.oref.org.il/',
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; WARROOM/2.0)',
+    },
+  });
+  clearTimeout(timeout);
+  if (!resp.ok) return [];
+  const text = await resp.text();
+  if (!text || text.trim() === '' || text.trim() === '[]') return [];
+  const raw = JSON.parse(text);
+  if (!Array.isArray(raw)) return [];
+  const alerts: RedAlert[] = [];
+  for (const item of raw) {
+    const cityHe = (item.data || item.title || '').trim();
+    const cat = item.cat || 1;
+    const ts = item.date ? new Date(item.date).toISOString() : new Date().toISOString();
+    alerts.push(...parseCityAlerts([cityHe], cat, ts));
+  }
+  return alerts;
+}
 
 async function fetchOrefAlerts(): Promise<RedAlert[]> {
   const now = Date.now();
@@ -828,70 +1064,32 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
     return orefCache.data;
   }
 
+  let alerts: RedAlert[] = [];
+
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    alerts = await fetchFromTzevaadom();
+  } catch {}
 
-    const resp = await fetch(OREF_API_URL, {
-      signal: controller.signal,
-      headers: {
-        'Referer': 'https://www.oref.org.il/',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (compatible; WARROOM/2.0)',
-      },
-    });
-    clearTimeout(timeout);
-
-    if (!resp.ok) {
-      orefCache = { data: [], timestamp: now };
-      return [];
-    }
-
-    const text = await resp.text();
-    if (!text || text.trim() === '' || text.trim() === '[]') {
-      orefCache = { data: [], timestamp: now };
-      return [];
-    }
-
-    const raw = JSON.parse(text);
-    const alerts: RedAlert[] = [];
-
-    if (Array.isArray(raw)) {
-      for (const item of raw) {
-        const cityHe = (item.data || item.title || '').trim();
-        const cat = item.cat || 1;
-        const threatType = OREF_THREAT_MAP[cat] || 'rockets';
-        const ts = item.date ? new Date(item.date).toISOString() : new Date().toISOString();
-
-        const known = OREF_CITY_COORDS[cityHe];
-        alerts.push({
-          id: `oref-${cityHe}-${cat}-${ts}`,
-          city: known?.en || cityHe,
-          cityHe,
-          cityAr: known?.ar || cityHe,
-          region: known?.region || item.desc || 'Israel',
-          regionHe: known?.regionHe || item.desc || 'ישראל',
-          regionAr: known?.regionAr || item.desc || 'إسرائيل',
-          country: 'Israel',
-          countryCode: 'IL',
-          countdown: known?.countdown ?? 30,
-          threatType,
-          timestamp: ts,
-          active: true,
-          lat: known?.lat ?? 31.5 + Math.random() * 2,
-          lng: known?.lng ?? 34.5 + Math.random() * 1,
-          source: 'live',
-        });
-      }
-    }
-
-    orefCache = { data: alerts, timestamp: now };
-    return alerts;
-  } catch (err) {
-    if (orefCache) return orefCache.data;
-    return [];
+  if (alerts.length === 0) {
+    try {
+      alerts = await fetchFromOrefDirect();
+    } catch {}
   }
+
+  if (alerts.length === 0) {
+    try {
+      alerts = await fetchTzevaadomHistory();
+      alerts.forEach(a => { a.active = false; a.countdown = 0; });
+    } catch {}
+  }
+
+  if (alerts.length > 0) {
+    orefCache = { data: alerts, timestamp: now };
+  } else {
+    orefCache = { data: [], timestamp: now };
+  }
+
+  return orefCache.data;
 }
 
 function generateSimAlerts(): RedAlert[] {
