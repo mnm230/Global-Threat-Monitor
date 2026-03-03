@@ -806,6 +806,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     LAYER_GROUPS.forEach(lg => { g[lg.id] = lg.id === 'operational'; });
     return g;
   });
+  const [mapToolsOpen, setMapToolsOpen] = useState(false);
   const [measureMode, setMeasureMode] = useState(false);
   const [measureCenter, setMeasureCenter] = useState<MeasurePoint | null>(null);
   const [measureCursor, setMeasureCursor] = useState<MeasurePoint | null>(null);
@@ -2214,240 +2215,282 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} />
 
-      <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button
-          data-testid="button-toggle-globe"
-          onClick={toggleGlobe}
+      <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+        <div
           style={{
-            padding: '8px 14px',
-            fontSize: 12,
-            fontWeight: 600,
-            borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.15)',
-            background: isGlobe ? 'rgba(59,130,246,0.8)' : 'rgba(0,0,0,0.7)',
-            color: '#fff',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
-            minHeight: 36,
-          }}
-        >
-          {isGlobe ? 'Globe' : 'Flat'}
-        </button>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {(['global', 'mena', 'gulf', 'levant'] as const).map(region => (
-            <button
-              key={region}
-              data-testid={`button-region-${region}`}
-              onClick={() => setRegion(region)}
-              style={{
-                padding: '6px 10px',
-                fontSize: 11,
-                fontWeight: 500,
-                borderRadius: 4,
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(0,0,0,0.6)',
-                color: '#ccc',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                backdropFilter: 'blur(8px)',
-                minHeight: 32,
-              }}
-            >
-              {region}
-            </button>
-          ))}
-        </div>
-        <button
-          data-testid="button-measure-tool"
-          onClick={toggleMeasureMode}
-          style={{
-            padding: '8px 14px',
-            fontSize: 11,
-            fontWeight: 600,
-            borderRadius: 6,
-            border: `1px solid ${measureMode ? 'rgba(255,255,0,0.5)' : 'rgba(255,255,255,0.15)'}`,
-            background: measureMode ? 'rgba(255,255,0,0.2)' : 'rgba(0,0,0,0.7)',
-            color: measureMode ? '#ffff00' : '#ccc',
-            cursor: 'pointer',
-            backdropFilter: 'blur(8px)',
             display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            minHeight: 36,
+            flexDirection: 'column',
+            background: 'rgba(5,8,16,0.92)',
+            backdropFilter: 'blur(14px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 10,
+            overflow: 'hidden',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
-            <path d="m14.5 12.5 2-2" />
-            <path d="m11.5 9.5 2-2" />
-            <path d="m8.5 6.5 2-2" />
-            <path d="m17.5 15.5 2-2" />
-          </svg>
-          {measureMode ? (language === 'ar' ? 'قياس: فعال' : 'Measure: ON') : (language === 'ar' ? 'قياس' : 'Measure')}
-        </button>
-
-        <div style={{ position: 'relative', marginTop: 4 }}>
-          <div style={{ position: 'relative' }}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#999"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
+          <button
+            data-testid="button-toggle-map-tools"
+            onClick={() => setMapToolsOpen(!mapToolsOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 10px',
+              background: 'none',
+              border: 'none',
+              borderBottom: mapToolsOpen ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              cursor: 'pointer',
+              color: '#d1d5db',
+              minHeight: 32,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
             </svg>
-            <input
-              ref={searchInputRef}
-              data-testid="input-map-search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSearchOpen(true);
-                setSearchActiveIndex(-1);
-              }}
-              onFocus={() => { if (searchQuery.trim()) setSearchOpen(true); }}
-              onBlur={() => { setTimeout(() => setSearchOpen(false), 200); }}
-              onKeyDown={handleSearchKeyDown}
-              placeholder={language === 'ar' ? 'بحث في الخريطة...' : 'Search map...'}
-              style={{
-                width: 220,
-                padding: '8px 10px 8px 32px',
-                fontSize: 12,
-                fontWeight: 500,
-                borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.15)',
-                background: 'rgba(0,0,0,0.7)',
-                color: '#eee',
-                backdropFilter: 'blur(8px)',
-                outline: 'none',
-                minHeight: 36,
-                fontFamily: 'inherit',
-              }}
-            />
-            {searchQuery && (
-              <button
-                data-testid="button-clear-search"
-                onClick={() => { setSearchQuery(''); setSearchOpen(false); setSearchActiveIndex(-1); }}
-                style={{
-                  position: 'absolute',
-                  right: 6,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: '#888',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  padding: '2px 4px',
-                  lineHeight: 1,
-                }}
-                aria-label="Clear search"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6L6 18" />
-                  <path d="M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+              {language === 'ar' ? 'أدوات' : 'TOOLS'}
+            </span>
+            <span style={{ fontSize: 8, color: '#6b7280', marginLeft: 'auto' }}>{mapToolsOpen ? '▲' : '▼'}</span>
+          </button>
 
-          {searchOpen && searchResults.length > 0 && (
-            <div
-              ref={searchDropdownRef}
-              data-testid="search-results-dropdown"
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                marginTop: 4,
-                background: 'rgba(10, 10, 20, 0.95)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 6,
-                overflow: 'hidden',
-                zIndex: 30,
-                maxHeight: 320,
-                overflowY: 'auto',
-              }}
-            >
-              {searchResults.map((item, idx) => {
-                const iconPath = SEARCH_CATEGORY_ICONS[item.category] || SEARCH_CATEGORY_ICONS['Default'];
-                const iconColor = SEARCH_CATEGORY_COLORS[item.category] || SEARCH_CATEGORY_COLORS['Default'];
-                const isActive = idx === searchActiveIndex;
-                return (
+          {mapToolsOpen && (
+            <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  data-testid="button-toggle-globe"
+                  onClick={toggleGlobe}
+                  style={{
+                    flex: 1,
+                    padding: '5px 8px',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    fontFamily: 'monospace',
+                    borderRadius: 5,
+                    border: `1px solid ${isGlobe ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                    background: isGlobe ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
+                    color: isGlobe ? '#93c5fd' : '#9ca3af',
+                    cursor: 'pointer',
+                    minHeight: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /><path d="M2 12h20" />
+                  </svg>
+                  {isGlobe ? '3D' : '2D'}
+                </button>
+                <button
+                  data-testid="button-measure-tool"
+                  onClick={toggleMeasureMode}
+                  style={{
+                    flex: 1,
+                    padding: '5px 8px',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    fontFamily: 'monospace',
+                    borderRadius: 5,
+                    border: `1px solid ${measureMode ? 'rgba(250,204,21,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                    background: measureMode ? 'rgba(250,204,21,0.15)' : 'rgba(255,255,255,0.04)',
+                    color: measureMode ? '#fde047' : '#9ca3af',
+                    cursor: 'pointer',
+                    minHeight: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
+                    <path d="m14.5 12.5 2-2" /><path d="m11.5 9.5 2-2" /><path d="m8.5 6.5 2-2" /><path d="m17.5 15.5 2-2" />
+                  </svg>
+                  {measureMode ? 'ON' : (language === 'ar' ? 'قياس' : 'MEAS')}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 3 }}>
+                {(['global', 'mena', 'gulf', 'levant'] as const).map(region => (
                   <button
-                    key={`${item.name}-${item.lat}-${item.lng}-${idx}`}
-                    data-testid={`search-result-${idx}`}
-                    onClick={() => selectSearchResult(item)}
-                    onMouseEnter={() => setSearchActiveIndex(idx)}
+                    key={region}
+                    data-testid={`button-region-${region}`}
+                    onClick={() => setRegion(region)}
                     style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 10px',
-                      background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
-                      border: 'none',
-                      borderBottom: idx < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      flex: 1,
+                      padding: '4px 2px',
+                      fontSize: 9,
+                      fontWeight: 600,
+                      fontFamily: 'monospace',
+                      borderRadius: 4,
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.04)',
+                      color: '#9ca3af',
                       cursor: 'pointer',
-                      textAlign: 'left',
-                      minHeight: 40,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      minHeight: 24,
                     }}
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke={iconColor}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{ flexShrink: 0 }}
-                    >
-                      <path d={iconPath} />
-                    </svg>
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div style={{ color: '#eee', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.name}
-                      </div>
-                      <div style={{ color: '#888', fontSize: 9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.category} | {item.detail}
-                      </div>
-                    </div>
+                    {region === 'global' ? 'ALL' : region === 'levant' ? 'LEV' : region.toUpperCase()}
                   </button>
-                );
-              })}
-            </div>
-          )}
+                ))}
+              </div>
 
-          {searchOpen && searchQuery.trim() && searchResults.length === 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                marginTop: 4,
-                background: 'rgba(10, 10, 20, 0.95)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 6,
-                padding: '12px 10px',
-                zIndex: 30,
-              }}
-            >
-              <div style={{ color: '#888', fontSize: 11, textAlign: 'center' }}>
-                {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
+              <div style={{ position: 'relative' }}>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#666"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  data-testid="input-map-search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchOpen(true);
+                    setSearchActiveIndex(-1);
+                  }}
+                  onFocus={() => { if (searchQuery.trim()) setSearchOpen(true); }}
+                  onBlur={() => { setTimeout(() => setSearchOpen(false), 200); }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder={language === 'ar' ? 'بحث...' : 'Search...'}
+                  style={{
+                    width: '100%',
+                    padding: '6px 26px 6px 26px',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    borderRadius: 5,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.04)',
+                    color: '#ddd',
+                    backdropFilter: 'blur(8px)',
+                    outline: 'none',
+                    minHeight: 28,
+                    fontFamily: 'monospace',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    data-testid="button-clear-search"
+                    onClick={() => { setSearchQuery(''); setSearchOpen(false); setSearchActiveIndex(-1); }}
+                    style={{
+                      position: 'absolute',
+                      right: 4,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#666',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      padding: '2px 4px',
+                      lineHeight: 1,
+                    }}
+                    aria-label="Clear search"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6L6 18" /><path d="M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+
+                {searchOpen && searchResults.length > 0 && (
+                  <div
+                    ref={searchDropdownRef}
+                    data-testid="search-results-dropdown"
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: 4,
+                      background: 'rgba(10, 10, 20, 0.95)',
+                      backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      zIndex: 30,
+                      maxHeight: 260,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {searchResults.map((item, idx) => {
+                      const iconPath = SEARCH_CATEGORY_ICONS[item.category] || SEARCH_CATEGORY_ICONS['Default'];
+                      const iconColor = SEARCH_CATEGORY_COLORS[item.category] || SEARCH_CATEGORY_COLORS['Default'];
+                      const isActive = idx === searchActiveIndex;
+                      return (
+                        <button
+                          key={`${item.name}-${item.lat}-${item.lng}-${idx}`}
+                          data-testid={`search-result-${idx}`}
+                          onClick={() => selectSearchResult(item)}
+                          onMouseEnter={() => setSearchActiveIndex(idx)}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '6px 8px',
+                            background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                            border: 'none',
+                            borderBottom: idx < searchResults.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            minHeight: 34,
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <path d={iconPath} />
+                          </svg>
+                          <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div style={{ color: '#eee', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.name}
+                            </div>
+                            <div style={{ color: '#666', fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.category} | {item.detail}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {searchOpen && searchQuery.trim() && searchResults.length === 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: 4,
+                      background: 'rgba(10, 10, 20, 0.95)',
+                      backdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 6,
+                      padding: '10px 8px',
+                      zIndex: 30,
+                    }}
+                  >
+                    <div style={{ color: '#666', fontSize: 10, textAlign: 'center', fontFamily: 'monospace' }}>
+                      {language === 'ar' ? 'لا توجد نتائج' : 'No results'}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
