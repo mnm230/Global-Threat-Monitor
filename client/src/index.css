@@ -79,37 +79,37 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .025);
   --elevate-2: rgba(255,255,255, .06);
-  --background: 150 30% 2%;
-  --foreground: 140 18% 88%;
-  --border: 148 28% 10%;
-  --card: 150 28% 3.5%;
-  --card-foreground: 140 15% 86%;
-  --card-border: 148 24% 8%;
-  --sidebar: 150 30% 3%;
-  --sidebar-foreground: 140 14% 84%;
-  --sidebar-border: 148 22% 8%;
-  --sidebar-primary: 145 72% 40%;
+  --background: 225 30% 3%;
+  --foreground: 40 18% 88%;
+  --border: 225 18% 10%;
+  --card: 225 25% 4.5%;
+  --card-foreground: 40 15% 86%;
+  --card-border: 225 18% 9%;
+  --sidebar: 225 28% 4%;
+  --sidebar-foreground: 40 14% 84%;
+  --sidebar-border: 225 18% 8%;
+  --sidebar-primary: 32 95% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 148 22% 7%;
-  --sidebar-accent-foreground: 140 14% 84%;
-  --sidebar-ring: 145 72% 40%;
-  --popover: 150 28% 4%;
-  --popover-foreground: 140 14% 86%;
-  --popover-border: 148 22% 10%;
-  --primary: 145 72% 40%;
+  --sidebar-accent: 225 18% 7%;
+  --sidebar-accent-foreground: 40 14% 84%;
+  --sidebar-ring: 32 95% 50%;
+  --popover: 225 25% 5%;
+  --popover-foreground: 40 14% 86%;
+  --popover-border: 225 18% 10%;
+  --primary: 32 95% 50%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 148 22% 9%;
-  --secondary-foreground: 140 14% 84%;
-  --muted: 148 20% 7%;
-  --muted-foreground: 145 10% 36%;
-  --accent: 148 22% 6.5%;
-  --accent-foreground: 140 14% 84%;
+  --secondary: 225 18% 9%;
+  --secondary-foreground: 40 14% 84%;
+  --muted: 225 15% 7%;
+  --muted-foreground: 40 8% 40%;
+  --accent: 225 18% 6.5%;
+  --accent-foreground: 40 14% 84%;
   --destructive: 0 82% 54%;
   --destructive-foreground: 0 0% 100%;
-  --input: 148 20% 12%;
-  --ring: 145 72% 40%;
-  --chart-1: 145 72% 40%;
-  --chart-2: 152 72% 42%;
+  --input: 225 15% 12%;
+  --ring: 32 95% 50%;
+  --chart-1: 32 95% 50%;
+  --chart-2: 142 72% 40%;
   --chart-3: 0 82% 54%;
   --chart-4: 199 89% 48%;
   --chart-5: 47 95% 55%;
@@ -157,13 +157,13 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 0, 0, 0.06) 2px,
-      rgba(0, 0, 0, 0.06) 4px
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
     );
   }
 
   ::selection {
-    background: hsl(145 72% 40% / 0.25);
+    background: hsl(32 95% 50% / 0.25);
     color: hsl(var(--foreground));
   }
 

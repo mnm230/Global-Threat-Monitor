@@ -97,8 +97,8 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
         <div className="w-full h-full flex items-center justify-center bg-card/50 text-muted-foreground" data-testid="map-error-fallback">
           <div className="text-center p-4">
             <Globe className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-[14px] font-mono">WebGL required for 3D map</p>
-            <p className="text-[14px] mt-1 text-muted-foreground/60">Map rendering unavailable in this environment</p>
+            <p className="text-xs font-mono">WebGL required for 3D map</p>
+            <p className="text-[11px] mt-1 text-muted-foreground/60">Map rendering unavailable in this environment</p>
           </div>
         </div>
       );
@@ -392,7 +392,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
       <div className="w-[500px] max-h-[70vh] bg-background border border-border/50 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-amber-400" />
-          <span className="text-sm font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
+          <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
           <span className="text-xs text-muted-foreground/50 font-mono">{notes.length}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-notes"><X className="w-4 h-4" /></button>
@@ -404,10 +404,10 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
               onChange={e => setNewNote(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addNote()}
               placeholder={language === 'en' ? 'Add intelligence note...' : '\u0623\u0636\u0641 \u0645\u0644\u0627\u062D\u0638\u0629...'}
-              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
+              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
               data-testid="input-note"
             />
-            <button onClick={addNote} className="px-3 py-1.5 rounded bg-primary/20 border border-primary/30 text-primary text-sm font-mono font-bold hover:bg-primary/30 transition-colors" data-testid="button-add-note">
+            <button onClick={addNote} className="px-3 py-1.5 rounded bg-primary/20 border border-primary/30 text-primary text-[11px] font-mono font-bold hover:bg-primary/30 transition-colors" data-testid="button-add-note">
               {language === 'en' ? 'Add' : '\u0625\u0636\u0627\u0641\u0629'}
             </button>
           </div>
@@ -422,7 +422,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
             {notes.length === 0 && (
               <div className="px-4 py-8 text-center">
                 <StickyNote className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground/50">{language === 'en' ? 'No notes yet' : '\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A'}</p>
+                <p className="text-[11px] text-muted-foreground/50">{language === 'en' ? 'No notes yet' : '\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0644\u0627\u062D\u0638\u0627\u062A'}</p>
               </div>
             )}
             {notes.map(n => (
@@ -432,7 +432,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
                   <span className="text-[11px] text-muted-foreground/50 font-mono ml-auto">{timeAgo(n.timestamp)}</span>
                   <button onClick={() => deleteNote(n.id)} className="w-4 h-4 flex items-center justify-center rounded hover:bg-red-500/20" data-testid={`button-delete-note-${n.id}`}><Trash2 className="w-3 h-3 text-red-400/60" /></button>
                 </div>
-                <p className="text-sm text-foreground/80 leading-relaxed">{n.text}</p>
+                <p className="text-[11px] text-foreground/80 leading-relaxed">{n.text}</p>
               </div>
             ))}
           </div>
@@ -464,7 +464,7 @@ function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClos
       <div className="w-[400px] max-h-[60vh] bg-background border border-border/50 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
-          <span className="text-sm font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
+          <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-watchlist"><X className="w-4 h-4" /></button>
         </div>
@@ -475,20 +475,20 @@ function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClos
               onChange={e => setNewItem(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && add()}
               placeholder={language === 'en' ? 'Callsign, ship name, city...' : '\u0627\u0633\u0645 \u0627\u0644\u0637\u0627\u0626\u0631\u0629 \u0623\u0648 \u0627\u0644\u0633\u0641\u064A\u0646\u0629...'}
-              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-amber-500/50 font-mono"
+              className="flex-1 bg-card/50 border border-border/50 rounded px-3 py-1.5 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-amber-500/50 font-mono"
               data-testid="input-watchlist"
             />
-            <button onClick={add} className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-sm font-mono font-bold hover:bg-amber-500/30 transition-colors" data-testid="button-add-watchlist">+</button>
+            <button onClick={add} className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/30 transition-colors" data-testid="button-add-watchlist">+</button>
           </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
             {items.length === 0 && (
-              <p className="text-sm text-muted-foreground/50 text-center py-4">{language === 'en' ? 'Add items to track across all panels' : '\u0623\u0636\u0641 \u0639\u0646\u0627\u0635\u0631 \u0644\u0644\u062A\u062A\u0628\u0639'}</p>
+              <p className="text-[11px] text-muted-foreground/50 text-center py-4">{language === 'en' ? 'Add items to track across all panels' : '\u0623\u0636\u0641 \u0639\u0646\u0627\u0635\u0631 \u0644\u0644\u062A\u062A\u0628\u0639'}</p>
             )}
             <div className="flex flex-wrap gap-2">
               {items.map(item => (
-                <div key={item} className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-950/30 border border-amber-500/30 text-amber-300 text-sm font-mono" data-testid={`watchlist-item-${item}`}>
+                <div key={item} className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-950/30 border border-amber-500/30 text-amber-300 text-[11px] font-mono" data-testid={`watchlist-item-${item}`}>
                   <Star className="w-3 h-3 text-amber-400" />
                   <span>{item}</span>
                   <button onClick={() => save(items.filter(i => i !== item))} className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-red-500/30"><X className="w-3 h-3 text-red-400/70" /></button>
@@ -519,7 +519,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
       <div className="w-[600px] max-h-[75vh] bg-background border border-red-500/30 rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-red-900/40 bg-red-950/20 flex items-center gap-2 rounded-t-lg">
           <History className="w-4 h-4 text-red-400" />
-          <span className="text-sm font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
+          <span className="text-xs font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
           <span className="text-xs text-red-400/50 font-mono">{filtered.length}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/20" data-testid="button-close-history"><X className="w-4 h-4 text-red-300" /></button>
@@ -531,7 +531,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={language === 'en' ? 'Search alerts...' : '\u0628\u062D\u062B...'}
-              className="w-full bg-red-950/30 border border-red-800/30 rounded pl-8 pr-3 py-1.5 text-sm text-red-100 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 font-mono"
+              className="w-full bg-red-950/30 border border-red-800/30 rounded pl-8 pr-3 py-1.5 text-[11px] text-red-100 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 font-mono"
               data-testid="input-history-search"
             />
           </div>
@@ -543,7 +543,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
               <div key={a.id} className="px-4 py-2 hover:bg-red-950/10 transition-colors" data-testid={`history-alert-${a.id}`}>
                 <div className="flex items-center gap-2 mb-0.5">
                   <div className={`w-2 h-2 rounded-full ${a.resolved ? 'bg-emerald-500/50' : 'bg-red-500 animate-pulse'}`} />
-                  <span className="text-sm font-bold text-foreground/90">{a.city}</span>
+                  <span className="text-[11px] font-bold text-foreground/90">{a.city}</span>
                   <span className="text-xs text-muted-foreground/50 font-mono">{a.country}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold font-mono uppercase ${a.resolved ? 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-400' : 'bg-red-950/40 border border-red-500/30 text-red-400'}`}>
                     {a.resolved ? 'RESOLVED' : 'ACTIVE'}
@@ -583,7 +583,7 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
       <div className="p-2 space-y-1">
         {presets.map(p => (
           <div key={p.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-card/50 transition-colors group" data-testid={`preset-${p.name}`}>
-            <button onClick={() => { onLoad(p); onClose(); }} className="flex-1 text-left text-sm font-mono text-foreground/80 hover:text-foreground">{p.name}</button>
+            <button onClick={() => { onLoad(p); onClose(); }} className="flex-1 text-left text-[11px] font-mono text-foreground/80 hover:text-foreground">{p.name}</button>
             {!BUILT_IN_PRESETS.find(b => b.name === p.name) && (
               <button onClick={() => onDelete(p.name)} className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded hover:bg-red-500/20"><Trash2 className="w-3 h-3 text-red-400/60" /></button>
             )}
@@ -763,8 +763,8 @@ function LiveClock() {
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-xs text-muted-foreground font-mono hidden md:inline">{dateStr}</span>
-      <span className="text-sm text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
-      <span className="text-[14px] text-muted-foreground">UTC</span>
+      <span className="text-[11px] text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
+      <span className="text-[10px] text-muted-foreground/60">UTC</span>
     </div>
   );
 }
@@ -787,7 +787,7 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
       <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-12">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[14px]">
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[11px]">
             <span className="text-primary/80 font-bold">{c.symbol}</span>
             <span className="text-foreground/60">{formatPrice(c)}</span>
             <span className={`inline-flex items-center gap-0.5 ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
@@ -846,7 +846,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
                   <span className="text-red-500/70">\u2022</span>
-                  <span className="text-red-400/80 text-[14px]">
+                  <span className="text-red-400/80 text-[10px]">
                     {language === 'ar' ? threat.ar : threat.en}
                   </span>
                   <span className="text-red-900/60 mx-1">\u2502</span>
@@ -859,7 +859,7 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
         <Button
           size="sm"
           variant="ghost"
-          className="text-[14px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
+          className="text-[10px] text-red-400 px-2 h-6 font-mono shrink-0 hover:bg-red-900/30"
           data-testid="button-siren-expand"
         >
           {expanded ? '\u25B2' : '\u25BC'} {language === 'en' ? 'Details' : '\u062A\u0641\u0627\u0635\u064A\u0644'}
@@ -879,19 +879,19 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
                 >
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <MapPin className="w-3 h-3 text-red-400 shrink-0" />
-                    <span className="text-[14px] text-red-300 font-bold truncate">
+                    <span className="text-[11px] text-red-300 font-bold truncate">
                       {language === 'ar' ? s.locationAr : s.location}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="destructive" className="text-[14px] px-1 py-0 h-4 font-bold tracking-wider rounded-sm">
+                    <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4 font-bold tracking-wider rounded-sm">
                       {language === 'ar' ? threat.ar : threat.en}
                     </Badge>
-                    <span className="text-[14px] text-muted-foreground font-mono ml-auto tabular-nums">
+                    <span className="text-[10px] text-muted-foreground font-mono ml-auto tabular-nums">
                       {timeAgo(s.timestamp)}
                     </span>
                   </div>
-                  <span className="text-[14px] text-red-400/60 mt-0.5 block">
+                  <span className="text-[10px] text-red-400/60 mt-0.5 block">
                     {language === 'ar' ? s.regionAr : s.region}
                   </span>
                 </div>
@@ -961,13 +961,13 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground/90 font-bold text-[14px] truncate">{c.symbol}</span>
-        <span className="text-[14px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground/90 font-bold text-[11px] truncate">{c.symbol}</span>
+        <span className="text-[10px] text-muted-foreground/70 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
-      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-[14px]">
+      <span className="text-foreground/80 tabular-nums text-right font-semibold whitespace-nowrap text-[11px]">
         {formatPrice(c)}
       </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[14px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[11px] ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
         <div className={`w-0.5 h-2.5 rounded-full ${c.change >= 0 ? 'bg-emerald-500/40' : 'bg-red-500/40'}`} />
         <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
       </div>
@@ -1062,7 +1062,7 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
             >
               <div className="flex items-center gap-1.5 mb-0.5">
                 <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
-                <span className="text-[14px] text-red-300/90 font-bold truncate flex-1">
+                <span className="text-[11px] text-red-300/90 font-bold truncate flex-1">
                   {language === 'ar' ? s.locationAr : s.location}
                 </span>
                 <span className="text-[12px] text-muted-foreground/60 font-mono tabular-nums shrink-0">
@@ -1198,7 +1198,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
         <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/80">
           ADS-B
         </span>
-        <span className="text-[14px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
+        <span className="text-[10px] px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
           {adsbFlights.length}
         </span>
         <div className="flex-1" />
@@ -1247,7 +1247,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
         {selectedFlight && (
           <div className="px-3 py-2 bg-cyan-950/20 border-b border-cyan-500/20 animate-fade-in">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[14px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
+              <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
               <button
                 onClick={() => setSelectedFlight(null)}
                 className="text-muted-foreground/40 text-[12px]"
@@ -1294,14 +1294,14 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: '
                   >
                     {'\u25B2'}
                   </span>
-                  <span className="text-[14px] font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
-                  <span className="text-[14px] text-muted-foreground/40 font-mono">{f.hex}</span>
-                  <span className={`text-[14px] px-1 py-0 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
+                  <span className="text-[11px] font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
+                  <span className="text-[10px] text-muted-foreground/40 font-mono">{f.hex}</span>
+                  <span className={`text-[10px] px-1 py-0 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
                     {style.label}
                   </span>
-                  {f.flagged && <span className="text-[14px] px-1 py-0 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
+                  {f.flagged && <span className="text-[10px] px-1 py-0 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
                 </div>
-                <div className="flex items-center gap-2 text-[14px] font-mono text-muted-foreground/50">
+                <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/50">
                   <span>{f.aircraft}</span>
                   <span>{f.origin} {'\u2192'} {f.destination}</span>
                   <span className="ml-auto">{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
@@ -1364,18 +1364,18 @@ function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEv
               data-testid={`conflict-event-${e.id}`}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[14px] shrink-0">{icon}</span>
-                <span className="text-[14px] font-bold font-mono text-foreground truncate flex-1">
+                <span className="text-[11px] shrink-0">{icon}</span>
+                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">
                   {language === 'ar' && e.titleAr ? e.titleAr : e.title}
                 </span>
-                <span className={`text-[14px] px-1 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
+                <span className={`text-[10px] px-1 py-0.5 rounded border font-bold font-mono shrink-0 ${sev.color} ${sev.bg}`}>
                   {e.severity.toUpperCase()}
                 </span>
               </div>
-              <p className="text-[14px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1">
+              <p className="text-[10px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1">
                 {language === 'ar' && e.descriptionAr ? e.descriptionAr : e.description}
               </p>
-              <div className="flex items-center gap-2 text-[14px] font-mono text-muted-foreground">
+              <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
                 <span className="uppercase tracking-wider text-foreground/40">{e.type}</span>
                 <span className="text-foreground/20">·</span>
                 <span>{timeAgo(e.timestamp)}</span>
@@ -1430,12 +1430,12 @@ function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; langua
                   className="text-foreground/30 shrink-0 inline-block"
                   style={{ transform: `rotate(${s.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
                 >▲</span>
-                <span className="text-[14px] font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
-                <span className={`text-[14px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
+                <span className="text-[11px] font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
+                <span className={`text-[10px] px-1 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-1 text-[14px] font-mono text-muted-foreground">
+              <div className="grid grid-cols-3 gap-x-1 text-[10px] font-mono text-muted-foreground">
                 <span><span className="text-foreground/40">SPD</span> {s.speed}kn</span>
                 <span><span className="text-foreground/40">HDG</span> {headingToCompass(s.heading)}</span>
                 <span className="truncate"><span className="text-foreground/30">FLG</span> {s.flag}</span>
@@ -1488,7 +1488,7 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
       >
         {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
       </div>
-      <div className="text-[14px] text-red-300/40 mt-0.5 uppercase tracking-wider">
+      <div className="text-[8px] text-red-300/40 mt-0.5 uppercase tracking-wider">
         {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'sec' : ''}
       </div>
     </div>
@@ -1562,10 +1562,10 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           <AlertOctagon className={`w-4 h-4 ${hasActiveAlerts ? 'text-white' : 'text-red-400/60'}`} />
         </div>
         <div className="flex flex-col leading-none">
-          <span className={`text-[14px] font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
+          <span className={`text-[11px] font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className={`text-[14px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
+          <span className={`text-[9px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
         </div>
         {hasActiveAlerts && (
           <span className="text-[12px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
@@ -1596,7 +1596,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city / country...'}
-              className="w-full h-7 text-[14px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
+              className="w-full h-6 text-[11px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
               data-testid="input-red-alert-search"
             />
           </div>
@@ -1622,7 +1622,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
               <button
                 onClick={() => setCountryFilter('ALL')}
-                className={`text-[14px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
                   countryFilter === 'ALL' ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
                 data-testid="button-country-filter-all"
@@ -1635,7 +1635,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   <button
                     key={c}
                     onClick={() => setCountryFilter(c)}
-                    className={`text-[14px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
                       countryFilter === c ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                     }`}
                     data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
@@ -1669,14 +1669,14 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             <div key={compositeKey}>
               {showCountryHeader && (
                 <div className={`px-3 py-1.5 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
-                  <span className="text-[14px] font-black uppercase tracking-[0.2em] font-mono">{country}</span>
-                  <span className="text-[14px] opacity-50 font-mono">({countryAlertCount})</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] font-mono">{country}</span>
+                  <span className="text-[10px] opacity-50 font-mono">({countryAlertCount})</span>
                 </div>
               )}
               <div className="px-3 py-1 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[28px] z-[100]">
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
-                  <span className="text-[14px] text-red-400/40 font-mono">{regionAlerts.length}</span>
+                  <span className="text-[10px] text-red-400/40 font-mono">{regionAlerts.length}</span>
                 </div>
               </div>
               {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
@@ -1698,7 +1698,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                         <span className={`text-[12px] font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
                           {language === 'ar' ? alert.cityAr : alert.city}
                         </span>
-                        <span className="text-[14px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                        <span className="text-[9px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[12px] px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
@@ -1706,7 +1706,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                         }`}>
                           {language === 'ar' ? threat.ar : threat.en}
                         </span>
-                        <span className="text-[14px] text-red-400/30 font-mono tabular-nums">
+                        <span className="text-[10px] text-red-400/30 font-mono tabular-nums">
                           {timeAgo(alert.timestamp)}
                         </span>
                       </div>
@@ -1835,13 +1835,13 @@ function TelegramPanel({
                 onChange={(e) => setNewChannel(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addChannel()}
                 placeholder={language === 'ar' ? '\u0627\u0633\u0645 \u0627\u0644\u0642\u0646\u0627\u0629...' : 'Channel name...'}
-                className="w-full h-7 text-[14px] font-mono pl-7 pr-2 rounded bg-sky-950/40 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/30 focus:outline-none focus:border-sky-500/50"
+                className="w-full h-6 text-[11px] font-mono pl-7 pr-2 rounded bg-sky-950/40 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/30 focus:outline-none focus:border-sky-500/50"
                 data-testid="input-telegram-channel"
               />
             </div>
             <button
               onClick={addChannel}
-              className="h-7 px-2 text-[14px] font-mono font-bold bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 rounded border border-sky-500/30 transition-colors"
+              className="h-6 px-2 text-[10px] font-mono font-bold bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 rounded border border-sky-500/30 transition-colors"
               data-testid="button-add-channel"
             >
               {language === 'ar' ? '\u0625\u0636\u0627\u0641\u0629' : 'Add'}
@@ -1853,7 +1853,7 @@ function TelegramPanel({
               return (
                 <div
                   key={ch}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[14px] font-mono ${
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${
                     isCustom
                       ? 'bg-sky-600/20 text-sky-300/90 border border-sky-500/25'
                       : 'bg-sky-950/30 text-sky-400/60 border border-sky-900/20'
@@ -1900,7 +1900,7 @@ function TelegramPanel({
               >
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
-                  <span className="text-[14px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
+                  <span className="text-[11px] text-sky-400/90 font-bold truncate">{msg.channel}</span>
                   <span className="text-[12px] text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
                   {isExpanded
                     ? <ChevronDown className="w-3 h-3 text-sky-400/50 shrink-0" />
@@ -2053,7 +2053,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
                   </Badge>
                 )}
               </div>
-              <p className="text-[14px] text-foreground/70 leading-[1.6]">
+              <p className="text-[11px] text-foreground/70 leading-[1.6]">
                 {language === 'ar' ? brief.summaryAr : brief.summary}
               </p>
               <div className="flex flex-wrap gap-1 mt-2">
@@ -2063,7 +2063,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
                   </span>
                 ))}
               </div>
-              <div className="text-[14px] text-muted-foreground/40 font-mono mt-1.5">
+              <div className="text-[10px] text-muted-foreground/40 font-mono mt-1.5">
                 {new Date(brief.generatedAt).toLocaleTimeString()} UTC
               </div>
             </div>
@@ -2076,7 +2076,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language
                 {brief.keyDevelopments.map((dev, i) => (
                   <div key={i} className="flex gap-2 items-start">
                     <div className="mt-0.5 shrink-0">
-                      <Badge className={`text-[14px] px-1 py-0 h-[13px] font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
+                      <Badge className={`text-[10px] px-1 py-0 h-[13px] font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
                         {dev.severity.toUpperCase()}
                       </Badge>
                     </div>
@@ -2181,7 +2181,7 @@ function MapSection({
           {views.map((v) => (
             <button
               key={v.key}
-              className={`text-[14px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
+              className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
                 activeView === v.key
                   ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'text-muted-foreground/50 hover:text-foreground/70 border border-transparent'
@@ -2209,7 +2209,7 @@ function MapSection({
                 <div className="w-full h-full flex items-center justify-center bg-card/20">
                   <div className="text-center">
                     <Globe className="w-8 h-8 text-primary mx-auto mb-2 animate-pulse" />
-                    <p className="text-sm text-muted-foreground">Loading map...</p>
+                    <p className="text-[11px] text-muted-foreground">Loading map...</p>
                   </div>
                 </div>
               }
@@ -2230,7 +2230,7 @@ function MapSection({
         <div className="absolute top-3 right-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/20 rounded-md px-2 py-1">
           <div className="flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[14px] text-foreground/70 font-mono">
+            <span className="text-[10px] text-foreground/70 font-mono">
               {activeView === 'conflict' && `${events.length} events`}
               {activeView === 'flights' && `${flights.length} aircraft`}
               {activeView === 'maritime' && `${ships.length} vessels`}
@@ -2264,8 +2264,8 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
               {item.category}
             </span>
             <span className="text-foreground/75">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
-            <span className="text-muted-foreground/30 text-[14px]">·</span>
-            <span className="text-muted-foreground/50 text-[14px]">{item.source}</span>
+            <span className="text-muted-foreground/30 text-[10px]">·</span>
+            <span className="text-muted-foreground/50 text-[10px]">{item.source}</span>
             <span className="text-border/30 mx-2">|</span>
           </span>
         ))}
@@ -2521,7 +2521,7 @@ export default function Dashboard() {
               <Crosshair className="w-3 h-3 text-primary" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-bold text-[14px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(145 72% 40% / 0.6)'}}>WARROOM</span>
+              <span className="font-bold text-[13px] tracking-[0.05em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(32 95% 50% / 0.6)'}}>WARROOM</span>
               <span className="text-[10px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
                 {language === 'en' ? 'ME INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
@@ -2593,8 +2593,8 @@ export default function Dashboard() {
           <div className="flex-1 flex items-center justify-center bg-background">
             <div className="text-center">
               <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground/50 font-medium">{language === 'en' ? 'All panels minimized' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0635\u063A\u0631\u0629'}</p>
-              <p className="text-[14px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
+              <p className="text-xs text-muted-foreground/50 font-medium">{language === 'en' ? 'All panels minimized' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0635\u063A\u0631\u0629'}</p>
+              <p className="text-[11px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
             </div>
           </div>
         ) : (
@@ -2657,7 +2657,7 @@ export default function Dashboard() {
         {(redAlerts.length > 0 || sirens.length > 0) && (
           <>
             <div className="w-px h-4 bg-border/30" />
-            <div className="flex items-center gap-2 text-[14px] font-mono">
+            <div className="flex items-center gap-2 text-[10px] font-mono">
               {redAlerts.length > 0 && (
                 <span className="text-[11px] text-red-400/90 font-bold animate-pulse px-1.5 py-0.5 rounded bg-red-950/30 border border-red-500/20">
                   RED {redAlerts.length}

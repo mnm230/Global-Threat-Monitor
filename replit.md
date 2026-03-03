@@ -88,9 +88,14 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - react-icons (for Telegram logo)
 - All standard shadcn/radix components
 
-## Theme
-- Dark Bloomberg terminal aesthetic with orange (#F28A1D) primary accent
+## Theme & Text Sizing
+- Dark Bloomberg terminal aesthetic with amber/orange primary accent (--primary: 32 95% 50%)
+- Background: --background: 225 30% 3%
+- WARROOM logo: amber text shadow hsl(32 95% 50% / 0.6)
 - JetBrains Mono for data/numbers, Inter for UI text
 - Green/red for market indicators
 - Purple accent for AI Intelligence panel
 - Pulsing red dots for LIVE indicators
+- Terminal-density text sizing: 10-11px for data labels, 9-10px for secondary info, 12px for headers/titles
+- No text-sm (14px) or text-[14px] in data panels - all reduced for Bloomberg terminal density
+- Overlay panels (notes, watchlist, history) use text-xs (12px) headers and text-[11px] body
