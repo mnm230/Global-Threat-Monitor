@@ -34,7 +34,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
    - THREAT ACTORS (2): Proxy Militias (7), Tunnel Networks (5)
    - Layer panel: Collapsible groups with toggle-all/off, active count, color-coded indicators
 5. **Markets Panel** - Sectioned into Commodities, Major FX, and Regional FX -- 17 total instruments
-6. **Telegram Feed** - Live Telegram OSINT feeds via `t.me/s/` public scraping + simulated fallback. Server endpoint `/api/telegram/live?channels=...` fetches real messages from public Telegram channels. Custom channels from `localStorage warroom_tg_channels`. Live messages tagged with green "LIVE" badge and emerald left border.
+6. **Telegram Feed** - Live Telegram OSINT feeds via `t.me/s/` public scraping + simulated fallback. Server endpoint `/api/telegram/live?channels=...` fetches real messages from public Telegram channels. Custom channels from `localStorage warroom_tg_channels`. Live messages tagged with green "LIVE" badge and emerald left border. Server-side caching (3min TTL) prevents rate-limiting. Language filter rejects non-English/Arabic content (Cyrillic, CJK). Default channels: @OSINTdefender, @IntelCrab, @GeoConfirmed, @CIG_telegram, @sentaborim, @AviationIntel, @ShipTracker, @OilMarkets. Live data fully replaces mock data per-channel (no mixing).
 7. **Scrolling Ticker** - Marquee-style ticker with fade edges, all 17 instruments
 8. **Language Toggle** - Switch between English and Arabic (RTL support)
 9. **Status Bar** - Connection status, event counts, source indicators, closed panel tabs

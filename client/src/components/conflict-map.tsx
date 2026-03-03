@@ -704,23 +704,27 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const map = new MapLibreMap({
-      container: containerRef.current,
-      style: MAP_STYLE,
-      center: [viewState.longitude, viewState.latitude],
-      zoom: viewState.zoom,
-      pitch: viewState.pitch,
-      bearing: viewState.bearing,
-      interactive: false,
-      attributionControl: false,
-    });
+    try {
+      const map = new MapLibreMap({
+        container: containerRef.current,
+        style: MAP_STYLE,
+        center: [viewState.longitude, viewState.latitude],
+        zoom: viewState.zoom,
+        pitch: viewState.pitch,
+        bearing: viewState.bearing,
+        interactive: false,
+        attributionControl: false,
+      });
 
-    mapRef.current = map;
+      mapRef.current = map;
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+      return () => {
+        map.remove();
+        mapRef.current = null;
+      };
+    } catch {
+      return;
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -354,7 +354,7 @@ function generateTelegram(): TelegramMessage[] {
   const now = Date.now();
   return [
     {
-      id: 't1', channel: '@WarMonitor',
+      id: 't1', channel: '@CIG_telegram',
       text: 'ALERT: Multiple launches detected from western Iran. Tracking in progress. Air defense systems activated across Israel.',
       textAr: '\u062A\u0646\u0628\u064A\u0647: \u0631\u0635\u062F \u0639\u0645\u0644\u064A\u0627\u062A \u0625\u0637\u0644\u0627\u0642 \u0645\u062A\u0639\u062F\u062F\u0629 \u0645\u0646 \u063A\u0631\u0628 \u0625\u064A\u0631\u0627\u0646. \u062A\u062A\u0628\u0639 \u062C\u0627\u0631\u064D. \u062A\u0641\u0639\u064A\u0644 \u0623\u0646\u0638\u0645\u0629 \u0627\u0644\u062F\u0641\u0627\u0639 \u0627\u0644\u062C\u0648\u064A.',
       timestamp: new Date(now - 3 * 60000).toISOString(),
@@ -366,7 +366,7 @@ function generateTelegram(): TelegramMessage[] {
       timestamp: new Date(now - 8 * 60000).toISOString(),
     },
     {
-      id: 't3', channel: '@MENAconflict',
+      id: 't3', channel: '@sentaborim',
       text: 'Breaking: Explosions reported in Isfahan province. Iranian state media confirms "loud sounds" heard near military sites.',
       textAr: '\u0639\u0627\u062C\u0644: \u0627\u0646\u0641\u062C\u0627\u0631\u0627\u062A \u0641\u064A \u0645\u062D\u0627\u0641\u0638\u0629 \u0623\u0635\u0641\u0647\u0627\u0646. \u0648\u0633\u0627\u0626\u0644 \u0625\u0639\u0644\u0627\u0645 \u0625\u064A\u0631\u0627\u0646\u064A\u0629 \u062A\u0624\u0643\u062F "\u0623\u0635\u0648\u0627\u062A \u0639\u0627\u0644\u064A\u0629".',
       timestamp: new Date(now - 15 * 60000).toISOString(),
@@ -384,7 +384,7 @@ function generateTelegram(): TelegramMessage[] {
       timestamp: new Date(now - 30 * 60000).toISOString(),
     },
     {
-      id: 't6', channel: '@WarMonitor',
+      id: 't6', channel: '@CIG_telegram',
       text: 'UPDATE: Sirens sounding in Haifa, Tiberias and upper Galilee. Residents ordered to shelters immediately.',
       textAr: '\u062A\u062D\u062F\u064A\u062B: \u0635\u0641\u0627\u0631\u0627\u062A \u0625\u0646\u0630\u0627\u0631 \u0641\u064A \u062D\u064A\u0641\u0627 \u0648\u0637\u0628\u0631\u064A\u0627 \u0648\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u0623\u0639\u0644\u0649. \u0627\u0644\u0633\u0643\u0627\u0646 \u0645\u0637\u0627\u0644\u0628\u0648\u0646 \u0628\u0627\u0644\u062A\u0648\u062C\u0647 \u0644\u0644\u0645\u0644\u0627\u062C\u0626.',
       timestamp: new Date(now - 1 * 60000).toISOString(),
@@ -396,7 +396,7 @@ function generateTelegram(): TelegramMessage[] {
       timestamp: new Date(now - 12 * 60000).toISOString(),
     },
     {
-      id: 't8', channel: '@MENAconflict',
+      id: 't8', channel: '@sentaborim',
       text: 'Iranian FM: "Any attack on our sovereign territory will be met with overwhelming force. All options on the table."',
       textAr: '\u0648\u0632\u064A\u0631 \u0627\u0644\u062E\u0627\u0631\u062C\u064A\u0629 \u0627\u0644\u0625\u064A\u0631\u0627\u0646\u064A: "\u0623\u064A \u0647\u062C\u0648\u0645 \u0639\u0644\u0649 \u0623\u0631\u0627\u0636\u064A\u0646\u0627 \u0633\u064A\u064F\u0642\u0627\u0628\u0644 \u0628\u0642\u0648\u0629 \u0633\u0627\u062D\u0642\u0629."',
       timestamp: new Date(now - 40 * 60000).toISOString(),
@@ -666,94 +666,150 @@ export async function registerRoutes(
     res.json(generateTelegram());
   });
 
+  const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
+  const TELEGRAM_CACHE_TTL = 3 * 60 * 1000;
+  const MAX_CACHE_CHANNELS = 50;
+  const ALLOWED_CHANNEL_PATTERN = /^[a-zA-Z0-9_]{3,64}$/;
+
+  function isLikelyEnglishOrArabic(text: string): boolean {
+    if (text.length < 20) return true;
+    const sample = text.substring(0, 200);
+    const latinChars = (sample.match(/[a-zA-Z]/g) || []).length;
+    const arabicChars = (sample.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g) || []).length;
+    const cyrillicChars = (sample.match(/[\u0400-\u04FF]/g) || []).length;
+    const cjkChars = (sample.match(/[\u4E00-\u9FFF\u3040-\u30FF]/g) || []).length;
+    const total = sample.length || 1;
+    const enArRatio = (latinChars + arabicChars) / total;
+    const otherRatio = (cyrillicChars + cjkChars) / total;
+    if (otherRatio > 0.3) return false;
+    if (enArRatio > 0.15) return true;
+    const digitsPunct = (sample.match(/[\d\s\p{P}#@]/gu) || []).length;
+    if ((latinChars + arabicChars + digitsPunct) / total > 0.5) return true;
+    return false;
+  }
+
+  function stripHtmlToText(html: string): string {
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+  }
+
+  async function scrapeChannel(channel: string): Promise<TelegramMessage[]> {
+    const cached = telegramCache.get(channel);
+    if (cached && Date.now() - cached.fetchedAt < TELEGRAM_CACHE_TTL) {
+      return cached.data;
+    }
+
+    const msgs: TelegramMessage[] = [];
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const response = await fetch(`https://t.me/s/${channel}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        if (cached) return cached.data;
+        return [];
+      }
+
+      const html = await response.text();
+
+      const msgRegex = /<div class="tgme_widget_message_wrap[^"]*"[^>]*data-post="([^"]*)"[^>]*>[\s\S]*?<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>[\s\S]*?<time[^>]*datetime="([^"]*)"[^>]*>/g;
+      let match;
+      let count = 0;
+      while ((match = msgRegex.exec(html)) !== null && count < 15) {
+        const postId = match[1];
+        let text = stripHtmlToText(match[2]);
+        const datetime = match[3];
+
+        if (!text || text.length < 5) continue;
+        if (!isLikelyEnglishOrArabic(text)) continue;
+
+        if (text.length > 500) {
+          text = text.substring(0, 497) + '...';
+        }
+
+        msgs.push({
+          id: `live_${channel}_${postId.replace('/', '_')}`,
+          channel: `@${channel}`,
+          text,
+          timestamp: datetime || new Date().toISOString(),
+        });
+        count++;
+      }
+
+      if (count === 0) {
+        const altRegex = /class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
+        const timeRegex = /<time[^>]*datetime="([^"]*)"[^>]*>/g;
+        const texts: string[] = [];
+        const times: string[] = [];
+        let m;
+        while ((m = altRegex.exec(html)) !== null) {
+          const t = stripHtmlToText(m[1]);
+          if (t.length >= 5 && isLikelyEnglishOrArabic(t)) {
+            texts.push(t.length > 500 ? t.substring(0, 497) + '...' : t);
+          }
+        }
+        while ((m = timeRegex.exec(html)) !== null) {
+          times.push(m[1]);
+        }
+        const limit = Math.min(texts.length, times.length, 15);
+        for (let i = 0; i < limit; i++) {
+          msgs.push({
+            id: `live_${channel}_alt_${i}`,
+            channel: `@${channel}`,
+            text: texts[i],
+            timestamp: times[i] || new Date().toISOString(),
+          });
+        }
+      }
+
+      telegramCache.set(channel, { data: msgs, fetchedAt: Date.now() });
+    } catch {
+      if (cached) return cached.data;
+      return [];
+    }
+
+    return msgs;
+  }
+
   app.get('/api/telegram/live', async (req, res) => {
     const channelsParam = req.query.channels as string;
     if (!channelsParam) {
       return res.json([]);
     }
-    const channels = channelsParam.split(',').map(c => c.trim().replace(/^@/, '')).filter(Boolean);
-    const allMessages: TelegramMessage[] = [];
+    const channels = channelsParam.split(',')
+      .map(c => c.trim().replace(/^@/, ''))
+      .filter(c => c && ALLOWED_CHANNEL_PATTERN.test(c))
+      .slice(0, 12);
 
-    await Promise.all(channels.map(async (channel) => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        const response = await fetch(`https://t.me/s/${channel}`, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml',
-            'Accept-Language': 'en-US,en;q=0.9',
-          },
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) return;
-
-        const html = await response.text();
-
-        const msgRegex = /<div class="tgme_widget_message_wrap[^"]*"[^>]*data-post="([^"]*)"[^>]*>[\s\S]*?<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>[\s\S]*?<time[^>]*datetime="([^"]*)"[^>]*>/g;
-        let match;
-        let count = 0;
-        while ((match = msgRegex.exec(html)) !== null && count < 15) {
-          const postId = match[1];
-          let textHtml = match[2];
-          const datetime = match[3];
-
-          let text = textHtml
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&nbsp;/g, ' ')
-            .trim();
-
-          if (!text || text.length < 5) continue;
-
-          if (text.length > 500) {
-            text = text.substring(0, 497) + '...';
-          }
-
-          allMessages.push({
-            id: `live_${channel}_${postId.replace('/', '_')}`,
-            channel: `@${channel}`,
-            text,
-            timestamp: datetime || new Date().toISOString(),
-          });
-          count++;
-        }
-
-        if (count === 0) {
-          const altRegex = /class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
-          const timeRegex = /<time[^>]*datetime="([^"]*)"[^>]*>/g;
-          const texts: string[] = [];
-          const times: string[] = [];
-          let m;
-          while ((m = altRegex.exec(html)) !== null) {
-            let t = m[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
-            if (t.length >= 5) texts.push(t.length > 500 ? t.substring(0, 497) + '...' : t);
-          }
-          while ((m = timeRegex.exec(html)) !== null) {
-            times.push(m[1]);
-          }
-          const limit = Math.min(texts.length, times.length, 15);
-          for (let i = 0; i < limit; i++) {
-            allMessages.push({
-              id: `live_${channel}_alt_${i}`,
-              channel: `@${channel}`,
-              text: texts[i],
-              timestamp: times[i] || new Date().toISOString(),
-            });
-          }
-        }
-      } catch {
+    if (telegramCache.size > MAX_CACHE_CHANNELS) {
+      let oldest = '';
+      let oldestTime = Infinity;
+      for (const [key, val] of telegramCache) {
+        if (val.fetchedAt < oldestTime) { oldest = key; oldestTime = val.fetchedAt; }
       }
-    }));
+      if (oldest) telegramCache.delete(oldest);
+    }
 
+    const results = await Promise.all(channels.map(ch => scrapeChannel(ch)));
+    const allMessages = results.flat();
     allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
     res.json(allMessages);
   });
 

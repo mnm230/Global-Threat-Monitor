@@ -1805,7 +1805,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
   );
 }
 
-const DEFAULT_CHANNELS = ['@WarMonitor', '@IntelCrab', '@MENAconflict', '@ShipTracker', '@AviationIntel', '@OilMarkets', '@OSINTdefender', '@GeoConfirmed'];
+const DEFAULT_CHANNELS = ['@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@ShipTracker', '@OilMarkets'];
 
 function TelegramPanel({
   messages,
@@ -1872,9 +1872,11 @@ function TelegramPanel({
 
   const filteredMessages = useMemo(() => {
     if (liveMessages.length > 0) {
-      const liveIds = new Set(liveMessages.map(m => m.id));
-      const fallbackFiltered = messages.filter(m => allChannels.includes(m.channel) && !liveIds.has(m.id));
-      const merged = [...liveMessages, ...fallbackFiltered];
+      const liveChannelSet = new Set(liveMessages.map(m => m.channel));
+      const fallbackForMissingChannels = messages.filter(
+        m => allChannels.includes(m.channel) && !liveChannelSet.has(m.channel)
+      );
+      const merged = [...liveMessages, ...fallbackForMissingChannels];
       merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       return merged;
     }
