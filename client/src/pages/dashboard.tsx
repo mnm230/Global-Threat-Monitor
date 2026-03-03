@@ -1651,6 +1651,30 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
               <div><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedFlight.lat.toFixed(3)}, {selectedFlight.lng.toFixed(3)}</span></div>
               <div><span className="text-foreground/30">SEEN</span> <span className="text-foreground/70">{selectedFlight.seen}s ago</span></div>
             </div>
+            <div className="flex gap-2 mt-2 pt-1.5 border-t border-cyan-500/15">
+              <a
+                href={`https://www.google.com/maps?q=${selectedFlight.lat},${selectedFlight.lng}&z=10&t=k`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[10px] font-mono font-bold text-cyan-300 transition-colors"
+                data-testid={`adsb-gmap-${selectedFlight.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MapPin className="w-3 h-3" />
+                Google Maps
+              </a>
+              <a
+                href={`https://globe.adsbexchange.com/?icao=${selectedFlight.hex.toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-[10px] font-mono font-bold text-foreground/50 transition-colors"
+                data-testid={`adsb-adsbx-${selectedFlight.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="w-3 h-3" />
+                ADSBx
+              </a>
+            </div>
           </div>
         )}
 
@@ -1683,7 +1707,20 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
                 <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50">
                   <span>{f.aircraft}</span>
                   <span>{f.origin} {'\u2192'} {f.destination}</span>
-                  <span className="ml-auto">{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
+                  <span className="ml-auto flex items-center gap-1.5">
+                    <span>{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
+                    <a
+                      href={`https://www.google.com/maps?q=${f.lat},${f.lng}&z=10&t=k`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-cyan-500/15 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                      title="Open in Google Maps"
+                      data-testid={`adsb-gmap-row-${f.id}`}
+                    >
+                      <MapPin className="w-3 h-3 text-cyan-400/40 hover:text-cyan-400/80" />
+                    </a>
+                  </span>
                 </div>
               </div>
             );
