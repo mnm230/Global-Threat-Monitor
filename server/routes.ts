@@ -2113,7 +2113,7 @@ export async function registerRoutes(
   });
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
-  const TELEGRAM_CACHE_TTL = 3 * 60 * 1000;
+  const TELEGRAM_CACHE_TTL = 45 * 1000;
   const MAX_CACHE_CHANNELS = 50;
   const ALLOWED_CHANNEL_PATTERN = /^[a-zA-Z0-9_]{3,64}$/;
 
@@ -2147,12 +2147,20 @@ export async function registerRoutes(
       .trim();
   }
 
+  const inflightRequests = new Map<string, Promise<TelegramMessage[]>>();
+  const rateLimitBackoff = new Map<string, number>();
+
   async function scrapeChannel(channel: string): Promise<TelegramMessage[]> {
     const cached = telegramCache.get(channel);
-    if (cached && Date.now() - cached.fetchedAt < TELEGRAM_CACHE_TTL) {
+    const backoffUntil = rateLimitBackoff.get(channel) || 0;
+    if (cached && (Date.now() - cached.fetchedAt < TELEGRAM_CACHE_TTL || Date.now() < backoffUntil)) {
       return cached.data;
     }
 
+    const inflight = inflightRequests.get(channel);
+    if (inflight) return inflight;
+
+    const doScrape = async (): Promise<TelegramMessage[]> => {
     const msgs: TelegramMessage[] = [];
     try {
       const controller = new AbortController();
@@ -2166,6 +2174,12 @@ export async function registerRoutes(
         signal: controller.signal,
       });
       clearTimeout(timeout);
+
+      if (response.status === 429) {
+        rateLimitBackoff.set(channel, Date.now() + 120000);
+        if (cached) return cached.data;
+        return [];
+      }
 
       if (!response.ok) {
         if (cached) return cached.data;
@@ -2251,6 +2265,11 @@ export async function registerRoutes(
     }
 
     return msgs;
+    };
+
+    const promise = doScrape().finally(() => inflightRequests.delete(channel));
+    inflightRequests.set(channel, promise);
+    return promise;
   }
 
   app.get('/api/telegram/live', async (req, res) => {

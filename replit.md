@@ -67,5 +67,5 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui
-- **Telegram:** `t.me/s/` (for public channel scraping)
+- **Telegram:** `t.me/s/` (for public channel scraping, 45s cache TTL with in-flight request deduplication and rate-limit backoff)
 - **YouTube:** YouTube API (for embedding live streams)

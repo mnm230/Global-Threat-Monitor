@@ -2079,11 +2079,9 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 }
 
 const LIVE_CHANNELS = [
-  { id: 'aja',    label: 'AJ AR',     labelAr: 'الجزيرة ع',  videoId: 'bNyUyrR0PHo' },
-  { id: 'aje',    label: 'AJ EN',     labelAr: 'الجزيرة إن', videoId: 'nGTiotxgfEY' },
-  { id: 'f24ar',  label: 'F24 AR',    labelAr: 'فرانس 24',   videoId: '4s2DMLR7aX8' },
-  { id: 'sky',    label: 'SKY AR',    labelAr: 'سكاي عربية', videoId: 'GCPOzwFMJmI' },
+  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  videoId: 'bNyUyrR0PHo' },
   { id: 'alaraby', label: 'ALARABY',  labelAr: 'العربي',     videoId: 'e2RgSa1Wt5o' },
+  { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', videoId: 'U--OjmpjF5o' },
 ] as const;
 
 function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
