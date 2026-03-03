@@ -777,7 +777,124 @@ const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
   { id: 'ra57', city: 'Doha', cityHe: 'דוחא', cityAr: 'الدوحة', region: 'Ad Dawhah', regionHe: 'אד-דוחה', regionAr: 'الدوحة', country: 'Qatar', countryCode: 'QA', countdown: 120, threatType: 'missiles', lat: 25.286, lng: 51.534 },
 ];
 
-function generateRedAlerts(): RedAlert[] {
+const OREF_API_URL = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
+const OREF_HISTORY_URL = 'https://www.oref.org.il/WarningMessages/alert/History/AlertsHistory.json';
+
+const OREF_THREAT_MAP: Record<number, RedAlert['threatType']> = {
+  1: 'rockets',
+  2: 'missiles',
+  3: 'hostile_aircraft_intrusion',
+  4: 'uav_intrusion',
+  5: 'rockets',
+};
+
+const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; ar: string; region: string; regionHe: string; regionAr: string; countdown: number }> = {
+  'שדרות': { lat: 31.525, lng: 34.596, en: 'Sderot', ar: 'سديروت', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'אשקלון': { lat: 31.669, lng: 34.571, en: 'Ashkelon', ar: 'عسقلان', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 30 },
+  'באר שבע': { lat: 31.252, lng: 34.791, en: "Be'er Sheva", ar: 'بئر السبع', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'תל אביב': { lat: 32.085, lng: 34.782, en: 'Tel Aviv', ar: 'تل أبيب', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'חיפה': { lat: 32.794, lng: 34.990, en: 'Haifa', ar: 'حيفا', region: 'Haifa Bay', regionHe: 'מפרץ חיפה', regionAr: 'خليج حيفا', countdown: 60 },
+  'ירושלים': { lat: 31.769, lng: 35.216, en: 'Jerusalem', ar: 'القدس', region: 'Jerusalem', regionHe: 'ירושלים', regionAr: 'القدس', countdown: 90 },
+  'קריית שמונה': { lat: 33.208, lng: 35.571, en: 'Kiryat Shmona', ar: 'كريات شمونة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'נהריה': { lat: 33.005, lng: 35.098, en: 'Nahariya', ar: 'نهاريا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'מטולה': { lat: 33.280, lng: 35.578, en: 'Metula', ar: 'المطلة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 0 },
+  'טבריה': { lat: 32.796, lng: 35.530, en: 'Tiberias', ar: 'طبريا', region: 'Sea of Galilee', regionHe: 'כנרת', regionAr: 'بحيرة طبريا', countdown: 30 },
+  'נתניה': { lat: 32.333, lng: 34.857, en: 'Netanya', ar: 'نتانيا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'צפת': { lat: 32.966, lng: 35.496, en: 'Safed', ar: 'صفد', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'אילת': { lat: 29.558, lng: 34.952, en: 'Eilat', ar: 'إيلات', region: 'Southern Negev', regionHe: 'דרום הנגב', regionAr: 'النقب الجنوبي', countdown: 90 },
+  'ראשון לציון': { lat: 31.964, lng: 34.804, en: 'Rishon LeZion', ar: 'ريشون لتسيون', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'פתח תקווה': { lat: 32.089, lng: 34.886, en: 'Petah Tikva', ar: 'بيتح تكفا', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'אשדוד': { lat: 31.801, lng: 34.650, en: 'Ashdod', ar: 'أسدود', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 45 },
+  'הרצליה': { lat: 32.166, lng: 34.846, en: 'Herzliya', ar: 'هرتسليا', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'עכו': { lat: 32.928, lng: 35.076, en: 'Acre', ar: 'عكا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 30 },
+  'כרמיאל': { lat: 32.919, lng: 35.296, en: 'Karmiel', ar: 'كرميئيل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'נוף הגליל': { lat: 32.700, lng: 35.320, en: 'Nof HaGalil', ar: 'نوف هجليل', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'רמת גן': { lat: 32.068, lng: 34.824, en: 'Ramat Gan', ar: 'رمات غان', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'בת ים': { lat: 32.023, lng: 34.751, en: 'Bat Yam', ar: 'بات يام', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'חולון': { lat: 32.011, lng: 34.773, en: 'Holon', ar: 'حولون', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'בני ברק': { lat: 32.084, lng: 34.835, en: 'Bnei Brak', ar: 'بني براك', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'חדרה': { lat: 32.434, lng: 34.919, en: 'Hadera', ar: 'الخضيرة', region: 'Haifa District', regionHe: 'מחוז חיפה', regionAr: 'منطقة حيفا', countdown: 60 },
+  'עפולה': { lat: 32.608, lng: 35.289, en: 'Afula', ar: 'العفولة', region: 'Jezreel Valley', regionHe: 'עמק יזרעאל', regionAr: 'مرج ابن عامر', countdown: 45 },
+  'דימונה': { lat: 31.069, lng: 35.033, en: 'Dimona', ar: 'ديمونا', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'ערד': { lat: 31.261, lng: 35.213, en: 'Arad', ar: 'عراد', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+};
+
+let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
+const OREF_CACHE_TTL = 5000;
+
+async function fetchOrefAlerts(): Promise<RedAlert[]> {
+  const now = Date.now();
+  if (orefCache && (now - orefCache.timestamp) < OREF_CACHE_TTL) {
+    return orefCache.data;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const resp = await fetch(OREF_API_URL, {
+      signal: controller.signal,
+      headers: {
+        'Referer': 'https://www.oref.org.il/',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; WARROOM/2.0)',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) {
+      orefCache = { data: [], timestamp: now };
+      return [];
+    }
+
+    const text = await resp.text();
+    if (!text || text.trim() === '' || text.trim() === '[]') {
+      orefCache = { data: [], timestamp: now };
+      return [];
+    }
+
+    const raw = JSON.parse(text);
+    const alerts: RedAlert[] = [];
+
+    if (Array.isArray(raw)) {
+      for (const item of raw) {
+        const cityHe = (item.data || item.title || '').trim();
+        const cat = item.cat || 1;
+        const threatType = OREF_THREAT_MAP[cat] || 'rockets';
+        const ts = item.date ? new Date(item.date).toISOString() : new Date().toISOString();
+
+        const known = OREF_CITY_COORDS[cityHe];
+        alerts.push({
+          id: `oref-${cityHe}-${cat}-${ts}`,
+          city: known?.en || cityHe,
+          cityHe,
+          cityAr: known?.ar || cityHe,
+          region: known?.region || item.desc || 'Israel',
+          regionHe: known?.regionHe || item.desc || 'ישראל',
+          regionAr: known?.regionAr || item.desc || 'إسرائيل',
+          country: 'Israel',
+          countryCode: 'IL',
+          countdown: known?.countdown ?? 30,
+          threatType,
+          timestamp: ts,
+          active: true,
+          lat: known?.lat ?? 31.5 + Math.random() * 2,
+          lng: known?.lng ?? 34.5 + Math.random() * 1,
+          source: 'live',
+        });
+      }
+    }
+
+    orefCache = { data: alerts, timestamp: now };
+    return alerts;
+  } catch (err) {
+    if (orefCache) return orefCache.data;
+    return [];
+  }
+}
+
+function generateSimAlerts(): RedAlert[] {
   const now = Date.now();
   const count = 8 + Math.floor(Math.random() * 10);
   const shuffled = [...RED_ALERT_POOL].sort(() => Math.random() - 0.5);
@@ -785,7 +902,25 @@ function generateRedAlerts(): RedAlert[] {
     ...a,
     timestamp: new Date(now - Math.floor(Math.random() * 120000)).toISOString(),
     active: true,
+    source: 'sim' as const,
   }));
+}
+
+async function generateRedAlerts(): Promise<RedAlert[]> {
+  const liveAlerts = await fetchOrefAlerts();
+  if (liveAlerts.length > 0) {
+    const simCount = 3 + Math.floor(Math.random() * 5);
+    const nonIsraelPool = RED_ALERT_POOL.filter(a => a.countryCode !== 'IL');
+    const shuffled = [...nonIsraelPool].sort(() => Math.random() - 0.5);
+    const regionalSim = shuffled.slice(0, simCount).map(a => ({
+      ...a,
+      timestamp: new Date(Date.now() - Math.floor(Math.random() * 120000)).toISOString(),
+      active: true,
+      source: 'sim' as const,
+    }));
+    return [...liveAlerts, ...regionalSim];
+  }
+  return generateSimAlerts();
 }
 
 function generateAIBrief(): AIBrief {
@@ -1088,8 +1223,8 @@ export async function registerRoutes(
     res.json(generateSirens());
   });
 
-  app.get('/api/red-alerts', (_req, res) => {
-    res.json(generateRedAlerts());
+  app.get('/api/red-alerts', async (_req, res) => {
+    res.json(await generateRedAlerts());
   });
 
   app.get('/api/adsb', async (_req, res) => {
@@ -1130,7 +1265,7 @@ export async function registerRoutes(
     send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
     send('news', generateNews());
     send('sirens', generateSirens());
-    send('red-alerts', generateRedAlerts());
+    generateRedAlerts().then(alerts => send('red-alerts', alerts));
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
     send('ai-brief', generateAIBrief());
     send('telegram', generateTelegram());
@@ -1139,7 +1274,7 @@ export async function registerRoutes(
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
     intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 6000));
-    intervals.push(setInterval(() => send('red-alerts', generateRedAlerts()), 8000));
+    intervals.push(setInterval(() => generateRedAlerts().then(alerts => send('red-alerts', alerts)), 8000));
     intervals.push(setInterval(() => send('sirens', generateSirens()), 10000));
     intervals.push(setInterval(() => {
       send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });

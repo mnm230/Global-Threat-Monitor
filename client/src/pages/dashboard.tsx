@@ -514,8 +514,9 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   );
 }
 
-function getThreatLevel(alertCount: number, sirenCount: number, settings?: WARROOMSettings): { level: string; color: string; bg: string } {
-  const total = alertCount + sirenCount;
+function getThreatLevel(alertCount: number, sirenCount: number, settings?: WARROOMSettings, alerts?: RedAlert[]): { level: string; color: string; bg: string } {
+  const liveWeight = alerts ? alerts.filter(a => a.source === 'live').length * 2 : 0;
+  const total = alertCount + sirenCount + liveWeight;
   const s = settings || DEFAULT_SETTINGS;
   if (total > s.criticalThreshold) return { level: 'CRITICAL', color: 'text-red-400', bg: 'bg-red-950/50 border-red-500/40' };
   if (total > s.highThreshold) return { level: 'HIGH', color: 'text-orange-400', bg: 'bg-orange-950/50 border-orange-500/40' };
@@ -1257,10 +1258,10 @@ function PanelHeader({
     <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-white/[0.02] to-transparent shrink-0 relative overflow-hidden">
       <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/20 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
-      <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/50">{icon}</span>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-foreground/40 font-mono">{title}</span>
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/70">{icon}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/60 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] px-1.5 py-px font-mono text-foreground/30 bg-white/[0.03] rounded-sm border border-white/[0.05] tabular-nums leading-none">
+        <span className="text-[9px] px-1.5 py-px font-mono text-foreground/50 bg-white/[0.05] rounded-sm border border-white/[0.06] tabular-nums leading-none font-bold">
           {count}
         </span>
       )}
@@ -1289,17 +1290,17 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2 font-mono text-[10px] items-center hover:bg-white/[0.015] transition-colors duration-150 border-l border-l-transparent ${c.change >= 0 ? 'border-l-emerald-500/15' : 'border-l-red-500/15'}`}
+      className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2.5 font-mono text-xs items-center hover:bg-white/[0.02] transition-colors duration-150 border-l-2 border-l-transparent ${c.change >= 0 ? 'border-l-emerald-500/20' : 'border-l-red-500/20'}`}
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-foreground/80 font-bold text-[10px] truncate">{c.symbol}</span>
-        <span className="text-[9px] text-foreground/25 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+        <span className="text-foreground/90 font-bold text-xs truncate">{c.symbol}</span>
+        <span className="text-[9px] text-foreground/40 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
       </div>
-      <span className="text-foreground/65 tabular-nums text-right font-semibold whitespace-nowrap text-[10px]">
+      <span className="text-foreground/80 tabular-nums text-right font-bold whitespace-nowrap text-xs">
         {formatPrice(c)}
       </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-semibold whitespace-nowrap min-w-[48px] text-[10px] ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-bold whitespace-nowrap min-w-[48px] text-xs ${c.change >= 0 ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
         <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
       </div>
     </div>
@@ -1478,10 +1479,10 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-2 text-xs font-mono text-muted-foreground/70">
-                <span><span className="text-foreground/30">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
-                <span><span className="text-foreground/30">SPD</span> {f.speed}</span>
-                <span><span className="text-foreground/30">HDG</span> {headingToCompass(f.heading)}</span>
+              <div className="grid grid-cols-3 gap-x-2 text-xs font-mono text-muted-foreground/80">
+                <span><span className="text-foreground/50">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
+                <span><span className="text-foreground/50">SPD</span> {f.speed}</span>
+                <span><span className="text-foreground/50">HDG</span> {headingToCompass(f.heading)}</span>
               </div>
             </div>
           );
@@ -1719,12 +1720,12 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
                   {e.severity.toUpperCase()}
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1.5">
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-1.5">
                 {language === 'ar' && e.descriptionAr ? e.descriptionAr : e.description}
               </p>
-              <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
-                <span className="uppercase tracking-wider text-foreground/40">{e.type}</span>
-                <span className="text-foreground/20">·</span>
+              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/70">
+                <span className="uppercase tracking-wider text-foreground/50">{e.type}</span>
+                <span className="text-foreground/30">·</span>
                 <span>{timeAgo(e.timestamp)}</span>
               </div>
             </div>
@@ -1873,33 +1874,58 @@ const RED_ALERT_THREAT_COLORS: Record<string, string> = {
   uav_intrusion: 'bg-yellow-600',
 };
 
-function RedAlertCountdown({ alert }: { alert: RedAlert }) {
-  const [remaining, setRemaining] = useState(0);
+const THREAT_SEVERITY_ORDER: Record<string, number> = {
+  missiles: 0,
+  rockets: 1,
+  uav_intrusion: 2,
+  hostile_aircraft_intrusion: 3,
+};
 
+function getAlertUrgencyTier(remaining: number, countdown: number): 'critical' | 'urgent' | 'warning' | 'standard' | 'expired' {
+  if (countdown === 0) return 'critical';
+  if (remaining <= 0) return 'expired';
+  if (remaining <= 15) return 'critical';
+  if (remaining <= 45) return 'urgent';
+  if (remaining <= 90) return 'warning';
+  return 'standard';
+}
+
+function useAlertRemaining(alert: RedAlert) {
+  const [remaining, setRemaining] = useState(0);
   useEffect(() => {
-    const calcRemaining = () => {
+    const calc = () => {
       const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
       return Math.max(0, alert.countdown - elapsed);
     };
-    setRemaining(calcRemaining());
-    const interval = setInterval(() => setRemaining(calcRemaining()), 1000);
+    setRemaining(calc());
+    const interval = setInterval(() => setRemaining(calc()), 1000);
     return () => clearInterval(interval);
   }, [alert.timestamp, alert.countdown]);
+  return remaining;
+}
 
-  const isUrgent = remaining <= 15 && remaining > 0;
+function RedAlertCountdown({ alert }: { alert: RedAlert }) {
+  const remaining = useAlertRemaining(alert);
   const isImmediate = alert.countdown === 0;
+  const tier = getAlertUrgencyTier(remaining, alert.countdown);
+
+  const tierStyles = {
+    critical: 'text-white',
+    urgent: 'text-red-300',
+    warning: 'text-amber-300',
+    standard: 'text-white/90',
+    expired: 'text-red-900/40',
+  };
 
   return (
-    <div className={`font-mono text-center shrink-0 min-w-[40px] ${isImmediate || isUrgent ? 'animate-pulse' : ''}`}>
+    <div className={`font-mono text-center shrink-0 min-w-[44px] ${tier === 'critical' || tier === 'urgent' ? 'animate-pulse' : ''}`}>
       <div
-        className={`text-base font-black tabular-nums leading-none ${
-          isImmediate ? 'text-white' : isUrgent ? 'text-red-300' : remaining === 0 ? 'text-red-900/40' : 'text-white/90'
-        }`}
+        className={`text-lg font-black tabular-nums leading-none ${tierStyles[tier]}`}
         data-testid={`red-alert-countdown-${alert.id}`}
       >
         {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
       </div>
-      <div className="text-[8px] text-red-300/40 mt-0.5 uppercase tracking-wider">
+      <div className={`text-[8px] mt-0.5 uppercase tracking-wider ${tier === 'critical' ? 'text-red-300/60' : 'text-red-300/40'}`}>
         {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'sec' : ''}
       </div>
     </div>
@@ -1946,7 +1972,24 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
     );
   }, [alerts, searchQuery, countryFilter, threatFilter]);
 
-  const grouped = filteredAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>((acc, alert) => {
+  const sortedAlerts = useMemo(() => {
+    return [...filteredAlerts].sort((a, b) => {
+      const nowMs = Date.now();
+      const remA = Math.max(0, a.countdown - Math.floor((nowMs - new Date(a.timestamp).getTime()) / 1000));
+      const remB = Math.max(0, b.countdown - Math.floor((nowMs - new Date(b.timestamp).getTime()) / 1000));
+      const activeA = remA > 0 || a.countdown === 0 ? 1 : 0;
+      const activeB = remB > 0 || b.countdown === 0 ? 1 : 0;
+      if (activeA !== activeB) return activeB - activeA;
+      if (a.source !== b.source) return a.source === 'live' ? -1 : 1;
+      if (remA !== remB) return remA - remB;
+      const sevA = THREAT_SEVERITY_ORDER[a.threatType] ?? 9;
+      const sevB = THREAT_SEVERITY_ORDER[b.threatType] ?? 9;
+      if (sevA !== sevB) return sevA - sevB;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [filteredAlerts]);
+
+  const grouped = sortedAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>((acc, alert) => {
     const regionKey = language === 'ar' ? alert.regionAr : alert.region;
     const country = alert.country || 'Unknown';
     const key = `${country}::${regionKey}`;
@@ -1956,6 +1999,9 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
   }, {});
 
   const sortedRegions = Object.entries(grouped).sort((a, b) => {
+    const hasLiveA = a[1].alerts.some(al => al.source === 'live') ? 0 : 1;
+    const hasLiveB = b[1].alerts.some(al => al.source === 'live') ? 0 : 1;
+    if (hasLiveA !== hasLiveB) return hasLiveA - hasLiveB;
     const countryIdxA = countryOrder.indexOf(a[1].country);
     const countryIdxB = countryOrder.indexOf(b[1].country);
     if (countryIdxA !== countryIdxB) return countryIdxA - countryIdxB;
@@ -1963,6 +2009,9 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
     const minB = Math.min(...b[1].alerts.map(b => b.countdown));
     return minA - minB;
   });
+
+  const liveCount = alerts.filter(a => a.source === 'live').length;
+  const simCount = alerts.filter(a => a.source === 'sim').length;
 
   const hasActiveAlerts = alerts.length > 0;
 
@@ -1982,15 +2031,27 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           <span className={`text-[10px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
         </div>
         {hasActiveAlerts && (
-          <span className="text-[10px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
-            {alerts.length}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
+              {alerts.length}
+            </span>
+            {liveCount > 0 && (
+              <span className="text-[9px] px-1.5 py-0.5 font-mono font-black bg-emerald-500/30 text-emerald-200 rounded border border-emerald-400/40">
+                {liveCount} API
+              </span>
+            )}
+            {simCount > 0 && (
+              <span className="text-[9px] px-1.5 py-0.5 font-mono font-bold bg-white/10 text-white/50 rounded border border-white/15">
+                {simCount} SIM
+              </span>
+            )}
+          </div>
         )}
         <div className="flex-1" />
         {hasActiveAlerts && (
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse-dot" />
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/70 font-bold">LIVE</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-white/70 font-bold">{liveCount > 0 ? 'LIVE API' : 'LIVE'}</span>
           </div>
         )}
         {onShowHistory && (
@@ -2009,7 +2070,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city / country...'}
-              className="w-full h-6 text-[11px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
+              className="w-full h-7 text-[10px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
               data-testid="input-red-alert-search"
             />
           </div>
@@ -2024,7 +2085,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               <button
                 key={key}
                 onClick={() => setThreatFilter(key)}
-                className={`text-[11px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[10px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
                   threatFilter === key ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
                 data-testid={`button-threat-filter-${key}`}
@@ -2035,7 +2096,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             <div className="px-1.5 pb-2 flex flex-wrap gap-1">
               <button
                 onClick={() => setCountryFilter('ALL')}
-                className={`text-[11px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[10px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
                   countryFilter === 'ALL' ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
                 data-testid="button-country-filter-all"
@@ -2048,7 +2109,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   <button
                     key={c}
                     onClick={() => setCountryFilter(c)}
-                    className={`text-[11px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
+                    className={`text-[10px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
                       countryFilter === c ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                     }`}
                     data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
@@ -2090,36 +2151,50 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                     <span className="text-[11px] text-red-400/40 font-mono">{regionAlerts.length}</span>
                   </div>
                 </div>
-                {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
+                {regionAlerts.map((alert) => {
                   const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
                   const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
                   const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
-                  const isActive = elapsed < alert.countdown;
+                  const remaining = Math.max(0, alert.countdown - elapsed);
+                  const isActive = elapsed < alert.countdown || alert.countdown === 0;
+                  const tier = getAlertUrgencyTier(remaining, alert.countdown);
+                  const isLive = alert.source === 'live';
+
+                  const tierBg = {
+                    critical: 'bg-red-900/50 border-l-red-400',
+                    urgent: 'bg-red-950/40 border-l-amber-500',
+                    warning: 'bg-red-950/30 border-l-red-500',
+                    standard: 'bg-red-950/20 border-l-red-600/60',
+                    expired: 'bg-transparent border-l-red-900/20',
+                  };
+
                   return (
                     <div
                       key={alert.id}
-                      className={`px-3 py-3 flex items-center gap-3 border-b border-red-900/15 transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-red-950/30 border-l-[3px] border-l-red-500 hover:bg-red-950/50'
-                          : 'bg-transparent border-l-[3px] border-l-red-900/20 hover:bg-red-950/20'
-                      }`}
+                      className={`px-3 py-3.5 flex items-center gap-3 border-b border-red-900/15 transition-all cursor-pointer border-l-[3px] hover:bg-red-950/50 ${tierBg[tier]} ${tier === 'critical' ? 'animate-pulse' : ''}`}
                       data-testid={`red-alert-${alert.id}`}
+                      style={tier === 'critical' ? {boxShadow:'inset 0 0 20px rgb(239 68 68 / 0.15)'} : undefined}
                     >
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} style={isActive ? {boxShadow:'0 0 6px rgb(239 68 68 / 0.5)'} : undefined} />
+                      <div className={`w-3 h-3 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} style={isActive ? {boxShadow:'0 0 8px rgb(239 68 68 / 0.6)'} : undefined} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className={`text-[10px] font-black truncate ${isActive ? 'text-red-100' : 'text-red-300/50'}`}>
+                          <span className={`text-xs font-black truncate ${isActive ? 'text-red-100' : 'text-red-300/50'}`}>
                             {language === 'ar' ? alert.cityAr : alert.city}
                           </span>
-                          <span className="text-[9px] text-red-400/25 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                          <span className="text-[9px] text-red-400/35 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                          {isLive ? (
+                            <span className="text-[8px] px-1 py-px font-mono font-black bg-emerald-500/25 text-emerald-300 rounded border border-emerald-400/30 shrink-0" data-testid={`source-badge-${alert.id}`}>API</span>
+                          ) : (
+                            <span className="text-[8px] px-1 py-px font-mono font-bold bg-white/[0.06] text-white/30 rounded border border-white/[0.08] shrink-0" data-testid={`source-badge-${alert.id}`}>SIM</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] px-2 py-0.5 rounded font-bold tracking-wider uppercase font-mono border ${
                             isActive ? `text-white ${threatColor}` : 'text-red-400/30 bg-red-950/30 border-red-900/20'
-                          }`} style={isActive ? {boxShadow:'0 0 8px rgb(239 68 68 / 0.2)'} : undefined}>
+                          }`} style={isActive ? {boxShadow:'0 0 10px rgb(239 68 68 / 0.25)'} : undefined}>
                             {language === 'ar' ? threat.ar : threat.en}
                           </span>
-                          <span className={`text-[9px] font-mono tabular-nums ${isActive ? 'text-red-400/50' : 'text-red-400/25'}`}>
+                          <span className={`text-[9px] font-mono tabular-nums ${isActive ? 'text-red-400/60' : 'text-red-400/25'}`}>
                             {timeAgo(alert.timestamp)}
                           </span>
                         </div>
@@ -2963,7 +3038,7 @@ export default function Dashboard() {
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
   useDesktopNotifications(redAlerts, sirens, notificationsEnabled);
 
-  const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings), [redAlerts.length, sirens.length, settings]);
+  const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings, redAlerts), [redAlerts, sirens.length, settings]);
   const correlations = useCorrelations(events, redAlerts, sirens, flights);
 
   const watchlist = useMemo<string[]>(() => {
@@ -3117,9 +3192,14 @@ export default function Dashboard() {
           return <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
+    const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;
     return (
       <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
-        {panel}
+        {hasAlertGlow ? (
+          <div className="h-full flex flex-col min-h-0 ring-2 ring-red-500/50 rounded-sm relative" style={{boxShadow:'0 0 30px rgb(239 68 68 / 0.25), inset 0 0 30px rgb(239 68 68 / 0.08)'}} data-testid="alert-panel-glow">
+            {panel}
+          </div>
+        ) : panel}
       </PanelErrorBoundary>
     );
   };
@@ -3147,9 +3227,9 @@ export default function Dashboard() {
             <span className="text-[9px] text-red-400/80 font-bold tracking-[0.2em] uppercase font-mono">LIVE</span>
           </div>
           <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
-            <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
-            <span className={`text-[9px] font-black tracking-[0.18em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 12px rgb(239 68 68 / 0.3)' : threatLevel.level === 'HIGH' ? '0 0 10px rgb(249 115 22 / 0.2)' : 'none'}}>
+            <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
+            <span className={`text-[10px] font-black tracking-[0.18em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">

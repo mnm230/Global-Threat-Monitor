@@ -134,6 +134,7 @@ export interface RedAlert {
   active: boolean;
   lat: number;
   lng: number;
+  source?: 'live' | 'sim';
 }
 
 export interface AIBriefDevelopment {
