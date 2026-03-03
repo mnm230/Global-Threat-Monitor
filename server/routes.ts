@@ -2113,7 +2113,7 @@ export async function registerRoutes(
   });
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
-  const TELEGRAM_CACHE_TTL = 45 * 1000;
+  const TELEGRAM_CACHE_TTL = 30 * 1000;
   const MAX_CACHE_CHANNELS = 50;
   const ALLOWED_CHANNEL_PATTERN = /^[a-zA-Z0-9_]{3,64}$/;
 
