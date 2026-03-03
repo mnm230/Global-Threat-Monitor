@@ -2001,7 +2001,6 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-
       {hasActiveAlerts && (
         <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
           <div className="px-2 py-1.5">
@@ -2060,7 +2059,6 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           )}
         </div>
       )}
-
       {!hasActiveAlerts && (
         <div className="px-3 py-8 text-center flex-1 flex flex-col items-center justify-center">
           <Shield className="w-8 h-8 text-emerald-500/40 mb-3" />
@@ -2069,7 +2067,6 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           <p className="text-[10px] text-foreground/15 mt-2">All areas safe</p>
         </div>
       )}
-
       <ScrollArea className="flex-1">
         <div>
           {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
@@ -2080,61 +2077,60 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             const countryColor = COUNTRY_COLORS[country] || 'bg-red-900/30 text-red-300/90 border-red-800/30';
             const countryAlertCount = sortedRegions.filter(([_, g]) => g.country === country).reduce((sum, [_, g]) => sum + g.alerts.length, 0);
             return (
-            <div key={compositeKey}>
-              {showCountryHeader && (
-                <div className={`px-3 py-2 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
-                  <span className="text-xs font-black uppercase tracking-[0.15em] font-mono">{country}</span>
-                  <span className="text-xs opacity-50 font-mono">({countryAlertCount})</span>
-                </div>
-              )}
-              <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[33px] z-[100]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
-                  <span className="text-[11px] text-red-400/40 font-mono">{regionAlerts.length}</span>
-                </div>
-              </div>
-              {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
-                const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
-                const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
-                const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
-                const isActive = elapsed < alert.countdown;
-                return (
-                  <div
-                    key={alert.id}
-                    className={`px-3 py-2.5 flex items-center gap-3 border-b border-red-900/15 transition-colors ${
-                      isActive ? 'bg-red-950/30 border-l-[3px] border-l-red-500' : 'bg-transparent border-l-[3px] border-l-red-900/20'
-                    }`}
-                    data-testid={`red-alert-${alert.id}`}
-                  >
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className={`text-xs font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
-                          {language === 'ar' ? alert.cityAr : alert.city}
-                        </span>
-                        <span className="text-[10px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-xs px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
-                          isActive ? `text-white/90 ${threatColor}` : 'text-red-400/30 bg-red-950/30'
-                        }`}>
-                          {language === 'ar' ? threat.ar : threat.en}
-                        </span>
-                        <span className="text-[11px] text-red-400/30 font-mono tabular-nums">
-                          {timeAgo(alert.timestamp)}
-                        </span>
-                      </div>
-                    </div>
-                    <RedAlertCountdown alert={alert} />
+              <div key={compositeKey}>
+                {showCountryHeader && (
+                  <div className={`px-3 py-2 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
+                    <span className="text-xs font-black uppercase tracking-[0.15em] font-mono">{country}</span>
+                    <span className="text-xs opacity-50 font-mono">({countryAlertCount})</span>
                   </div>
-                );
-              })}
-            </div>
+                )}
+                <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[33px] z-[100]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
+                    <span className="text-[11px] text-red-400/40 font-mono">{regionAlerts.length}</span>
+                  </div>
+                </div>
+                {regionAlerts.sort((a, b) => a.countdown - b.countdown).map((alert) => {
+                  const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
+                  const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
+                  const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
+                  const isActive = elapsed < alert.countdown;
+                  return (
+                    <div
+                      key={alert.id}
+                      className={`px-3 py-2.5 flex items-center gap-3 border-b border-red-900/15 transition-colors ${
+                        isActive ? 'bg-red-950/30 border-l-[3px] border-l-red-500' : 'bg-transparent border-l-[3px] border-l-red-900/20'
+                      }`}
+                      data-testid={`red-alert-${alert.id}`}
+                    >
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`text-xs font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
+                            {language === 'ar' ? alert.cityAr : alert.city}
+                          </span>
+                          <span className="text-[10px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[19px] font-bold">
+                          <span className={`text-xs px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
+                            isActive ? `text-white/90 ${threatColor}` : 'text-red-400/30 bg-red-950/30'
+                          }`}>
+                            {language === 'ar' ? threat.ar : threat.en}
+                          </span>
+                          <span className="text-[11px] text-red-400/30 font-mono tabular-nums">
+                            {timeAgo(alert.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                      <RedAlertCountdown alert={alert} />
+                    </div>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
       </ScrollArea>
-
       {sirens.length > 0 && (
         <div className="border-t border-amber-900/30 shrink-0">
           <div className="px-3 py-1.5 bg-amber-950/20 flex items-center gap-2">
@@ -2164,7 +2160,6 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           </div>
         </div>
       )}
-
       <div className="px-3 py-1.5 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
         <span className="text-[10px] text-red-400/40 font-mono">tzevaadom.co.il</span>
         <span className="text-[10px] text-red-400/40 font-mono tabular-nums">
@@ -2612,7 +2607,6 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-
       <ScrollArea className="flex-1">
         {anomalies.length > 0 && (
           <div className="border-b border-amber-500/20 bg-amber-950/10">
