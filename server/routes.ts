@@ -861,6 +861,7 @@ export async function registerRoutes(
     send('red-alerts', generateRedAlerts());
     send('adsb', generateAdsbFlights());
     send('ai-brief', generateAIBrief());
+    send('telegram', generateTelegram());
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
     intervals.push(setInterval(() => send('adsb', generateAdsbFlights()), 6000));
@@ -870,6 +871,7 @@ export async function registerRoutes(
       send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
     }, 15000));
     intervals.push(setInterval(() => send('news', generateNews()), 20000));
+    intervals.push(setInterval(() => send('telegram', generateTelegram()), 25000));
     intervals.push(setInterval(() => send('ai-brief', generateAIBrief()), 60000));
 
     req.on('close', () => {

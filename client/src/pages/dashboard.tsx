@@ -225,6 +225,7 @@ interface SSEData {
   redAlerts: RedAlert[];
   adsbFlights: AdsbFlight[];
   aiBrief: AIBrief | null;
+  telegramMessages: TelegramMessage[];
   connected: boolean;
 }
 
@@ -238,6 +239,7 @@ function useSSE(): SSEData {
   const [redAlerts, setRedAlerts] = useState<RedAlert[]>([]);
   const [adsbFlights, setAdsbFlights] = useState<AdsbFlight[]>([]);
   const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
+  const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
@@ -280,6 +282,9 @@ function useSSE(): SSEData {
       es.addEventListener('ai-brief', (e) => {
         try { setAiBrief(JSON.parse(e.data)); } catch {}
       });
+      es.addEventListener('telegram', (e) => {
+        try { setTelegramMessages(JSON.parse(e.data)); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -300,7 +305,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -1474,14 +1479,10 @@ const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; label: strin
   government:   { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'GOV' },
 };
 
-function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [] }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[] }) {
   const [filter, setFilter] = useState<string>('all');
   const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
-
-  const { data: adsbFlights = [], isLoading } = useQuery<AdsbFlight[]>({
-    queryKey: ['/api/adsb'],
-    refetchInterval: 6000,
-  });
+  const isLoading = adsbFlights.length === 0;
 
   const filtered = useMemo(() => {
     if (filter === 'all') return adsbFlights;
@@ -2820,12 +2821,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, connected } = sse;
-
-  const { data: telegramMessages = [] } = useQuery<TelegramMessage[]>({
-    queryKey: ['/api/telegram'],
-    refetchInterval: 25000,
-  });
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, connected } = sse;
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -3025,7 +3021,7 @@ export default function Dashboard() {
             </>
           );
         case 'adsb':
-          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} />;
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':

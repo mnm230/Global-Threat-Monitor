@@ -44,7 +44,19 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 13. **Panel Close/Reopen** - 8 closeable panels with reopen tabs in status bar
 14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 40 tracked aircraft (23 commercial, 6 military, 6 surveillance, 3 cargo, 1 government, 1 private), filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Civil aviation includes BAW, DLH, AFR, AAL, KAL, CCA, SIA, ETH, IRM, UAL, ACA, VIR, QFA, JAL, GFA, ETD. Also rendered as toggleable layer on the 3D map.
 
-## Enhancement Features (T001-T005)
+## Enhancement Features (v2: T001-T010)
+29. **Error Boundaries** - Generic PanelErrorBoundary wraps all panels, catches errors and shows retry button
+30. **Accessibility** - aria-labels on all icon-only buttons, role="status" aria-live="polite" on threat badge, focus-visible rings
+31. **Mobile/Tablet Layout** - Viewport <768px detection, hamburger menu, tab bar navigation, 44px touch targets, Mobile preset, CSS media queries
+32. **SSE (Server-Sent Events)** - Single EventSource connection replaces all polling. `/api/stream` endpoint sends named events (commodities, events, news, sirens, red-alerts, adsb, ai-brief, telegram). Exponential backoff reconnection (max 5 retries, 30s max delay). Connection indicator in header.
+33. **HTML Intelligence Export** - Dark-themed styled HTML report with sections for alerts, events, military flights, ADS-B, maritime, market movers. Opens in new window with Print/PDF button.
+34. **Map Search** - Autocomplete search overlay on conflict-map.tsx with indexed static data (bases, facilities, infrastructure). Keyboard navigation, fly-to + pulsing highlight.
+35. **Maritime EEZ Layer** - 12 EEZ zones (Iran, Saudi Arabia, UAE, Oman, Kuwait, Qatar, Bahrain, Iraq, Yemen, Egypt, Israel, Lebanon) as PolygonLayer. Toggleable under MARITIME group in layer panel.
+36. **Configurable Thresholds** - Settings overlay with sliders for CRITICAL/HIGH/ELEVATED alert thresholds. Persisted to localStorage `warroom_settings`.
+37. **Anomaly Detection** - useAnomalyDetection hook monitoring alert spikes, siren clusters, flight concentrations, price spikes, telegram surges. Amber badge on AI panel, anomaly feed with timestamps.
+38. **Panel State Persistence** - visiblePanels saved to localStorage `warroom_panel_state` with 500ms debounce.
+
+## Earlier Enhancement Features (T001-T005)
 15. **Fullscreen/Maximize Panels** - PanelMaximizeButton on all major panels (Map, ADS-B, AI Intel, Red Alert). Click to expand to 100% of panel area. Escape key restores.
 16. **Threat Level Banner** - Dynamic header badge (CRITICAL/HIGH/ELEVATED/LOW) computed from aggregate red alerts + sirens count.
 17. **Desktop Notifications** - Browser Notification API integration for new red alerts. Bell toggle in header. Permission request on first enable.
@@ -61,15 +73,17 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 28. **Distance/Radius Tool** - Measure button in map toolbar. Click to set center point, move mouse to measure distance. Shows geodesic circle (PathLayer) and line (LineLayer). Readout displays km, nautical miles, and statute miles. Click again to clear.
 
 ## API Endpoints
-- `GET /api/news` - Breaking news items (polled every 20s)
-- `GET /api/commodities` - Commodity and FX prices (polled every 5s)
-- `GET /api/sirens` - Active siren alerts (polled every 10s)
-- `GET /api/red-alerts` - Multi-country Red Alert system data, 57 cities across 12 countries (polled every 8s)
-- `GET /api/events` - Map events, flights, ships (polled every 15s)
-- `GET /api/telegram` - Telegram channel messages (polled every 25s)
-- `GET /api/ai-brief` - AI intelligence brief with key developments (polled every 60s)
+- `GET /api/stream` - SSE endpoint streaming all data types (commodities 5s, adsb 6s, red-alerts 8s, sirens 10s, events 15s, news 20s, telegram 25s, ai-brief 60s)
+- `GET /api/news` - Breaking news items
+- `GET /api/commodities` - Commodity and FX prices
+- `GET /api/sirens` - Active siren alerts
+- `GET /api/red-alerts` - Multi-country Red Alert system data, 57 cities across 12 countries
+- `GET /api/events` - Map events, flights, ships
+- `GET /api/telegram` - Telegram channel messages
+- `GET /api/telegram/live` - Live Telegram channel scraping with custom channels
+- `GET /api/ai-brief` - AI intelligence brief with key developments
 - `POST /api/ai-deduct` - AI deduction/forecasting (on-demand)
-- `GET /api/adsb` - ADS-B flight tracking data, 40 aircraft (polled every 6s)
+- `GET /api/adsb` - ADS-B flight tracking data, 40 aircraft
 - `GET /api/alert-history` - 50 historical alerts with resolved status (on-demand)
 
 ## Panel System
