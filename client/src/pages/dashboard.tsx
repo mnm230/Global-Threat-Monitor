@@ -2402,6 +2402,13 @@ function TelegramPanel({
     return messages.filter(m => allChannels.includes(m.channel));
   }, [messages, liveMessages, allChannels]);
 
+  const [channelFilter, setChannelFilter] = useState<string | null>(null);
+
+  const displayMessages = useMemo(() => {
+    if (!channelFilter) return filteredMessages;
+    return filteredMessages.filter(m => m.channel === channelFilter);
+  }, [filteredMessages, channelFilter]);
+
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="telegram-panel">
       <PanelHeader
@@ -2414,14 +2421,9 @@ function TelegramPanel({
         isMaximized={isMaximized}
         extra={
           <div className="flex items-center gap-1">
-            {liveMessages.length > 0 && (
-              <span className="text-[9px] font-mono text-emerald-400/80 px-1 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20" data-testid="text-live-feed-count">
-                {liveMessages.length} LIVE
-              </span>
-            )}
             {liveLoading && (
               <span className="text-[9px] font-mono text-sky-400/60 animate-pulse" data-testid="text-live-loading">
-                FETCHING...
+                SYNC
               </span>
             )}
             {liveError && (
@@ -2431,18 +2433,51 @@ function TelegramPanel({
             )}
             <button
               onClick={() => setShowManager(!showManager)}
-              className="w-5 h-5 flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded hover:bg-sky-500/10 transition-colors"
               data-testid="button-toggle-channel-manager"
             >
-              <Plus className={`w-3.5 h-3.5 text-sky-400/70 transition-transform ${showManager ? 'rotate-45' : ''}`} />
+              <Settings className={`w-3 h-3 text-sky-400/50 hover:text-sky-400/80 transition-colors`} />
             </button>
           </div>
         }
       />
 
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/30 bg-card/40 shrink-0 overflow-x-auto" data-testid="telegram-channel-filters">
+        <button
+          onClick={() => setChannelFilter(null)}
+          className={`px-2 py-1 rounded text-[9px] font-mono font-bold whitespace-nowrap transition-all ${
+            !channelFilter
+              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+              : 'text-muted-foreground/50 hover:text-sky-400/70 hover:bg-sky-500/5 border border-transparent'
+          }`}
+          data-testid="button-filter-all"
+        >
+          ALL ({filteredMessages.length})
+        </button>
+        {allChannels.slice(0, 6).map(ch => {
+          const count = filteredMessages.filter(m => m.channel === ch).length;
+          if (count === 0) return null;
+          const shortName = ch.replace('@', '').slice(0, 10);
+          return (
+            <button
+              key={ch}
+              onClick={() => setChannelFilter(channelFilter === ch ? null : ch)}
+              className={`px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap transition-all ${
+                channelFilter === ch
+                  ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30'
+                  : 'text-muted-foreground/40 hover:text-sky-400/60 hover:bg-sky-500/5 border border-transparent'
+              }`}
+              data-testid={`button-filter-${ch.replace('@', '')}`}
+            >
+              {shortName} {count > 0 && <span className="text-sky-400/50 ml-0.5">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
       {showManager && (
-        <div className="border-b border-sky-900/30 bg-sky-950/15 px-2 py-2 shrink-0">
-          <div className="flex gap-1 mb-2">
+        <div className="border-b border-sky-800/20 bg-sky-950/20 px-3 py-2.5 shrink-0 space-y-2">
+          <div className="flex gap-1.5">
             <div className="flex-1 relative">
               <Hash className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-sky-400/40" />
               <input
@@ -2450,17 +2485,17 @@ function TelegramPanel({
                 value={newChannel}
                 onChange={(e) => setNewChannel(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addChannel()}
-                placeholder={language === 'ar' ? '\u0627\u0633\u0645 \u0627\u0644\u0642\u0646\u0627\u0629...' : 'Channel name...'}
-                className="w-full h-6 text-[11px] font-mono pl-7 pr-2 rounded bg-sky-950/40 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/30 focus:outline-none focus:border-sky-500/50"
+                placeholder={language === 'ar' ? '\u0627\u0633\u0645 \u0627\u0644\u0642\u0646\u0627\u0629...' : 'Add channel...'}
+                className="w-full h-7 text-[11px] font-mono pl-7 pr-2 rounded-md bg-background/60 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/25 focus:outline-none focus:border-sky-500/50 transition-colors"
                 data-testid="input-telegram-channel"
               />
             </div>
             <button
               onClick={addChannel}
-              className="h-6 px-2 text-[10px] font-mono font-bold bg-sky-600/30 hover:bg-sky-600/50 text-sky-200 rounded border border-sky-500/30 transition-colors"
+              className="h-7 px-3 text-[10px] font-mono font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 rounded-md border border-sky-500/25 transition-colors"
               data-testid="button-add-channel"
             >
-              {language === 'ar' ? '\u0625\u0636\u0627\u0641\u0629' : 'Add'}
+              {language === 'ar' ? '\u0625\u0636\u0627\u0641\u0629' : 'ADD'}
             </button>
           </div>
           <div className="flex flex-wrap gap-1">
@@ -2469,22 +2504,22 @@ function TelegramPanel({
               return (
                 <div
                   key={ch}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono ${
                     isCustom
-                      ? 'bg-sky-600/20 text-sky-300/90 border border-sky-500/25'
-                      : 'bg-sky-950/30 text-sky-400/60 border border-sky-900/20'
+                      ? 'bg-sky-500/15 text-sky-300/90 border border-sky-500/20'
+                      : 'bg-muted/30 text-muted-foreground/50 border border-border/30'
                   }`}
                   data-testid={`channel-tag-${ch.replace('@', '')}`}
                 >
                   <SiTelegram className="w-2.5 h-2.5 shrink-0" />
-                  <span className="truncate">{ch}</span>
+                  <span className="truncate">{ch.replace('@', '')}</span>
                   {isCustom && (
                     <button
                       onClick={() => removeChannel(ch)}
-                      className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-red-500/30 transition-colors"
+                      className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-red-500/20 transition-colors"
                       data-testid={`button-remove-channel-${ch.replace('@', '')}`}
                     >
-                      <X className="w-2.5 h-2.5 text-red-400/70" />
+                      <X className="w-2.5 h-2.5 text-red-400/60" />
                     </button>
                   )}
                 </div>
@@ -2495,97 +2530,105 @@ function TelegramPanel({
       )}
 
       <ScrollArea className="flex-1">
-        <div className="divide-y divide-white/[0.03]">
-          {filteredMessages.length === 0 && (
-            <div className="px-3 py-6 text-center">
-              <SiTelegram className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">
+        <div className="p-2 space-y-1.5">
+          {displayMessages.length === 0 && (
+            <div className="px-3 py-8 text-center">
+              <SiTelegram className="w-6 h-6 text-sky-400/20 mx-auto mb-3" />
+              <p className="text-xs text-muted-foreground/60">
                 {liveLoading
-                  ? (language === 'ar' ? 'جاري جلب البيانات الحية...' : 'Fetching live feeds...')
+                  ? (language === 'ar' ? '\u062C\u0627\u0631\u064A \u062C\u0644\u0628 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A...' : 'Fetching live feeds...')
                   : liveError
-                    ? (language === 'ar' ? 'خطأ في الاتصال بالقنوات' : 'Error connecting to channels')
-                    : (language === 'ar' ? 'لا توجد رسائل حتى الآن' : 'No messages yet - add public channels')}
+                    ? (language === 'ar' ? '\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644' : 'Connection error')
+                    : channelFilter
+                      ? (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages from this channel')
+                      : (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages yet')}
               </p>
             </div>
           )}
-          {filteredMessages.map((msg) => {
+          {displayMessages.map((msg) => {
             const isExpanded = expandedMsgId === msg.id;
             const isLive = msg.id.startsWith('live_');
             const text = language === 'ar' && msg.textAr ? msg.textAr : msg.text;
+            const channelName = msg.channel.replace('@', '');
             return (
               <div
                 key={msg.id}
-                className={`px-3 py-3 animate-fade-in cursor-pointer transition-colors ${
-                  isLive ? 'border-l-2 border-l-emerald-500/30 ' : ''
-                }${isExpanded ? 'bg-sky-950/30' : 'hover:bg-sky-950/15'}`}
+                className={`rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
+                  isExpanded
+                    ? 'bg-sky-950/30 ring-1 ring-sky-500/15'
+                    : 'bg-muted/20 hover:bg-sky-950/15'
+                }`}
                 onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
                 data-testid={`telegram-msg-${msg.id}`}
               >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <SiTelegram className="w-3 h-3 text-sky-400/80 shrink-0" />
-                  <span className="text-xs text-sky-400/90 font-bold truncate">{msg.channel}</span>
-                  {isLive && (
-                    <span className="text-[8px] font-mono font-bold text-emerald-400/90 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
+                {msg.image && !isExpanded && (
+                  <div className="relative w-full h-24 overflow-hidden">
+                    <img
+                      src={msg.image}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5">
+                      <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
+                      <span className="text-[10px] text-white font-bold truncate">{channelName}</span>
+                      {isLive && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
+                      <span className="text-[9px] text-white/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="px-2.5 py-2">
+                  {(!msg.image || isExpanded) && (
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className="w-5 h-5 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0">
+                        <SiTelegram className="w-3 h-3 text-sky-400/90" />
+                      </div>
+                      <span className="text-[11px] text-sky-400 font-bold truncate">{channelName}</span>
+                      {isLive && (
+                        <span className="text-[7px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
+                      )}
+                      <span className="text-[10px] text-muted-foreground/50 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                    </div>
                   )}
-                  <span className="text-xs text-muted-foreground/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
-                  {isExpanded
-                    ? <ChevronDown className="w-3 h-3 text-sky-400/50 shrink-0" />
-                    : <ChevronRight className="w-3 h-3 text-sky-400/30 shrink-0" />
-                  }
-                </div>
-                {isExpanded ? (
-                  <div className="mt-1.5 space-y-2">
-                    {msg.image && (
-                      <div className="rounded overflow-hidden border border-sky-800/20">
-                        <img
-                          src={msg.image}
-                          alt=""
-                          className="w-full max-h-48 object-cover bg-black/30"
-                          loading="lazy"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          data-testid={`img-telegram-${msg.id}`}
-                        />
-                      </div>
-                    )}
-                    <p className="text-xs text-foreground/85 leading-[1.7] whitespace-pre-wrap">{text}</p>
-                    <div className="flex items-center gap-3 pt-1 border-t border-sky-800/20">
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
+
+                  {isExpanded && msg.image && (
+                    <div className="rounded-md overflow-hidden mb-2 border border-sky-800/15">
+                      <img
+                        src={msg.image}
+                        alt=""
+                        className="w-full max-h-56 object-cover bg-black/20"
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        data-testid={`img-telegram-${msg.id}`}
+                      />
+                    </div>
+                  )}
+
+                  <p className={`text-[11px] leading-[1.6] ${isExpanded ? 'text-foreground/90 whitespace-pre-wrap' : 'text-foreground/70 line-clamp-2'}`}>{text}</p>
+
+                  {isExpanded && (
+                    <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-sky-800/15">
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
                         <Clock className="w-2.5 h-2.5" />
-                        <span className="font-mono">{new Date(msg.timestamp).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
-                        <MessageSquare className="w-2.5 h-2.5" />
-                        <span className="font-mono">{text.length} {language === 'ar' ? 'حرف' : 'chars'}</span>
+                        <span className="font-mono">{new Date(msg.timestamp).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <a
-                        href={`https://t.me/${msg.channel.replace('@', '')}`}
+                        href={`https://t.me/${channelName}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 text-[11px] text-sky-400/60 hover:text-sky-400/90 transition-colors ml-auto"
+                        className="flex items-center gap-1 text-[10px] text-sky-400/50 hover:text-sky-400/90 transition-colors ml-auto"
                         data-testid={`link-telegram-channel-${msg.id}`}
                       >
                         <ExternalLink className="w-2.5 h-2.5" />
-                        <span>{language === 'ar' ? 'فتح القناة' : 'Open channel'}</span>
+                        <span>{language === 'ar' ? '\u0641\u062A\u062D' : 'Open'}</span>
                       </a>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <p className="text-xs text-foreground/70 leading-relaxed line-clamp-2 flex-1">{text}</p>
-                    {msg.image && (
-                      <div className="w-12 h-12 rounded overflow-hidden border border-sky-800/20 shrink-0">
-                        <img
-                          src={msg.image}
-                          alt=""
-                          className="w-full h-full object-cover bg-black/30"
-                          loading="lazy"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
