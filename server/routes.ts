@@ -328,8 +328,8 @@ async function fetchMediastack(): Promise<NewsItem[]> {
   }
 }
 
-const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee'];
-const X_CACHE_TTL = 5 * 60 * 1000;
+const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee', 'IntelCrab', 'sentdefender', 'IsraelRadar_', 'AuroraIntel', 'Faytuks', 'Conflicts'];
+const X_CACHE_TTL = 2 * 60 * 1000;
 const X_RATE_LIMIT_BACKOFF = 10 * 60 * 1000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
 const xInFlight = new Map<string, Promise<NewsItem[]>>();
@@ -405,7 +405,17 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       return [];
     }
 
-    const sourceLabel = screenName === 'FirstSquawk' ? 'First Squawk' : screenName === 'AvichayAdraee' ? 'IDF Spokesperson' : `@${screenName}`;
+    const ACCOUNT_LABELS: Record<string, string> = {
+      FirstSquawk: 'First Squawk',
+      AvichayAdraee: 'IDF Spokesperson',
+      IntelCrab: 'Intel Crab',
+      sentdefender: 'Sentinel',
+      IsraelRadar_: 'Israel Radar',
+      AuroraIntel: 'Aurora Intel',
+      Faytuks: 'Faytuks',
+      Conflicts: 'Conflicts',
+    };
+    const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
 
     let count = 0;
     for (const entry of entries) {
@@ -2538,6 +2548,7 @@ export async function registerRoutes(
     generateAIBriefLive([], generateTelegram().map(m => ({ ...m }) as ClassifiedMessage)).then(brief => send('ai-brief', brief));
     send('telegram', generateTelegram());
     send('cyber', generateCyberEvents());
+    fetchXFeeds().then(xPosts => send('x-feed', xPosts));
     fetchEarthquakes().then(eqs => send('earthquakes', eqs));
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
@@ -2566,6 +2577,7 @@ export async function registerRoutes(
       send('ai-brief', brief);
     }, 60000));
     intervals.push(setInterval(() => send('cyber', generateCyberEvents()), 45000));
+    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 30000));
     intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 15 * 60000));
 
@@ -2597,6 +2609,11 @@ export async function registerRoutes(
 
   app.get('/api/cyber', (_req, res) => {
     res.json(generateCyberEvents());
+  });
+
+  app.get('/api/x-feed', async (_req, res) => {
+    const data = await fetchXFeeds();
+    res.json(data);
   });
 
   app.get('/api/alert-history', (_req, res) => {

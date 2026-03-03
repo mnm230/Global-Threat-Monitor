@@ -88,7 +88,7 @@ import {
   Cpu,
   Video,
 } from 'lucide-react';
-import { SiTelegram } from 'react-icons/si';
+import { SiTelegram, SiX } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
 
@@ -243,6 +243,7 @@ interface SSEData {
   earthquakes: EarthquakeEvent[];
   cyberEvents: CyberEvent[];
   thermalHotspots: ThermalHotspot[];
+  xPosts: NewsItem[];
   connected: boolean;
 }
 
@@ -260,6 +261,7 @@ function useSSE(): SSEData {
   const [earthquakes, setEarthquakes] = useState<EarthquakeEvent[]>([]);
   const [cyberEvents, setCyberEvents] = useState<CyberEvent[]>([]);
   const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
+  const [xPosts, setXPosts] = useState<NewsItem[]>([]);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
@@ -314,6 +316,9 @@ function useSSE(): SSEData {
       es.addEventListener('thermal', (e) => {
         try { setThermalHotspots(JSON.parse(e.data)); } catch {}
       });
+      es.addEventListener('x-feed', (e) => {
+        try { setXPosts(JSON.parse(e.data)); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -334,7 +339,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -528,7 +533,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -544,6 +549,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
+  xfeed: { icon: MessageSquare, label: 'X / Twitter', labelAr: '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631' },
 };
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
@@ -585,25 +591,36 @@ function getThreatLevel(alertCount: number, sirenCount: number, settings?: WARRO
 }
 
 function sendNotification(title: string, body: string, tag: string, critical: boolean = false) {
-  if (document.hidden && navigator.serviceWorker?.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'SHOW_NOTIFICATION',
-      title,
-      body,
-      tag,
-      icon: '/favicon.png',
-      url: '/',
-      critical,
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, {
+        body,
+        icon: '/favicon.png',
+        badge: '/favicon.png',
+        tag,
+        requireInteraction: critical,
+        data: { url: '/' },
+      });
+    }).catch(() => {
+      new Notification(title, { body, icon: '/favicon.png', tag });
     });
-  } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+  } else {
     new Notification(title, { body, icon: '/favicon.png', tag });
   }
 }
 
-function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabled: boolean, level: 'all' | 'critical' | 'none') {
+function useDesktopNotifications(
+  alerts: RedAlert[],
+  sirens: SirenAlert[],
+  news: NewsItem[],
+  enabled: boolean,
+  level: 'all' | 'critical' | 'none',
+) {
   const prevAlertIds = useRef<Set<string>>(new Set());
   const prevSirenIds = useRef<Set<string>>(new Set());
-  const initialized = useRef(false);
+  const prevNewsIds  = useRef<Set<string>>(new Set());
+  const initialized  = useRef(false);
 
   useEffect(() => {
     if (!enabled || level === 'none') return;
@@ -613,11 +630,13 @@ function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabl
       initialized.current = true;
       prevAlertIds.current = new Set(alerts.map(a => a.id));
       prevSirenIds.current = new Set(sirens.map(s => s.id));
+      prevNewsIds.current  = new Set(news.map(n => n.id));
       return;
     }
 
     const currentAlertIds = new Set(alerts.map(a => a.id));
     const currentSirenIds = new Set(sirens.map(s => s.id));
+    const currentNewsIds  = new Set(news.map(n => n.id));
 
     const isCriticalType = (t: string) => t === 'missiles' || t === 'hostile_aircraft_intrusion';
 
@@ -625,10 +644,10 @@ function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabl
       if (!prevAlertIds.current.has(a.id)) {
         if (level === 'all' || isCriticalType(a.threatType)) {
           sendNotification(
-            'RED ALERT - ' + a.city,
-            `${a.threatType.replace(/_/g, ' ').toUpperCase()} - ${a.region}, ${a.country}`,
+            `🚨 RED ALERT — ${a.city}`,
+            `${a.threatType.replace(/_/g, ' ').toUpperCase()} · ${a.region}, ${a.country}`,
             a.id,
-            isCriticalType(a.threatType)
+            isCriticalType(a.threatType),
           );
         }
       }
@@ -638,18 +657,32 @@ function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabl
       if (!prevSirenIds.current.has(s.id)) {
         if (level === 'all' || isCriticalType(s.threatType)) {
           sendNotification(
-            'SIREN - ' + s.location,
-            `${s.threatType.toUpperCase()} - ${s.region}`,
+            `🔊 SIREN — ${s.location}`,
+            `${s.threatType.toUpperCase()} · ${s.region}`,
             s.id,
-            isCriticalType(s.threatType)
+            isCriticalType(s.threatType),
           );
         }
       }
     });
 
+    if (level === 'all') {
+      news.forEach(n => {
+        if (!prevNewsIds.current.has(n.id) && (n.category === 'breaking' || n.category === 'military')) {
+          sendNotification(
+            `📰 ${n.category === 'breaking' ? 'BREAKING' : 'MILITARY'} — ${n.source}`,
+            n.title,
+            `news-${n.id}`,
+            n.category === 'breaking',
+          );
+        }
+      });
+    }
+
     prevAlertIds.current = currentAlertIds;
     prevSirenIds.current = currentSirenIds;
-  }, [alerts, sirens, enabled, level]);
+    prevNewsIds.current  = currentNewsIds;
+  }, [alerts, sirens, news, enabled, level]);
 }
 
 interface AnalystNote {
@@ -670,26 +703,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100 },
     rowSplit: 50,
   },
 ];
@@ -710,6 +743,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'cyber',    x: 8,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
   { i: 'alertmap', x: 0,  y: 10, w: 6, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 6, y: 10, w: 6, h: 4, minW: 2, minH: 2 },
+  { i: 'xfeed',     x: 0, y: 14, w: 3, h: 4, minW: 1, minH: 1 },
 ];
 
 interface Correlation {
@@ -3458,6 +3492,128 @@ interface FalseAlarmData {
   recommendation: 'likely_real' | 'uncertain' | 'likely_false';
 }
 
+function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
+  posts: NewsItem[];
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  const [activeAccount, setActiveAccount] = useState<string | null>(null);
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  const accounts = useMemo(() => {
+    const map = new Map<string, number>();
+    posts.forEach(p => {
+      map.set(p.source, (map.get(p.source) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [posts]);
+
+  const filtered = activeAccount ? posts.filter(p => p.source === activeAccount) : posts;
+
+  const timeAgo = (ts: string) => {
+    const diff = Date.now() - new Date(ts).getTime();
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+    return `${Math.floor(diff / 86400000)}d`;
+  };
+
+  const categoryColors: Record<string, string> = {
+    breaking: 'bg-red-500/20 text-red-400 border-red-500/30',
+    military: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    diplomatic: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    humanitarian: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    economic: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+    nuclear: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  };
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
+      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-neutral-500/[0.06] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-neutral-400/60 via-neutral-400/30 to-transparent" />
+        <SiX className="w-3 h-3 text-foreground/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">{t('X / Twitter', '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631')}</span>
+        <span className="text-[9px] font-mono text-foreground/25">{filtered.length}</span>
+        {posts.length > 0 && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded ml-1">LIVE</span>}
+        <div className="flex-1" />
+        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-xfeed">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+
+      <div className="px-2 py-1.5 border-b border-white/[0.04] overflow-x-auto flex items-center gap-1 shrink-0">
+        <button
+          onClick={() => setActiveAccount(null)}
+          className={`text-[9px] font-mono px-2 py-1 rounded whitespace-nowrap transition-colors ${!activeAccount ? 'bg-white/10 text-foreground/80 font-bold' : 'text-foreground/40 hover:bg-white/5'}`}
+          data-testid="button-xfeed-all"
+        >
+          {t('ALL', '\u0627\u0644\u0643\u0644')} ({posts.length})
+        </button>
+        {accounts.map(([name, count]) => (
+          <button
+            key={name}
+            onClick={() => setActiveAccount(activeAccount === name ? null : name)}
+            className={`text-[9px] font-mono px-2 py-1 rounded whitespace-nowrap transition-colors ${activeAccount === name ? 'bg-white/10 text-foreground/80 font-bold' : 'text-foreground/40 hover:bg-white/5'}`}
+            data-testid={`button-xfeed-account-${name.replace(/\s+/g, '-')}`}
+          >
+            {name} ({count})
+          </button>
+        ))}
+      </div>
+
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="divide-y divide-white/[0.03]">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center">
+              <Loader2 className="w-5 h-5 text-foreground/20 animate-spin mx-auto mb-2" />
+              <p className="text-[10px] text-foreground/30 font-mono">{t('Loading X feeds...', '\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A...')}</p>
+            </div>
+          ) : (
+            filtered.map(post => (
+              <div key={post.id} className="px-3 py-2.5 hover:bg-white/[0.02] transition-colors group" data-testid={`xfeed-post-${post.id}`}>
+                <div className="flex items-start gap-2">
+                  <div className="w-7 h-7 rounded-full bg-neutral-800 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <SiX className="w-3 h-3 text-foreground/50" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[11px] font-bold text-foreground/80 truncate">{post.source}</span>
+                      <svg className="w-3 h-3 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.27 4.8-5.23 1.47 1.36-6.2 6.76z"/></svg>
+                      <span className="text-[9px] text-foreground/30 font-mono tabular-nums ml-auto shrink-0">{timeAgo(post.timestamp)}</span>
+                    </div>
+                    <p className="text-[11px] text-foreground/70 leading-relaxed mb-1.5">{language === 'ar' && (post as { titleAr?: string }).titleAr ? (post as { titleAr?: string }).titleAr : post.title}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {post.category && (
+                        <span className={`text-[8px] font-bold font-mono uppercase px-1.5 py-0.5 rounded border ${categoryColors[post.category] || 'bg-white/5 text-foreground/40 border-white/10'}`}>
+                          {post.category}
+                        </span>
+                      )}
+                      {post.url && (
+                        <a
+                          href={post.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[9px] text-blue-400/60 hover:text-blue-400 font-mono flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`link-xfeed-${post.id}`}
+                        >
+                          <ExternalLink className="w-2.5 h-2.5" />
+                          x.com
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
 function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   language: 'en' | 'ar';
   onClose?: () => void;
@@ -3769,7 +3925,12 @@ export default function Dashboard() {
   });
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [maximizedPanel, setMaximizedPanel] = useState<PanelId | null>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      return localStorage.getItem('warroom_notif_enabled') !== 'false';
+    }
+    return false;
+  });
   const [showNotes, setShowNotes] = useState(false);
   const [showWatchlist, setShowWatchlist] = useState(false);
   const [showAlertHistory, setShowAlertHistory] = useState(false);
@@ -3797,7 +3958,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected } = sse;
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -3837,12 +3998,24 @@ export default function Dashboard() {
   }, [maximizedPanel]);
 
   const toggleNotifications = useCallback(() => {
-    if (!notificationsEnabled && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission === 'denied') {
+      alert('Notifications are blocked by your browser.\nTo enable: click the lock icon in the address bar → Notifications → Allow.');
+      return;
+    }
+    if (!notificationsEnabled && Notification.permission === 'default') {
       Notification.requestPermission().then(p => {
-        if (p === 'granted') setNotificationsEnabled(true);
+        if (p === 'granted') {
+          setNotificationsEnabled(true);
+          localStorage.setItem('warroom_notif_enabled', 'true');
+          sendNotification('🔔 WARROOM Notifications Active', 'You will receive alerts for red alerts, sirens, and breaking news.', 'warroom-init');
+        }
       });
     } else {
-      setNotificationsEnabled(prev => !prev);
+      setNotificationsEnabled(prev => {
+        localStorage.setItem('warroom_notif_enabled', String(!prev));
+        return !prev;
+      });
     }
   }, [notificationsEnabled]);
 
@@ -3853,7 +4026,7 @@ export default function Dashboard() {
 
   useAlertSound(redAlerts.map(a => ({ id: a.id, threatType: a.threatType })), soundEnabled, settings.silentMode, settings.volume);
   useAlertSound(sirens.map(s => ({ id: s.id, threatType: s.threatType })), soundEnabled, settings.silentMode, settings.volume);
-  useDesktopNotifications(redAlerts, sirens, notificationsEnabled, settings.notificationLevel);
+  useDesktopNotifications(redAlerts, sirens, news, notificationsEnabled, settings.notificationLevel);
 
   const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings, redAlerts), [redAlerts, sirens.length, settings]);
   const correlations = useCorrelations(events, redAlerts, sirens, flights);
@@ -3873,7 +4046,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    seismic: 22, cyber: 22, alertmap: 28, analytics: 28,
+    seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -4017,6 +4190,8 @@ export default function Dashboard() {
           return <AlertMapPanel alerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'analytics':
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'xfeed':
+          return <XFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -4063,9 +4238,42 @@ export default function Dashboard() {
             </button>
           ) : (
             <div className="flex items-center gap-0.5">
-              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded text-[11px] ${notificationsEnabled ? 'text-primary' : 'text-foreground/30'} hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150`} onClick={toggleNotifications} data-testid="button-notifications-toggle" aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'} title="Desktop Notifications">
-                {notificationsEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+              <Button
+                size="sm" variant="ghost"
+                className={`px-2 h-7 rounded text-[11px] transition-all duration-150
+                  ${typeof Notification !== 'undefined' && Notification.permission === 'denied'
+                    ? 'text-red-500/70 hover:text-red-400'
+                    : notificationsEnabled
+                      ? 'text-primary hover:text-primary/80'
+                      : 'text-foreground/30 hover:text-foreground/80'}
+                  hover:bg-muted/40 active:bg-muted/60`}
+                onClick={toggleNotifications}
+                data-testid="button-notifications-toggle"
+                title={
+                  typeof Notification !== 'undefined' && Notification.permission === 'denied'
+                    ? 'Notifications blocked — click for instructions'
+                    : notificationsEnabled ? 'Notifications ON — click to disable' : 'Enable desktop notifications'
+                }
+              >
+                {typeof Notification !== 'undefined' && Notification.permission === 'denied'
+                  ? <BellOff className="w-3.5 h-3.5" />
+                  : notificationsEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
               </Button>
+              {notificationsEnabled && typeof Notification !== 'undefined' && Notification.permission === 'granted' && (
+                <Button
+                  size="sm" variant="ghost"
+                  className="px-1.5 h-7 rounded text-[9px] font-mono font-bold text-foreground/25 hover:text-primary hover:bg-primary/10 transition-all duration-150 tracking-widest"
+                  title="Fire a test notification for each type"
+                  data-testid="button-test-notification"
+                  onClick={() => {
+                    sendNotification('🚨 RED ALERT — Tel Aviv', 'MISSILE LAUNCH · Dan Region, Israel', 'test-alert', true);
+                    setTimeout(() => sendNotification('🔊 SIREN — Haifa', 'ROCKET FIRE · Northern District', 'test-siren', false), 1500);
+                    setTimeout(() => sendNotification('📰 BREAKING — Reuters', 'Test: live news notifications are working', 'test-news', false), 3000);
+                  }}
+                >
+                  TEST
+                </Button>
+              )}
               <Button size="sm" variant="ghost" className={`px-2 h-7 rounded text-[11px] ${soundEnabled ? 'text-primary' : 'text-foreground/30'} hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </Button>
