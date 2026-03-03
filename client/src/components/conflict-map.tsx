@@ -2381,84 +2381,58 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         </div>
       </div>
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          zIndex: 10,
-          maxHeight: 'calc(100% - 24px)',
-          overflowY: 'auto',
-        }}
-      >
+      <div className="absolute top-3 right-3 z-10 flex flex-col" style={{ maxHeight: 'calc(100% - 24px)' }}>
         <div
+          className="flex flex-col overflow-hidden"
           style={{
-            background: 'rgba(10, 10, 20, 0.92)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 8,
-            padding: panelOpen ? '8px 10px' : '4px 8px',
-            minWidth: panelOpen ? 200 : 'auto',
-            maxWidth: 220,
+            background: 'rgba(5,8,16,0.93)',
+            backdropFilter: 'blur(14px)',
+            border: '1px solid rgba(245,158,11,0.18)',
+            borderRadius: 10,
+            boxShadow: '0 4px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04)',
+            minWidth: panelOpen ? 210 : 'auto',
+            maxWidth: 230,
           }}
         >
+          {/* Header */}
           <button
             data-testid="button-toggle-layers-panel"
             onClick={() => setPanelOpen(!panelOpen)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              background: 'none',
-              border: 'none',
-              color: '#ddd',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-              padding: '6px 0',
-              minHeight: 36,
-            }}
+            className="flex items-center justify-between gap-2 px-3 py-2 w-full text-left"
+            style={{ borderBottom: panelOpen ? '1px solid rgba(245,158,11,0.12)' : 'none' }}
           >
-            <span>Layers</span>
-            <span style={{ fontSize: 10, color: '#888', fontFamily: 'monospace' }}>
-              {panelOpen ? `${activeLayerCount} active [-]` : `[${activeLayerCount}]`}
+            <div className="flex items-center gap-2">
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px #f59e0b' }} />
+              <span style={{ color: '#e5c97a', fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+                LAYERS
+              </span>
+            </div>
+            <span style={{ color: '#6b7280', fontSize: 9, fontFamily: 'monospace', fontWeight: 600 }}>
+              {activeLayerCount}{panelOpen ? ' ▲' : ' ▼'}
             </span>
           </button>
+
+          {/* Groups */}
           {panelOpen && (
-            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
               {LAYER_GROUPS.map(group => {
                 const groupLayers = LAYER_CONFIGS.filter(c => c.group === group.id);
                 const activeInGroup = groupLayers.filter(c => layerVisibility[c.key]).length;
                 const isExpanded = expandedGroups[group.id];
                 return (
-                  <div key={group.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 2 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 0' }}>
+                  <div key={group.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="flex items-center" style={{ padding: '3px 6px 3px 8px', gap: 4 }}>
                       <button
                         data-testid={`toggle-group-${group.id}`}
                         onClick={() => toggleGroup(group.id)}
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          background: 'none',
-                          border: 'none',
-                          color: group.color,
-                          cursor: 'pointer',
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          padding: '4px 0',
-                          textAlign: 'left',
-                          minHeight: 32,
-                        }}
+                        className="flex items-center gap-1.5 flex-1 text-left"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 0', minHeight: 26 }}
                       >
-                        <span style={{ fontSize: 9, opacity: 0.7 }}>{isExpanded ? '\u25BC' : '\u25B6'}</span>
-                        <span>{group.label}</span>
-                        <span style={{ color: '#666', fontSize: 9, fontWeight: 500, marginLeft: 2 }}>
+                        <span style={{ color: group.color, fontSize: 7, opacity: 0.8 }}>{isExpanded ? '▼' : '▶'}</span>
+                        <span style={{ color: group.color, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+                          {group.label}
+                        </span>
+                        <span style={{ color: '#374151', fontSize: 8, fontFamily: 'monospace', marginLeft: 2 }}>
                           {activeInGroup}/{groupLayers.length}
                         </span>
                       </button>
@@ -2466,36 +2440,34 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                         data-testid={`toggle-all-${group.id}`}
                         onClick={() => toggleAllInGroup(group.id, activeInGroup < groupLayers.length)}
                         style={{
-                          background: 'none',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: 4,
-                          color: '#888',
+                          background: activeInGroup > 0 ? 'rgba(245,158,11,0.1)' : 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 3,
+                          color: activeInGroup > 0 ? '#d97706' : '#4b5563',
                           cursor: 'pointer',
-                          fontSize: 9,
-                          padding: '4px 8px',
-                          lineHeight: 1,
-                          minHeight: 28,
+                          fontSize: 8,
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          padding: '2px 5px',
+                          letterSpacing: '0.05em',
+                          minHeight: 20,
                         }}
                       >
                         {activeInGroup === groupLayers.length ? 'OFF' : 'ALL'}
                       </button>
                     </div>
                     {isExpanded && (
-                      <div style={{ paddingLeft: 8, display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      <div style={{ paddingBottom: 2 }}>
                         {groupLayers.map(cfg => (
                           <label
                             key={cfg.key}
                             data-testid={`toggle-layer-${cfg.key}`}
+                            className="flex items-center gap-2 cursor-pointer select-none"
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              cursor: 'pointer',
-                              padding: '4px 2px',
-                              fontSize: 10,
-                              color: layerVisibility[cfg.key] ? '#ddd' : '#555',
-                              userSelect: 'none',
-                              minHeight: 28,
+                              padding: '3px 8px 3px 20px',
+                              minHeight: 24,
+                              background: layerVisibility[cfg.key] ? 'rgba(255,255,255,0.025)' : 'transparent',
+                              transition: 'background 0.15s',
                             }}
                           >
                             <input
@@ -2504,17 +2476,33 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                               onChange={() => toggleLayer(cfg.key)}
                               style={{ display: 'none' }}
                             />
-                            <span
-                              style={{
-                                width: 12,
-                                height: 12,
-                                borderRadius: '50%',
-                                flexShrink: 0,
-                                background: layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.08)',
-                                border: `1.5px solid ${layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.15)'}`,
-                              }}
-                            />
-                            <span style={{ lineHeight: 1.2 }}>{cfg.label}</span>
+                            <span style={{
+                              width: 22, height: 11, borderRadius: 6, flexShrink: 0,
+                              background: layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.06)',
+                              border: `1px solid ${layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.1)'}`,
+                              boxShadow: layerVisibility[cfg.key] ? `0 0 6px ${cfg.color}55` : 'none',
+                              position: 'relative',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              transition: 'all 0.15s',
+                            }}>
+                              <span style={{
+                                position: 'absolute',
+                                width: 7, height: 7, borderRadius: '50%',
+                                background: layerVisibility[cfg.key] ? '#fff' : 'rgba(255,255,255,0.25)',
+                                left: layerVisibility[cfg.key] ? 13 : 2,
+                                transition: 'left 0.15s',
+                              }} />
+                            </span>
+                            <span style={{
+                              fontSize: 10,
+                              color: layerVisibility[cfg.key] ? '#d1d5db' : '#4b5563',
+                              fontFamily: 'monospace',
+                              lineHeight: 1.2,
+                              transition: 'color 0.15s',
+                            }}>
+                              {cfg.label}
+                            </span>
                           </label>
                         ))}
                       </div>

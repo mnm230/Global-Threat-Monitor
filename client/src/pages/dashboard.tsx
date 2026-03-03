@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, Component, type ErrorInfo, type ReactNode } from 'react';
+import GridLayout, { WidthProvider } from 'react-grid-layout/legacy';
+import type { LayoutItem as GridItemLayout, Layout as GridLayout2 } from 'react-grid-layout/legacy';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -588,6 +592,7 @@ interface LayoutPreset {
   visiblePanels: Record<PanelId, boolean>;
   colWidths: Record<PanelId, number>;
   rowSplit: number;
+  gridLayout?: GridItemLayout[];
 }
 
 const BUILT_IN_PRESETS: LayoutPreset[] = [
@@ -615,6 +620,22 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
     colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100 },
     rowSplit: 50,
   },
+];
+
+const RGL = WidthProvider(GridLayout);
+
+const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
+  { i: 'telegram', x: 0,  y: 0, w: 3, h: 4, minW: 1, minH: 1 },
+  { i: 'intel',    x: 3,  y: 0, w: 3, h: 4, minW: 1, minH: 1 },
+  { i: 'map',      x: 6,  y: 0, w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'alerts',   x: 10, y: 0, w: 2, h: 5, minW: 1, minH: 1 },
+  { i: 'livefeed', x: 0,  y: 4, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'events',   x: 3,  y: 4, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'adsb',     x: 6,  y: 5, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'markets',  x: 9,  y: 5, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'radar',    x: 0,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
+  { i: 'seismic',  x: 4,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
+  { i: 'cyber',    x: 8,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
 ];
 
 interface Correlation {
@@ -3143,6 +3164,20 @@ export default function Dashboard() {
       return [...BUILT_IN_PRESETS, ...saved];
     } catch { return [...BUILT_IN_PRESETS]; }
   });
+  const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout') || '[]');
+      if (Array.isArray(saved) && saved.length > 0) {
+        const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
+        return saved.map((item: GridItemLayout) => {
+          const def = defaults.get(item.i);
+          if (def) return { ...item, minW: def.minW, minH: def.minH };
+          return item;
+        });
+      }
+    } catch {}
+    return DEFAULT_GRID_LAYOUT;
+  });
 
   const sse = useSSE();
   const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, connected } = sse;
@@ -3156,6 +3191,18 @@ export default function Dashboard() {
       localStorage.setItem('warroom_panel_state', JSON.stringify({ visiblePanels }));
     }, 500);
   }, [visiblePanels]);
+
+  const handleGridLayoutChange = useCallback((newLayout: GridLayout2) => {
+    setGridLayout(prev => {
+      const updated = new Map(prev.map(item => [item.i, item]));
+      for (const item of newLayout) {
+        updated.set(item.i, item as GridItemLayout);
+      }
+      const merged = Array.from(updated.values());
+      localStorage.setItem('warroom_grid_layout', JSON.stringify(merged));
+      return merged;
+    });
+  }, []);
 
   const closePanel = useCallback((id: PanelId) => {
     setVisiblePanels(prev => ({ ...prev, [id]: false }));
@@ -3240,17 +3287,21 @@ export default function Dashboard() {
   }, [visiblePanels, colWidths, rowSplit]);
 
   const savePreset = useCallback((name: string) => {
-    const preset: LayoutPreset = { name, visiblePanels: { ...visiblePanels }, colWidths: { ...colWidths }, rowSplit };
+    const preset: LayoutPreset = { name, visiblePanels: { ...visiblePanels }, colWidths: { ...colWidths }, rowSplit, gridLayout: [...gridLayout] };
     const customPresets = savedPresets.filter(p => !BUILT_IN_PRESETS.find(b => b.name === p.name) && p.name !== name);
     customPresets.push(preset);
     localStorage.setItem('warroom_layouts', JSON.stringify(customPresets));
     setSavedPresets([...BUILT_IN_PRESETS, ...customPresets]);
-  }, [visiblePanels, colWidths, rowSplit, savedPresets]);
+  }, [visiblePanels, colWidths, rowSplit, gridLayout, savedPresets]);
 
   const loadPreset = useCallback((preset: LayoutPreset) => {
     setVisiblePanels(preset.visiblePanels);
     setColWidths(preset.colWidths);
     setRowSplit(preset.rowSplit);
+    if (preset.gridLayout && preset.gridLayout.length > 0) {
+      setGridLayout(preset.gridLayout);
+      localStorage.setItem('warroom_grid_layout', JSON.stringify(preset.gridLayout));
+    }
     setMaximizedPanel(null);
   }, []);
 
@@ -3353,20 +3404,11 @@ export default function Dashboard() {
           return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
-    const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;
-    return (
-      <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
-        {hasAlertGlow ? (
-          <div className="h-full flex flex-col min-h-0 ring-2 ring-red-500/50 rounded-sm relative" style={{boxShadow:'0 0 30px rgb(239 68 68 / 0.25), inset 0 0 30px rgb(239 68 68 / 0.08)'}} data-testid="alert-panel-glow">
-            {panel}
-          </div>
-        ) : panel}
-      </PanelErrorBoundary>
-    );
+    return panel ?? null;
   };
 
   return (
-    <div className={`flex flex-col bg-background text-foreground ${isTablet || isMobile ? 'min-h-screen' : 'h-screen overflow-hidden'}`} data-testid="dashboard">
+    <div className="flex flex-col bg-background text-foreground min-h-screen" data-testid="dashboard">
       <header className="h-11 border-b border-border/50 flex items-center justify-between px-3 md:px-5 bg-card shrink-0 relative z-50" style={{boxShadow:'0 2px 12px hsl(0 0% 0% / 0.4)'}}>
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/10 via-primary/50 to-primary/10" />
         <div className="flex items-center gap-2.5 md:gap-3.5">
@@ -3464,7 +3506,7 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className={`flex-1 flex flex-col min-h-0 ${isTablet || isMobile ? 'overflow-y-auto' : 'overflow-hidden'}`} data-testid="resizable-panels">
+      <div className="flex-1" data-testid="resizable-panels">
         {isMobile ? (
           <div className="flex flex-col gap-px">
             {allPanels.filter(id => visiblePanels[id]).map(id => (
@@ -3486,11 +3528,11 @@ export default function Dashboard() {
             ))}
           </div>
         ) : maximizedPanel && visiblePanels[maximizedPanel] ? (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div style={{ height: 'calc(100vh - 120px)' }} className="flex flex-col overflow-hidden">
             {renderPanel(maximizedPanel)}
           </div>
         ) : panelCount === 0 ? (
-          <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="flex items-center justify-center bg-background" style={{ minHeight: 400 }}>
             <div className="text-center">
               <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
               <p className="text-xs text-muted-foreground/50 font-medium">{language === 'en' ? 'All panels minimized' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0635\u063A\u0631\u0629'}</p>
@@ -3498,41 +3540,33 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <>
-            {activeTop.length > 0 && (
-              <div className="flex min-h-0 overflow-hidden" style={{ height: activeBottom.length > 0 ? `${rowSplit}%` : '100%' }}>
-                {activeTop.map((id, idx) => (
-                  <div key={id} className="contents">
-                    {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeTop, idx - 1)} />}
-                    <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
-                      style={{ width: `${activeTopWidths[idx]}%` }}
-                    >
-                      {renderPanel(id)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {activeTop.length > 0 && activeBottom.length > 0 && (
-              <ResizeHandle onResize={makeVerticalResizer()} direction="row" />
-            )}
-            {activeBottom.length > 0 && (
-              <div className="flex min-h-0 overflow-hidden" style={{ height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
-                {activeBottom.map((id, idx) => (
-                  <div key={id} className="contents">
-                    {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeBottom, idx - 1)} />}
-                    <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeBottom.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
-                      style={{ width: `${activeBottomWidths[idx]}%` }}
-                    >
-                      {renderPanel(id)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          <RGL
+            layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
+            cols={12}
+            rowHeight={130}
+            onLayoutChange={handleGridLayoutChange}
+            draggableCancel="button,input,select,textarea,a,[data-no-drag]"
+            margin={[6, 6]}
+            containerPadding={[6, 6]}
+            resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
+            style={{ minHeight: 400 }}
+          >
+            {allPanels.filter(id => visiblePanels[id]).map(id => {
+              const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;
+              return (
+                <div
+                  key={id}
+                  className={`flex flex-col overflow-hidden rounded-sm border border-white/[0.04] bg-background ${hasAlertGlow ? 'ring-2 ring-red-500/50' : ''}`}
+                  style={hasAlertGlow ? { boxShadow: '0 0 30px rgb(239 68 68 / 0.25), inset 0 0 30px rgb(239 68 68 / 0.08)' } : undefined}
+                  data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
+                >
+                  <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
+                    {renderPanel(id)}
+                  </PanelErrorBoundary>
+                </div>
+              );
+            })}
+          </RGL>
         )}
       </div>
 
