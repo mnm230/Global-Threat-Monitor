@@ -2098,26 +2098,28 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   return (
                     <div
                       key={alert.id}
-                      className={`px-3 py-2.5 flex items-center gap-3 border-b border-red-900/15 transition-colors ${
-                        isActive ? 'bg-red-950/30 border-l-[3px] border-l-red-500' : 'bg-transparent border-l-[3px] border-l-red-900/20'
+                      className={`px-3 py-3 flex items-center gap-3 border-b border-red-900/15 transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-red-950/30 border-l-[3px] border-l-red-500 hover:bg-red-950/50'
+                          : 'bg-transparent border-l-[3px] border-l-red-900/20 hover:bg-red-950/20'
                       }`}
                       data-testid={`red-alert-${alert.id}`}
                     >
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} />
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} style={isActive ? {boxShadow:'0 0 6px rgb(239 68 68 / 0.5)'} : undefined} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className={`text-xs font-bold truncate ${isActive ? 'text-red-200' : 'text-red-300/50'}`}>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className={`text-[10px] font-black truncate ${isActive ? 'text-red-100' : 'text-red-300/50'}`}>
                             {language === 'ar' ? alert.cityAr : alert.city}
                           </span>
-                          <span className="text-[10px] text-red-400/30 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
+                          <span className="text-[9px] text-red-400/25 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[19px] font-bold">
-                          <span className={`text-xs px-1.5 py-0.5 rounded-sm font-bold tracking-wider uppercase font-mono ${
-                            isActive ? `text-white/90 ${threatColor}` : 'text-red-400/30 bg-red-950/30'
-                          }`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold tracking-wider uppercase font-mono border ${
+                            isActive ? `text-white ${threatColor}` : 'text-red-400/30 bg-red-950/30 border-red-900/20'
+                          }`} style={isActive ? {boxShadow:'0 0 8px rgb(239 68 68 / 0.2)'} : undefined}>
                             {language === 'ar' ? threat.ar : threat.en}
                           </span>
-                          <span className="text-[11px] text-red-400/30 font-mono tabular-nums">
+                          <span className={`text-[9px] font-mono tabular-nums ${isActive ? 'text-red-400/50' : 'text-red-400/25'}`}>
                             {timeAgo(alert.timestamp)}
                           </span>
                         </div>
