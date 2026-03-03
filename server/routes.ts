@@ -1,6 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot } from "@shared/schema";
+import OpenAI from "openai";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot } from "@shared/schema";
+
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 const ADSB_API_BASE = 'https://api.adsb.lol/v2';
 
@@ -1293,7 +1299,517 @@ async function generateRedAlerts(): Promise<RedAlert[]> {
   return generateSimAlerts();
 }
 
-function generateAIBrief(): AIBrief {
+const alertHistory: RedAlert[] = [];
+const classifiedMessageCache: ClassifiedMessage[] = [];
+let aiClassificationCache: { data: ClassifiedMessage[]; fetchedAt: number } | null = null;
+const AI_CLASSIFY_CACHE_TTL = 30_000;
+let aiBriefCache: { data: AIBrief; fetchedAt: number } | null = null;
+const AI_BRIEF_CACHE_TTL = 120_000;
+
+function recordAlertHistory(alerts: RedAlert[]) {
+  for (const a of alerts) {
+    if (!alertHistory.find(h => h.id === a.id)) {
+      alertHistory.push(a);
+    }
+  }
+  if (alertHistory.length > 500) alertHistory.splice(0, alertHistory.length - 500);
+}
+
+async function classifyThreatWithAI(text: string): Promise<ThreatClassification> {
+  try {
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-5.1',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a military intelligence analyst. Classify the following OSINT message. Return ONLY valid JSON with this exact schema:
+{"category":"missile_launch|airstrike|naval_movement|ground_offensive|air_defense|drone_activity|nuclear_related|economic_impact|diplomatic|humanitarian|cyber_attack|unknown","severity":"critical|high|medium|low","confidence":0.0-1.0,"entities":["named entities"],"locations":["place names"],"keywords":["key terms"]}`
+        },
+        { role: 'user', content: text }
+      ],
+      temperature: 0.1,
+      max_tokens: 300,
+    });
+    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        category: parsed.category || 'unknown',
+        severity: parsed.severity || 'medium',
+        confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+        entities: Array.isArray(parsed.entities) ? parsed.entities : [],
+        locations: Array.isArray(parsed.locations) ? parsed.locations : [],
+        keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+      };
+    }
+  } catch (err) {
+    console.error('[AI-Classify] Error:', (err as Error).message);
+  }
+  return classifyThreatLocal(text);
+}
+
+function classifyThreatLocal(text: string): ThreatClassification {
+  const lower = text.toLowerCase();
+  const categories: Record<string, string[]> = {
+    missile_launch: ['missile', 'launch', 'ballistic', 'rocket fire', 'rockets fired', 'launches', 'salvo'],
+    airstrike: ['airstrike', 'air strike', 'bombing', 'bombed', 'sortie', 'f-35', 'f-15', 'jdam', 'bunker buster', 'strike on'],
+    naval_movement: ['navy', 'naval', 'warship', 'carrier', 'destroyer', 'frigate', 'strait', 'maritime', 'tanker'],
+    ground_offensive: ['troops', 'ground forces', 'infantry', 'armored', 'tank', 'incursion', 'crossing', 'offensive'],
+    air_defense: ['intercepted', 'intercept', 'iron dome', 'arrow', "david's sling", 'thaad', 'patriot', 'air defense', 'shot down', 'downed'],
+    drone_activity: ['drone', 'uav', 'shahed', 'hermes', 'reaper', 'heron', 'unmanned'],
+    nuclear_related: ['nuclear', 'enrichment', 'uranium', 'iaea', 'fordow', 'natanz', 'centrifuge'],
+    economic_impact: ['oil', 'crude', 'brent', 'gold', 'markets', 'sanctions', 'trade', 'price', 'commodity'],
+    diplomatic: ['diplomat', 'negotiations', 'ceasefire', 'embassy', 'un security council', 'summit'],
+    humanitarian: ['civilian', 'refugees', 'displaced', 'humanitarian', 'hospital', 'casualties', 'killed', 'wounded', 'dead'],
+    cyber_attack: ['cyber', 'hack', 'ddos', 'breach', 'malware'],
+  };
+
+  let bestCategory: ThreatClassification['category'] = 'unknown';
+  let maxScore = 0;
+  const entities: string[] = [];
+  const locations: string[] = [];
+  const keywords: string[] = [];
+
+  for (const [cat, terms] of Object.entries(categories)) {
+    let score = 0;
+    for (const term of terms) {
+      if (lower.includes(term)) {
+        score++;
+        keywords.push(term);
+      }
+    }
+    if (score > maxScore) {
+      maxScore = score;
+      bestCategory = cat as ThreatClassification['category'];
+    }
+  }
+
+  const locationPatterns = /\b(Israel|Iran|Lebanon|Syria|Iraq|Gaza|Yemen|Saudi Arabia|UAE|Qatar|Kuwait|Bahrain|Oman|Jordan|Turkey|Cyprus|Tel Aviv|Haifa|Tehran|Isfahan|Beirut|Damascus|Baghdad|Erbil|Sanaa|Riyadh|Dubai|Doha|Golan|Negev|Hormuz|Natanz|Fordow|Bushehr)\b/gi;
+  const locMatches = text.match(locationPatterns) || [];
+  locations.push(...[...new Set(locMatches.map(l => l.trim()))]);
+
+  const entityPatterns = /\b(IDF|IRGC|Hezbollah|Hamas|Houthi|NATO|CENTCOM|IAF|USAF|IRGCN|PIJ|PMF|Mossad|CIA|UN|IAEA|Quds Force)\b/gi;
+  const entMatches = text.match(entityPatterns) || [];
+  entities.push(...[...new Set(entMatches.map(e => e.trim()))]);
+
+  let severity: ThreatClassification['severity'] = 'low';
+  if (lower.includes('breaking') || lower.includes('urgent') || lower.includes('critical') || lower.includes('mass casualt')) severity = 'critical';
+  else if (lower.includes('confirmed') || lower.includes('multiple') || lower.includes('heavy')) severity = 'high';
+  else if (maxScore >= 2) severity = 'medium';
+
+  return {
+    category: bestCategory,
+    severity,
+    confidence: Math.min(1, 0.3 + maxScore * 0.15),
+    entities,
+    locations,
+    keywords: [...new Set(keywords)],
+  };
+}
+
+async function classifyMessages(messages: TelegramMessage[]): Promise<ClassifiedMessage[]> {
+  if (aiClassificationCache && Date.now() - aiClassificationCache.fetchedAt < AI_CLASSIFY_CACHE_TTL) {
+    return aiClassificationCache.data;
+  }
+
+  const recent = messages.slice(0, 20);
+  const results: ClassifiedMessage[] = [];
+
+  const batchTexts = recent.map(m => m.text).join('\n---MSG_SEP---\n');
+  let aiResults: ThreatClassification[] | null = null;
+
+  try {
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-5.1',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a military intelligence analyst. Classify each OSINT message separated by ---MSG_SEP---. Return a JSON array of objects, one per message, with this schema per object:
+{"category":"missile_launch|airstrike|naval_movement|ground_offensive|air_defense|drone_activity|nuclear_related|economic_impact|diplomatic|humanitarian|cyber_attack|unknown","severity":"critical|high|medium|low","confidence":0.0-1.0,"entities":["named entities"],"locations":["place names"],"keywords":["key terms"]}
+Return ONLY the JSON array, no other text.`
+        },
+        { role: 'user', content: batchTexts }
+      ],
+      temperature: 0.1,
+      max_tokens: 2000,
+    });
+    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      aiResults = JSON.parse(arrMatch[0]);
+    }
+  } catch (err) {
+    console.error('[AI-Classify-Batch] Error:', (err as Error).message);
+  }
+
+  for (let i = 0; i < recent.length; i++) {
+    const msg = recent[i];
+    let classification: ThreatClassification;
+    if (aiResults && aiResults[i]) {
+      const r = aiResults[i];
+      classification = {
+        category: r.category || 'unknown',
+        severity: r.severity || 'medium',
+        confidence: Math.min(1, Math.max(0, r.confidence || 0.5)),
+        entities: Array.isArray(r.entities) ? r.entities : [],
+        locations: Array.isArray(r.locations) ? r.locations : [],
+        keywords: Array.isArray(r.keywords) ? r.keywords : [],
+      };
+    } else {
+      classification = classifyThreatLocal(msg.text);
+    }
+    results.push({ ...msg, classification });
+  }
+
+  aiClassificationCache = { data: results, fetchedAt: Date.now() };
+  classifiedMessageCache.length = 0;
+  classifiedMessageCache.push(...results);
+  return results;
+}
+
+function detectAlertPatterns(alerts: RedAlert[]): AlertPattern[] {
+  const patterns: AlertPattern[] = [];
+  if (alerts.length < 3) return patterns;
+
+  const sorted = [...alerts].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  const regionGroups: Record<string, RedAlert[]> = {};
+  for (const a of sorted) {
+    const key = a.region || a.country;
+    if (!regionGroups[key]) regionGroups[key] = [];
+    regionGroups[key].push(a);
+  }
+
+  for (const [region, regionAlerts] of Object.entries(regionGroups)) {
+    if (regionAlerts.length < 3) continue;
+
+    const intervals: number[] = [];
+    for (let i = 1; i < regionAlerts.length; i++) {
+      const diff = (new Date(regionAlerts[i].timestamp).getTime() - new Date(regionAlerts[i - 1].timestamp).getTime()) / 60000;
+      if (diff > 0 && diff < 120) intervals.push(diff);
+    }
+
+    if (intervals.length >= 2) {
+      const avg = intervals.reduce((s, v) => s + v, 0) / intervals.length;
+      const variance = intervals.reduce((s, v) => s + (v - avg) ** 2, 0) / intervals.length;
+      const stdDev = Math.sqrt(variance);
+      const cv = avg > 0 ? stdDev / avg : 1;
+
+      if (cv < 0.5 && avg < 60) {
+        const lastTime = new Date(regionAlerts[regionAlerts.length - 1].timestamp).getTime();
+        const predictedNext = new Date(lastTime + avg * 60000).toISOString();
+
+        patterns.push({
+          id: `pat-cycle-${region}-${Date.now()}`,
+          type: 'launch_cycle',
+          description: `Detected ~${Math.round(avg)}min launch cycle in ${region} (${regionAlerts.length} alerts, CV=${cv.toFixed(2)})`,
+          confidence: Math.min(0.95, 0.5 + (1 - cv) * 0.5),
+          detectedAt: new Date().toISOString(),
+          affectedRegions: [region],
+          predictedNext,
+          intervalMinutes: Math.round(avg),
+          alertCount: regionAlerts.length,
+        });
+      }
+    }
+  }
+
+  const recentWindow = 30 * 60000;
+  const now = Date.now();
+  const recentAlerts = sorted.filter(a => now - new Date(a.timestamp).getTime() < recentWindow);
+  const olderAlerts = sorted.filter(a => {
+    const age = now - new Date(a.timestamp).getTime();
+    return age >= recentWindow && age < recentWindow * 2;
+  });
+
+  if (recentAlerts.length > olderAlerts.length * 1.5 && recentAlerts.length >= 5) {
+    const escalationRate = olderAlerts.length > 0 ? recentAlerts.length / olderAlerts.length : recentAlerts.length;
+    const regions = [...new Set(recentAlerts.map(a => a.region || a.country))];
+    patterns.push({
+      id: `pat-esc-${Date.now()}`,
+      type: 'escalation',
+      description: `Alert rate increased ${escalationRate.toFixed(1)}x in last 30min (${recentAlerts.length} vs ${olderAlerts.length} previous)`,
+      confidence: Math.min(0.9, 0.4 + escalationRate * 0.1),
+      detectedAt: new Date().toISOString(),
+      affectedRegions: regions,
+      alertCount: recentAlerts.length,
+    });
+  } else if (olderAlerts.length > recentAlerts.length * 1.5 && olderAlerts.length >= 5) {
+    const regions = [...new Set(olderAlerts.map(a => a.region || a.country))];
+    patterns.push({
+      id: `pat-deesc-${Date.now()}`,
+      type: 'deescalation',
+      description: `Alert rate decreased in last 30min (${recentAlerts.length} vs ${olderAlerts.length} previous)`,
+      confidence: 0.6,
+      detectedAt: new Date().toISOString(),
+      affectedRegions: regions,
+      alertCount: recentAlerts.length,
+    });
+  }
+
+  const recentRegionCounts: Record<string, number> = {};
+  const olderRegionCounts: Record<string, number> = {};
+  for (const a of recentAlerts) recentRegionCounts[a.region || a.country] = (recentRegionCounts[a.region || a.country] || 0) + 1;
+  for (const a of olderAlerts) olderRegionCounts[a.region || a.country] = (olderRegionCounts[a.region || a.country] || 0) + 1;
+
+  for (const [region, count] of Object.entries(recentRegionCounts)) {
+    if (count >= 3 && (!olderRegionCounts[region] || olderRegionCounts[region] < 2)) {
+      patterns.push({
+        id: `pat-geo-${region}-${Date.now()}`,
+        type: 'geographic_shift',
+        description: `New alert cluster emerged in ${region} (${count} alerts, not seen in previous window)`,
+        confidence: 0.65,
+        detectedAt: new Date().toISOString(),
+        affectedRegions: [region],
+        alertCount: count,
+      });
+    }
+  }
+
+  return patterns;
+}
+
+function scoreFalseAlarms(alerts: RedAlert[]): FalseAlarmScore[] {
+  const scores: FalseAlarmScore[] = [];
+
+  for (const alert of alerts) {
+    const reasons: string[] = [];
+    let score = 0;
+
+    if (alert.source === 'sim') {
+      score += 0.3;
+      reasons.push('Simulated source (not live API)');
+    }
+
+    if (alert.countdown === 0) {
+      score += 0.2;
+      reasons.push('Zero countdown timer');
+    }
+
+    const elapsed = (Date.now() - new Date(alert.timestamp).getTime()) / 1000;
+    if (elapsed > alert.countdown * 2 && alert.countdown > 0) {
+      score += 0.15;
+      reasons.push('Alert expired but no follow-up reports');
+    }
+
+    const sameRegionAlerts = alerts.filter(a =>
+      a.id !== alert.id &&
+      a.region === alert.region &&
+      Math.abs(new Date(a.timestamp).getTime() - new Date(alert.timestamp).getTime()) < 120000
+    );
+    if (sameRegionAlerts.length === 0 && alert.threatType === 'rockets') {
+      score += 0.1;
+      reasons.push('Isolated alert with no corroborating nearby alerts');
+    }
+
+    if (alert.source === 'live' && sameRegionAlerts.filter(a => a.source === 'live').length > 0) {
+      score -= 0.3;
+      reasons.push('Corroborated by multiple live sources');
+    }
+
+    const finalScore = Math.max(0, Math.min(1, score));
+    let recommendation: FalseAlarmScore['recommendation'] = 'likely_real';
+    if (finalScore > 0.5) recommendation = 'likely_false';
+    else if (finalScore > 0.25) recommendation = 'uncertain';
+
+    scores.push({
+      alertId: alert.id,
+      score: parseFloat(finalScore.toFixed(2)),
+      reasons,
+      recommendation,
+    });
+  }
+
+  return scores;
+}
+
+function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[]): AnalyticsSnapshot {
+  const regionCounts: Record<string, number> = {};
+  const typeCounts: Record<string, number> = {};
+  const timeMap: Record<string, number> = {};
+  const channelCounts: Record<string, number> = {};
+
+  for (const a of alerts) {
+    const region = a.region || a.country || 'Unknown';
+    regionCounts[region] = (regionCounts[region] || 0) + 1;
+    typeCounts[a.threatType] = (typeCounts[a.threatType] || 0) + 1;
+
+    const timeKey = new Date(a.timestamp).toISOString().slice(0, 16);
+    timeMap[timeKey] = (timeMap[timeKey] || 0) + 1;
+  }
+
+  for (const m of messages) {
+    channelCounts[m.channel] = (channelCounts[m.channel] || 0) + 1;
+  }
+
+  const timeline = Object.entries(timeMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-30)
+    .map(([time, count]) => ({ time, count }));
+
+  const now = Date.now();
+  const activeCount = alerts.filter(a => {
+    const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
+    return elapsed < a.countdown || a.countdown === 0;
+  }).length;
+
+  const falseAlarms = scoreFalseAlarms(alerts);
+  const falseCount = falseAlarms.filter(f => f.recommendation === 'likely_false').length;
+  const falseAlarmRate = alerts.length > 0 ? falseCount / alerts.length : 0;
+
+  const avgCountdown = alerts.length > 0
+    ? alerts.reduce((s, a) => s + a.countdown, 0) / alerts.length
+    : 0;
+
+  const recentCount = alerts.filter(a => now - new Date(a.timestamp).getTime() < 30 * 60000).length;
+  const olderCount = alerts.filter(a => {
+    const age = now - new Date(a.timestamp).getTime();
+    return age >= 30 * 60000 && age < 60 * 60000;
+  }).length;
+  let threatTrend: AnalyticsSnapshot['threatTrend'] = 'stable';
+  if (recentCount > olderCount * 1.3) threatTrend = 'escalating';
+  else if (olderCount > recentCount * 1.3) threatTrend = 'deescalating';
+
+  const topSources = Object.entries(channelCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 8)
+    .map(([channel, count]) => ({
+      channel,
+      count,
+      reliability: channel.includes('OSINT') || channel.includes('Intel') ? 0.85 : channel.includes('news') ? 0.7 : 0.75,
+    }));
+
+  const patterns = detectAlertPatterns(alerts);
+
+  return {
+    alertsByRegion: regionCounts,
+    alertsByType: typeCounts,
+    alertTimeline: timeline,
+    avgResponseTime: Math.round(avgCountdown),
+    activeAlertCount: activeCount,
+    falseAlarmRate: parseFloat(falseAlarmRate.toFixed(2)),
+    threatTrend,
+    topSources,
+    patterns,
+    falseAlarms,
+  };
+}
+
+async function generateAIBriefLive(alerts: RedAlert[], messages: ClassifiedMessage[]): Promise<AIBrief> {
+  if (aiBriefCache && Date.now() - aiBriefCache.fetchedAt < AI_BRIEF_CACHE_TTL) {
+    return aiBriefCache.data;
+  }
+
+  const criticalMsgs = messages
+    .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
+    .slice(0, 10);
+
+  const alertSummary = alerts.length > 0
+    ? `Active alerts: ${alerts.length} (${[...new Set(alerts.map(a => a.country))].join(', ')}). Types: ${[...new Set(alerts.map(a => a.threatType))].join(', ')}.`
+    : 'No active alerts.';
+
+  const intelDigest = criticalMsgs.map(m => `[${m.channel}] ${m.text.slice(0, 200)}`).join('\n');
+
+  try {
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-5.1',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a senior military intelligence analyst producing a classified situation brief for a war room. Write concise, professional intelligence assessments. Return ONLY valid JSON:
+{
+  "summary": "2-3 paragraph situation assessment",
+  "summaryAr": "Arabic translation of summary",
+  "keyDevelopments": [{"text":"development","textAr":"Arabic","severity":"critical|high|medium","category":"category name"}],
+  "focalPoints": ["key locations/topics"],
+  "riskLevel": "EXTREME|HIGH|ELEVATED|MODERATE"
+}`
+        },
+        {
+          role: 'user',
+          content: `Generate intelligence brief based on current data:\n\nALERT STATUS: ${alertSummary}\n\nINTELLIGENCE DIGEST:\n${intelDigest || 'Limited OSINT available.'}\n\nProvide assessment with 4-6 key developments.`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 1500,
+    });
+
+    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const brief: AIBrief = {
+        id: 'brief-ai-' + Date.now(),
+        summary: parsed.summary || 'Assessment generation in progress.',
+        summaryAr: parsed.summaryAr || '',
+        keyDevelopments: Array.isArray(parsed.keyDevelopments) ? parsed.keyDevelopments.map((d: Record<string, unknown>) => ({
+          text: (d.text as string) || '',
+          textAr: (d.textAr as string) || '',
+          severity: (['critical', 'high', 'medium'].includes(d.severity as string) ? d.severity : 'medium') as 'critical' | 'high' | 'medium',
+          category: (d.category as string) || 'General',
+        })) : [],
+        focalPoints: Array.isArray(parsed.focalPoints) ? parsed.focalPoints : [],
+        riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE'].includes(parsed.riskLevel) ? parsed.riskLevel : 'HIGH') as AIBrief['riskLevel'],
+        generatedAt: new Date().toISOString(),
+        model: 'warroom-gpt-5.1',
+      };
+      aiBriefCache = { data: brief, fetchedAt: Date.now() };
+      return brief;
+    }
+  } catch (err) {
+    console.error('[AI-Brief] Error:', (err as Error).message);
+  }
+
+  const fallback = generateAIBriefStatic();
+  aiBriefCache = { data: fallback, fetchedAt: Date.now() };
+  return fallback;
+}
+
+async function generateDeductionLive(query: string, alerts: RedAlert[], messages: ClassifiedMessage[]): Promise<AIDeduction> {
+  const alertContext = alerts.slice(0, 10).map(a => `${a.city} (${a.threatType}) at ${a.timestamp}`).join('; ');
+  const intelContext = messages.slice(0, 5).map(m => `[${m.channel}] ${m.text.slice(0, 150)}`).join('\n');
+
+  try {
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-5.1',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a senior intelligence analyst in a war room. Answer the analyst's query with numbered probability-based assessments. Be specific with percentages and timeframes. Format as structured intelligence assessment with 3-5 key points. Also provide a confidence score (0-1) and timeframe. Return ONLY valid JSON:
+{"response":"your assessment","responseAr":"Arabic translation","confidence":0.0-1.0,"timeframe":"e.g. 24-48 hours"}`
+        },
+        {
+          role: 'user',
+          content: `QUERY: ${query}\n\nCURRENT ALERTS: ${alertContext || 'None active'}\n\nRECENT INTEL:\n${intelContext || 'Limited data available.'}`
+        }
+      ],
+      temperature: 0.4,
+      max_tokens: 1000,
+    });
+
+    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        id: 'ded-ai-' + Date.now(),
+        query,
+        response: parsed.response || 'Analysis pending.',
+        responseAr: parsed.responseAr || '',
+        confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+        timeframe: parsed.timeframe || '24-48 hours',
+        timestamp: new Date().toISOString(),
+      };
+    }
+  } catch (err) {
+    console.error('[AI-Deduct] Error:', (err as Error).message);
+  }
+
+  return generateDeductionStatic(query);
+}
+
+function generateAIBriefStatic(): AIBrief {
   const now = new Date();
   return {
     id: 'brief-' + Date.now(),
@@ -1353,7 +1869,7 @@ const deductionResponses: Record<string, { response: string; responseAr: string;
   }
 };
 
-function generateDeduction(query: string): AIDeduction {
+function generateDeductionStatic(query: string): AIDeduction {
   const resp = deductionResponses.default;
   return {
     id: 'ded-' + Date.now(),
@@ -1685,16 +2201,47 @@ export async function registerRoutes(
     res.json(flights);
   });
 
-  app.get('/api/ai-brief', (_req, res) => {
-    res.json(generateAIBrief());
+  app.get('/api/ai-brief', async (_req, res) => {
+    const alerts = await generateRedAlerts();
+    const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
+    const brief = await generateAIBriefLive(alerts, messages);
+    res.json(brief);
   });
 
-  app.post('/api/ai-deduct', (req, res) => {
+  app.post('/api/ai-deduct', async (req, res) => {
     const { query } = req.body || {};
     if (!query || typeof query !== 'string') {
       return res.status(400).json({ error: 'Query string required' });
     }
-    res.json(generateDeduction(query));
+    const alerts = await generateRedAlerts();
+    const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
+    const result = await generateDeductionLive(query, alerts, messages);
+    res.json(result);
+  });
+
+  app.get('/api/ai-classify', async (_req, res) => {
+    const messages = generateTelegram();
+    const classified = await classifyMessages(messages);
+    res.json(classified);
+  });
+
+  app.get('/api/analytics', async (_req, res) => {
+    const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
+    const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
+    const analytics = generateAnalytics(alerts, messages);
+    res.json(analytics);
+  });
+
+  app.get('/api/patterns', async (_req, res) => {
+    const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
+    const patterns = detectAlertPatterns(alerts);
+    res.json(patterns);
+  });
+
+  app.get('/api/false-alarms', async (_req, res) => {
+    const alerts = await generateRedAlerts();
+    const scores = scoreFalseAlarms(alerts);
+    res.json(scores);
   });
 
   app.get('/api/stream', (req, res) => {
@@ -1718,27 +2265,55 @@ export async function registerRoutes(
     send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
     generateNews().then(news => send('news', news));
     send('sirens', generateSirens());
-    generateRedAlerts().then(alerts => send('red-alerts', alerts));
+    generateRedAlerts().then(alerts => {
+      recordAlertHistory(alerts);
+      send('red-alerts', alerts);
+    });
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
-    send('ai-brief', generateAIBrief());
+    generateAIBriefLive([], generateTelegram().map(m => ({ ...m }) as ClassifiedMessage)).then(brief => send('ai-brief', brief));
     send('telegram', generateTelegram());
     send('cyber', generateCyberEvents());
     fetchEarthquakes().then(eqs => send('earthquakes', eqs));
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
+    classifyMessages(generateTelegram()).then(classified => send('classified', classified));
+    generateRedAlerts().then(alerts => {
+      const analytics = generateAnalytics(alerts, classifiedMessageCache);
+      send('analytics', analytics);
+    });
+
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
     intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 6000));
-    intervals.push(setInterval(() => generateRedAlerts().then(alerts => send('red-alerts', alerts)), 8000));
+    intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
+      recordAlertHistory(alerts);
+      send('red-alerts', alerts);
+    }), 8000));
     intervals.push(setInterval(() => send('sirens', generateSirens()), 10000));
     intervals.push(setInterval(() => {
       send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
     }, 15000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 20000));
     intervals.push(setInterval(() => send('telegram', generateTelegram()), 25000));
-    intervals.push(setInterval(() => send('ai-brief', generateAIBrief()), 60000));
+    intervals.push(setInterval(async () => {
+      const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
+      const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
+      const brief = await generateAIBriefLive(alerts, messages);
+      send('ai-brief', brief);
+    }, 60000));
     intervals.push(setInterval(() => send('cyber', generateCyberEvents()), 45000));
     intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 15 * 60000));
+
+    intervals.push(setInterval(async () => {
+      const classified = await classifyMessages(generateTelegram());
+      send('classified', classified);
+    }, 30000));
+
+    intervals.push(setInterval(async () => {
+      const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
+      const analytics = generateAnalytics(alerts, classifiedMessageCache);
+      send('analytics', analytics);
+    }, 15000));
 
     req.on('close', () => {
       intervals.forEach(clearInterval);

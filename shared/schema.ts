@@ -166,6 +166,51 @@ export interface AIDeduction {
   timestamp: string;
 }
 
+export interface ThreatClassification {
+  category: 'missile_launch' | 'airstrike' | 'naval_movement' | 'ground_offensive' | 'air_defense' | 'drone_activity' | 'nuclear_related' | 'economic_impact' | 'diplomatic' | 'humanitarian' | 'cyber_attack' | 'unknown';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  confidence: number;
+  entities: string[];
+  locations: string[];
+  keywords: string[];
+}
+
+export interface ClassifiedMessage extends TelegramMessage {
+  classification?: ThreatClassification;
+}
+
+export interface AlertPattern {
+  id: string;
+  type: 'launch_cycle' | 'escalation' | 'deescalation' | 'geographic_shift' | 'time_pattern';
+  description: string;
+  confidence: number;
+  detectedAt: string;
+  affectedRegions: string[];
+  predictedNext?: string;
+  intervalMinutes?: number;
+  alertCount: number;
+}
+
+export interface FalseAlarmScore {
+  alertId: string;
+  score: number;
+  reasons: string[];
+  recommendation: 'likely_real' | 'uncertain' | 'likely_false';
+}
+
+export interface AnalyticsSnapshot {
+  alertsByRegion: Record<string, number>;
+  alertsByType: Record<string, number>;
+  alertTimeline: { time: string; count: number }[];
+  avgResponseTime: number;
+  activeAlertCount: number;
+  falseAlarmRate: number;
+  threatTrend: 'escalating' | 'stable' | 'deescalating';
+  topSources: { channel: string; count: number; reliability: number }[];
+  patterns: AlertPattern[];
+  falseAlarms: FalseAlarmScore[];
+}
+
 export interface EarthquakeEvent {
   id: string;
   magnitude: number;

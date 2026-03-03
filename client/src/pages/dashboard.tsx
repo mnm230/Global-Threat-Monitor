@@ -483,7 +483,7 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
