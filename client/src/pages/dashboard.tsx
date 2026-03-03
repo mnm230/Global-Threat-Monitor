@@ -1579,6 +1579,7 @@ function headingToCompass(deg: number): string {
 }
 
 function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const [selectedFlight, setSelectedFlight] = useState<FlightData | null>(null);
   const sorted = [...flights].sort((a, b) => {
     const order = { military: 0, surveillance: 1, commercial: 2 };
     return (order[a.type] ?? 3) - (order[b.type] ?? 3);
@@ -1601,14 +1602,61 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
           <p className="text-[10px] text-foreground/25">Scanning airspace...</p>
         </div>
       )}
+
+      {selectedFlight && (
+        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 28% 6%))'}} data-testid="flight-detail-card">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
+            <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono">
+            <div data-testid="text-flight-type"><span className="text-foreground/30">TYPE</span> <span className="text-foreground/70">{selectedFlight.type.toUpperCase()}</span></div>
+            <div data-testid="text-flight-altitude"><span className="text-foreground/30">ALT</span> <span className="text-foreground/70">{selectedFlight.altitude.toLocaleString()}ft</span></div>
+            <div data-testid="text-flight-speed"><span className="text-foreground/30">SPD</span> <span className="text-foreground/70">{selectedFlight.speed}kts</span></div>
+            <div data-testid="text-flight-heading"><span className="text-foreground/30">HDG</span> <span className="text-foreground/70">{Math.round(selectedFlight.heading)}° {headingToCompass(selectedFlight.heading)}</span></div>
+            {selectedFlight.aircraft && <div data-testid="text-flight-aircraft"><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>}
+            {selectedFlight.origin && <div data-testid="text-flight-origin"><span className="text-foreground/30">ORIG</span> <span className="text-foreground/70">{selectedFlight.origin}</span></div>}
+            <div className="col-span-2" data-testid="text-flight-position"><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedFlight.lat.toFixed(4)}, {selectedFlight.lng.toFixed(4)}</span></div>
+          </div>
+          <div className="flex gap-2 mt-2 pt-1.5 border-t border-primary/15">
+            <a
+              href={`https://www.google.com/maps?q=${selectedFlight.lat},${selectedFlight.lng}&z=10&t=k`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 border border-primary/20 text-[10px] font-mono font-bold text-primary/80 transition-colors"
+              data-testid={`flight-gmap-${selectedFlight.id}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3 h-3" />
+              Google Maps
+            </a>
+            <a
+              href={`https://www.flightradar24.com/${selectedFlight.callsign}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-[10px] font-mono font-bold text-foreground/50 transition-colors"
+              data-testid={`flight-fr24-${selectedFlight.id}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="w-3 h-3" />
+              FR24
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((f) => {
           const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
+          const isSelected = selectedFlight?.id === f.id;
           return (
             <div
               key={f.id}
-              className="px-4 py-3.5 hover-elevate animate-fade-in"
+              className={`px-4 py-3.5 hover-elevate animate-fade-in cursor-pointer transition-colors ${isSelected ? 'bg-primary/[0.06]' : ''}`}
               data-testid={`flight-${f.id}`}
+              onClick={() => setSelectedFlight(isSelected ? null : f)}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <span
@@ -1620,10 +1668,21 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-2 text-xs font-mono text-muted-foreground/80">
+              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/80">
                 <span><span className="text-foreground/50">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
                 <span><span className="text-foreground/50">SPD</span> {f.speed}</span>
                 <span><span className="text-foreground/50">HDG</span> {headingToCompass(f.heading)}</span>
+                <a
+                  href={`https://www.google.com/maps?q=${f.lat},${f.lng}&z=10&t=k`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-primary/15 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Open in Google Maps"
+                  data-testid={`flight-gmap-row-${f.id}`}
+                >
+                  <MapPin className="w-3 h-3 text-primary/40 hover:text-primary/80" />
+                </a>
               </div>
             </div>
           );
@@ -1922,6 +1981,7 @@ const SHIP_TYPE_STYLES: Record<string, { color: string; bg: string; label: strin
 };
 
 function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { ships: ShipData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const [selectedShip, setSelectedShip] = useState<ShipData | null>(null);
   const sorted = [...ships].sort((a, b) => {
     const order = { military: 0, patrol: 1, tanker: 2, cargo: 3 };
     return (order[a.type] ?? 4) - (order[b.type] ?? 4);
@@ -1944,14 +2004,59 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
           <p className="text-[10px] text-foreground/25">Scanning waters...</p>
         </div>
       )}
+
+      {selectedShip && (
+        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(225 28% 6%))'}} data-testid="ship-detail-card">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-bold font-mono text-blue-300" data-testid="text-ship-name">{selectedShip.name}</span>
+            <button onClick={() => setSelectedShip(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="ship-close-detail">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono">
+            <div data-testid="text-ship-type"><span className="text-foreground/30">TYPE</span> <span className="text-foreground/70">{selectedShip.type.toUpperCase()}</span></div>
+            <div data-testid="text-ship-flag"><span className="text-foreground/30">FLAG</span> <span className="text-foreground/70">{selectedShip.flag}</span></div>
+            <div data-testid="text-ship-speed"><span className="text-foreground/30">SPD</span> <span className="text-foreground/70">{selectedShip.speed}kts</span></div>
+            <div data-testid="text-ship-heading"><span className="text-foreground/30">HDG</span> <span className="text-foreground/70">{Math.round(selectedShip.heading)}° {headingToCompass(selectedShip.heading)}</span></div>
+            <div className="col-span-2" data-testid="text-ship-position"><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedShip.lat.toFixed(4)}, {selectedShip.lng.toFixed(4)}</span></div>
+          </div>
+          <div className="flex gap-2 mt-2 pt-1.5 border-t border-blue-500/15">
+            <a
+              href={`https://www.google.com/maps?q=${selectedShip.lat},${selectedShip.lng}&z=10&t=k`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-[10px] font-mono font-bold text-blue-300 transition-colors"
+              data-testid={`ship-gmap-${selectedShip.id}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MapPin className="w-3 h-3" />
+              Google Maps
+            </a>
+            <a
+              href={`https://www.marinetraffic.com/en/ais/home/centerx:${selectedShip.lng}/centery:${selectedShip.lat}/zoom:10`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-[10px] font-mono font-bold text-foreground/50 transition-colors"
+              data-testid={`ship-mt-${selectedShip.id}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="w-3 h-3" />
+              MarineTraffic
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((s) => {
           const style = SHIP_TYPE_STYLES[s.type] || SHIP_TYPE_STYLES.cargo;
+          const isSelected = selectedShip?.id === s.id;
           return (
             <div
               key={s.id}
-              className="px-3 py-3 hover-elevate animate-fade-in"
+              className={`px-3 py-3 hover-elevate animate-fade-in cursor-pointer transition-colors ${isSelected ? 'bg-blue-950/30' : ''}`}
               data-testid={`ship-${s.id}`}
+              onClick={() => setSelectedShip(isSelected ? null : s)}
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <span
@@ -1963,10 +2068,21 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
                   {style.label}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-x-2 text-xs font-mono text-muted-foreground">
+              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
                 <span><span className="text-foreground/40">SPD</span> {s.speed}kn</span>
                 <span><span className="text-foreground/40">HDG</span> {headingToCompass(s.heading)}</span>
                 <span className="truncate"><span className="text-foreground/30">FLG</span> {s.flag}</span>
+                <a
+                  href={`https://www.google.com/maps?q=${s.lat},${s.lng}&z=10&t=k`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-blue-500/15 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Open in Google Maps"
+                  data-testid={`ship-gmap-row-${s.id}`}
+                >
+                  <MapPin className="w-3 h-3 text-blue-400/40 hover:text-blue-400/80" />
+                </a>
               </div>
             </div>
           );
