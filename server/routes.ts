@@ -227,6 +227,107 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
   }
 }
 
+// --- Shared news category classifier ---
+function classifyTitle(text: string): 'breaking' | 'military' | 'diplomatic' | 'economic' {
+  const lower = text.toLowerCase();
+  if (/market|oil|crude|gold|price|surge|drop|stock|trade|dollar|yen|euro|economy|gdp|rate|inflation/i.test(lower)) return 'economic';
+  if (/military|strike|missile|bomb|attack|air\s*force|navy|army|defense|weapon|drone|intercept|operation|war|combat|troops|artillery|killed|wounded/i.test(lower)) return 'military';
+  if (/diplomat|ceasefire|negotiat|talk|summit|ambassador|\bun\b|nato|sanction|treaty|peace|resolution/i.test(lower)) return 'diplomatic';
+  return 'breaking';
+}
+
+// --- Live News API Integration ---
+const NEWS_CACHE_TTL = 5 * 60 * 1000;
+const NEWS_QUERY = 'israel OR iran OR hezbollah OR hamas OR missile OR attack OR war OR conflict';
+
+let newsApiCache: { data: NewsItem[]; fetchedAt: number } | null = null;
+let gnewsCache:   { data: NewsItem[]; fetchedAt: number } | null = null;
+let mediastackCache: { data: NewsItem[]; fetchedAt: number } | null = null;
+
+async function fetchNewsAPI(): Promise<NewsItem[]> {
+  const key = process.env.NEWSAPI_KEY;
+  if (!key) return [];
+  if (newsApiCache && Date.now() - newsApiCache.fetchedAt < NEWS_CACHE_TTL) return newsApiCache.data;
+  try {
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(NEWS_QUERY)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${key}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`NewsAPI HTTP ${res.status}`);
+    const json = await res.json() as { articles?: Array<{ title?: string; url?: string; publishedAt?: string; source?: { name?: string } }> };
+    const items: NewsItem[] = (json.articles || [])
+      .filter(a => a.title && a.title !== '[Removed]')
+      .map((a, i) => ({
+        id: `newsapi_${Date.now()}_${i}`,
+        title: a.title!,
+        source: a.source?.name || 'NewsAPI',
+        category: classifyTitle(a.title!),
+        timestamp: a.publishedAt || new Date().toISOString(),
+        url: a.url,
+      }));
+    newsApiCache = { data: items, fetchedAt: Date.now() };
+    console.log(`[NEWSAPI] Fetched ${items.length} articles`);
+    return items;
+  } catch (err) {
+    console.log('[NEWSAPI] Error:', err instanceof Error ? err.message : err);
+    return newsApiCache?.data ?? [];
+  }
+}
+
+async function fetchGNews(): Promise<NewsItem[]> {
+  const key = process.env.GNEWS_API_KEY;
+  if (!key) return [];
+  if (gnewsCache && Date.now() - gnewsCache.fetchedAt < NEWS_CACHE_TTL) return gnewsCache.data;
+  try {
+    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(NEWS_QUERY)}&lang=en&max=10&sortby=publishedAt&token=${key}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`GNews HTTP ${res.status}`);
+    const json = await res.json() as { articles?: Array<{ title?: string; url?: string; publishedAt?: string; source?: { name?: string } }> };
+    const items: NewsItem[] = (json.articles || [])
+      .filter(a => a.title)
+      .map((a, i) => ({
+        id: `gnews_${Date.now()}_${i}`,
+        title: a.title!,
+        source: a.source?.name || 'GNews',
+        category: classifyTitle(a.title!),
+        timestamp: a.publishedAt || new Date().toISOString(),
+        url: a.url,
+      }));
+    gnewsCache = { data: items, fetchedAt: Date.now() };
+    console.log(`[GNEWS] Fetched ${items.length} articles`);
+    return items;
+  } catch (err) {
+    console.log('[GNEWS] Error:', err instanceof Error ? err.message : err);
+    return gnewsCache?.data ?? [];
+  }
+}
+
+async function fetchMediastack(): Promise<NewsItem[]> {
+  const key = process.env.MEDIASTACK_KEY;
+  if (!key) return [];
+  if (mediastackCache && Date.now() - mediastackCache.fetchedAt < NEWS_CACHE_TTL) return mediastackCache.data;
+  try {
+    const url = `http://api.mediastack.com/v1/news?access_key=${key}&keywords=${encodeURIComponent('israel,iran,war,conflict,missile,attack')}&languages=en&limit=25&sort=published_desc`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`Mediastack HTTP ${res.status}`);
+    const json = await res.json() as { data?: Array<{ title?: string; url?: string; published_at?: string; source?: string }> };
+    const items: NewsItem[] = (json.data || [])
+      .filter(a => a.title)
+      .map((a, i) => ({
+        id: `mediastack_${Date.now()}_${i}`,
+        title: a.title!,
+        source: a.source || 'Mediastack',
+        category: classifyTitle(a.title!),
+        timestamp: a.published_at || new Date().toISOString(),
+        url: a.url,
+      }));
+    mediastackCache = { data: items, fetchedAt: Date.now() };
+    console.log(`[MEDIASTACK] Fetched ${items.length} articles`);
+    return items;
+  } catch (err) {
+    console.log('[MEDIASTACK] Error:', err instanceof Error ? err.message : err);
+    return mediastackCache?.data ?? [];
+  }
+}
+
 const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee'];
 const X_CACHE_TTL = 5 * 60 * 1000;
 const X_RATE_LIMIT_BACKOFF = 10 * 60 * 1000;
@@ -322,15 +423,7 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
         text = text.substring(0, 297) + '...';
       }
 
-      let category: 'breaking' | 'military' | 'diplomatic' | 'economic' = 'breaking';
-      const lower = text.toLowerCase();
-      if (/market|oil|crude|gold|price|surge|drop|stock|trade|dollar|yen|euro|economy|gdp|rate|inflation/i.test(lower)) {
-        category = 'economic';
-      } else if (/military|strike|missile|bomb|attack|air\s*force|navy|army|defense|weapon|drone|intercept|operation|war|combat|troops|artillery/i.test(lower)) {
-        category = 'military';
-      } else if (/diplomat|ceasefire|negotiat|talk|summit|ambassador|un\b|nato|sanction|treaty|peace|resolution/i.test(lower)) {
-        category = 'diplomatic';
-      }
+      const category = classifyTitle(text);
 
       let timestamp = '';
       if (tweet.created_at) {
@@ -524,53 +617,115 @@ function generateStaticNews(): NewsItem[] {
 async function generateNews(): Promise<NewsItem[]> {
   const staticNews = generateStaticNews();
   try {
-    const xNews = await fetchXFeeds();
-    if (xNews.length > 0) {
-      const merged = [...xNews, ...staticNews];
-      merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      return merged;
+    const [xNews, newsApiItems, gnewsItems, mediastackItems] = await Promise.all([
+      fetchXFeeds().catch(() => [] as NewsItem[]),
+      fetchNewsAPI(),
+      fetchGNews(),
+      fetchMediastack(),
+    ]);
+
+    const liveItems = [...xNews, ...newsApiItems, ...gnewsItems, ...mediastackItems];
+
+    if (liveItems.length > 0) {
+      const seen = new Set<string>();
+      const deduped = liveItems.filter(item => {
+        const key = item.title.toLowerCase().substring(0, 60);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return [...deduped.slice(0, 50), ...staticNews];
     }
   } catch {}
   return staticNews;
 }
 
-function generateCommodities(): CommodityData[] {
-  const basePrices = [
-    { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', base: 84.72, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', base: 80.35, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', base: 2068.40, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', base: 23.85, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', base: 3.42, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', base: 612.50, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', base: 8542.00, currency: 'USD', category: 'commodity' as const },
-    { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', base: 1.0862, currency: '', category: 'fx-major' as const },
-    { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', base: 1.2674, currency: '', category: 'fx-major' as const },
-    { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', base: 149.82, currency: '', category: 'fx-major' as const },
-    { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', base: 0.8815, currency: '', category: 'fx-major' as const },
-    { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', base: 0.6542, currency: '', category: 'fx-major' as const },
-    { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', base: 1.3598, currency: '', category: 'fx-major' as const },
-    { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', base: 3.92, currency: '', category: 'fx' as const },
-    { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', base: 42150, currency: '', category: 'fx' as const },
-    { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', base: 3.7500, currency: '', category: 'fx' as const },
-    { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', base: 3.6725, currency: '', category: 'fx' as const },
-  ];
+const COMMODITY_META = [
+  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 84.72, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 80.35, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 2068.40, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 23.85, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.42, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 612.50, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 8542.00, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.0862, currency: '', category: 'fx-major' as const, fxKey: 'EUR' },
+  { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.2674, currency: '', category: 'fx-major' as const, fxKey: 'GBP' },
+  { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 149.82, currency: '', category: 'fx-major' as const, fxKey: 'JPY', invert: true },
+  { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', fallback: 0.8815, currency: '', category: 'fx-major' as const, fxKey: 'CHF', invert: true },
+  { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', fallback: 0.6542, currency: '', category: 'fx-major' as const, fxKey: 'AUD' },
+  { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', fallback: 1.3598, currency: '', category: 'fx-major' as const, fxKey: 'CAD', invert: true },
+  { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', fallback: 3.92, currency: '', category: 'fx' as const, fxKey: 'ILS', invert: true },
+  { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', fallback: 42150, currency: '', category: 'fx' as const, fxKey: 'IRR', invert: true },
+  { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', fallback: 3.7500, currency: '', category: 'fx' as const, fxKey: 'SAR', invert: true },
+  { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', fallback: 3.6725, currency: '', category: 'fx' as const, fxKey: 'AED', invert: true },
+];
 
-  return basePrices.map((item) => {
-    const volatility = item.category === 'commodity' ? 0.02 : item.category === 'fx-major' ? 0.003 : 0.005;
-    const changePercent = (Math.random() - 0.45) * volatility * 100;
-    const change = item.base * (changePercent / 100);
+let liveFxRates: Record<string, number> = {};
+let liveFxFetchedAt = 0;
+const FX_CACHE_TTL = 5 * 60 * 1000;
+
+async function fetchLiveFxRates(): Promise<Record<string, number>> {
+  if (Date.now() - liveFxFetchedAt < FX_CACHE_TTL && Object.keys(liveFxRates).length > 0) {
+    return liveFxRates;
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const resp = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
+    clearTimeout(timeout);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.rates) {
+        liveFxRates = data.rates;
+        liveFxFetchedAt = Date.now();
+      }
+    }
+  } catch {}
+  return liveFxRates;
+}
+
+let commodityPriceState: Record<string, { price: number; prevPrice: number }> = {};
+
+function generateCommodities(): CommodityData[] {
+  const fxRates = liveFxRates;
+  const hasFx = Object.keys(fxRates).length > 0;
+
+  return COMMODITY_META.map((item) => {
+    let basePrice = item.fallback;
+    const meta = item as typeof item & { fxKey?: string; invert?: boolean };
+
+    if (hasFx && meta.fxKey && fxRates[meta.fxKey]) {
+      const rate = fxRates[meta.fxKey];
+      basePrice = meta.invert ? rate : (1 / rate);
+    }
+
+    const prev = commodityPriceState[item.symbol];
+    const volatility = item.category === 'commodity' ? 0.0015 : item.category === 'fx-major' ? 0.0003 : 0.0004;
+    const tick = (Math.random() - 0.48) * volatility * basePrice;
+    const currentPrice = prev ? prev.price + tick : basePrice;
+    const prevPrice = prev ? prev.price : basePrice;
+
+    commodityPriceState[item.symbol] = { price: currentPrice, prevPrice };
+
+    const change = currentPrice - basePrice;
+    const changePercent = (change / basePrice) * 100;
+
     return {
       symbol: item.symbol,
       name: item.name,
       nameAr: item.nameAr,
-      price: Number((item.base + change).toFixed(item.base < 10 ? 4 : 2)),
-      change: Number(change.toFixed(item.base < 10 ? 4 : 2)),
+      price: Number(currentPrice.toFixed(currentPrice < 10 ? 4 : 2)),
+      change: Number(change.toFixed(currentPrice < 10 ? 4 : 2)),
       changePercent: Number(changePercent.toFixed(2)),
       currency: item.currency,
       category: item.category,
     };
   });
 }
+
+fetchLiveFxRates();
+setInterval(() => fetchLiveFxRates(), FX_CACHE_TTL);
 
 function generateEvents(): ConflictEvent[] {
   const now = Date.now();
@@ -1419,7 +1574,7 @@ async function classifyThreatWithAI(text: string): Promise<ThreatClassification>
         { role: 'user', content: text }
       ],
       temperature: 0.1,
-      max_tokens: 300,
+      max_completion_tokens: 300,
     });
     const raw = resp.choices?.[0]?.message?.content?.trim() || '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -1523,7 +1678,7 @@ Return ONLY the JSON array, no other text.`
         { role: 'user', content: batchTexts }
       ],
       temperature: 0.1,
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
     });
     const raw = resp.choices?.[0]?.message?.content?.trim() || '';
     const arrMatch = raw.match(/\[[\s\S]*\]/);
@@ -1823,7 +1978,7 @@ async function generateAIBriefLive(alerts: RedAlert[], messages: ClassifiedMessa
         }
       ],
       temperature: 0.3,
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
     });
 
     const raw = resp.choices?.[0]?.message?.content?.trim() || '';
@@ -1876,7 +2031,7 @@ async function generateDeductionLive(query: string, alerts: RedAlert[], messages
         }
       ],
       temperature: 0.4,
-      max_tokens: 1000,
+      max_completion_tokens: 1000,
     });
 
     const raw = resp.choices?.[0]?.message?.content?.trim() || '';

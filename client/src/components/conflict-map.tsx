@@ -789,6 +789,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
+  const isMountedStyle = useRef(true);
 
   const [viewState, setViewState] = useState<ViewState>(VIEW_CONFIG[activeView]);
   const [isGlobe, setIsGlobe] = useState(false);
@@ -1036,6 +1037,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
   }, []);
 
   useEffect(() => {
+    if (isMountedStyle.current) { isMountedStyle.current = false; return; }
     if (!mapRef.current) return;
     mapRef.current.setStyle(mapStyle);
   }, [mapStyle]);

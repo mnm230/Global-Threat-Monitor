@@ -195,11 +195,10 @@ function useAnomalyDetection(
       }
     }
 
-    const prevPrices = prevCommodityPrices.current;
-    commodities.forEach(c => {
+    commodities.forEach((c, i) => {
       if (Math.abs(c.changePercent) > 2) {
         newAnomalies.push({
-          id: `anom-price-${c.symbol}-${Date.now()}`,
+          id: `anom-price-${c.symbol}-${Date.now()}-${i}`,
           type: 'price_spike',
           severity: 'medium',
           description: `${c.symbol} price spike: ${c.changePercent > 0 ? '+' : ''}${c.changePercent.toFixed(2)}%`,
@@ -838,7 +837,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
   );
 }
 
-function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: () => void }) {
+function WatchlistOverlay({ language, onClose, onUpdate }: { language: 'en' | 'ar'; onClose: () => void; onUpdate: (items: string[]) => void }) {
   const [items, setItems] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
   });
@@ -847,7 +846,8 @@ function WatchlistOverlay({ language, onClose }: { language: 'en' | 'ar'; onClos
   const save = useCallback((updated: string[]) => {
     setItems(updated);
     localStorage.setItem('warroom_watchlist', JSON.stringify(updated));
-  }, []);
+    onUpdate(updated);
+  }, [onUpdate]);
 
   const add = useCallback(() => {
     if (!newItem.trim() || items.includes(newItem.trim())) return;
@@ -1033,7 +1033,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-8 border-t border-white/[0.03] bg-card/15 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
+    <div className="h-6 border-t border-white/[0.03] bg-card/15 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
       <span className="text-[8px] text-foreground/20 font-mono uppercase tracking-[0.2em] mr-3 shrink-0">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
@@ -1153,7 +1153,7 @@ ${ships.map(s => `<tr><td style="color:#fff">${s.name}</td><td>${s.type.toUpperC
 ${movers.map(c => `<tr><td style="color:#fff">${c.symbol}</td><td>${c.currency === 'USD' ? '$' : ''}${c.price.toFixed(c.price < 10 ? 4 : 2)}</td><td class="${c.changePercent >= 0 ? 'pos' : 'neg'}">${c.changePercent >= 0 ? '+' : ''}${c.changePercent.toFixed(2)}%</td></tr>`).join('')}
 </tbody></table>
 
-<div class="footer">WARROOM v1.0 | Open Source Intelligence Terminal | ${now}</div>
+<div class="footer">Made by M.M — WARROOM v2.0 | Open Source Intelligence Terminal | ${now}</div>
 </body></html>`;
   return html;
 }
@@ -1214,11 +1214,11 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-8 border-b border-border/30 bg-card/40" />;
+  if (!commodities.length) return <div className="h-7 border-b border-border/30 bg-card/40" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-8 border-b border-border/30 overflow-hidden relative bg-card/60 shrink-0" data-testid="ticker-bar">
+    <div className="h-7 border-b border-border/30 overflow-hidden relative bg-card/60 shrink-0" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-card via-card/90 to-transparent z-10 flex items-center gap-1.5 pl-3">
         <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
         <span className="text-[8px] font-black tracking-[0.3em] text-primary/45 font-mono">MKT</span>
@@ -1363,12 +1363,12 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-9 px-3 border-b border-border/40 flex items-center gap-2 bg-card/80 shrink-0 relative cursor-grab active:cursor-grabbing">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
-      <div className="w-5 h-5 rounded bg-primary/[0.08] border border-primary/[0.12] flex items-center justify-center shrink-0">
-        <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/80">{icon}</span>
+    <div className="panel-drag-handle h-7 px-3 border-b border-border/50 flex items-center gap-2 bg-card/90 shrink-0 relative cursor-grab active:cursor-grabbing" style={{boxShadow:'inset 0 -1px 0 hsl(220 30% 8% / 0.5)'}}>
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      <div className="w-5 h-5 rounded bg-primary/[0.1] border border-primary/[0.15] flex items-center justify-center shrink-0">
+        <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/90">{icon}</span>
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/70 font-mono">{title}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/75 font-mono">{title}</span>
       {count !== undefined && (
         <span className="text-[9px] px-1.5 py-0.5 font-mono text-primary/70 bg-primary/[0.06] rounded border border-primary/[0.12] tabular-nums leading-none font-bold">
           {count}
@@ -2521,6 +2521,7 @@ function TelegramPanel({
   const [showManager, setShowManager] = useState(false);
   const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const allChannels = useMemo(() => [...DEFAULT_CHANNELS, ...customChannels], [customChannels]);
 
@@ -2701,6 +2702,32 @@ function TelegramPanel({
         </div>
       )}
 
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md cursor-zoom-out"
+          onClick={() => setLightboxImage(null)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setLightboxImage(null); }}
+          tabIndex={0}
+          role="dialog"
+          data-testid="telegram-lightbox"
+        >
+          <img
+            src={lightboxImage}
+            alt="Full size preview"
+            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+            onError={() => setLightboxImage(null)}
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/70 border border-white/25 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            data-testid="button-close-lightbox"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1.5">
           {displayMessages.length === 0 && (
@@ -2734,16 +2761,20 @@ function TelegramPanel({
                 data-testid={`telegram-msg-${msg.id}`}
               >
                 {msg.image && !isExpanded && (
-                  <div className="relative w-full h-24 overflow-hidden">
+                  <div
+                    className="relative w-full h-36 overflow-hidden cursor-zoom-in"
+                    onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
+                    data-testid={`img-thumbnail-${msg.id}`}
+                  >
                     <img
                       src={msg.image}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                       loading="lazy"
-                      onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).closest('[data-testid]')!.parentElement!.style.display = 'none'; }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                    <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+                    <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5 pointer-events-none">
                       <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
                       <span className="text-[10px] text-white font-bold truncate">{channelName}</span>
                       {isLive && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
@@ -2767,12 +2798,13 @@ function TelegramPanel({
                   )}
 
                   {isExpanded && msg.image && (
-                    <div className="rounded-md overflow-hidden mb-2 border border-sky-800/15">
+                    <div className="rounded-md overflow-hidden mb-2 border border-sky-800/20">
                       <img
                         src={msg.image}
                         alt=""
-                        className="w-full max-h-56 object-cover bg-black/20"
+                        className="w-full max-h-72 object-cover bg-black/20 cursor-zoom-in hover:opacity-90 transition-opacity"
                         loading="lazy"
+                        onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         data-testid={`img-telegram-${msg.id}`}
                       />
@@ -3375,7 +3407,7 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-7 border-t border-border/30 bg-card/40 overflow-hidden relative shrink-0" data-testid="news-ticker">
+    <div className="h-6 border-t border-border/30 bg-card/40 overflow-hidden relative shrink-0" data-testid="news-ticker">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card via-card/90 to-transparent z-10 flex items-center pl-3">
         <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">NEWS</span>
       </div>
@@ -3770,12 +3802,6 @@ export default function Dashboard() {
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
   const panelPersistTimeout = useRef<NodeJS.Timeout | null>(null);
-  useEffect(() => {
-    if (panelPersistTimeout.current) clearTimeout(panelPersistTimeout.current);
-    panelPersistTimeout.current = setTimeout(() => {
-      localStorage.setItem('warroom_panel_state', JSON.stringify({ visiblePanels }));
-    }, 500);
-  }, [visiblePanels]);
 
   const handleGridLayoutChange = useCallback((newLayout: GridLayout2) => {
     setGridLayout(prev => {
@@ -3832,9 +3858,9 @@ export default function Dashboard() {
   const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings, redAlerts), [redAlerts, sirens.length, settings]);
   const correlations = useCorrelations(events, redAlerts, sirens, flights);
 
-  const watchlist = useMemo<string[]>(() => {
+  const [watchlist, setWatchlist] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
-  }, [showWatchlist]);
+  });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
   const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics'];
@@ -3969,7 +3995,7 @@ export default function Dashboard() {
                 <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
               </div>
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <MaritimePanel ships={ships} language={language} onMaximize={maximize} isMaximized={isMax} />
+                <MaritimePanel ships={ships} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
               </div>
             </>
           );
@@ -3998,8 +4024,8 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col bg-background text-foreground min-h-screen" data-testid="dashboard">
-      <header className="h-11 border-b border-border/50 flex items-center justify-between px-3 md:px-5 bg-card shrink-0 relative z-50" style={{boxShadow:'0 2px 12px hsl(0 0% 0% / 0.4)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/10 via-primary/50 to-primary/10" />
+      <header className="h-9 border-b border-border/60 flex items-center justify-between px-3 md:px-5 bg-card shrink-0 relative z-50" style={{boxShadow:'0 2px 16px hsl(0 0% 0% / 0.5), 0 0 1px hsl(38 95% 54% / 0.08)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/5 via-primary/60 to-primary/5" />
         <div className="flex items-center gap-2.5 md:gap-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center border border-primary/25" style={{boxShadow:'0 0 16px hsl(38 95% 54% / 0.15)'}}>
@@ -4132,11 +4158,11 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={130}
+            rowHeight={120}
             onLayoutChange={handleGridLayoutChange}
-            draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,.deck-canvas"
-            margin={[6, 6]}
-            containerPadding={[6, 6]}
+            draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
+            margin={[3, 3]}
+            containerPadding={[3, 3]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ minHeight: 400 }}
           >
@@ -4226,13 +4252,13 @@ export default function Dashboard() {
             </div>
           </>
         )}
-        <span className="text-[8px] text-foreground/15 font-mono ml-auto hidden sm:inline tracking-[0.15em]">
-          WARROOM v2.0
+        <span className="text-[8px] text-foreground/20 font-mono ml-auto hidden sm:inline tracking-[0.12em]">
+          Made by M.M &mdash; WARROOM v2.0
         </span>
       </div>
 
       {showNotes && <NotesOverlay language={language} onClose={() => setShowNotes(false)} />}
-      {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} />}
+      {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} onUpdate={setWatchlist} />}
       {showAlertHistory && <AlertHistoryOverlay language={language} onClose={() => setShowAlertHistory(false)} />}
       {showSettings && <SettingsOverlay settings={settings} onSave={setSettings} onClose={() => setShowSettings(false)} language={language} />}
     </div>

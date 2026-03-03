@@ -25,15 +25,15 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Data Handling:** Shared TypeScript types (`shared/schema.ts`) ensure data consistency across frontend and backend.
 - **Red Alert System:** Integrates multiple primary and fallback APIs for real-time Israeli Red Alerts (Tzeva Adom), displaying alerts with visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data is sourced from `adsb.lol`, with auto-classification of aircraft types and detailed flight information.
-- **Telegram OSINT:** Scrapes public Telegram channels via `t.me/s/` for live OSINT feeds, with server-side caching and language filtering.
-- **AI Intelligence:** Features a simulated AI world brief panel with risk assessment, key developments, and AI deduction/forecasting capabilities.
+- **Telegram OSINT:** Scrapes public Telegram channels via `t.me/s/` for live OSINT feeds, with server-side caching, language filtering, and inline media lightbox for images/photos.
+- **AI Intelligence:** AI world brief panel with risk assessment, key developments, and AI deduction/forecasting capabilities (OpenAI GPT, uses `max_completion_tokens`).
 - **Persistence:** Panel visibility, layout presets, and user settings (e.g., alert thresholds, custom watchlists, analyst notes) are persisted in `localStorage`.
 - **Error Handling:** Generic `PanelErrorBoundary` for robust error handling in UI panels.
 - **Accessibility:** Implemented `aria-labels` and `role="status"` for improved accessibility.
 
 **Feature Specifications:**
 - **Breaking News Feed:** Displays 15 categorized news items.
-- **Markets Panel:** Monitors 17 instruments across commodities, major FX, and regional FX, with a scrolling ticker.
+- **Markets Panel:** Monitors 17 instruments across commodities, major FX, and regional FX, with a scrolling ticker. FX rates sourced live from Open Exchange Rates API (5-min cache), commodities simulate micro-ticks around live base prices.
 - **Language Toggle:** Supports English and Arabic (RTL).
 - **Live Sirens:** Displays active rocket/missile/UAV sirens via a scrolling red alert banner.
 - **YouTube Live Feed Panel:** Embeds live YouTube streams, configurable via settings.
