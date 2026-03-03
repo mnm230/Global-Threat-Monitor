@@ -221,6 +221,165 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
   }
 }
 
+const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee'];
+const X_CACHE_TTL = 5 * 60 * 1000;
+const X_RATE_LIMIT_BACKOFF = 10 * 60 * 1000;
+const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
+const xInFlight = new Map<string, Promise<NewsItem[]>>();
+let xRateLimitedUntil = 0;
+
+async function scrapeXAccount(screenName: string): Promise<NewsItem[]> {
+  const cached = xFeedCache.get(screenName);
+  if (cached && Date.now() - cached.fetchedAt < X_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const existing = xInFlight.get(screenName);
+  if (existing) return existing;
+
+  const promise = _scrapeXAccountInner(screenName);
+  xInFlight.set(screenName, promise);
+  try {
+    return await promise;
+  } finally {
+    xInFlight.delete(screenName);
+  }
+}
+
+async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
+  const cached = xFeedCache.get(screenName);
+
+  if (Date.now() < xRateLimitedUntil) {
+    if (cached) return cached.data;
+    return [];
+  }
+
+  const items: NewsItem[] = [];
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(
+      `https://syndication.twitter.com/srv/timeline-profile/screen-name/${screenName}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
+          'Referer': 'https://platform.twitter.com/',
+          'Cache-Control': 'no-cache',
+        },
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        xRateLimitedUntil = Date.now() + X_RATE_LIMIT_BACKOFF;
+        console.log(`[X-FEED] Rate limited, backing off for ${X_RATE_LIMIT_BACKOFF / 60000} minutes`);
+      }
+      if (cached) return cached.data;
+      return [];
+    }
+
+    const html = await response.text();
+    const jsonMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!jsonMatch) {
+      console.log(`[X-FEED] No __NEXT_DATA__ found for @${screenName}, HTML length: ${html.length}`);
+      if (cached) return cached.data;
+      return [];
+    }
+
+    const nextData = JSON.parse(jsonMatch[1]);
+    const entries = nextData?.props?.pageProps?.timeline?.entries;
+    if (!Array.isArray(entries)) {
+      if (cached) return cached.data;
+      return [];
+    }
+
+    const sourceLabel = screenName === 'FirstSquawk' ? 'First Squawk' : screenName === 'AvichayAdraee' ? 'IDF Spokesperson' : `@${screenName}`;
+
+    let count = 0;
+    for (const entry of entries) {
+      if (count >= 20) break;
+      const tweet = entry?.content?.tweet;
+      if (!tweet) continue;
+
+      let text = tweet.full_text || tweet.text || '';
+      if (!text || text.length < 10) continue;
+
+      text = text.replace(/https?:\/\/t\.co\/\S+/g, '').trim();
+      if (text.length < 5) continue;
+
+      if (text.length > 300) {
+        text = text.substring(0, 297) + '...';
+      }
+
+      let category: 'breaking' | 'military' | 'diplomatic' | 'economic' = 'breaking';
+      const lower = text.toLowerCase();
+      if (/market|oil|crude|gold|price|surge|drop|stock|trade|dollar|yen|euro|economy|gdp|rate|inflation/i.test(lower)) {
+        category = 'economic';
+      } else if (/military|strike|missile|bomb|attack|air\s*force|navy|army|defense|weapon|drone|intercept|operation|war|combat|troops|artillery/i.test(lower)) {
+        category = 'military';
+      } else if (/diplomat|ceasefire|negotiat|talk|summit|ambassador|un\b|nato|sanction|treaty|peace|resolution/i.test(lower)) {
+        category = 'diplomatic';
+      }
+
+      let timestamp = '';
+      if (tweet.created_at) {
+        try {
+          timestamp = new Date(tweet.created_at).toISOString();
+        } catch {
+          timestamp = new Date().toISOString();
+        }
+      } else {
+        timestamp = new Date().toISOString();
+      }
+
+      const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
+
+      items.push({
+        id: `x_${screenName}_${tweet.id_str || count}`,
+        title: text,
+        ...(titleAr ? { titleAr } : {}),
+        source: sourceLabel,
+        category,
+        timestamp,
+        url: tweet.permalink ? `https://x.com${tweet.permalink}` : undefined,
+      });
+      count++;
+    }
+
+    xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+    if (items.length > 0) {
+      console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName}`);
+    }
+  } catch (err) {
+    console.log(`[X-FEED] Error scraping @${screenName}:`, err instanceof Error ? err.message : err);
+    if (cached) return cached.data;
+    return [];
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+
+  return items;
+}
+
+async function fetchXFeeds(): Promise<NewsItem[]> {
+  const results: NewsItem[][] = [];
+  for (const account of X_FEED_ACCOUNTS) {
+    const items = await scrapeXAccount(account);
+    results.push(items);
+    if (X_FEED_ACCOUNTS.indexOf(account) < X_FEED_ACCOUNTS.length - 1) {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+  const all = results.flat();
+  all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return all;
+}
+
 function jitter(base: number, range: number): number {
   return base + (Math.random() - 0.5) * range;
 }
@@ -229,7 +388,7 @@ function randomPick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateNews(): NewsItem[] {
+function generateStaticNews(): NewsItem[] {
   const now = Date.now();
   const items: NewsItem[] = [
     {
@@ -354,6 +513,19 @@ function generateNews(): NewsItem[] {
     },
   ];
   return items;
+}
+
+async function generateNews(): Promise<NewsItem[]> {
+  const staticNews = generateStaticNews();
+  try {
+    const xNews = await fetchXFeeds();
+    if (xNews.length > 0) {
+      const merged = [...xNews, ...staticNews];
+      merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return merged;
+    }
+  } catch {}
+  return staticNews;
 }
 
 function generateCommodities(): CommodityData[] {
@@ -1313,8 +1485,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  app.get('/api/news', (_req, res) => {
-    res.json(generateNews());
+  app.get('/api/news', async (_req, res) => {
+    res.json(await generateNews());
   });
 
   app.get('/api/commodities', (_req, res) => {
@@ -1544,7 +1716,7 @@ export async function registerRoutes(
 
     send('commodities', generateCommodities());
     send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
-    send('news', generateNews());
+    generateNews().then(news => send('news', news));
     send('sirens', generateSirens());
     generateRedAlerts().then(alerts => send('red-alerts', alerts));
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
@@ -1561,7 +1733,7 @@ export async function registerRoutes(
     intervals.push(setInterval(() => {
       send('events', { events: generateEvents(), flights: generateFlights(), ships: generateShips() });
     }, 15000));
-    intervals.push(setInterval(() => send('news', generateNews()), 20000));
+    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 20000));
     intervals.push(setInterval(() => send('telegram', generateTelegram()), 25000));
     intervals.push(setInterval(() => send('ai-brief', generateAIBrief()), 60000));
     intervals.push(setInterval(() => send('cyber', generateCyberEvents()), 45000));

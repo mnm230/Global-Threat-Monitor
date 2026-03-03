@@ -7,7 +7,7 @@ import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
 import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json';
 
 interface ViewState {
   longitude: number;

@@ -58,6 +58,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications` and `api.tzevaadom.co.il/alerts-history`, with `oref.org.il` as a tertiary fallback.
 - **Earthquake Data:** USGS
 - **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv`) — real-time VIIRS fire/thermal detection data, filtered to MENA region (lat 12-42, lng 24-63)
+- **X/Twitter News Feeds:** `syndication.twitter.com/srv/timeline-profile/screen-name/{handle}` — scrapes public X/Twitter profiles (@FirstSquawk, @AvichayAdraee) for real-time news headlines. Labeled as "First Squawk" and "IDF Spokesperson" sources. 2-min cache TTL, auto-categorized (breaking/military/diplomatic/economic), merged with static news and sorted by timestamp. Arabic tweets get `titleAr` populated automatically.
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui
