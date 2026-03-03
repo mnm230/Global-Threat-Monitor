@@ -44,6 +44,22 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 13. **Panel Close/Reopen** - 8 closeable panels with reopen tabs in status bar
 14. **ADS-B Flight Tracker** - Dedicated ADS-B panel with 24 tracked aircraft, filter by type (MIL/ISR/CIV/CGO/GOV/PVT), flagged flights highlighted, detailed flight cards showing hex, registration, aircraft type, origin/destination, altitude, ground speed, vertical rate, squawk, RSSI, coordinates. Also rendered as toggleable layer on the 3D map.
 
+## Enhancement Features (T001-T005)
+15. **Fullscreen/Maximize Panels** - PanelMaximizeButton on all major panels (Map, ADS-B, AI Intel, Red Alert). Click to expand to 100% of panel area. Escape key restores.
+16. **Threat Level Banner** - Dynamic header badge (CRITICAL/HIGH/ELEVATED/LOW) computed from aggregate red alerts + sirens count.
+17. **Desktop Notifications** - Browser Notification API integration for new red alerts. Bell toggle in header. Permission request on first enable.
+18. **Alert Threat Type Filtering** - Filter buttons (ALL/ROCKETS/MISSILES/UAV/AIRCRAFT) in RedAlertPanel to filter by threat type.
+19. **Alert History** - History button in RedAlert panel header. Modal overlay with scrollable historical alerts, search, resolved/active status. Backed by `/api/alert-history` endpoint.
+20. **Analyst Notes** - StickyNote overlay toggled from header. localStorage-persisted notes with categories (general/threat/intel/maritime). Add/delete.
+21. **Saved Layout Presets** - Layout dropdown in header. 3 built-in presets (Default/Maritime Focus/Air Defense) + custom save/load/delete. localStorage-persisted.
+22. **Custom Watchlists** - Eye icon in header opens watchlist manager. Add callsigns/ship names/cities. Tracked via localStorage.
+23. **Correlation Engine** - `useCorrelations` hook analyzing events, alerts, sirens, flights for spatial/temporal patterns. Shows CORR count in status bar.
+24. **Historical Timeline** - Thin timeline bar between panels and news ticker showing past 1-hour events as colored dots. Hover tooltip with event name.
+25. **Export/Report** - FileDown button in header generates downloadable .txt intelligence report with threat level, alert summary, top events, military flights, commodity movers.
+26. **Threat Heat Map** - HeatmapLayer from @deck.gl/aggregation-layers showing event/alert intensity. Togglable in operational layer group. Yellow-red color ramp. Combines conflict events (weighted by severity) and red alerts (weighted by threat type).
+27. **Animated Missile Arcs** - ArcLayer with requestAnimationFrame animation showing 8 missile trajectories (Tehran>TelAviv, Sanaa>Eilat, Gaza>Ashkelon, etc.). Color-coded by type (ballistic/cruise/rocket/antiship). Animated warhead dots travel along arcs. Togglable layer.
+28. **Distance/Radius Tool** - Measure button in map toolbar. Click to set center point, move mouse to measure distance. Shows geodesic circle (PathLayer) and line (LineLayer). Readout displays km, nautical miles, and statute miles. Click again to clear.
+
 ## API Endpoints
 - `GET /api/news` - Breaking news items (polled every 20s)
 - `GET /api/commodities` - Commodity and FX prices (polled every 5s)
@@ -54,6 +70,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - `GET /api/ai-brief` - AI intelligence brief with key developments (polled every 60s)
 - `POST /api/ai-deduct` - AI deduction/forecasting (on-demand)
 - `GET /api/adsb` - ADS-B flight tracking data, 24 aircraft (polled every 6s)
+- `GET /api/alert-history` - 50 historical alerts with resolved status (on-demand)
 
 ## Panel System
 - 9 panel IDs: news, telegram, intel, map, events, radar, adsb, alerts, markets
@@ -66,7 +83,7 @@ A Bloomberg Terminal-style real-time intelligence dashboard for monitoring the M
 - Closed panels appear as clickable restore tabs in the status bar
 
 ## Dependencies
-- deck.gl (@deck.gl/core, @deck.gl/layers, @deck.gl/react)
+- deck.gl (@deck.gl/core, @deck.gl/layers, @deck.gl/react, @deck.gl/aggregation-layers)
 - maplibre-gl
 - react-icons (for Telegram logo)
 - All standard shadcn/radix components

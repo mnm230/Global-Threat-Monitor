@@ -911,6 +911,8 @@ function PanelHeader({
   count,
   onClose,
   extra,
+  onMaximize,
+  isMaximized,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -918,6 +920,8 @@ function PanelHeader({
   count?: number;
   onClose?: () => void;
   extra?: React.ReactNode;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
 }) {
   return (
     <div className="px-4 py-2 border-b border-border/40 border-l-2 border-l-primary/60 flex items-center gap-2 bg-card/60 shrink-0">
@@ -936,6 +940,7 @@ function PanelHeader({
           <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
       )}
+      {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
       {onClose && <PanelMinimizeButton onMinimize={onClose} />}
     </div>
   );
@@ -1153,7 +1158,7 @@ const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; label: strin
   government:   { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'GOV' },
 };
 
-function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () => void }) {
+function AdsbPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const [filter, setFilter] = useState<string>('all');
   const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
 
@@ -1201,6 +1206,7 @@ function AdsbPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () 
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
@@ -1489,8 +1495,9 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   );
 }
 
-function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
+function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [threatFilter, setThreatFilter] = useState<string>('all');
 
   const [countryFilter, setCountryFilter] = useState<string>('ALL');
 
@@ -1511,6 +1518,9 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
 
   const filteredAlerts = useMemo(() => {
     let filtered = alerts;
+    if (threatFilter !== 'all') {
+      filtered = filtered.filter(a => a.threatType === threatFilter);
+    }
     if (countryFilter !== 'ALL') {
       filtered = filtered.filter(a => a.country === countryFilter);
     }
@@ -1523,7 +1533,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
       a.region.toLowerCase().includes(q) ||
       a.country.toLowerCase().includes(q)
     );
-  }, [alerts, searchQuery, countryFilter]);
+  }, [alerts, searchQuery, countryFilter, threatFilter]);
 
   const grouped = filteredAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>((acc, alert) => {
     const regionKey = language === 'ar' ? alert.regionAr : alert.region;
@@ -1569,6 +1579,12 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
             <span className="text-[12px] uppercase tracking-[0.2em] text-white/70 font-bold">LIVE</span>
           </div>
         )}
+        {onShowHistory && (
+          <button onClick={onShowHistory} className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/15 transition-colors" title="Alert History" data-testid="button-alert-history">
+            <History className="w-3 h-3" />
+          </button>
+        )}
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
@@ -1583,6 +1599,24 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose }: { alerts: Red
               className="w-full h-7 text-[14px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
               data-testid="input-red-alert-search"
             />
+          </div>
+          <div className="px-1.5 pb-1 flex flex-wrap gap-1">
+            {[
+              { key: 'all', label: 'ALL' },
+              { key: 'rockets', label: 'ROCKETS' },
+              { key: 'missiles', label: 'MISSILES' },
+              { key: 'uav_intrusion', label: 'UAV' },
+              { key: 'hostile_aircraft_intrusion', label: 'AIRCRAFT' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setThreatFilter(key)}
+                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider transition-colors ${
+                  threatFilter === key ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
+                }`}
+                data-testid={`button-threat-filter-${key}`}
+              >{label}</button>
+            ))}
           </div>
           {activeCountries.length > 1 && (
             <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
@@ -1956,7 +1990,7 @@ const DEV_SEVERITY_STYLES: Record<string, string> = {
   medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-950/30',
 };
 
-function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: () => void }) {
+function AIIntelPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const [deductQuery, setDeductQuery] = useState('');
   const [deductResult, setDeductResult] = useState<AIDeduction | null>(null);
 
@@ -1994,6 +2028,7 @@ function AIIntelPanel({ language, onClose }: { language: 'en' | 'ar'; onClose?: 
           <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
           <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
@@ -2111,15 +2146,21 @@ function MapSection({
   flights,
   ships,
   adsbFlights,
+  redAlerts,
   language,
   onClose,
+  onMaximize,
+  isMaximized,
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
   ships: ShipData[];
   adsbFlights: AdsbFlight[];
+  redAlerts: RedAlert[];
   language: 'en' | 'ar';
   onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
 }) {
   const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
 
@@ -2157,6 +2198,7 @@ function MapSection({
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-[12px] uppercase tracking-[0.2em] text-emerald-500/60 font-bold">LIVE</span>
         </div>
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
       <div className="flex-1 relative min-h-0">
@@ -2177,6 +2219,7 @@ function MapSection({
                 flights={flights}
                 ships={ships}
                 adsbFlights={adsbFlights}
+                redAlerts={redAlerts}
                 activeView={activeView}
                 language={language}
               />
@@ -2237,14 +2280,49 @@ export default function Dashboard() {
     intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true,
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [maximizedPanel, setMaximizedPanel] = useState<PanelId | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [showWatchlist, setShowWatchlist] = useState(false);
+  const [showAlertHistory, setShowAlertHistory] = useState(false);
+  const [showLayoutPresets, setShowLayoutPresets] = useState(false);
+  const [savedPresets, setSavedPresets] = useState<LayoutPreset[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('warroom_layouts') || '[]');
+      return [...BUILT_IN_PRESETS, ...saved];
+    } catch { return [...BUILT_IN_PRESETS]; }
+  });
 
   const closePanel = useCallback((id: PanelId) => {
     setVisiblePanels(prev => ({ ...prev, [id]: false }));
-  }, []);
+    if (maximizedPanel === id) setMaximizedPanel(null);
+  }, [maximizedPanel]);
 
   const openPanel = useCallback((id: PanelId) => {
     setVisiblePanels(prev => ({ ...prev, [id]: true }));
   }, []);
+
+  const toggleMaximize = useCallback((id: PanelId) => {
+    setMaximizedPanel(prev => prev === id ? null : id);
+  }, []);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && maximizedPanel) setMaximizedPanel(null);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [maximizedPanel]);
+
+  const toggleNotifications = useCallback(() => {
+    if (!notificationsEnabled && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') setNotificationsEnabled(true);
+      });
+    } else {
+      setNotificationsEnabled(prev => !prev);
+    }
+  }, [notificationsEnabled]);
 
   const closedPanels = useMemo(() =>
     (Object.keys(visiblePanels) as PanelId[]).filter(k => !visiblePanels[k]),
@@ -2296,6 +2374,14 @@ export default function Dashboard() {
 
   useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
   useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
+  useDesktopNotifications(redAlerts, sirens, notificationsEnabled);
+
+  const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length), [redAlerts.length, sirens.length]);
+  const correlations = useCorrelations(events, redAlerts, sirens, flights);
+
+  const watchlist = useMemo<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
+  }, [showWatchlist]);
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts'];
   const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets'];
@@ -2311,6 +2397,38 @@ export default function Dashboard() {
   };
   const [colWidths, setColWidths] = useState(defaultWidths);
   const [rowSplit, setRowSplit] = useState(58);
+
+  const savePreset = useCallback((name: string) => {
+    const preset: LayoutPreset = { name, visiblePanels: { ...visiblePanels }, colWidths: { ...colWidths }, rowSplit };
+    const customPresets = savedPresets.filter(p => !BUILT_IN_PRESETS.find(b => b.name === p.name) && p.name !== name);
+    customPresets.push(preset);
+    localStorage.setItem('warroom_layouts', JSON.stringify(customPresets));
+    setSavedPresets([...BUILT_IN_PRESETS, ...customPresets]);
+  }, [visiblePanels, colWidths, rowSplit, savedPresets]);
+
+  const loadPreset = useCallback((preset: LayoutPreset) => {
+    setVisiblePanels(preset.visiblePanels);
+    setColWidths(preset.colWidths);
+    setRowSplit(preset.rowSplit);
+    setMaximizedPanel(null);
+  }, []);
+
+  const deletePreset = useCallback((name: string) => {
+    const customPresets = savedPresets.filter(p => !BUILT_IN_PRESETS.find(b => b.name === p.name) && p.name !== name);
+    localStorage.setItem('warroom_layouts', JSON.stringify(customPresets));
+    setSavedPresets([...BUILT_IN_PRESETS, ...customPresets]);
+  }, [savedPresets]);
+
+  const handleExport = useCallback(() => {
+    const report = generateExportReport(events, flights, ships, redAlerts, sirens, commodities, threatLevel, language);
+    const blob = new Blob([report], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `warroom-report-${new Date().toISOString().slice(0, 16).replace(':', '')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [events, flights, ships, redAlerts, sirens, commodities, threatLevel, language]);
 
   const computeWidths = useCallback((panels: PanelId[]) => {
     const raw = panels.map(id => colWidths[id]);
@@ -2351,11 +2469,13 @@ export default function Dashboard() {
 
   const renderPanel = (id: PanelId) => {
     const close = () => closePanel(id);
+    const maximize = () => toggleMaximize(id);
+    const isMax = maximizedPanel === id;
     switch (id) {
       case 'intel':
-        return <AIIntelPanel language={language} onClose={close} />;
+        return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       case 'map':
-        return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} language={language} onClose={close} />;
+        return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       case 'events':
         return (
           <ScrollArea className="h-full">
@@ -2378,9 +2498,9 @@ export default function Dashboard() {
           </>
         );
       case 'adsb':
-        return <AdsbPanel language={language} onClose={close} />;
+        return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       case 'alerts':
-        return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} />;
+        return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
       case 'telegram':
         return <TelegramPanel messages={telegramMessages} language={language} onClose={close} />;
       case 'markets':
@@ -2412,27 +2532,40 @@ export default function Dashboard() {
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
             <span className="text-[11px] text-red-400/90 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
           </div>
+          <div className="w-px h-5 bg-border/30 hidden sm:block" />
+          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${threatLevel.bg}`} data-testid="threat-level-badge">
+            <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
+            <span className={`text-[11px] font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <LiveClock />
           <div className="w-px h-4 bg-border/30" />
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className={`text-[12px] px-2 h-7 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`}
-              onClick={() => setSoundEnabled(p => !p)}
-              data-testid="button-sound-toggle"
-            >
+          <div className="flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" className={`text-[12px] px-1.5 h-7 font-mono rounded ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`} onClick={toggleNotifications} data-testid="button-notifications-toggle" title="Desktop Notifications">
+              {notificationsEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+            </Button>
+            <Button size="sm" variant="ghost" className={`text-[12px] px-1.5 h-7 font-mono rounded ${soundEnabled ? 'text-primary' : 'text-muted-foreground/50'} hover:text-foreground`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle">
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-[12px] px-2 h-7 font-mono text-muted-foreground/60 hover:text-foreground rounded"
-              onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-              data-testid="button-language-toggle"
-            >
+            <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-amber-400 rounded" onClick={() => setShowNotes(true)} data-testid="button-notes" title="Analyst Notes">
+              <StickyNote className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-amber-400 rounded" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" title="Watchlist">
+              <Eye className="w-3.5 h-3.5" />
+            </Button>
+            <div className="relative">
+              <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-primary rounded" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" title="Layout Presets">
+                <Layout className="w-3.5 h-3.5" />
+              </Button>
+              {showLayoutPresets && (
+                <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
+              )}
+            </div>
+            <Button size="sm" variant="ghost" className="text-[12px] px-1.5 h-7 font-mono text-muted-foreground/50 hover:text-emerald-400 rounded" onClick={handleExport} data-testid="button-export" title="Export Report">
+              <FileDown className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" variant="ghost" className="text-[12px] px-2 h-7 font-mono text-muted-foreground/60 hover:text-foreground rounded" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle">
               <Languages className="w-3.5 h-3.5 mr-1" />
               {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
             </Button>
@@ -2452,7 +2585,11 @@ export default function Dashboard() {
       <SirenBanner sirens={sirens} language={language} />
 
       <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden border-t border-border/20" data-testid="resizable-panels">
-        {panelCount === 0 ? (
+        {maximizedPanel && visiblePanels[maximizedPanel] ? (
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {renderPanel(maximizedPanel)}
+          </div>
+        ) : panelCount === 0 ? (
           <div className="flex-1 flex items-center justify-center bg-background">
             <div className="text-center">
               <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
@@ -2498,6 +2635,8 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      <EventTimeline events={events} language={language} />
 
       <NewsTicker news={news} language={language} />
 
@@ -2557,10 +2696,23 @@ export default function Dashboard() {
             </div>
           </>
         )}
+        {correlations.length > 0 && (
+          <>
+            <div className="w-px h-4 bg-border/30" />
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-950/20 border border-purple-500/15">
+              <Link2 className="w-3 h-3 text-purple-400/60" />
+              <span className="text-[11px] text-purple-400/70 font-mono font-bold">{correlations.length} CORR</span>
+            </div>
+          </>
+        )}
         <span className="text-[12px] text-muted-foreground/35 font-mono ml-auto hidden sm:inline tracking-wider">
           WARROOM v1.0
         </span>
       </div>
+
+      {showNotes && <NotesOverlay language={language} onClose={() => setShowNotes(false)} />}
+      {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} />}
+      {showAlertHistory && <AlertHistoryOverlay language={language} onClose={() => setShowAlertHistory(false)} />}
     </div>
   );
 }

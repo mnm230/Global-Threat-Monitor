@@ -2,8 +2,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { Deck } from '@deck.gl/core';
-import { ScatterplotLayer, PathLayer, LineLayer } from '@deck.gl/layers';
-import type { ConflictEvent, FlightData, ShipData, AdsbFlight } from '@shared/schema';
+import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer } from '@deck.gl/layers';
+import { HeatmapLayer } from '@deck.gl/aggregation-layers';
+import { PathStyleExtension } from '@deck.gl/extensions';
+import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -441,6 +443,8 @@ type LayerKey =
   | 'ships'
   | 'adsbFlights'
   | 'missileLines'
+  | 'animatedArcs'
+  | 'heatmap'
   | 'hormuzStrait'
   | 'militaryBases'
   | 'nuclearFacilities'
@@ -474,6 +478,25 @@ type LayerKey =
   | 'shippingLanes'
   | 'noFlyZones';
 
+const MISSILE_TRAJECTORIES = [
+  { id: 'traj-1', source: [51.4, 35.7], target: [34.8, 32.1], label: 'Tehran > Tel Aviv', type: 'ballistic' },
+  { id: 'traj-2', source: [48.4, 33.5], target: [34.6, 31.5], label: 'W.Iraq > Beersheva', type: 'cruise' },
+  { id: 'traj-3', source: [44.2, 15.4], target: [34.9, 29.6], label: 'Sanaa > Eilat', type: 'ballistic' },
+  { id: 'traj-4', source: [35.5, 33.9], target: [35.0, 32.8], label: 'S.Lebanon > Haifa', type: 'rocket' },
+  { id: 'traj-5', source: [34.5, 31.5], target: [34.8, 31.7], label: 'Gaza > Ashkelon', type: 'rocket' },
+  { id: 'traj-6', source: [47.1, 34.0], target: [44.4, 33.3], label: 'W.Iran > Baghdad', type: 'cruise' },
+  { id: 'traj-7', source: [56.3, 27.2], target: [54.4, 24.5], label: 'Hormuz > Abu Dhabi', type: 'cruise' },
+  { id: 'traj-8', source: [42.5, 14.8], target: [43.3, 12.6], label: 'Houthi > Bab el-Mandeb', type: 'antiship' },
+];
+
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 interface LayerConfig {
   key: LayerKey;
   label: string;
@@ -498,6 +521,8 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'ships', label: 'Ship Tracks', color: '#3b82f6', defaultOn: true, group: 'operational' },
   { key: 'adsbFlights', label: 'ADS-B Flights', color: '#06b6d4', defaultOn: false, group: 'operational' },
   { key: 'missileLines', label: 'Missile Trajectories', color: '#ef4444', defaultOn: true, group: 'operational' },
+  { key: 'animatedArcs', label: 'Animated Missile Arcs', color: '#f43f5e', defaultOn: false, group: 'operational' },
+  { key: 'heatmap', label: 'Threat Heat Map', color: '#fbbf24', defaultOn: false, group: 'operational' },
   { key: 'hormuzStrait', label: 'Strait of Hormuz', color: '#f97316', defaultOn: true, group: 'operational' },
 
   { key: 'militaryBases', label: 'Military Bases', color: '#3b82f6', defaultOn: false, group: 'military' },
@@ -545,16 +570,22 @@ interface TooltipInfo {
   detail?: string;
 }
 
+interface MeasurePoint {
+  lng: number;
+  lat: number;
+}
+
 interface ConflictMapProps {
   events: ConflictEvent[];
   flights: FlightData[];
   ships: ShipData[];
   adsbFlights?: AdsbFlight[];
+  redAlerts?: RedAlert[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
 }
 
-export default function ConflictMap({ events, flights, ships, adsbFlights = [], activeView, language = 'en' }: ConflictMapProps) {
+export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], activeView, language = 'en' }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
@@ -575,11 +606,65 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     LAYER_GROUPS.forEach(lg => { g[lg.id] = lg.id === 'operational'; });
     return g;
   });
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measureCenter, setMeasureCenter] = useState<MeasurePoint | null>(null);
+  const [measureCursor, setMeasureCursor] = useState<MeasurePoint | null>(null);
+  const [arcTime, setArcTime] = useState(0);
+  const arcAnimRef = useRef<number>(0);
 
   useEffect(() => {
     const vs = VIEW_CONFIG[activeView];
     setViewState(vs);
   }, [activeView]);
+
+  useEffect(() => {
+    if (!layerVisibility.animatedArcs) return;
+    let running = true;
+    const animate = () => {
+      if (!running) return;
+      setArcTime(t => (t + 0.005) % 1);
+      arcAnimRef.current = requestAnimationFrame(animate);
+    };
+    arcAnimRef.current = requestAnimationFrame(animate);
+    return () => {
+      running = false;
+      cancelAnimationFrame(arcAnimRef.current);
+    };
+  }, [layerVisibility.animatedArcs]);
+
+  const measureDistance = useMemo(() => {
+    if (!measureCenter || !measureCursor) return null;
+    return haversineDistance(measureCenter.lat, measureCenter.lng, measureCursor.lat, measureCursor.lng);
+  }, [measureCenter, measureCursor]);
+
+  const toggleMeasureMode = useCallback(() => {
+    setMeasureMode(prev => {
+      if (prev) {
+        setMeasureCenter(null);
+        setMeasureCursor(null);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const handleMapClick = useCallback((info: { coordinate?: number[] }) => {
+    if (!measureMode || !info.coordinate) return;
+    const [lng, lat] = info.coordinate;
+    if (!measureCenter) {
+      setMeasureCenter({ lng, lat });
+      setMeasureCursor({ lng, lat });
+    } else {
+      setMeasureCenter(null);
+      setMeasureCursor(null);
+    }
+  }, [measureMode, measureCenter]);
+
+  const handleMapHover = useCallback((info: { coordinate?: number[] }) => {
+    if (measureMode && measureCenter && info.coordinate) {
+      const [lng, lat] = info.coordinate;
+      setMeasureCursor({ lng, lat });
+    }
+  }, [measureMode, measureCenter]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -715,6 +800,9 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       } else if (layerId === 'tunnel-networks-layer') {
         text = obj.name as string;
         detail = `${obj.type} | ${obj.country}`;
+      } else if (layerId === 'animated-arcs-layer') {
+        text = obj.label as string;
+        detail = `${obj.type} trajectory`;
       }
 
       if (text) {
@@ -725,7 +813,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     } else {
       setTooltip(null);
     }
-  }, [language]);
+    handleMapHover(info as { coordinate?: number[] });
+  }, [language, handleMapHover]);
 
   const onViewStateChange = useCallback(({ viewState: vs }: { viewState: ViewState }) => {
     setViewState(vs);
@@ -768,8 +857,21 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     return Object.values(layerVisibility).filter(Boolean).length;
   }, [layerVisibility]);
 
+  const heatmapData = useMemo(() => {
+    const points: { position: [number, number]; weight: number }[] = [];
+    for (const e of events) {
+      const w = e.severity === 'critical' ? 10 : e.severity === 'high' ? 7 : e.severity === 'medium' ? 4 : 2;
+      points.push({ position: [e.lng, e.lat], weight: w });
+    }
+    for (const a of redAlerts) {
+      const w = a.threatType === 'missiles' ? 8 : a.threatType === 'rockets' ? 6 : 4;
+      points.push({ position: [a.lng, a.lat], weight: w });
+    }
+    return points;
+  }, [events, redAlerts]);
+
   const layers = useMemo(() => {
-    const result: (ScatterplotLayer | PathLayer | LineLayer)[] = [];
+    const result: any[] = [];
 
     if (layerVisibility.events) {
       result.push(
@@ -860,7 +962,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           widthMinPixels: 2,
           getDashArray: [12, 6],
           dashJustified: true,
-          extensions: [],
+          extensions: [new PathStyleExtension({ dash: true })],
         })
       );
     }
@@ -1402,7 +1504,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             widthMinPixels: 2,
             getDashArray: [8, 4],
             dashJustified: true,
-            extensions: [],
+            extensions: [new PathStyleExtension({ dash: true })],
           })
         );
       }
@@ -1435,14 +1537,148 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             widthMinPixels: 1,
             getDashArray: [6, 4],
             dashJustified: true,
-            extensions: [],
+            extensions: [new PathStyleExtension({ dash: true })],
+          })
+        );
+      }
+    }
+
+    if (layerVisibility.heatmap && heatmapData.length > 0) {
+      result.push(
+        new HeatmapLayer({
+          id: 'heatmap-layer',
+          data: heatmapData,
+          getPosition: (d: { position: [number, number] }) => d.position,
+          getWeight: (d: { weight: number }) => d.weight,
+          radiusPixels: 60,
+          intensity: 1.5,
+          threshold: 0.05,
+          colorRange: [
+            [255, 255, 178],
+            [254, 204, 92],
+            [253, 141, 60],
+            [240, 59, 32],
+            [189, 0, 38],
+            [128, 0, 38],
+          ],
+          aggregation: 'SUM',
+        })
+      );
+    }
+
+    if (layerVisibility.animatedArcs) {
+      const ARC_COLORS: Record<string, [number, number, number]> = {
+        ballistic: [239, 68, 68],
+        cruise: [249, 115, 22],
+        rocket: [234, 179, 8],
+        antiship: [59, 130, 246],
+      };
+      result.push(
+        new ArcLayer({
+          id: 'animated-arcs-layer',
+          data: MISSILE_TRAJECTORIES,
+          getSourcePosition: (d: (typeof MISSILE_TRAJECTORIES)[0]) => d.source as [number, number],
+          getTargetPosition: (d: (typeof MISSILE_TRAJECTORIES)[0]) => d.target as [number, number],
+          getSourceColor: (d: (typeof MISSILE_TRAJECTORIES)[0]) => [...(ARC_COLORS[d.type] || [239, 68, 68]), 200] as [number, number, number, number],
+          getTargetColor: (d: (typeof MISSILE_TRAJECTORIES)[0]) => [...(ARC_COLORS[d.type] || [239, 68, 68]), 60] as [number, number, number, number],
+          getWidth: 3,
+          getHeight: 0.4,
+          tilt: Math.sin(arcTime * Math.PI * 2) * 15,
+          greatCircle: true,
+          widthMinPixels: 2,
+          pickable: true,
+        })
+      );
+      const headPositions = MISSILE_TRAJECTORIES.map(t => {
+        const srcLng = t.source[0];
+        const srcLat = t.source[1];
+        const tgtLng = t.target[0];
+        const tgtLat = t.target[1];
+        const progress = arcTime;
+        return {
+          position: [
+            srcLng + (tgtLng - srcLng) * progress,
+            srcLat + (tgtLat - srcLat) * progress,
+          ] as [number, number],
+          type: t.type,
+        };
+      });
+      result.push(
+        new ScatterplotLayer({
+          id: 'arc-heads-layer',
+          data: headPositions,
+          getPosition: (d: { position: [number, number] }) => d.position,
+          getRadius: 6000,
+          getFillColor: [255, 255, 255, 220],
+          getLineColor: [239, 68, 68, 255],
+          stroked: true,
+          lineWidthMinPixels: 2,
+          radiusMinPixels: 4,
+          radiusMaxPixels: 8,
+        })
+      );
+    }
+
+    if (measureMode && measureCenter) {
+      result.push(
+        new ScatterplotLayer({
+          id: 'measure-center-layer',
+          data: [{ position: [measureCenter.lng, measureCenter.lat] }],
+          getPosition: (d: { position: [number, number] }) => d.position,
+          getRadius: 3000,
+          getFillColor: [255, 255, 0, 200],
+          getLineColor: [255, 255, 0, 255],
+          stroked: true,
+          lineWidthMinPixels: 2,
+          radiusMinPixels: 6,
+          radiusMaxPixels: 10,
+        })
+      );
+      if (measureCursor && measureDistance && measureDistance > 0) {
+        const segments = 64;
+        const R = 6371;
+        const angularDist = measureDistance / R;
+        const cLat = measureCenter.lat * Math.PI / 180;
+        const cLng = measureCenter.lng * Math.PI / 180;
+        const circlePoints: [number, number][] = [];
+        for (let i = 0; i <= segments; i++) {
+          const bearing = (2 * Math.PI * i) / segments;
+          const lat = Math.asin(Math.sin(cLat) * Math.cos(angularDist) + Math.cos(cLat) * Math.sin(angularDist) * Math.cos(bearing));
+          const lng = cLng + Math.atan2(Math.sin(bearing) * Math.sin(angularDist) * Math.cos(cLat), Math.cos(angularDist) - Math.sin(cLat) * Math.sin(lat));
+          circlePoints.push([lng * 180 / Math.PI, lat * 180 / Math.PI]);
+        }
+        result.push(
+          new PathLayer({
+            id: 'measure-radius-layer',
+            data: [{ path: circlePoints }],
+            getPath: (d: { path: [number, number][] }) => d.path,
+            getColor: [255, 255, 0, 150],
+            getWidth: 2,
+            widthMinPixels: 1,
+            getDashArray: [8, 4],
+            dashJustified: true,
+            extensions: [new PathStyleExtension({ dash: true })],
+          })
+        );
+        result.push(
+          new LineLayer({
+            id: 'measure-line-layer',
+            data: [{
+              source: [measureCenter.lng, measureCenter.lat] as [number, number],
+              target: [measureCursor.lng, measureCursor.lat] as [number, number],
+            }],
+            getSourcePosition: (d: { source: [number, number] }) => d.source,
+            getTargetPosition: (d: { target: [number, number] }) => d.target,
+            getColor: [255, 255, 0, 180],
+            getWidth: 2,
+            widthMinPixels: 1,
           })
         );
       }
     }
 
     return result;
-  }, [events, flights, ships, adsbFlights, layerVisibility]);
+  }, [events, flights, ships, adsbFlights, layerVisibility, heatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -1464,6 +1700,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       controller: true,
       layers: [],
       onHover: handleHover as any,
+      onClick: handleMapClick as any,
       onViewStateChange: onViewStateChange as any,
       getTooltip: () => null,
     });
@@ -1535,6 +1772,33 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             </button>
           ))}
         </div>
+        <button
+          data-testid="button-measure-tool"
+          onClick={toggleMeasureMode}
+          style={{
+            padding: '6px 12px',
+            fontSize: 11,
+            fontWeight: 600,
+            borderRadius: 6,
+            border: `1px solid ${measureMode ? 'rgba(255,255,0,0.5)' : 'rgba(255,255,255,0.15)'}`,
+            background: measureMode ? 'rgba(255,255,0,0.2)' : 'rgba(0,0,0,0.7)',
+            color: measureMode ? '#ffff00' : '#ccc',
+            cursor: 'pointer',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z" />
+            <path d="m14.5 12.5 2-2" />
+            <path d="m11.5 9.5 2-2" />
+            <path d="m8.5 6.5 2-2" />
+            <path d="m17.5 15.5 2-2" />
+          </svg>
+          {measureMode ? (language === 'ar' ? 'قياس: فعال' : 'Measure: ON') : (language === 'ar' ? 'قياس' : 'Measure')}
+        </button>
       </div>
 
       <div
@@ -1698,6 +1962,45 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           <div style={{ color: '#eee', fontSize: 12, fontWeight: 600 }}>{tooltip.text}</div>
           {tooltip.detail && (
             <div style={{ color: '#999', fontSize: 11, marginTop: 2 }}>{tooltip.detail}</div>
+          )}
+        </div>
+      )}
+
+      {measureMode && (
+        <div
+          data-testid="measure-readout"
+          style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 12,
+            zIndex: 20,
+            background: 'rgba(0,0,0,0.9)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,0,0.3)',
+            borderRadius: 8,
+            padding: '8px 14px',
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ color: '#ffff00', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+            {language === 'ar' ? 'اداة القياس' : 'Distance Tool'}
+          </div>
+          {measureCenter && measureDistance !== null ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ color: '#ddd', fontSize: 13, fontWeight: 600, fontFamily: 'monospace' }}>
+                {measureDistance < 1 ? `${(measureDistance * 1000).toFixed(0)} m` : `${measureDistance.toFixed(1)} km`}
+              </div>
+              <div style={{ color: '#888', fontSize: 10 }}>
+                {(measureDistance * 0.539957).toFixed(1)} nm | {(measureDistance * 0.621371).toFixed(1)} mi
+              </div>
+              <div style={{ color: '#666', fontSize: 9, marginTop: 2 }}>
+                {language === 'ar' ? 'انقر لمسح' : 'Click to clear'}
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: '#888', fontSize: 11 }}>
+              {language === 'ar' ? 'انقر على الخريطة لتعيين نقطة المركز' : 'Click map to set center point'}
+            </div>
           )}
         </div>
       )}
