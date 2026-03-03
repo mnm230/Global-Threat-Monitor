@@ -1067,14 +1067,14 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-6 border-t border-white/[0.03] bg-card/15 relative flex items-center px-4 shrink-0" data-testid="event-timeline">
-      <span className="text-[8px] text-foreground/20 font-mono uppercase tracking-[0.2em] mr-3 shrink-0">
+    <div className="h-5 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(225 30% 3%)'}}>
+      <span className="text-[7px] text-foreground/15 font-mono uppercase tracking-[0.25em] mr-3 shrink-0 font-bold">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
-      <div className="flex-1 relative h-3 bg-white/[0.02] rounded-sm border border-white/[0.04]">
-        <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/40" />
-        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-primary/40 font-mono">NOW</span>
-        <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[8px] text-muted-foreground/30 font-mono">-1h</span>
+      <div className="flex-1 relative h-2.5 bg-white/[0.015] rounded-sm border border-white/[0.03]">
+        <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/30" />
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[7px] text-primary/30 font-mono font-bold">NOW</span>
+        <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[7px] text-muted-foreground/20 font-mono">-1h</span>
         {timelineEvents.map(e => (
           <div
             key={e.id}
@@ -1231,11 +1231,11 @@ function LiveClock() {
   });
 
   return (
-    <div className="flex items-center gap-2.5" data-testid="text-clock">
-      <span className="text-[9px] text-foreground/25 font-mono hidden md:inline tracking-wide">{dateStr}</span>
-      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background/80 border border-border/50">
-        <span className="text-[11px] text-primary/90 font-mono font-bold tabular-nums tracking-[0.12em]">{formatted}</span>
-        <span className="text-[8px] text-primary/40 font-mono font-bold tracking-widest">UTC</span>
+    <div className="flex items-center gap-2" data-testid="text-clock">
+      <span className="text-[8px] text-foreground/20 font-mono hidden md:inline tracking-wider font-medium">{dateStr}</span>
+      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(225 28% 6%)', border:'1px solid hsl(225 18% 10%)'}}>
+        <span className="text-[11px] text-primary/80 font-mono font-bold tabular-nums tracking-[0.1em]">{formatted}</span>
+        <span className="text-[7px] text-primary/30 font-mono font-bold tracking-[0.2em]">UTC</span>
       </div>
     </div>
   );
@@ -1248,26 +1248,25 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-border/30 bg-card/40" />;
+  if (!commodities.length) return <div className="h-6 border-b border-white/[0.03]" style={{background:'hsl(225 30% 3.5%)'}} />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-border/30 overflow-hidden relative bg-card/60 shrink-0" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-card via-card/90 to-transparent z-10 flex items-center gap-1.5 pl-3">
-        <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
-        <span className="text-[8px] font-black tracking-[0.3em] text-primary/45 font-mono">MKT</span>
+    <div className="h-6 border-b border-white/[0.03] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 0%, hsl(225 30% 3.5%) 50%, hsl(225 28% 4%) 100%)'}}>
+      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 70%, transparent)'}}>
+        <span className="text-[7px] font-black tracking-[0.35em] text-primary/35 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-card via-card/90 to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-20">
+      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 28% 4%) 30%, transparent)'}} />
+      <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((c, i) => (
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
-            <span className="text-foreground/50 font-bold">{c.symbol}</span>
-            <span className="text-foreground/70 tabular-nums font-medium">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-0.5 tabular-nums font-bold ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <span className="text-foreground/40 font-semibold">{c.symbol}</span>
+            <span className="text-foreground/65 tabular-nums font-medium">{formatPrice(c)}</span>
+            <span className={`inline-flex items-center gap-0.5 tabular-nums font-bold ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
               {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
-            <span className="text-border/40 mx-1">{'\u2502'}</span>
+            <span className="text-white/[0.06] mx-0.5">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -1290,20 +1289,20 @@ function SirenBanner({ sirens, language }: { sirens: SirenAlert[]; language: 'en
   const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="border-b border-red-900/30 shrink-0" data-testid="siren-banner">
+    <div className="border-b border-red-900/20 shrink-0" data-testid="siren-banner" style={{background:'linear-gradient(90deg, hsl(0 40% 8% / 0.6), hsl(0 30% 5% / 0.3), hsl(0 40% 8% / 0.6))'}}>
       <div
         className="animate-siren-bg flex items-center gap-2 px-4 cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
         data-testid="button-siren-toggle"
       >
-        <div className="flex items-center gap-2 py-1.5 shrink-0">
-          <div className="w-4 h-4 rounded bg-red-600/25 flex items-center justify-center animate-siren-flash border border-red-500/60">
-            <Siren className="w-3 h-3 text-red-400/90" />
+        <div className="flex items-center gap-2 py-1 shrink-0">
+          <div className="w-4 h-4 rounded-sm flex items-center justify-center animate-siren-flash" style={{background:'hsl(0 80% 50% / 0.15)', border:'1px solid hsl(0 80% 50% / 0.4)'}}>
+            <Siren className="w-2.5 h-2.5 text-red-400/90" />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400/70 font-mono whitespace-nowrap">
+          <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-red-400/60 font-mono whitespace-nowrap">
             {language === 'en' ? 'ACTIVE SIRENS' : '\u0635\u0641\u0627\u0631\u0627\u062A \u0646\u0634\u0637\u0629'}
           </span>
-          <Badge variant="destructive" className="text-[9px] px-1 py-0 h-[14px] font-mono font-bold animate-pulse-dot">
+          <Badge variant="destructive" className="text-[8px] px-1.5 py-0 h-[14px] font-mono font-bold animate-pulse-dot">
             {sirens.length}
           </Badge>
         </div>
@@ -1397,23 +1396,22 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-7 px-3 border-b border-border/50 flex items-center gap-2 bg-card/90 shrink-0 relative cursor-grab active:cursor-grabbing" style={{boxShadow:'inset 0 -1px 0 hsl(220 30% 8% / 0.5)'}}>
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-      <div className="w-5 h-5 rounded bg-primary/[0.1] border border-primary/[0.15] flex items-center justify-center shrink-0">
-        <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/90">{icon}</span>
-      </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/75 font-mono">{title}</span>
+    <div className="panel-drag-handle h-8 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(225 25% 6%) 0%, hsl(225 28% 4.5%) 100%)'}}>
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/70 shrink-0 ml-1">{icon}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/60 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-primary/70 bg-primary/[0.06] rounded border border-primary/[0.12] tabular-nums leading-none font-bold">
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.03] rounded-sm tabular-nums leading-none font-semibold border border-white/[0.04]">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
-          <span className="text-[8px] uppercase tracking-[0.15em] text-emerald-400/80 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'hsl(152 72% 38% / 0.06)', border:'1px solid hsl(152 72% 38% / 0.12)'}}>
+          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(52 211 153 / 0.5)'}} />
+          <span className="text-[7px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -3434,27 +3432,27 @@ function MapSection({
 function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar' }) {
   if (!news.length) return null;
   const CATEGORY_COLORS: Record<string, string> = {
-    breaking: 'text-red-400',
-    military: 'text-amber-400',
-    diplomatic: 'text-sky-400',
-    economic: 'text-emerald-400',
+    breaking: 'text-red-400/80',
+    military: 'text-amber-400/70',
+    diplomatic: 'text-sky-400/70',
+    economic: 'text-emerald-400/70',
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-6 border-t border-border/30 bg-card/40 overflow-hidden relative shrink-0" data-testid="news-ticker">
-      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card via-card/90 to-transparent z-10 flex items-center pl-3">
-        <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">NEWS</span>
+    <div className="h-5 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(225 30% 3%)'}}>
+      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(225 30% 3%) 60%, transparent)'}}>
+        <span className="text-[7px] font-black tracking-[0.35em] text-primary/30 font-mono">NEWS</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-card via-card/90 to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-16">
+      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(225 30% 3%) 30%, transparent)'}} />
+      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
-            <span className={`font-black uppercase tracking-wider text-[9px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
+            <span className={`font-bold uppercase tracking-wider text-[8px] ${CATEGORY_COLORS[item.category] || 'text-primary/60'}`}>
               {item.category}
             </span>
-            <span className="text-foreground/80">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
-            <span className="text-muted-foreground/40 text-[10px]">{item.source}</span>
-            <span className="text-border/30 mx-2">{'\u2502'}</span>
+            <span className="text-foreground/60">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
+            <span className="text-muted-foreground/25 text-[9px]">{item.source}</span>
+            <span className="text-white/[0.05] mx-1">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -3531,12 +3529,13 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
-      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-neutral-500/[0.06] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-neutral-400/60 via-neutral-400/30 to-transparent" />
-        <SiX className="w-3 h-3 text-foreground/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">{t('X / Twitter', '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631')}</span>
-        <span className="text-[9px] font-mono text-foreground/25">{filtered.length}</span>
-        {posts.length > 0 && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded ml-1">LIVE</span>}
+      <div className="panel-drag-handle h-8 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(225 25% 6%) 0%, hsl(225 28% 4.5%) 100%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
+        <SiX className="w-3 h-3 text-primary/70 shrink-0 ml-1" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/60 font-mono">{t('X / Twitter', '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631')}</span>
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.03] rounded-sm tabular-nums leading-none font-semibold border border-white/[0.04]">{filtered.length}</span>
+        {posts.length > 0 && <span className="text-[7px] font-mono font-bold text-emerald-400/70 px-1.5 py-0.5 rounded-sm ml-0.5" style={{background:'hsl(152 72% 38% / 0.06)', border:'1px solid hsl(152 72% 38% / 0.12)'}}>LIVE</span>}
         <div className="flex-1" />
         {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-xfeed">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -4199,29 +4198,30 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col bg-background text-foreground min-h-screen" data-testid="dashboard">
-      <header className="h-9 border-b border-border/60 flex items-center justify-between px-3 md:px-5 bg-card shrink-0 relative z-50" style={{boxShadow:'0 2px 16px hsl(0 0% 0% / 0.5), 0 0 1px hsl(38 95% 54% / 0.08)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/5 via-primary/60 to-primary/5" />
-        <div className="flex items-center gap-2.5 md:gap-3.5">
+      <header className="h-10 border-b border-border/40 flex items-center justify-between px-3 md:px-5 shrink-0 relative z-50" style={{background:'linear-gradient(180deg, hsl(225 28% 5.5%) 0%, hsl(225 30% 3.5%) 100%)', boxShadow:'0 1px 0 hsl(225 20% 10% / 0.3), 0 4px 20px hsl(0 0% 0% / 0.4)'}}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
+        <div className="flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center border border-primary/25" style={{boxShadow:'0 0 16px hsl(38 95% 54% / 0.15)'}}>
-              <Crosshair className="w-4 h-4 text-primary" />
+            <div className="w-7 h-7 rounded bg-gradient-to-br from-primary/30 via-primary/15 to-transparent flex items-center justify-center border border-primary/20" style={{boxShadow:'0 0 12px hsl(36 100% 50% / 0.1), inset 0 1px 0 hsl(36 100% 50% / 0.1)'}}>
+              <Crosshair className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="flex flex-col leading-none gap-0.5">
-              <span className="font-black text-sm tracking-[0.25em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(38 95% 54% / 0.5)'}}>WARROOM</span>
-              <span className="text-[7px] text-foreground/25 tracking-[0.2em] font-mono hidden sm:block uppercase">
-                {language === 'en' ? 'Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
+              <span className="font-black text-[13px] tracking-[0.3em] text-primary font-mono" style={{textShadow:'0 0 30px hsl(36 100% 50% / 0.4), 0 1px 2px hsl(0 0% 0% / 0.5)'}}>WARROOM</span>
+              <span className="text-[7px] text-foreground/20 tracking-[0.25em] font-mono hidden sm:block uppercase font-medium">
+                {language === 'en' ? 'INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
           </div>
-          <div className="w-px h-6 bg-border/40 hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-500/[0.06] border border-red-500/20 hidden sm:flex">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.6)'}} />
-            <span className="text-[9px] text-red-400 font-black tracking-[0.2em] uppercase font-mono">LIVE</span>
+          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.15)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
+            <span className="text-[8px] text-red-400/90 font-black tracking-[0.25em] uppercase font-mono">LIVE</span>
           </div>
-          <div className="w-px h-6 bg-border/40 hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 15px rgb(239 68 68 / 0.25)' : threatLevel.level === 'HIGH' ? '0 0 12px rgb(249 115 22 / 0.15)' : 'none'}}>
-            <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
-            <span className={`text-[10px] font-black tracking-[0.2em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
+            <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
+            <span className={`text-[9px] font-black tracking-[0.2em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -4303,10 +4303,10 @@ export default function Dashboard() {
               </Button>
             </div>
           )}
-          <div className="w-px h-5 bg-border/30" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border ${connected ? 'bg-emerald-500/[0.06] border-emerald-500/20' : 'bg-red-500/[0.06] border-red-500/20'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'}>
-            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 5px rgb(34 197 94 / 0.6)' : '0 0 5px rgb(239 68 68 / 0.6)'}} />
-            <span className={`text-[9px] font-bold tracking-[0.15em] font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+          <div className="w-px h-4 bg-white/[0.05]" />
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm ${connected ? 'bg-emerald-500/[0.04]' : 'bg-red-500/[0.04]'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} style={{border: connected ? '1px solid hsl(152 72% 38% / 0.15)' : '1px solid hsl(0 80% 55% / 0.15)'}}>
+            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 6px rgb(34 197 94 / 0.5)' : '0 0 6px rgb(239 68 68 / 0.5)'}} />
+            <span className={`text-[8px] font-bold tracking-[0.2em] font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
               {connected ? (language === 'en' ? 'SSE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'OFF' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
@@ -4369,8 +4369,8 @@ export default function Dashboard() {
             rowHeight={120}
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[3, 3]}
-            containerPadding={[3, 3]}
+            margin={[2, 2]}
+            containerPadding={[2, 2]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ minHeight: 400 }}
           >
@@ -4379,8 +4379,13 @@ export default function Dashboard() {
               return (
                 <div
                   key={id}
-                  className={`flex flex-col overflow-hidden rounded-sm border border-white/[0.04] bg-background cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-2 ring-red-500/50' : ''}`}
-                  style={hasAlertGlow ? { boxShadow: '0 0 30px rgb(239 68 68 / 0.25), inset 0 0 30px rgb(239 68 68 / 0.08)' } : undefined}
+                  className={`flex flex-col overflow-hidden rounded border border-white/[0.05] cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-1 ring-red-500/40' : ''}`}
+                  style={{
+                    background: 'linear-gradient(180deg, hsl(225 28% 4.5%) 0%, hsl(225 30% 3%) 100%)',
+                    boxShadow: hasAlertGlow
+                      ? '0 0 25px rgb(239 68 68 / 0.15), inset 0 0 25px rgb(239 68 68 / 0.04), 0 2px 8px hsl(0 0% 0% / 0.4)'
+                      : '0 2px 8px hsl(0 0% 0% / 0.3), inset 0 1px 0 hsl(225 20% 12% / 0.15)',
+                  }}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
                 >
                   <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
@@ -4397,19 +4402,19 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-8 border-t border-white/[0.03] flex items-center px-3 bg-card/30 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
-        <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-emerald-500/[0.05] border border-emerald-500/10">
-          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
-          <span className="text-[9px] text-emerald-400/60 font-mono font-semibold tracking-wider">ONLINE</span>
+      <div className="h-7 border-t border-white/[0.04] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'linear-gradient(180deg, hsl(225 28% 4%) 0%, hsl(225 30% 3%) 100%)'}}>
+        <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
+          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
+          <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
         </div>
-        <div className="w-px h-3 bg-white/[0.05]" />
-        <div className="flex items-center gap-2 text-[9px] font-mono tabular-nums">
-          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">SRC</span>12</span>
-          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">EVT</span>{events.length}</span>
-          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">FLT</span>{flights.length}</span>
-          <span className="text-foreground/20"><span className="text-cyan-400/30 mr-0.5">ADS</span>{adsbFlights.length}</span>
-          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">VES</span>{ships.length}</span>
-          <span className="text-foreground/20"><span className="text-foreground/30 mr-0.5">MKT</span>{commodities.length}</span>
+        <div className="w-px h-3 bg-white/[0.04]" />
+        <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
+          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>12</span>
+          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
+          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
+          <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
+          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">VES</span>{ships.length}</span>
+          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">MKT</span>{commodities.length}</span>
         </div>
         {(redAlerts.length > 0 || sirens.length > 0) && (
           <>
@@ -4460,8 +4465,8 @@ export default function Dashboard() {
             </div>
           </>
         )}
-        <span className="text-[8px] text-foreground/20 font-mono ml-auto hidden sm:inline tracking-[0.12em]">
-          Made by M.M &mdash; WARROOM v2.0
+        <span className="text-[7px] text-foreground/12 font-mono ml-auto hidden sm:inline tracking-[0.15em] font-medium">
+          M.M &mdash; WARROOM v2.1
         </span>
       </div>
 

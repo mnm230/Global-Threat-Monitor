@@ -74,42 +74,42 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .08);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255,255,255, .06);
+  --badge-outline: rgba(255,255,255, .04);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .02);
-  --elevate-2: rgba(255,255,255, .05);
-  --background: 222 47% 3%;
-  --foreground: 40 20% 92%;
-  --border: 220 30% 10%;
-  --card: 222 40% 5%;
-  --card-foreground: 40 15% 90%;
-  --card-border: 220 25% 9%;
-  --sidebar: 222 42% 4%;
-  --sidebar-foreground: 40 12% 88%;
-  --sidebar-border: 220 25% 8%;
-  --sidebar-primary: 38 95% 54%;
+  --elevate-1: rgba(255,255,255, .015);
+  --elevate-2: rgba(255,255,255, .04);
+  --background: 225 30% 3%;
+  --foreground: 45 15% 90%;
+  --border: 225 20% 8%;
+  --card: 225 28% 4.5%;
+  --card-foreground: 45 12% 88%;
+  --card-border: 225 18% 7%;
+  --sidebar: 225 30% 3.5%;
+  --sidebar-foreground: 45 10% 85%;
+  --sidebar-border: 225 18% 6%;
+  --sidebar-primary: 36 100% 50%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 25% 7%;
-  --sidebar-accent-foreground: 40 12% 88%;
-  --sidebar-ring: 38 95% 54%;
-  --popover: 222 38% 5.5%;
-  --popover-foreground: 40 12% 90%;
-  --popover-border: 220 25% 10%;
-  --primary: 38 95% 54%;
-  --primary-foreground: 222 47% 5%;
-  --secondary: 222 20% 9%;
-  --secondary-foreground: 40 12% 88%;
-  --muted: 222 18% 7%;
-  --muted-foreground: 220 10% 45%;
-  --accent: 222 20% 7%;
-  --accent-foreground: 40 12% 88%;
+  --sidebar-accent: 225 20% 6%;
+  --sidebar-accent-foreground: 45 10% 85%;
+  --sidebar-ring: 36 100% 50%;
+  --popover: 225 26% 5%;
+  --popover-foreground: 45 10% 88%;
+  --popover-border: 225 18% 8%;
+  --primary: 36 100% 50%;
+  --primary-foreground: 225 30% 4%;
+  --secondary: 225 16% 8%;
+  --secondary-foreground: 45 10% 85%;
+  --muted: 225 14% 6%;
+  --muted-foreground: 225 8% 42%;
+  --accent: 225 16% 6%;
+  --accent-foreground: 45 10% 85%;
   --destructive: 0 80% 55%;
   --destructive-foreground: 0 0% 100%;
-  --input: 222 20% 12%;
-  --ring: 38 95% 54%;
-  --chart-1: 38 95% 54%;
-  --chart-2: 142 72% 40%;
+  --input: 225 16% 10%;
+  --ring: 36 100% 50%;
+  --chart-1: 36 100% 50%;
+  --chart-2: 152 72% 38%;
   --chart-3: 0 82% 54%;
   --chart-4: 199 89% 48%;
   --chart-5: 47 95% 55%;
@@ -148,44 +148,44 @@
   }
 
   ::selection {
-    background: hsl(38 95% 54% / 0.2);
+    background: hsl(36 100% 50% / 0.15);
     color: hsl(var(--foreground));
   }
 
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(220 30% 18%);
-    border-radius: 6px;
+    background: hsl(225 20% 14%);
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(220 30% 25%);
+    background: hsl(225 20% 22%);
   }
 }
 
 @layer utilities {
   .warroom-panel-surface {
     background:
-      linear-gradient(180deg, hsl(222 40% 6.5%) 0%, hsl(222 42% 4%) 100%);
+      linear-gradient(180deg, hsl(225 28% 5.5%) 0%, hsl(225 30% 3.5%) 100%);
     box-shadow:
-      inset 0 1px 0 0 hsl(220 30% 14% / 0.4),
-      inset 0 -1px 0 0 hsl(220 30% 4% / 0.3),
-      0 1px 4px 0 hsl(0 0% 0% / 0.5);
-    border: 1px solid hsl(220 25% 11% / 0.7);
+      inset 0 1px 0 0 hsl(225 20% 12% / 0.35),
+      inset 0 -1px 0 0 hsl(225 20% 2% / 0.4),
+      0 2px 8px 0 hsl(0 0% 0% / 0.6);
+    border: 1px solid hsl(225 18% 9% / 0.8);
   }
 
   .warroom-grid-gap {
-    gap: 1px;
-    background: hsl(220 35% 6%);
+    gap: 2px;
+    background: hsl(225 25% 4%);
   }
 
   .dark [data-testid="resizable-panels"] {
-    background: hsl(222 47% 2.5%);
+    background: hsl(225 30% 2%);
   }
 
   input[type="search"]::-webkit-search-cancel-button {
@@ -266,7 +266,7 @@
   }
 
   button, [role="button"], a, label[style*="cursor: pointer"] {
-    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.08);
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.06);
   }
 
   * {
@@ -317,8 +317,8 @@
     left: 0;
     right: 0;
     z-index: 50;
-    background: hsl(222 47% 3%);
-    border-top: 1px solid hsl(220 30% 10%);
+    background: hsl(225 30% 3%);
+    border-top: 1px solid hsl(225 20% 8%);
     overflow-x: auto;
   }
 
@@ -333,15 +333,15 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    color: hsl(220 10% 45%);
+    color: hsl(225 8% 42%);
     background: transparent;
     border: none;
     white-space: nowrap;
   }
 
   .warroom-mobile-tabs button.active {
-    color: hsl(38 95% 54%);
-    border-top: 2px solid hsl(38 95% 54%);
+    color: hsl(36 100% 50%);
+    border-top: 2px solid hsl(36 100% 50%);
   }
 
   .warroom-mobile-tabs button svg {
@@ -363,33 +363,36 @@
 
 /* react-grid-layout overrides */
 .react-grid-item.react-draggable-dragging {
-  opacity: 0.85;
+  opacity: 0.9;
   z-index: 100;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 2px hsl(32 95% 50% / 0.4);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.8),
+    0 0 0 1px hsl(36 100% 50% / 0.3),
+    0 0 40px hsl(36 100% 50% / 0.08);
   cursor: grabbing !important;
 }
 .react-grid-item.react-grid-placeholder {
-  background: hsl(32 95% 50% / 0.08) !important;
-  border: 1px dashed hsl(32 95% 50% / 0.4) !important;
-  border-radius: 4px !important;
+  background: hsl(36 100% 50% / 0.06) !important;
+  border: 1px dashed hsl(36 100% 50% / 0.35) !important;
+  border-radius: 6px !important;
   opacity: 1 !important;
 }
 .react-resizable-handle {
-  opacity: 0.3;
-  transition: opacity 0.2s;
+  opacity: 0;
+  transition: opacity 0.25s ease;
   z-index: 10;
 }
 .react-grid-item:hover .react-resizable-handle {
-  opacity: 1;
+  opacity: 0.7;
 }
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(32 95% 50% / 0.6) !important;
-  border-width: 3px !important;
-  width: 12px !important;
-  height: 12px !important;
+  border-color: hsl(36 100% 50% / 0.5) !important;
+  border-width: 2px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(32 95% 50% / 0.9) !important;
+  border-color: hsl(36 100% 50% / 0.85) !important;
 }
 .react-resizable-handle-se {
   bottom: 2px !important;
