@@ -2132,7 +2132,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           <span className={`text-xs font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className={`text-[10px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`} dir="rtl">\u05E6\u05D1\u05E2 \u05D0\u05D3\u05D5\u05DD | tzevaadom.co.il</span>
+          <span className={`text-[10px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`}>Home Front Command | Oref</span>
         </div>
         {hasActiveAlerts && (
           <div className="flex items-center gap-1.5">
@@ -2228,8 +2228,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         <div className="px-3 py-8 text-center flex-1 flex flex-col items-center justify-center">
           <Shield className="w-8 h-8 text-emerald-500/40 mb-3" />
           <p className="text-xs text-emerald-400/80 font-bold font-mono">{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No Active Alerts'}</p>
-          <p className="text-[10px] text-foreground/20 mt-1 font-mono" dir="rtl">\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA</p>
-          <p className="text-[10px] text-foreground/15 mt-2">All areas safe</p>
+          <p className="text-[10px] text-foreground/20 mt-1 font-mono">All areas safe</p>
         </div>
       )}
       <ScrollArea className="flex-1">
@@ -2285,7 +2284,6 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                           <span className={`text-xs font-black truncate ${isActive ? 'text-red-100' : 'text-red-300/50'}`}>
                             {language === 'ar' ? alert.cityAr : alert.city}
                           </span>
-                          <span className="text-[9px] text-red-400/35 font-mono shrink-0" dir="rtl">{alert.cityHe}</span>
                           {isLive ? (
                             <span className="text-[8px] px-1 py-px font-mono font-black bg-emerald-500/25 text-emerald-300 rounded border border-emerald-400/30 shrink-0" data-testid={`source-badge-${alert.id}`}>API</span>
                           ) : (
@@ -2613,7 +2611,7 @@ function TelegramPanel({
                       <div className="w-5 h-5 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0">
                         <SiTelegram className="w-3 h-3 text-sky-400/90" />
                       </div>
-                      <span className="text-[11px] text-sky-400 font-bold truncate">{channelName}</span>
+                      <span className="text-xs text-sky-400 font-bold truncate">{channelName}</span>
                       {isLive && (
                         <span className="text-[7px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
                       )}
@@ -2634,7 +2632,7 @@ function TelegramPanel({
                     </div>
                   )}
 
-                  <p className={`text-[11px] leading-[1.6] ${isExpanded ? 'text-foreground/90 whitespace-pre-wrap' : 'text-foreground/70 line-clamp-2'}`}>{text}</p>
+                  <p className={`text-sm leading-[1.65] ${isExpanded ? 'text-foreground/90 whitespace-pre-wrap' : 'text-foreground/70 line-clamp-2'}`}>{text}</p>
 
                   {isExpanded && (
                     <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-sky-800/15">
