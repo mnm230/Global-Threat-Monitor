@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git push:*)",
       "Bash(curl:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(node:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

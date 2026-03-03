@@ -1109,7 +1109,7 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative bg-card/30" data-testid="ticker-bar">
+    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative bg-card/80 backdrop-blur-xl sticky top-12 z-40" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card to-transparent z-10 flex items-center gap-1 pl-2.5">
         <div className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
         <span className="text-[8px] font-bold tracking-[0.25em] text-primary/35 font-mono">MKT</span>
@@ -3147,8 +3147,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
+    <div className="min-h-screen flex flex-col bg-background text-foreground" data-testid="dashboard">
+      <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative sticky top-0 z-50" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
         <div className="flex items-center gap-2 md:gap-3">
@@ -3246,7 +3246,7 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden" data-testid="resizable-panels">
+      <div ref={containerRef} className="flex-1 flex flex-col min-h-[600px] overflow-auto" style={{ height: 'calc(100vh - 160px)' }} data-testid="resizable-panels">
         {isMobile ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden">
@@ -3289,12 +3289,12 @@ export default function Dashboard() {
         ) : (
           <>
             {activeTop.length > 0 && (
-              <div className="flex min-h-0 overflow-hidden" style={{ height: activeBottom.length > 0 ? `${rowSplit}%` : '100%' }}>
+              <div className="flex overflow-hidden" style={{ minHeight: '350px', height: activeBottom.length > 0 ? `${rowSplit}%` : '100%' }}>
                 {activeTop.map((id, idx) => (
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeTop, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeTop.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
+                      className={`overflow-hidden flex flex-col ${idx < activeTop.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
                       style={{ width: `${activeTopWidths[idx]}%` }}
                     >
                       {renderPanel(id)}
@@ -3307,12 +3307,12 @@ export default function Dashboard() {
               <ResizeHandle onResize={makeVerticalResizer()} direction="row" />
             )}
             {activeBottom.length > 0 && (
-              <div className="flex min-h-0 overflow-hidden" style={{ height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
+              <div className="flex overflow-hidden" style={{ minHeight: '350px', height: activeTop.length > 0 ? `${100 - rowSplit}%` : '100%' }}>
                 {activeBottom.map((id, idx) => (
                   <div key={id} className="contents">
                     {idx > 0 && <ResizeHandle onResize={makeRowResizer(activeBottom, idx - 1)} />}
                     <div
-                      className={`overflow-hidden flex flex-col min-h-0 ${idx < activeBottom.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
+                      className={`overflow-hidden flex flex-col ${idx < activeBottom.length - 1 ? 'border-r border-white/[0.03]' : ''}`}
                       style={{ width: `${activeBottomWidths[idx]}%` }}
                     >
                       {renderPanel(id)}
@@ -3329,7 +3329,7 @@ export default function Dashboard() {
 
       <NewsTicker news={news} language={language} />
 
-      <div className="h-8 border-t border-white/[0.03] flex items-center px-3 bg-card/30 shrink-0 gap-2 overflow-hidden" data-testid="status-bar">
+      <div className="h-8 border-t border-white/[0.03] flex items-center px-3 bg-card/80 backdrop-blur-xl shrink-0 gap-2 overflow-hidden sticky bottom-0 z-50" data-testid="status-bar">
         <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-emerald-500/[0.05] border border-emerald-500/10">
           <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
           <span className="text-[9px] text-emerald-400/60 font-mono font-semibold tracking-wider">ONLINE</span>
