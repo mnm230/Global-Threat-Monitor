@@ -1019,10 +1019,14 @@ function CommoditiesPanel({
   commodities,
   language,
   onClose,
+  onMaximize,
+  isMaximized,
 }: {
   commodities: CommodityData[];
   language: 'en' | 'ar';
   onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
 }) {
   const cmdty = commodities.filter(c => c.category === 'commodity');
   const fxMajor = commodities.filter(c => c.category === 'fx-major');
@@ -1035,6 +1039,8 @@ function CommoditiesPanel({
         icon={<BarChart3 className="w-3.5 h-3.5" />}
         live
         onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
       />
       <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground/60 font-bold border-b border-border/20">
         <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
@@ -1128,7 +1134,7 @@ function headingToCompass(deg: number): string {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void }) {
+function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const sorted = [...flights].sort((a, b) => {
     const order = { military: 0, surveillance: 1, commercial: 2 };
     return (order[a.type] ?? 3) - (order[b.type] ?? 3);
@@ -1142,6 +1148,8 @@ function FlightRadarPanel({ flights, language, onClose }: { flights: FlightData[
         live
         count={flights.length}
         onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
       />
       {flights.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -1363,7 +1371,7 @@ const EVENT_TYPE_ICONS: Record<string, string> = {
   nuclear:   '☢️',
 };
 
-function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEvent[]; language: 'en' | 'ar'; onClose?: () => void }) {
+function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximized }: { events: ConflictEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const sorted = [...events].sort((a, b) => {
     const order = { critical: 0, high: 1, medium: 2, low: 3 };
     return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
@@ -1377,6 +1385,8 @@ function ConflictEventsPanel({ events, language, onClose }: { events: ConflictEv
         live
         count={events.length}
         onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
       />
       {events.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -1427,7 +1437,7 @@ const SHIP_TYPE_STYLES: Record<string, { color: string; bg: string; label: strin
   patrol:   { color: 'text-yellow-400', bg: 'bg-yellow-950/40 border-yellow-500/30', label: 'PTL' },
 };
 
-function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; language: 'en' | 'ar'; onClose?: () => void }) {
+function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { ships: ShipData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const sorted = [...ships].sort((a, b) => {
     const order = { military: 0, patrol: 1, tanker: 2, cargo: 3 };
     return (order[a.type] ?? 4) - (order[b.type] ?? 4);
@@ -1441,6 +1451,8 @@ function MaritimePanel({ ships, language, onClose }: { ships: ShipData[]; langua
         live
         count={ships.length}
         onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
       />
       {ships.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -1799,10 +1811,14 @@ function TelegramPanel({
   messages,
   language,
   onClose,
+  onMaximize,
+  isMaximized,
 }: {
   messages: TelegramMessage[];
   language: 'en' | 'ar';
   onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
 }) {
   const [customChannels, setCustomChannels] = useState<string[]>(() => {
     try {
@@ -1873,6 +1889,8 @@ function TelegramPanel({
         live
         count={filteredMessages.length}
         onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
         extra={
           <div className="flex items-center gap-1">
             {liveMessages.length > 0 && (
@@ -2566,7 +2584,7 @@ export default function Dashboard() {
       case 'events':
         return (
           <ScrollArea className="h-full">
-            <ConflictEventsPanel events={events} language={language} onClose={close} />
+            <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
           </ScrollArea>
         );
       case 'radar':
@@ -2574,12 +2592,12 @@ export default function Dashboard() {
           <>
             <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
               <ScrollArea className="h-full">
-                <FlightRadarPanel flights={flights} language={language} onClose={close} />
+                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
               </ScrollArea>
             </div>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <ScrollArea className="h-full">
-                <MaritimePanel ships={ships} language={language} />
+                <MaritimePanel ships={ships} language={language} onMaximize={maximize} isMaximized={isMax} />
               </ScrollArea>
             </div>
           </>
@@ -2589,11 +2607,11 @@ export default function Dashboard() {
       case 'alerts':
         return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
       case 'telegram':
-        return <TelegramPanel messages={telegramMessages} language={language} onClose={close} />;
+        return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       case 'markets':
         return (
           <ScrollArea className="h-full">
-            <CommoditiesPanel commodities={commodities} language={language} onClose={close} />
+            <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
           </ScrollArea>
         );
     }
