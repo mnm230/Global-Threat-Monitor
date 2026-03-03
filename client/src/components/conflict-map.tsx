@@ -554,7 +554,8 @@ type LayerKey =
   | 'shippingLanes'
   | 'noFlyZones'
   | 'satelliteThermal'
-  | 'thermalHeatmap';
+  | 'thermalHeatmap'
+  | 'alertHeatmap';
 
 const MISSILE_TRAJECTORIES = [
   { id: 'traj-1', source: [51.4, 35.7], target: [34.8, 32.1], label: 'Tehran > Tel Aviv', type: 'ballistic' },
@@ -646,6 +647,8 @@ const LAYER_CONFIGS: LayerConfig[] = [
 
   { key: 'satelliteThermal', label: 'Thermal Hotspots', color: '#ff6b35', defaultOn: false, group: 'satellite' },
   { key: 'thermalHeatmap', label: 'Thermal Heat Map', color: '#ff3300', defaultOn: false, group: 'satellite' },
+
+  { key: 'alertHeatmap', label: 'Alert Density Map', color: '#dc2626', defaultOn: false, group: 'operational' },
 ];
 
 interface SearchItem {
@@ -779,9 +782,10 @@ interface ConflictMapProps {
   thermalHotspots?: ThermalHotspot[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
+  mapStyle?: string;
 }
 
-export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en' }: ConflictMapProps) {
+export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
@@ -978,7 +982,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     try {
       const map = new MapLibreMap({
         container: containerRef.current,
-        style: MAP_STYLE,
+        style: mapStyle,
         center: [viewState.longitude, viewState.latitude],
         zoom: viewState.zoom,
         pitch: viewState.pitch,
@@ -1029,6 +1033,11 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setStyle(mapStyle);
+  }, [mapStyle]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1213,6 +1222,16 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
     return points;
   }, [events, redAlerts]);
+
+  const alertHeatmapData = useMemo(() => {
+    const now = Date.now();
+    return redAlerts.map(a => {
+      const age = now - new Date(a.timestamp).getTime();
+      const recencyWeight = Math.max(0.2, 1 - age / (3600000 * 6));
+      const severityWeight = a.threatType === 'missiles' ? 10 : a.threatType === 'rockets' ? 8 : a.threatType === 'hostile_aircraft_intrusion' ? 7 : 5;
+      return { position: [a.lng, a.lat] as [number, number], weight: severityWeight * recencyWeight };
+    });
+  }, [redAlerts]);
 
   const layers = useMemo(() => {
     const result: any[] = [];
@@ -1924,6 +1943,29 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       );
     }
 
+    if (layerVisibility.alertHeatmap && alertHeatmapData.length > 0) {
+      result.push(
+        new HeatmapLayer({
+          id: 'alert-heatmap-layer',
+          data: alertHeatmapData,
+          getPosition: (d: { position: [number, number] }) => d.position,
+          getWeight: (d: { weight: number }) => d.weight,
+          radiusPixels: 45,
+          intensity: 2,
+          threshold: 0.03,
+          colorRange: [
+            [75, 0, 0],
+            [139, 0, 0],
+            [200, 30, 30],
+            [239, 68, 68],
+            [251, 146, 60],
+            [253, 224, 71],
+          ],
+          aggregation: 'SUM',
+        })
+      );
+    }
+
     if (layerVisibility.animatedArcs) {
       const ARC_COLORS: Record<string, [number, number, number]> = {
         ballistic: [239, 68, 68],
@@ -2120,7 +2162,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
 
     return result;
-  }, [events, flights, ships, adsbFlights, thermalHotspots, layerVisibility, heatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+  }, [events, flights, ships, adsbFlights, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!containerRef.current) return;

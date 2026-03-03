@@ -101,6 +101,9 @@ interface WARROOMSettings {
   notifyUav: boolean;
   notifyAircraft: boolean;
   soundEnabled: boolean;
+  volume: number;
+  silentMode: boolean;
+  notificationLevel: 'all' | 'critical' | 'none';
   defaultLanguage: 'en' | 'ar';
 }
 
@@ -113,6 +116,9 @@ const DEFAULT_SETTINGS: WARROOMSettings = {
   notifyUav: true,
   notifyAircraft: true,
   soundEnabled: true,
+  volume: 70,
+  silentMode: false,
+  notificationLevel: 'all',
   defaultLanguage: 'en',
 };
 
@@ -432,38 +438,80 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
 const audioCtxRef = { current: null as AudioContext | null };
 
-function playAlertSound() {
+function playAlertSound(threatType?: string, volume: number = 70) {
   try {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new AudioContext();
     }
     const ctx = audioCtxRef.current;
     if (ctx.state === 'suspended') ctx.resume();
+    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.3;
+    const t = ctx.currentTime;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.35);
+    if (threatType === 'missiles') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, t);
+      osc.frequency.linearRampToValueAtTime(330, t + 0.4);
+      osc.frequency.setValueAtTime(440, t + 0.5);
+      osc.frequency.linearRampToValueAtTime(330, t + 0.9);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.setValueAtTime(vol * 0.8, t + 0.45);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+      osc.start(t);
+      osc.stop(t + 1.0);
+    } else if (threatType === 'uav_intrusion') {
+      for (let i = 0; i < 3; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(660, t + i * 0.15);
+        gain.gain.setValueAtTime(0, t + i * 0.15);
+        gain.gain.linearRampToValueAtTime(vol, t + i * 0.15 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.1);
+        osc.start(t + i * 0.15);
+        osc.stop(t + i * 0.15 + 0.12);
+      }
+    } else if (threatType === 'hostile_aircraft_intrusion') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1000, t);
+      osc.frequency.exponentialRampToValueAtTime(400, t + 0.6);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+      osc.start(t);
+      osc.stop(t + 0.7);
+    } else {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.setValueAtTime(660, t + 0.08);
+      osc.frequency.setValueAtTime(880, t + 0.16);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    }
   } catch (_) {}
 }
 
-function useAlertSound(alerts: { id: string }[], enabled: boolean) {
+function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: boolean, silentMode: boolean, volume: number) {
   const prevIdsRef = useRef<Set<string>>(new Set());
   const hasFetchedOnce = useRef(false);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || silentMode) return;
 
     const currentIds = new Set(alerts.map(a => a.id));
 
@@ -473,14 +521,12 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
       return;
     }
 
-    let hasNew = false;
-    currentIds.forEach(id => {
-      if (!prevIdsRef.current.has(id)) hasNew = true;
-    });
-
-    if (hasNew) playAlertSound();
+    const newAlerts = alerts.filter(a => !prevIdsRef.current.has(a.id));
+    if (newAlerts.length > 0) {
+      playAlertSound(newAlerts[0].threatType, volume);
+    }
     prevIdsRef.current = currentIds;
-  }, [alerts, enabled]);
+  }, [alerts, enabled, silentMode, volume]);
 }
 
 type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics';
@@ -498,6 +544,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   cyber: { icon: Cpu, label: 'Cyber', labelAr: '\u0633\u064A\u0628\u0631\u0627\u0646\u064A' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
+  analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
 };
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
@@ -538,13 +585,30 @@ function getThreatLevel(alertCount: number, sirenCount: number, settings?: WARRO
   return { level: 'LOW', color: 'text-emerald-400', bg: 'bg-emerald-950/50 border-emerald-500/40' };
 }
 
-function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabled: boolean) {
+function sendNotification(title: string, body: string, tag: string, critical: boolean = false) {
+  if (document.hidden && navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SHOW_NOTIFICATION',
+      title,
+      body,
+      tag,
+      icon: '/favicon.png',
+      url: '/',
+      critical,
+    });
+  } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/favicon.png', tag });
+  }
+}
+
+function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabled: boolean, level: 'all' | 'critical' | 'none') {
   const prevAlertIds = useRef<Set<string>>(new Set());
   const prevSirenIds = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!enabled || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (!enabled || level === 'none') return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
     if (!initialized.current) {
       initialized.current = true;
@@ -556,29 +620,37 @@ function useDesktopNotifications(alerts: RedAlert[], sirens: SirenAlert[], enabl
     const currentAlertIds = new Set(alerts.map(a => a.id));
     const currentSirenIds = new Set(sirens.map(s => s.id));
 
+    const isCriticalType = (t: string) => t === 'missiles' || t === 'hostile_aircraft_intrusion';
+
     alerts.forEach(a => {
       if (!prevAlertIds.current.has(a.id)) {
-        new Notification('RED ALERT - ' + a.city, {
-          body: `${a.threatType.replace(/_/g, ' ').toUpperCase()} - ${a.region}, ${a.country}`,
-          icon: '/favicon.ico',
-          tag: a.id,
-        });
+        if (level === 'all' || isCriticalType(a.threatType)) {
+          sendNotification(
+            'RED ALERT - ' + a.city,
+            `${a.threatType.replace(/_/g, ' ').toUpperCase()} - ${a.region}, ${a.country}`,
+            a.id,
+            isCriticalType(a.threatType)
+          );
+        }
       }
     });
 
     sirens.forEach(s => {
       if (!prevSirenIds.current.has(s.id)) {
-        new Notification('SIREN - ' + s.location, {
-          body: `${s.threatType.toUpperCase()} - ${s.region}`,
-          icon: '/favicon.ico',
-          tag: s.id,
-        });
+        if (level === 'all' || isCriticalType(s.threatType)) {
+          sendNotification(
+            'SIREN - ' + s.location,
+            `${s.threatType.toUpperCase()} - ${s.region}`,
+            s.id,
+            isCriticalType(s.threatType)
+          );
+        }
       }
     });
 
     prevAlertIds.current = currentAlertIds;
     prevSirenIds.current = currentSirenIds;
-  }, [alerts, sirens, enabled]);
+  }, [alerts, sirens, enabled, level]);
 }
 
 interface AnalystNote {
@@ -599,26 +671,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100 },
     rowSplit: 50,
   },
 ];
@@ -638,6 +710,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'seismic',  x: 4,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
   { i: 'cyber',    x: 8,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
   { i: 'alertmap', x: 0,  y: 10, w: 6, h: 4, minW: 2, minH: 2 },
+  { i: 'analytics', x: 6, y: 10, w: 6, h: 4, minW: 2, minH: 2 },
 ];
 
 interface Correlation {
@@ -839,13 +912,16 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="alert-history-overlay">
-      <div className="w-[600px] max-h-[75vh] bg-background/95 backdrop-blur-xl border border-red-500/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px rgb(239 68 68 / 0.1)'}}>
+      <div className="w-[700px] max-h-[80vh] bg-background/95 backdrop-blur-xl border border-red-500/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px rgb(239 68 68 / 0.1)'}}>
         <div className="px-4 py-3 border-b border-red-900/40 bg-red-950/20 flex items-center gap-2 rounded-t-lg">
           <History className="w-4 h-4 text-red-400" />
           <span className="text-xs font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
           <span className="text-xs text-red-400/50 font-mono">{filtered.length}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/20" data-testid="button-close-history"><X className="w-4 h-4 text-red-300" /></button>
+        </div>
+        <div className="px-4 py-3 border-b border-red-900/20">
+          <AlertHistoryTimeline language={language} />
         </div>
         <div className="px-4 py-2 border-b border-red-900/20">
           <div className="relative">
@@ -1287,7 +1363,7 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="h-9 px-3 border-b border-border/40 flex items-center gap-2 bg-card/80 shrink-0 relative">
+    <div className="panel-drag-handle h-9 px-3 border-b border-border/40 flex items-center gap-2 bg-card/80 shrink-0 relative cursor-grab active:cursor-grabbing">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
       <div className="w-5 h-5 rounded bg-primary/[0.08] border border-primary/[0.12] flex items-center justify-center shrink-0">
         <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/80">{icon}</span>
@@ -2002,19 +2078,34 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   );
 }
 
+const LIVE_CHANNELS = [
+  { id: 'aja',   label: 'AJ AR',     labelAr: 'الجزيرة ع',  videoId: 'bNyUyrR0PHo' },
+  { id: 'aje',   label: 'AJ EN',     labelAr: 'الجزيرة إن', videoId: 'nGTiotxgfEY' },
+  { id: 'f24ar', label: 'F24 AR',    labelAr: 'فرانس 24',   videoId: '4s2DMLR7aX8' },
+  { id: 'sky',   label: 'SKY AR',    labelAr: 'سكاي عربية', videoId: 'GCPOzwFMJmI' },
+] as const;
+
 function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const [ytVideoId, setYtVideoId] = useState('bNyUyrR0PHo');
+  const [activeChannel, setActiveChannel] = useState<typeof LIVE_CHANNELS[number]['id']>('aja');
   const [customUrl, setCustomUrl] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [customVideoId, setCustomVideoId] = useState<string | null>(null);
+
+  const currentVideoId = customVideoId ?? LIVE_CHANNELS.find(c => c.id === activeChannel)!.videoId;
 
   const handleSetUrl = useCallback(() => {
     const match = customUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([a-zA-Z0-9_-]{11})/);
     if (match) {
-      setYtVideoId(match[1]);
+      setCustomVideoId(match[1]);
       setShowUrlInput(false);
       setCustomUrl('');
     }
   }, [customUrl]);
+
+  const handleSelectChannel = (id: typeof LIVE_CHANNELS[number]['id']) => {
+    setActiveChannel(id);
+    setCustomVideoId(null);
+  };
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="livefeed-panel">
@@ -2041,6 +2132,23 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
           </div>
         }
       />
+      {/* Channel selector */}
+      <div className="px-2 py-1.5 border-b border-white/[0.04] bg-card/30 flex items-center gap-1 shrink-0">
+        {LIVE_CHANNELS.map(ch => (
+          <button
+            key={ch.id}
+            onClick={() => handleSelectChannel(ch.id)}
+            data-testid={`button-channel-${ch.id}`}
+            className={`flex-1 py-1 rounded text-[9px] font-mono font-bold transition-colors border ${
+              activeChannel === ch.id && !customVideoId
+                ? 'bg-red-500/15 text-red-400 border-red-500/30'
+                : 'text-foreground/35 hover:text-foreground/70 border-transparent hover:border-white/[0.08]'
+            }`}
+          >
+            {language === 'ar' ? ch.labelAr : ch.label}
+          </button>
+        ))}
+      </div>
       {showUrlInput && (
         <div className="px-3 py-2 border-b border-white/[0.04] bg-card/40 flex items-center gap-2 shrink-0">
           <input
@@ -2063,7 +2171,8 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
       )}
       <div className="flex-1 min-h-0 bg-black relative">
         <iframe
-          src={`https://www.youtube.com/embed/${ytVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1`}
+          key={currentVideoId}
+          src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1`}
           className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -2812,7 +2921,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
             </div>
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Sound', '\u0635\u0648\u062A')}</span>
-              <label className="flex items-center gap-3 cursor-pointer group" data-testid="toggle-sound">
+              <label className="flex items-center gap-3 cursor-pointer group mb-3" data-testid="toggle-sound">
                 <div
                   className={`w-8 h-4 rounded-full transition-colors relative ${local.soundEnabled ? 'bg-primary' : 'bg-border/50'}`}
                   onClick={() => setLocal(p => ({ ...p, soundEnabled: !p.soundEnabled }))}
@@ -2821,6 +2930,44 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
                 </div>
                 <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90">{t('Alert sounds', '\u0623\u0635\u0648\u0627\u062A \u0627\u0644\u0625\u0646\u0630\u0627\u0631')}</span>
               </label>
+              <label className="flex items-center gap-3 cursor-pointer group mb-3" data-testid="toggle-silent-mode">
+                <div
+                  className={`w-8 h-4 rounded-full transition-colors relative ${local.silentMode ? 'bg-red-500' : 'bg-border/50'}`}
+                  onClick={() => setLocal(p => ({ ...p, silentMode: !p.silentMode }))}
+                >
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${local.silentMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+                <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90">{t('Silent mode (mute all)', '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0635\u0627\u0645\u062A')}</span>
+              </label>
+              <div className="flex items-center gap-3 mb-2">
+                <VolumeX className="w-3 h-3 text-foreground/40" />
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={local.volume}
+                  onChange={e => setLocal(p => ({ ...p, volume: parseInt(e.target.value) }))}
+                  className="flex-1 accent-primary h-1"
+                  data-testid="slider-volume"
+                />
+                <Volume2 className="w-3 h-3 text-foreground/40" />
+                <span className="text-xs font-mono text-foreground/60 w-8 text-right">{local.volume}%</span>
+              </div>
+            </div>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Push Notifications', '\u0625\u0634\u0639\u0627\u0631\u0627\u062A')}</span>
+              <div className="flex gap-2">
+                {(['all', 'critical', 'none'] as const).map(l => (
+                  <button
+                    key={l}
+                    onClick={() => setLocal(p => ({ ...p, notificationLevel: l }))}
+                    className={`text-xs px-3 py-1.5 rounded font-mono font-bold border transition-colors ${
+                      local.notificationLevel === l ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-white/[0.02] border-white/[0.05] text-foreground/30 hover:bg-white/[0.04]'
+                    }`}
+                    data-testid={`button-notify-${l}`}
+                  >{l === 'all' ? t('All Alerts', '\u0627\u0644\u0643\u0644') : l === 'critical' ? t('Critical Only', '\u062D\u0631\u062C\u0629 \u0641\u0642\u0637') : t('None', '\u0644\u0627 \u0634\u064A\u0621')}</button>
+                ))}
+              </div>
             </div>
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Default Language', '\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629')}</span>
@@ -3046,7 +3193,7 @@ function AlertMapPanel({
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
-      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-red-500/[0.06] to-transparent shrink-0 relative">
+      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-red-500/[0.06] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />
         <MapPin className="w-3 h-3 text-red-400/60 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
@@ -3089,6 +3236,12 @@ function AlertMapPanel({
   );
 }
 
+const MAP_STYLE_OPTIONS = [
+  { id: 'dark', label: 'Dark', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+  { id: 'light', label: 'Light', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
+  { id: 'street', label: 'Street', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
+] as const;
+
 function MapSection({
   events,
   flights,
@@ -3113,6 +3266,8 @@ function MapSection({
   isMaximized?: boolean;
 }) {
   const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
+  const [mapStyleId, setMapStyleId] = useState<'dark' | 'light' | 'street'>('dark');
+  const mapStyleUrl = MAP_STYLE_OPTIONS.find(s => s.id === mapStyleId)!.url;
 
   const views = [
     { key: 'conflict' as const, icon: AlertTriangle, label: language === 'en' ? 'Conflict' : '\u0646\u0632\u0627\u0639', labelEn: 'Conflict' },
@@ -3122,7 +3277,7 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-primary/[0.04] to-transparent shrink-0 relative">
+      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-primary/[0.04] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
         <Target className="w-3 h-3 text-primary/60 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
@@ -3145,6 +3300,22 @@ function MapSection({
           ))}
         </div>
         <div className="flex-1" />
+        <div className="flex items-center gap-px bg-white/[0.02] rounded border border-white/[0.05] p-0.5" data-no-drag>
+          {MAP_STYLE_OPTIONS.map(s => (
+            <button
+              key={s.id}
+              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
+                mapStyleId === s.id
+                  ? 'bg-primary/15 text-primary/90 border border-primary/20'
+                  : 'text-foreground/30 hover:text-foreground/60 border border-transparent'
+              }`}
+              onClick={() => setMapStyleId(s.id)}
+              data-testid={`button-map-style-${s.id}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
@@ -3174,6 +3345,7 @@ function MapSection({
                 thermalHotspots={thermalHotspots}
                 activeView={activeView}
                 language={language}
+                mapStyle={mapStyleUrl}
               />
             </Suspense>
           </MapErrorBoundary>
@@ -3225,6 +3397,312 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   );
 }
 
+interface AnalyticsData {
+  alertsByRegion: Record<string, number>;
+  alertsByType: Record<string, number>;
+  alertTimeline: { time: string; count: number }[];
+  topSources: { channel: string; count: number; reliability: number }[];
+  activeAlertCount: number;
+  falseAlarmRate: number;
+  avgResponseTime: number;
+  threatTrend: 'escalating' | 'stable' | 'deescalating';
+  patterns: PatternData[];
+  falseAlarms: FalseAlarmData[];
+}
+
+interface PatternData {
+  id: string;
+  type: string;
+  confidence: number;
+  description: string;
+  detectedAt: string;
+  affectedRegions: string[];
+  alertCount: number;
+}
+
+interface FalseAlarmData {
+  alertId: string;
+  score: number;
+  reasons: string[];
+  recommendation: 'likely_real' | 'uncertain' | 'likely_false';
+}
+
+function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  const { data: analytics } = useQuery<AnalyticsData>({
+    queryKey: ['/api/analytics'],
+    refetchInterval: 15000,
+  });
+
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  const patterns = analytics?.patterns ?? [];
+  const falseAlarms = analytics?.falseAlarms ?? [];
+
+  const regionEntries = analytics ? Object.entries(analytics.alertsByRegion).sort((a, b) => b[1] - a[1]).slice(0, 8) : [];
+  const typeEntries = analytics ? Object.entries(analytics.alertsByType).sort((a, b) => b[1] - a[1]) : [];
+  const maxRegion = regionEntries.length > 0 ? Math.max(...regionEntries.map(e => e[1])) : 1;
+  const maxType = typeEntries.length > 0 ? Math.max(...typeEntries.map(e => e[1])) : 1;
+  const maxTimeline = analytics?.alertTimeline ? Math.max(...analytics.alertTimeline.map(t => t.count), 1) : 1;
+
+  const trendColor = analytics?.threatTrend === 'escalating' ? 'text-red-400' : analytics?.threatTrend === 'deescalating' ? 'text-emerald-400' : 'text-yellow-400';
+  const trendIcon = analytics?.threatTrend === 'escalating' ? '▲' : analytics?.threatTrend === 'deescalating' ? '▼' : '●';
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
+      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-blue-500/[0.06] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-blue-400/60 via-blue-400/30 to-transparent" />
+        <BarChart3 className="w-3 h-3 text-blue-400/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
+        <div className="flex-1" />
+        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-analytics">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-3 space-y-4">
+          {!analytics ? (
+            <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-blue-400/40 animate-spin mx-auto" /></div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
+                  <span className="text-[10px] text-foreground/40 font-mono">{t('Active', '\u0646\u0634\u0637')}</span>
+                  <span className="text-lg font-bold font-mono text-red-400" data-testid="text-active-alerts">{analytics.activeAlertCount}</span>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
+                  <span className="text-[10px] text-foreground/40 font-mono">{t('False Alarm %', '\u0625\u0646\u0630\u0627\u0631 \u0643\u0627\u0630\u0628')}</span>
+                  <span className="text-lg font-bold font-mono text-yellow-400" data-testid="text-false-alarm-rate">{(analytics.falseAlarmRate * 100).toFixed(1)}%</span>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
+                  <span className="text-[10px] text-foreground/40 font-mono">{t('Avg Response', '\u0645\u062A\u0648\u0633\u0637')}</span>
+                  <span className="text-lg font-bold font-mono text-blue-400" data-testid="text-avg-response">{analytics.avgResponseTime}s</span>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
+                  <span className="text-[10px] text-foreground/40 font-mono">{t('Trend', '\u0627\u062A\u062C\u0627\u0647')}</span>
+                  <span className={`text-sm font-bold font-mono ${trendColor}`} data-testid="text-trend">{trendIcon} {analytics.threatTrend.toUpperCase()}</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('24h Timeline', '\u062C\u062F\u0648\u0644 24 \u0633\u0627\u0639\u0629')}</span>
+                <div className="flex items-end gap-px h-12 bg-white/[0.02] rounded border border-white/[0.04] p-1" data-testid="chart-timeline">
+                  {analytics.alertTimeline.map((b, i) => (
+                    <div key={i} className="flex-1 flex items-end justify-center" title={`${b.time}: ${b.count}`}>
+                      <div
+                        className="w-full rounded-sm bg-blue-500/60 hover:bg-blue-400/80 transition-colors min-h-[1px]"
+                        style={{ height: `${Math.max(4, (b.count / maxTimeline) * 100)}%` }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Alerts by Region', '\u062D\u0633\u0628 \u0627\u0644\u0645\u0646\u0637\u0642\u0629')}</span>
+                <div className="space-y-1" data-testid="chart-by-region">
+                  {regionEntries.map(([region, count]) => (
+                    <div key={region} className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-foreground/60 w-24 truncate">{region}</span>
+                      <div className="flex-1 h-3 bg-white/[0.03] rounded overflow-hidden">
+                        <div className="h-full bg-red-500/50 rounded" style={{ width: `${(count / maxRegion) * 100}%` }} />
+                      </div>
+                      <span className="text-[10px] font-mono text-foreground/40 w-6 text-right">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Alerts by Type', '\u062D\u0633\u0628 \u0627\u0644\u0646\u0648\u0639')}</span>
+                <div className="space-y-1" data-testid="chart-by-type">
+                  {typeEntries.map(([type, count]) => (
+                    <div key={type} className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-foreground/60 w-24 truncate uppercase">{type.replace(/_/g, ' ')}</span>
+                      <div className="flex-1 h-3 bg-white/[0.03] rounded overflow-hidden">
+                        <div className="h-full bg-orange-500/50 rounded" style={{ width: `${(count / maxType) * 100}%` }} />
+                      </div>
+                      <span className="text-[10px] font-mono text-foreground/40 w-6 text-right">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Source Reliability', '\u0645\u0648\u062B\u0648\u0642\u064A\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631')}</span>
+                <div className="space-y-1" data-testid="table-sources">
+                  {analytics.topSources.map((src) => (
+                    <div key={src.channel} className="flex items-center gap-2 px-2 py-1 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                      <span className="text-[10px] font-mono text-foreground/70 flex-1 truncate">{src.channel}</span>
+                      <span className="text-[10px] font-mono text-foreground/40">{src.count}</span>
+                      <div className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${src.reliability > 0.8 ? 'bg-emerald-950/40 text-emerald-400' : src.reliability > 0.5 ? 'bg-yellow-950/40 text-yellow-400' : 'bg-red-950/40 text-red-400'}`}>
+                        {(src.reliability * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {patterns.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Detected Patterns', '\u0623\u0646\u0645\u0627\u0637')}</span>
+                  <div className="space-y-1.5" data-testid="list-patterns">
+                    {patterns.map(p => (
+                      <div key={p.id} className="p-2 rounded bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/40 transition-colors" data-testid={`pattern-${p.id}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                          <span className="text-[11px] font-bold text-purple-300 font-mono uppercase">{p.type.replace(/_/g, ' ')}</span>
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.confidence > 0.7 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-yellow-950/40 text-yellow-400'}`}>{(p.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        <p className="text-[10px] text-foreground/50">{p.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {falseAlarms.length > 0 && (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('False Alarm Analysis', '\u062A\u062D\u0644\u064A\u0644 \u0625\u0646\u0630\u0627\u0631\u0627\u062A \u0643\u0627\u0630\u0628\u0629')}</span>
+                  <div className="space-y-1" data-testid="list-false-alarms">
+                    {falseAlarms.slice(0, 10).map(fa => (
+                      <div key={fa.alertId} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors" data-testid={`false-alarm-${fa.alertId}`}>
+                        <div className={`w-2 h-2 rounded-full ${fa.score > 0.7 ? 'bg-red-500' : fa.score > 0.4 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
+                        <span className="text-[10px] font-mono text-foreground/60 flex-1 truncate">{fa.recommendation.replace(/_/g, ' ')}</span>
+                        <span className="text-[10px] font-mono text-foreground/40 truncate max-w-[120px]">{fa.reasons[0] || ''}</span>
+                        <span className="text-[10px] font-bold font-mono text-foreground/50">{(fa.score * 100).toFixed(0)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
+  const { data: history = [], isLoading } = useQuery<Array<RedAlert & { resolved: boolean; resolvedAt?: string }>>({
+    queryKey: ['/api/alert-history'],
+    refetchInterval: 30000,
+  });
+  const [selectedBucket, setSelectedBucket] = useState<number | null>(null);
+
+  const now = Date.now();
+  const bucketSize = 15 * 60 * 1000;
+  const bucketCount = 96;
+
+  const buckets = useMemo(() => {
+    const b: Array<{ start: number; end: number; alerts: Array<RedAlert & { resolved: boolean }>; byType: Record<string, number> }> = [];
+    for (let i = 0; i < bucketCount; i++) {
+      const end = now - i * bucketSize;
+      const start = end - bucketSize;
+      const alerts = history.filter(a => {
+        const ts = new Date(a.timestamp).getTime();
+        return ts >= start && ts < end;
+      });
+      const byType: Record<string, number> = {};
+      alerts.forEach(a => { byType[a.threatType] = (byType[a.threatType] || 0) + 1; });
+      b.unshift({ start, end, alerts, byType });
+    }
+    return b;
+  }, [history, now]);
+
+  const maxCount = Math.max(...buckets.map(b => b.alerts.length), 1);
+
+  const escalating = useMemo(() => {
+    const recent = buckets.slice(-12);
+    let increasing = 0;
+    for (let i = 1; i < recent.length; i++) {
+      if (recent[i].alerts.length > recent[i - 1].alerts.length) increasing++;
+    }
+    return increasing >= 3;
+  }, [buckets]);
+
+  const selectedAlerts = selectedBucket !== null ? buckets[selectedBucket]?.alerts || [] : [];
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  const THREAT_COLORS: Record<string, string> = {
+    rockets: 'bg-red-500',
+    missiles: 'bg-orange-500',
+    uav_intrusion: 'bg-yellow-500',
+    hostile_aircraft_intrusion: 'bg-purple-500',
+  };
+
+  if (isLoading) return <div className="py-4 text-center"><Loader2 className="w-4 h-4 text-red-400/40 animate-spin mx-auto" /></div>;
+
+  return (
+    <div className="space-y-2" data-testid="alert-history-timeline">
+      <div className="flex items-center gap-2">
+        <Clock className="w-3 h-3 text-red-400/60" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Timeline', '\u062C\u062F\u0648\u0644 24 \u0633\u0627\u0639\u0629')}</span>
+        {escalating && (
+          <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-red-950/60 border border-red-500/40 text-red-400 animate-pulse" data-testid="badge-escalating">
+            {t('ESCALATING', '\u062A\u0635\u0627\u0639\u062F')}
+          </span>
+        )}
+      </div>
+      <div className="flex items-end gap-px h-14 bg-white/[0.02] rounded border border-white/[0.04] p-1 overflow-x-auto" data-testid="timeline-bars">
+        {buckets.map((b, i) => {
+          const isCluster = b.alerts.length >= 5;
+          const isSelected = selectedBucket === i;
+          return (
+            <button
+              key={i}
+              className={`flex-shrink-0 w-1.5 flex flex-col items-stretch justify-end rounded-sm transition-all cursor-pointer hover:opacity-100 ${isSelected ? 'ring-1 ring-primary' : ''} ${isCluster ? 'ring-1 ring-red-500/50' : ''}`}
+              style={{ height: '100%', opacity: b.alerts.length > 0 ? 1 : 0.3 }}
+              onClick={() => setSelectedBucket(isSelected ? null : i)}
+              title={`${new Date(b.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${b.alerts.length} alerts`}
+              data-testid={`timeline-bucket-${i}`}
+            >
+              {Object.entries(b.byType).map(([type, count]) => (
+                <div
+                  key={type}
+                  className={`w-full rounded-sm ${THREAT_COLORS[type] || 'bg-red-500'} opacity-70`}
+                  style={{ height: `${Math.max(2, (count / maxCount) * 100)}%` }}
+                />
+              ))}
+              {b.alerts.length === 0 && <div className="w-full h-[2px] bg-white/10 rounded-sm" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-3 text-[9px] font-mono text-foreground/30">
+        <span>{t('24h ago', '\u0642\u0628\u0644 24 \u0633\u0627\u0639\u0629')}</span>
+        <div className="flex-1 h-px bg-white/[0.05]" />
+        <span>{t('Now', '\u0627\u0644\u0622\u0646')}</span>
+      </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        {Object.entries(THREAT_COLORS).map(([type, color]) => (
+          <div key={type} className="flex items-center gap-1">
+            <div className={`w-2 h-2 rounded-sm ${color}`} />
+            <span className="text-[9px] font-mono text-foreground/40 uppercase">{type.replace(/_/g, ' ')}</span>
+          </div>
+        ))}
+      </div>
+      {selectedBucket !== null && selectedAlerts.length > 0 && (
+        <div className="border border-white/[0.06] rounded bg-white/[0.02] p-2 space-y-1 max-h-32 overflow-y-auto" data-testid="timeline-detail">
+          <span className="text-[9px] font-mono text-foreground/40">{new Date(buckets[selectedBucket].start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — {selectedAlerts.length} {t('alerts', '\u0625\u0646\u0630\u0627\u0631\u0627\u062A')}</span>
+          {selectedAlerts.map(a => (
+            <div key={a.id} className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${a.resolved ? 'bg-emerald-500/50' : 'bg-red-500 animate-pulse'}`} />
+              <span className="text-[10px] font-mono text-foreground/70">{a.city}</span>
+              <span className="text-[9px] font-mono text-foreground/30 uppercase">{a.threatType.replace(/_/g, ' ')}</span>
+              <span className="text-[9px] font-mono text-foreground/20 ml-auto">{new Date(a.timestamp).toLocaleTimeString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [settings, setSettings] = useState<WARROOMSettings>(loadSettings);
@@ -3244,7 +3722,13 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true };
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
+
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -3342,9 +3826,9 @@ export default function Dashboard() {
     [visiblePanels]
   );
 
-  useAlertSound(redAlerts.map(a => ({ id: a.id })), soundEnabled);
-  useAlertSound(sirens.map(s => ({ id: s.id })), soundEnabled);
-  useDesktopNotifications(redAlerts, sirens, notificationsEnabled);
+  useAlertSound(redAlerts.map(a => ({ id: a.id, threatType: a.threatType })), soundEnabled, settings.silentMode, settings.volume);
+  useAlertSound(sirens.map(s => ({ id: s.id, threatType: s.threatType })), soundEnabled, settings.silentMode, settings.volume);
+  useDesktopNotifications(redAlerts, sirens, notificationsEnabled, settings.notificationLevel);
 
   const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings, redAlerts), [redAlerts, sirens.length, settings]);
   const correlations = useCorrelations(events, redAlerts, sirens, flights);
@@ -3354,7 +3838,7 @@ export default function Dashboard() {
   }, [showWatchlist]);
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -3364,7 +3848,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    seismic: 22, cyber: 22,
+    seismic: 22, cyber: 22, alertmap: 28, analytics: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -3506,6 +3990,8 @@ export default function Dashboard() {
           return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alertmap':
           return <AlertMapPanel alerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'analytics':
+          return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -3649,7 +4135,7 @@ export default function Dashboard() {
             cols={12}
             rowHeight={130}
             onLayoutChange={handleGridLayoutChange}
-            draggableCancel="button,input,select,textarea,a,[data-no-drag]"
+            draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,.deck-canvas"
             margin={[6, 6]}
             containerPadding={[6, 6]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
@@ -3660,7 +4146,7 @@ export default function Dashboard() {
               return (
                 <div
                   key={id}
-                  className={`flex flex-col overflow-hidden rounded-sm border border-white/[0.04] bg-background ${hasAlertGlow ? 'ring-2 ring-red-500/50' : ''}`}
+                  className={`flex flex-col overflow-hidden rounded-sm border border-white/[0.04] bg-background cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-2 ring-red-500/50' : ''}`}
                   style={hasAlertGlow ? { boxShadow: '0 0 30px rgb(239 68 68 / 0.25), inset 0 0 30px rgb(239 68 68 / 0.08)' } : undefined}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
                 >

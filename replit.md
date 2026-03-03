@@ -49,9 +49,14 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Historical Timeline:** Visualizes past events on a timeline.
 - **Export/Report:** Generates downloadable intelligence reports.
 - **Threat Heat Map:** Visualizes event/alert intensity using a heatmap layer.
+- **Alert Density Heat Map:** Dedicated toggleable heatmap layer showing red alert density weighted by recency (newer = brighter) and severity (missiles > rockets > UAV). Dark red → orange → yellow color range. Found in "OPERATIONAL" layer group.
 - **Animated Missile Arcs:** Simulates missile trajectories with animated arcs.
 - **Distance/Radius Tool:** Measures distances and radii on the map.
 - **Satellite Thermal Hotspots:** Real NASA FIRMS VIIRS satellite data showing thermal/fire anomalies across MENA region. Two toggleable layers: point markers (sized by FRP, colored by confidence) and heatmap visualization. Data from NOAA-20 satellite, refreshed every 15 minutes, cached server-side. Accessible via `/api/thermal-hotspots` endpoint and SSE `thermal` event. Map layers: "Thermal Hotspots" (ScatterplotLayer) and "Thermal Heat Map" (HeatmapLayer) in the SATELLITE layer group.
+- **Analytics Dashboard Panel:** Fetches from `/api/analytics`, `/api/patterns`, `/api/false-alarms`. Shows stats (active alerts, false alarm rate, avg response time, threat trend), 24h timeline sparkline, alerts by region/type bar charts, source reliability table, detected patterns, and false alarm analysis.
+- **Sound Improvements:** Distinct synthesized tones per threat type (rockets=rapid beep, missiles=sustained low sweep, UAV=3-pulse mid-tone, hostile aircraft=descending siren). Volume slider (0-100%), silent mode toggle. Settings stored in localStorage.
+- **Alert History Timeline:** 24h scrollable timeline in Alert History overlay. 96 x 15-min buckets with stacked bars colored by threat type. Visual clustering (5+ alerts = highlight). Escalation detection (3+ increasing consecutive buckets). Click bucket to view details.
+- **Browser Push Notifications:** Service Worker (`client/public/sw.js`) enables persistent notifications when tab is backgrounded. Uses `postMessage` to SW which calls `showNotification`. Click notification focuses/opens dashboard tab. Notification level setting: All/Critical Only/None.
 
 ## External Dependencies
 - **ADS-B Data:** `adsb.lol` (for live flight tracking)

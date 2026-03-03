@@ -2427,37 +2427,17 @@ export async function registerRoutes(
 
   app.get('/api/alert-history', (_req, res) => {
     const now = Date.now();
-    const history: Array<RedAlert & { resolved: boolean; resolvedAt?: string }> = [];
-    const cities = [
-      { city: 'Tel Aviv', cityHe: '\u05EA\u05DC \u05D0\u05D1\u05D9\u05D1', cityAr: '\u062A\u0644 \u0623\u0628\u064A\u0628', region: 'Gush Dan', regionHe: '\u05D2\u05D5\u05E9 \u05D3\u05DF', regionAr: '\u063A\u0648\u0634 \u062F\u0627\u0646', country: 'Israel', countryCode: 'IL', lat: 32.085, lng: 34.782 },
-      { city: 'Haifa', cityHe: '\u05D7\u05D9\u05E4\u05D4', cityAr: '\u062D\u064A\u0641\u0627', region: 'Haifa Bay', regionHe: '\u05DE\u05E4\u05E8\u05E5 \u05D7\u05D9\u05E4\u05D4', regionAr: '\u062E\u0644\u064A\u062C \u062D\u064A\u0641\u0627', country: 'Israel', countryCode: 'IL', lat: 32.794, lng: 34.989 },
-      { city: 'Sderot', cityHe: '\u05E9\u05D3\u05E8\u05D5\u05EA', cityAr: '\u0633\u062F\u064A\u0631\u0648\u062A', region: 'Gaza Envelope', regionHe: '\u05E2\u05D5\u05D8\u05E3 \u05E2\u05D6\u05D4', regionAr: '\u063A\u0644\u0627\u0641 \u063A\u0632\u0629', country: 'Israel', countryCode: 'IL', lat: 31.525, lng: 34.596 },
-      { city: 'Beirut', cityHe: '\u05D1\u05D9\u05E8\u05D5\u05EA', cityAr: '\u0628\u064A\u0631\u0648\u062A', region: 'Beirut', regionHe: '\u05D1\u05D9\u05E8\u05D5\u05EA', regionAr: '\u0628\u064A\u0631\u0648\u062A', country: 'Lebanon', countryCode: 'LB', lat: 33.894, lng: 35.502 },
-      { city: 'Isfahan', cityHe: '\u05D0\u05E1\u05E4\u05D4\u05D0\u05DF', cityAr: '\u0623\u0635\u0641\u0647\u0627\u0646', region: 'Isfahan Province', regionHe: '\u05DE\u05D7\u05D5\u05D6 \u05D0\u05E1\u05E4\u05D4\u05D0\u05DF', regionAr: '\u0645\u062D\u0627\u0641\u0638\u0629 \u0623\u0635\u0641\u0647\u0627\u0646', country: 'Iran', countryCode: 'IR', lat: 32.655, lng: 51.668 },
-      { city: 'Damascus', cityHe: '\u05D3\u05DE\u05E9\u05E7', cityAr: '\u062F\u0645\u0634\u0642', region: 'Damascus', regionHe: '\u05D3\u05DE\u05E9\u05E7', regionAr: '\u062F\u0645\u0634\u0642', country: 'Syria', countryCode: 'SY', lat: 33.514, lng: 36.277 },
-    ];
-    const threats: Array<'rockets' | 'missiles' | 'hostile_aircraft_intrusion' | 'uav_intrusion'> = ['rockets', 'missiles', 'hostile_aircraft_intrusion', 'uav_intrusion'];
-    for (let i = 0; i < 50; i++) {
-      const c = cities[Math.floor(Math.random() * cities.length)];
-      const age = Math.floor(Math.random() * 3600 * 12) * 1000;
-      const ts = new Date(now - age).toISOString();
-      const countdown = [15, 30, 45, 60, 90, 120][Math.floor(Math.random() * 6)];
-      const resolved = age > countdown * 1000;
-      history.push({
-        id: `hist-${i}`,
-        ...c,
-        countdown,
-        threatType: threats[Math.floor(Math.random() * threats.length)],
-        timestamp: ts,
-        active: !resolved,
-        lat: c.lat + (Math.random() - 0.5) * 0.1,
-        lng: c.lng + (Math.random() - 0.5) * 0.1,
+    const history = alertHistory.map(a => {
+      const age = now - new Date(a.timestamp).getTime();
+      const resolved = !a.active || age > a.countdown * 1000;
+      return {
+        ...a,
         resolved,
-        resolvedAt: resolved ? new Date(new Date(ts).getTime() + countdown * 1000).toISOString() : undefined,
-      });
-    }
+        resolvedAt: resolved ? new Date(new Date(a.timestamp).getTime() + a.countdown * 1000).toISOString() : undefined,
+      };
+    });
     history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    res.json(history);
+    res.json(history.slice(0, 500));
   });
 
   return httpServer;
