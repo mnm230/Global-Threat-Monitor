@@ -552,16 +552,20 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   xfeed: { icon: MessageSquare, label: 'X / Twitter', labelAr: '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631' },
 };
 
+const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+const touchBtnClass = isTouchDevice ? 'w-9 h-9' : 'w-6 h-6';
+const touchIconClass = isTouchDevice ? 'w-4 h-4' : 'w-3 h-3';
+
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-all duration-150"
+      className={`${touchBtnClass} rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-all duration-150 warroom-panel-close`}
       title="Close panel"
       aria-label="Close panel"
       data-testid="button-panel-close"
     >
-      <X className="w-3 h-3" />
+      <X className={touchIconClass} />
     </button>
   );
 }
@@ -570,12 +574,12 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/30 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-all duration-150"
+      className={`${touchBtnClass} rounded flex items-center justify-center text-muted-foreground/30 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-all duration-150 warroom-panel-maximize`}
       title={isMaximized ? "Restore panel" : "Maximize panel"}
       aria-label={isMaximized ? "Restore panel" : "Maximize panel"}
       data-testid="button-panel-maximize"
     >
-      {isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+      {isMaximized ? <Minimize2 className={touchIconClass} /> : <Maximize2 className={touchIconClass} />}
     </button>
   );
 }
@@ -3048,12 +3052,12 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="settings-overlay">
-      <div className="w-[480px] max-h-[80vh] bg-background/95 backdrop-blur-xl border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px hsl(32 95% 50% / 0.1)'}}>
-        <div className="px-4 py-3 border-b border-primary/20 bg-primary/5 flex items-center gap-2 rounded-t-xl">
+      <div className="w-[90vw] max-w-[480px] max-h-[85vh] bg-background/95 backdrop-blur-xl border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px hsl(32 95% 50% / 0.1)'}}>
+        <div className={`px-4 ${isTouchDevice ? 'py-4' : 'py-3'} border-b border-primary/20 bg-primary/5 flex items-center gap-2 rounded-t-xl`}>
           <Settings className="w-4 h-4 text-primary" />
           <span className="text-xs font-bold font-mono text-primary tracking-wider">{t('SETTINGS', '\u0625\u0639\u062F\u0627\u062F\u0627\u062A')}</span>
           <div className="flex-1" />
-          <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-primary/20" aria-label="Close settings" data-testid="button-close-settings"><X className="w-4 h-4 text-primary/60" /></button>
+          <button onClick={onClose} className={`${isTouchDevice ? 'w-10 h-10' : 'w-6 h-6'} flex items-center justify-center rounded hover:bg-primary/20 active:bg-primary/30`} aria-label="Close settings" data-testid="button-close-settings"><X className={`${isTouchDevice ? 'w-5 h-5' : 'w-4 h-4'} text-primary/60`} /></button>
         </div>
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4 space-y-5">
@@ -3087,12 +3091,12 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
                 { key: 'notifyUav' as const, label: 'UAV Intrusion' },
                 { key: 'notifyAircraft' as const, label: 'Hostile Aircraft' },
               ] as const).map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 mb-2 cursor-pointer group" data-testid={`toggle-${key}`}>
+                <label key={key} className={`flex items-center gap-3 ${isTouchDevice ? 'mb-3 py-1' : 'mb-2'} cursor-pointer group`} data-testid={`toggle-${key}`}>
                   <div
-                    className={`w-8 h-4 rounded-full transition-colors relative ${local[key] ? 'bg-primary' : 'bg-border/50'}`}
+                    className={`${isTouchDevice ? 'w-11 h-6' : 'w-8 h-4'} rounded-full transition-colors relative ${local[key] ? 'bg-primary' : 'bg-border/50'}`}
                     onClick={() => setLocal(p => ({ ...p, [key]: !p[key] }))}
                   >
-                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${local[key] ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    <div className={`absolute ${isTouchDevice ? 'top-1 w-4 h-4' : 'top-0.5 w-3 h-3'} rounded-full bg-white shadow transition-transform ${local[key] ? (isTouchDevice ? 'translate-x-5' : 'translate-x-4') : 'translate-x-0.5'}`} />
                   </div>
                   <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90 transition-colors">{label}</span>
                 </label>
@@ -3100,21 +3104,21 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
             </div>
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-foreground/70 mb-3 block">{t('Sound', '\u0635\u0648\u062A')}</span>
-              <label className="flex items-center gap-3 cursor-pointer group mb-3" data-testid="toggle-sound">
+              <label className={`flex items-center gap-3 cursor-pointer group mb-3 ${isTouchDevice ? 'py-1' : ''}`} data-testid="toggle-sound">
                 <div
-                  className={`w-8 h-4 rounded-full transition-colors relative ${local.soundEnabled ? 'bg-primary' : 'bg-border/50'}`}
+                  className={`${isTouchDevice ? 'w-11 h-6' : 'w-8 h-4'} rounded-full transition-colors relative ${local.soundEnabled ? 'bg-primary' : 'bg-border/50'}`}
                   onClick={() => setLocal(p => ({ ...p, soundEnabled: !p.soundEnabled }))}
                 >
-                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${local.soundEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  <div className={`absolute ${isTouchDevice ? 'top-1 w-4 h-4' : 'top-0.5 w-3 h-3'} rounded-full bg-white shadow transition-transform ${local.soundEnabled ? (isTouchDevice ? 'translate-x-5' : 'translate-x-4') : 'translate-x-0.5'}`} />
                 </div>
                 <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90">{t('Alert sounds', '\u0623\u0635\u0648\u0627\u062A \u0627\u0644\u0625\u0646\u0630\u0627\u0631')}</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group mb-3" data-testid="toggle-silent-mode">
+              <label className={`flex items-center gap-3 cursor-pointer group mb-3 ${isTouchDevice ? 'py-1' : ''}`} data-testid="toggle-silent-mode">
                 <div
-                  className={`w-8 h-4 rounded-full transition-colors relative ${local.silentMode ? 'bg-red-500' : 'bg-border/50'}`}
+                  className={`${isTouchDevice ? 'w-11 h-6' : 'w-8 h-4'} rounded-full transition-colors relative ${local.silentMode ? 'bg-red-500' : 'bg-border/50'}`}
                   onClick={() => setLocal(p => ({ ...p, silentMode: !p.silentMode }))}
                 >
-                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${local.silentMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  <div className={`absolute ${isTouchDevice ? 'top-1 w-4 h-4' : 'top-0.5 w-3 h-3'} rounded-full bg-white shadow transition-transform ${local.silentMode ? (isTouchDevice ? 'translate-x-5' : 'translate-x-4') : 'translate-x-0.5'}`} />
                 </div>
                 <span className="text-xs font-mono text-foreground/70 group-hover:text-foreground/90">{t('Silent mode (mute all)', '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0635\u0627\u0645\u062A')}</span>
               </label>
@@ -3167,7 +3171,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
         </ScrollArea>
         <div className="px-4 py-3 border-t border-primary/20 flex items-center justify-end gap-2">
           <button onClick={onClose} className="text-[10px] px-4 py-1.5 rounded font-mono text-foreground/40 hover:text-foreground border border-white/[0.06] hover:bg-white/[0.04] transition-colors" data-testid="button-cancel-settings">{t('Cancel', '\u0625\u0644\u063A\u0627\u0621')}</button>
-          <button onClick={handleSave} className="text-xs px-4 py-1.5 rounded font-mono font-bold text-background bg-primary hover:bg-primary/90 transition-colors" data-testid="button-save-settings">{t('Save', '\u062D\u0641\u0638')}</button>
+          <button onClick={handleSave} className={`text-xs ${isTouchDevice ? 'px-6 py-3' : 'px-4 py-1.5'} rounded font-mono font-bold text-background bg-primary hover:bg-primary/90 active:bg-primary/80 transition-colors`} data-testid="button-save-settings">{t('Save', '\u062D\u0641\u0638')}</button>
         </div>
       </div>
     </div>
@@ -4314,13 +4318,13 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col bg-background text-foreground min-h-screen" data-testid="dashboard">
-      <header className="h-10 border-b border-border/40 flex items-center justify-between px-3 md:px-5 shrink-0 relative z-50" style={{background:'linear-gradient(180deg, hsl(225 28% 5.5%) 0%, hsl(225 30% 3.5%) 100%)', boxShadow:'0 1px 0 hsl(225 20% 10% / 0.3), 0 4px 20px hsl(0 0% 0% / 0.4)'}}>
+      <header className={`${isTouchDevice ? 'min-h-[48px]' : 'h-10'} border-b border-border/40 flex items-center justify-between px-3 md:px-5 shrink-0 relative z-50 warroom-header`} style={{background:'linear-gradient(180deg, hsl(225 28% 5.5%) 0%, hsl(225 30% 3.5%) 100%)', boxShadow:'0 1px 0 hsl(225 20% 10% / 0.3), 0 4px 20px hsl(0 0% 0% / 0.4)'}}>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
         <div className="flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded bg-gradient-to-br from-primary/30 via-primary/15 to-transparent flex items-center justify-center border border-primary/20" style={{boxShadow:'0 0 12px hsl(36 100% 50% / 0.1), inset 0 1px 0 hsl(36 100% 50% / 0.1)'}}>
-              <Crosshair className="w-3.5 h-3.5 text-primary" />
+            <div className={`${isTouchDevice ? 'w-9 h-9' : 'w-7 h-7'} rounded bg-gradient-to-br from-primary/30 via-primary/15 to-transparent flex items-center justify-center border border-primary/20`} style={{boxShadow:'0 0 12px hsl(36 100% 50% / 0.1), inset 0 1px 0 hsl(36 100% 50% / 0.1)'}}>
+              <Crosshair className={`${isTouchDevice ? 'w-4.5 h-4.5' : 'w-3.5 h-3.5'} text-primary`} />
             </div>
             <div className="flex flex-col leading-none gap-0.5">
               <span className="font-black text-[13px] tracking-[0.3em] text-primary font-mono" style={{textShadow:'0 0 30px hsl(36 100% 50% / 0.4), 0 1px 2px hsl(0 0% 0% / 0.5)'}}>WARROOM</span>
@@ -4346,11 +4350,11 @@ export default function Dashboard() {
           {isMobile || isTablet ? (
             <button
               onClick={() => setShowMobileMenu(p => !p)}
-              className="w-9 h-9 flex items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-colors"
+              className="w-11 h-11 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 transition-colors"
               aria-label="Open menu"
               data-testid="button-mobile-menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-6 h-6" />
             </button>
           ) : (
             <div className="flex items-center gap-0.5">

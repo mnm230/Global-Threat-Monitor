@@ -8,6 +8,7 @@ import { PathStyleExtension } from '@deck.gl/extensions';
 import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 interface ViewState {
   longitude: number;
@@ -2447,8 +2448,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                     onClick={() => setRegion(region)}
                     style={{
                       flex: 1,
-                      padding: '3px 2px',
-                      fontSize: 8,
+                      padding: IS_TOUCH ? '8px 4px' : '3px 2px',
+                      fontSize: IS_TOUCH ? 10 : 8,
                       fontWeight: 600,
                       fontFamily: 'monospace',
                       borderRadius: 3,
@@ -2458,7 +2459,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                       cursor: 'pointer',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
-                      minHeight: 22,
+                      minHeight: IS_TOUCH ? 36 : 22,
                     }}
                   >
                     {region === 'global' ? 'ALL' : region === 'levant' ? 'LEV' : region.toUpperCase()}
@@ -2628,8 +2629,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       <div
         style={{
           position: 'absolute',
-          right: 12,
-          bottom: 60,
+          right: IS_TOUCH ? 16 : 12,
+          bottom: IS_TOUCH ? 70 : 60,
           zIndex: 10,
           display: 'flex',
           flexDirection: 'column',
@@ -2640,8 +2641,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           data-testid="button-zoom-in"
           onClick={() => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 1, 18) }))}
           style={{
-            width: 32,
-            height: 32,
+            width: IS_TOUCH ? 44 : 32,
+            height: IS_TOUCH ? 44 : 32,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2651,7 +2652,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             borderRadius: '6px 6px 0 0',
             color: '#8892a4',
             cursor: 'pointer',
-            fontSize: 16,
+            fontSize: IS_TOUCH ? 20 : 16,
             fontWeight: 300,
             lineHeight: 1,
           }}
@@ -2662,8 +2663,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           data-testid="button-zoom-out"
           onClick={() => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 1) }))}
           style={{
-            width: 32,
-            height: 32,
+            width: IS_TOUCH ? 44 : 32,
+            height: IS_TOUCH ? 44 : 32,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2674,7 +2675,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             borderRadius: '0 0 6px 6px',
             color: '#8892a4',
             cursor: 'pointer',
-            fontSize: 16,
+            fontSize: IS_TOUCH ? 20 : 16,
             fontWeight: 300,
             lineHeight: 1,
           }}
@@ -2700,7 +2701,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
             data-testid="button-toggle-layers-panel"
             onClick={() => setPanelOpen(!panelOpen)}
             className="flex items-center justify-between gap-2 px-2.5 py-1.5 w-full text-left"
-            style={{ borderBottom: panelOpen ? '1px solid rgba(255,255,255,0.04)' : 'none', minHeight: 30 }}
+            style={{ borderBottom: panelOpen ? '1px solid rgba(255,255,255,0.04)' : 'none', minHeight: IS_TOUCH ? 44 : 30 }}
           >
             <div className="flex items-center gap-2">
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#8892a4', boxShadow: '0 0 4px #8892a455' }} />
@@ -2726,7 +2727,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                         data-testid={`toggle-group-${group.id}`}
                         onClick={() => toggleGroup(group.id)}
                         className="flex items-center gap-1.5 flex-1 text-left"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0', minHeight: 24 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: IS_TOUCH ? '6px 0' : '2px 0', minHeight: IS_TOUCH ? 36 : 24 }}
                       >
                         <span style={{ color: group.color, fontSize: 6, opacity: 0.6 }}>{isExpanded ? '▼' : '▶'}</span>
                         <span style={{ color: group.color, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', fontFamily: 'monospace', textTransform: 'uppercase', opacity: 0.8 }}>
@@ -2745,12 +2746,12 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                           borderRadius: 3,
                           color: activeInGroup > 0 ? '#5a6577' : '#2a3040',
                           cursor: 'pointer',
-                          fontSize: 7,
+                          fontSize: IS_TOUCH ? 9 : 7,
                           fontFamily: 'monospace',
                           fontWeight: 700,
-                          padding: '1px 4px',
+                          padding: IS_TOUCH ? '4px 8px' : '1px 4px',
                           letterSpacing: '0.05em',
-                          minHeight: 18,
+                          minHeight: IS_TOUCH ? 30 : 18,
                         }}
                       >
                         {activeInGroup === groupLayers.length ? 'OFF' : 'ALL'}
@@ -2764,8 +2765,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                             data-testid={`toggle-layer-${cfg.key}`}
                             className="flex items-center gap-1.5 cursor-pointer select-none"
                             style={{
-                              padding: '2px 6px 2px 16px',
-                              minHeight: 22,
+                              padding: IS_TOUCH ? '6px 6px 6px 16px' : '2px 6px 2px 16px',
+                              minHeight: IS_TOUCH ? 36 : 22,
                               background: layerVisibility[cfg.key] ? 'rgba(255,255,255,0.015)' : 'transparent',
                               transition: 'background 0.15s',
                             }}

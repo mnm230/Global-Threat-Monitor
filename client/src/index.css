@@ -276,6 +276,62 @@
   .touch-scroll-snap {
     scroll-snap-type: y mandatory;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+
+  .react-resizable-handle {
+    opacity: 0.5 !important;
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .react-grid-item > .react-resizable-handle::after {
+    width: 14px !important;
+    height: 14px !important;
+    border-width: 3px !important;
+  }
+
+  .react-grid-item > .panel-drag-handle {
+    touch-action: none;
+  }
+
+  .react-grid-item > .react-resizable-handle {
+    touch-action: none;
+  }
+
+  .panel-drag-handle {
+    min-height: 40px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  input[type="range"] {
+    height: 32px;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    min-height: 40px;
+  }
+
+  .warroom-panel-close,
+  .warroom-panel-maximize {
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
 }
 
 @media (max-width: 767px) {
@@ -350,7 +406,7 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1024px) {
+@media (min-width: 768px) and (max-width: 1199px) {
   .warroom-panel-body {
     font-size: 12px;
   }
@@ -358,6 +414,21 @@
   .warroom-ticker {
     height: 26px;
     font-size: 11px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) and (hover: none) and (pointer: coarse) {
+  .warroom-header {
+    min-height: 48px;
+  }
+
+  .warroom-panel {
+    min-height: 260px;
+  }
+
+  .warroom-panel-header {
+    min-height: 40px;
+    padding: 8px 12px;
   }
 }
 
