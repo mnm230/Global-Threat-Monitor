@@ -51,11 +51,13 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Threat Heat Map:** Visualizes event/alert intensity using a heatmap layer.
 - **Animated Missile Arcs:** Simulates missile trajectories with animated arcs.
 - **Distance/Radius Tool:** Measures distances and radii on the map.
+- **Satellite Thermal Hotspots:** Real NASA FIRMS VIIRS satellite data showing thermal/fire anomalies across MENA region. Two toggleable layers: point markers (sized by FRP, colored by confidence) and heatmap visualization. Data from NOAA-20 satellite, refreshed every 15 minutes, cached server-side. Accessible via `/api/thermal-hotspots` endpoint and SSE `thermal` event. Map layers: "Thermal Hotspots" (ScatterplotLayer) and "Thermal Heat Map" (HeatmapLayer) in the SATELLITE layer group.
 
 ## External Dependencies
 - **ADS-B Data:** `adsb.lol` (for live flight tracking)
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications` and `api.tzevaadom.co.il/alerts-history`, with `oref.org.il` as a tertiary fallback.
 - **Earthquake Data:** USGS
+- **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv`) — real-time VIIRS fire/thermal detection data, filtered to MENA region (lat 12-42, lng 24-63)
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui

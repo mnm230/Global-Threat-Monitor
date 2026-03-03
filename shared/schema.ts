@@ -190,3 +190,17 @@ export interface CyberEvent {
   timestamp: string;
   description: string;
 }
+
+export interface ThermalHotspot {
+  id: string;
+  lat: number;
+  lng: number;
+  brightness: number;
+  frp: number;
+  confidence: 'low' | 'nominal' | 'high';
+  satellite: string;
+  instrument: string;
+  acqDate: string;
+  acqTime: string;
+  dayNight: 'D' | 'N';
+}

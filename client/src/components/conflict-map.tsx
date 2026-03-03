@@ -5,7 +5,7 @@ import { Deck } from '@deck.gl/core';
 import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
-import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert } from '@shared/schema';
+import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -552,7 +552,9 @@ type LayerKey =
   | 'eezBoundaries'
   | 'supplyRoutes'
   | 'shippingLanes'
-  | 'noFlyZones';
+  | 'noFlyZones'
+  | 'satelliteThermal'
+  | 'thermalHeatmap';
 
 const MISSILE_TRAJECTORIES = [
   { id: 'traj-1', source: [51.4, 35.7], target: [34.8, 32.1], label: 'Tehran > Tel Aviv', type: 'ballistic' },
@@ -590,6 +592,7 @@ const LAYER_GROUPS = [
   { id: 'humanitarian', label: 'HUMANITARIAN', color: '#22c55e' },
   { id: 'threat', label: 'THREAT ACTORS', color: '#f43f5e' },
   { id: 'maritime', label: 'MARITIME', color: '#0ea5e9' },
+  { id: 'satellite', label: 'SATELLITE', color: '#ff6b35' },
 ];
 
 const LAYER_CONFIGS: LayerConfig[] = [
@@ -640,6 +643,9 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'tunnelNetworks', label: 'Tunnel Networks', color: '#a3a3a3', defaultOn: false, group: 'threat' },
 
   { key: 'eezBoundaries', label: 'EEZ Boundaries', color: '#0ea5e9', defaultOn: false, group: 'maritime' },
+
+  { key: 'satelliteThermal', label: 'Thermal Hotspots', color: '#ff6b35', defaultOn: false, group: 'satellite' },
+  { key: 'thermalHeatmap', label: 'Thermal Heat Map', color: '#ff3300', defaultOn: false, group: 'satellite' },
 ];
 
 interface SearchItem {
@@ -770,11 +776,12 @@ interface ConflictMapProps {
   ships: ShipData[];
   adsbFlights?: AdsbFlight[];
   redAlerts?: RedAlert[];
+  thermalHotspots?: ThermalHotspot[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
 }
 
-export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], activeView, language = 'en' }: ConflictMapProps) {
+export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en' }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
@@ -2031,8 +2038,58 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       );
     }
 
+    if (layerVisibility.satelliteThermal && thermalHotspots.length > 0) {
+      result.push(
+        new ScatterplotLayer({
+          id: 'thermal-hotspots-layer',
+          data: thermalHotspots,
+          getPosition: (d: ThermalHotspot) => [d.lng, d.lat],
+          getRadius: (d: ThermalHotspot) => Math.max(2000, Math.min(d.frp * 150, 15000)),
+          getFillColor: (d: ThermalHotspot) => {
+            const intensity = Math.min(d.brightness / 400, 1);
+            if (d.confidence === 'high') return [255, Math.round(80 * (1 - intensity)), 0, Math.round(160 + 80 * intensity)] as [number, number, number, number];
+            if (d.confidence === 'nominal') return [255, Math.round(140 * (1 - intensity)), 20, Math.round(120 + 60 * intensity)] as [number, number, number, number];
+            return [255, 180, 60, 100] as [number, number, number, number];
+          },
+          getLineColor: (d: ThermalHotspot) => {
+            if (d.confidence === 'high') return [255, 60, 0, 220] as [number, number, number, number];
+            if (d.confidence === 'nominal') return [255, 120, 20, 180] as [number, number, number, number];
+            return [255, 160, 40, 140] as [number, number, number, number];
+          },
+          stroked: true,
+          lineWidthMinPixels: 1,
+          radiusMinPixels: 3,
+          radiusMaxPixels: 18,
+          pickable: true,
+        })
+      );
+    }
+
+    if (layerVisibility.thermalHeatmap && thermalHotspots.length > 0) {
+      result.push(
+        new HeatmapLayer({
+          id: 'thermal-heatmap-layer',
+          data: thermalHotspots,
+          getPosition: (d: ThermalHotspot) => [d.lng, d.lat],
+          getWeight: (d: ThermalHotspot) => d.frp || 1,
+          radiusPixels: 50,
+          intensity: 2,
+          threshold: 0.03,
+          colorRange: [
+            [20, 10, 0],
+            [80, 20, 0],
+            [160, 40, 0],
+            [220, 80, 0],
+            [255, 140, 0],
+            [255, 220, 100],
+          ],
+          aggregation: 'SUM',
+        })
+      );
+    }
+
     return result;
-  }, [events, flights, ships, adsbFlights, layerVisibility, heatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+  }, [events, flights, ships, adsbFlights, thermalHotspots, layerVisibility, heatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!containerRef.current) return;

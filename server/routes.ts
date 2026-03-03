@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot } from "@shared/schema";
 
 const ADSB_API_BASE = 'https://api.adsb.lol/v2';
 
@@ -1230,6 +1230,69 @@ async function fetchEarthquakes(): Promise<EarthquakeEvent[]> {
   }
 }
 
+let thermalCache: { data: ThermalHotspot[]; fetchedAt: number } | null = null;
+const THERMAL_CACHE_TTL = 15 * 60 * 1000;
+
+async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
+  if (thermalCache && Date.now() - thermalCache.fetchedAt < THERMAL_CACHE_TTL) {
+    return thermalCache.data;
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const resp = await fetch(
+      'https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv',
+      { headers: { 'User-Agent': 'WARROOM-Dashboard/1.0' }, signal: controller.signal }
+    );
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error(`FIRMS HTTP ${resp.status}`);
+    const text = await resp.text();
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return thermalCache?.data || [];
+    const header = lines[0].split(',');
+    const latIdx = header.indexOf('latitude');
+    const lngIdx = header.indexOf('longitude');
+    const briIdx = header.indexOf('bright_ti4');
+    const frpIdx = header.indexOf('frp');
+    const confIdx = header.indexOf('confidence');
+    const satIdx = header.indexOf('satellite');
+    const instrIdx = -1;
+    const dateIdx = header.indexOf('acq_date');
+    const timeIdx = header.indexOf('acq_time');
+    const dnIdx = header.indexOf('daynight');
+
+    const hotspots: ThermalHotspot[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length < header.length) continue;
+      const lat = parseFloat(cols[latIdx]);
+      const lng = parseFloat(cols[lngIdx]);
+      if (lat < 12 || lat > 42 || lng < 24 || lng > 63) continue;
+      const confRaw = (cols[confIdx] || '').toLowerCase().trim();
+      const confidence: 'low' | 'nominal' | 'high' = confRaw === 'high' ? 'high' : confRaw === 'nominal' ? 'nominal' : 'low';
+      hotspots.push({
+        id: `th-${i}`,
+        lat,
+        lng,
+        brightness: parseFloat(cols[briIdx]) || 0,
+        frp: parseFloat(cols[frpIdx]) || 0,
+        confidence,
+        satellite: cols[satIdx] || 'N20',
+        instrument: instrIdx >= 0 ? (cols[instrIdx] || 'VIIRS') : 'VIIRS',
+        acqDate: cols[dateIdx] || '',
+        acqTime: cols[timeIdx] || '',
+        dayNight: (cols[dnIdx] || 'D').trim() as 'D' | 'N',
+      });
+    }
+    thermalCache = { data: hotspots, fetchedAt: Date.now() };
+    console.log(`[FIRMS] Fetched ${hotspots.length} thermal hotspots in MENA region`);
+    return hotspots;
+  } catch (err) {
+    console.error('[FIRMS] Fetch error:', err);
+    return thermalCache?.data || [];
+  }
+}
+
 function generateCyberEvents(): CyberEvent[] {
   const now = Date.now();
   return [
@@ -1489,6 +1552,7 @@ export async function registerRoutes(
     send('telegram', generateTelegram());
     send('cyber', generateCyberEvents());
     fetchEarthquakes().then(eqs => send('earthquakes', eqs));
+    fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
     intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 6000));
@@ -1502,6 +1566,7 @@ export async function registerRoutes(
     intervals.push(setInterval(() => send('ai-brief', generateAIBrief()), 60000));
     intervals.push(setInterval(() => send('cyber', generateCyberEvents()), 45000));
     intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
+    intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 15 * 60000));
 
     req.on('close', () => {
       intervals.forEach(clearInterval);
@@ -1510,6 +1575,11 @@ export async function registerRoutes(
 
   app.get('/api/earthquakes', async (_req, res) => {
     const data = await fetchEarthquakes();
+    res.json(data);
+  });
+
+  app.get('/api/thermal-hotspots', async (_req, res) => {
+    const data = await fetchThermalHotspots();
     res.json(data);
   });
 

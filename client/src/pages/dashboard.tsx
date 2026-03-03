@@ -21,6 +21,7 @@ import type {
   AdsbFlight,
   EarthquakeEvent,
   CyberEvent,
+  ThermalHotspot,
 } from '@shared/schema';
 import {
   Radio,
@@ -232,6 +233,7 @@ interface SSEData {
   telegramMessages: TelegramMessage[];
   earthquakes: EarthquakeEvent[];
   cyberEvents: CyberEvent[];
+  thermalHotspots: ThermalHotspot[];
   connected: boolean;
 }
 
@@ -248,6 +250,7 @@ function useSSE(): SSEData {
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [earthquakes, setEarthquakes] = useState<EarthquakeEvent[]>([]);
   const [cyberEvents, setCyberEvents] = useState<CyberEvent[]>([]);
+  const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
@@ -299,6 +302,9 @@ function useSSE(): SSEData {
       es.addEventListener('cyber', (e) => {
         try { setCyberEvents(JSON.parse(e.data)); } catch {}
       });
+      es.addEventListener('thermal', (e) => {
+        try { setThermalHotspots(JSON.parse(e.data)); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -319,7 +325,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -2966,6 +2972,7 @@ function MapSection({
   ships,
   adsbFlights,
   redAlerts,
+  thermalHotspots,
   language,
   onClose,
   onMaximize,
@@ -2976,6 +2983,7 @@ function MapSection({
   ships: ShipData[];
   adsbFlights: AdsbFlight[];
   redAlerts: RedAlert[];
+  thermalHotspots: ThermalHotspot[];
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -3040,6 +3048,7 @@ function MapSection({
                 ships={ships}
                 adsbFlights={adsbFlights}
                 redAlerts={redAlerts}
+                thermalHotspots={thermalHotspots}
                 activeView={activeView}
                 language={language}
               />
@@ -3136,7 +3145,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, connected } = sse;
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -3314,7 +3323,7 @@ export default function Dashboard() {
         case 'intel':
           return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
         case 'map':
-          return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+          return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'radar':
