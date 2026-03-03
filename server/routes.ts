@@ -1106,10 +1106,100 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
   'נווה דניאל': { lat: 31.657, lng: 35.135, en: 'Neve Daniel', ar: 'نيفي دانيال', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
   'אלון שבות': { lat: 31.655, lng: 35.127, en: 'Alon Shvut', ar: 'ألون شفوت', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
   'ניר ישראל': { lat: 31.611, lng: 34.547, en: 'Nir Yisrael', ar: 'نير إسرائيل', region: 'Gaza Envelope', regionHe: 'עוטף עזה', regionAr: 'غلاف غزة', countdown: 15 },
+  'דיר אל-אסד': { lat: 32.928, lng: 35.268, en: 'Deir al-Asad', ar: 'دير الأسد', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 30 },
+  'מגדל': { lat: 32.830, lng: 35.516, en: 'Migdal', ar: 'مجدل', region: 'Sea of Galilee', regionHe: 'כנרת', regionAr: 'بحيرة طبريا', countdown: 30 },
+  'כפר מנדא': { lat: 32.812, lng: 35.265, en: 'Kafr Manda', ar: 'كفر مندا', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'ג\'דיידה-מכר': { lat: 32.929, lng: 35.145, en: 'Judeida-Makr', ar: 'جديدة المكر', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'אבו סנאן': { lat: 32.955, lng: 35.169, en: 'Abu Snan', ar: 'أبو سنان', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'ירכא': { lat: 32.958, lng: 35.187, en: 'Yirka', ar: 'يركا', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'מג\'ד אל-כרום': { lat: 32.919, lng: 35.244, en: 'Majd al-Krum', ar: 'مجد الكروم', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'כאבול': { lat: 32.876, lng: 35.213, en: 'Kabul', ar: 'كابول', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'טמרה': { lat: 32.855, lng: 35.198, en: 'Tamra', ar: 'طمرة', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'שפרעם': { lat: 32.805, lng: 35.172, en: 'Shefa-Amr', ar: 'شفا عمرو', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'סכנין': { lat: 32.863, lng: 35.299, en: 'Sakhnin', ar: 'سخنين', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'עראבה': { lat: 32.851, lng: 35.337, en: 'Arraba', ar: 'عرابة', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'דבוריה': { lat: 32.695, lng: 35.374, en: 'Daburiyya', ar: 'دبورية', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'כפר כנא': { lat: 32.750, lng: 35.340, en: 'Kafr Kanna', ar: 'كفر كنا', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'נצרת': { lat: 32.700, lng: 35.297, en: 'Nazareth', ar: 'الناصرة', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'ריינה': { lat: 32.711, lng: 35.310, en: 'Reineh', ar: 'الرينة', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'עילוט': { lat: 32.720, lng: 35.268, en: 'Ilut', ar: 'إعيلوط', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'טורעאן': { lat: 32.780, lng: 35.336, en: "Tur'an", ar: 'طرعان', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'בועיינה-נוג\'ידאת': { lat: 32.764, lng: 35.357, en: 'Bueine Nujeidat', ar: 'بوعينة نجيدات', region: 'Lower Galilee', regionHe: 'גליל תחתון', regionAr: 'الجليل الأسفل', countdown: 30 },
+  'נאעורה': { lat: 32.636, lng: 35.383, en: "Na'ura", ar: 'ناعورة', region: 'Jezreel Valley', regionHe: 'עמק יזרעאל', regionAr: 'مرج ابن عامر', countdown: 45 },
+  'מוקייבלה': { lat: 32.621, lng: 35.266, en: 'Muqeible', ar: 'مقيبلة', region: 'Jezreel Valley', regionHe: 'עמק יזרעאל', regionAr: 'مرج ابن عامر', countdown: 45 },
+  'פסוטה': { lat: 33.075, lng: 35.253, en: 'Fassuta', ar: 'فسوطة', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 0 },
+  'חורפיש': { lat: 33.028, lng: 35.341, en: 'Hurfeish', ar: 'حرفيش', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'ג\'ת': { lat: 32.874, lng: 35.100, en: 'Jatt', ar: 'جت', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 30 },
+  'פקיעין': { lat: 32.975, lng: 35.321, en: "Peqi'in", ar: 'بقيعين', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'כישור': { lat: 32.945, lng: 35.204, en: 'Kishor', ar: 'كيشور', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'ג\'ולס': { lat: 32.938, lng: 35.172, en: 'Julis', ar: 'جولس', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'בית ג\'ן': { lat: 32.888, lng: 35.391, en: 'Beit Jann', ar: 'بيت جن', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 30 },
+  'ג\'ש (גוש חלב)': { lat: 33.022, lng: 35.448, en: 'Jish', ar: 'الجش', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'ראמה': { lat: 32.937, lng: 35.369, en: 'Rama', ar: 'رامة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'עין אל-אסד': { lat: 32.937, lng: 35.276, en: 'Ein al-Asad', ar: 'عين الأسد', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'ביריה': { lat: 32.979, lng: 35.507, en: 'Birya', ar: 'بريا', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'עמוקה': { lat: 33.004, lng: 35.496, en: 'Amuka', ar: 'عموقة', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'חצור הגלילית': { lat: 32.972, lng: 35.542, en: 'Hatzor HaGlilit', ar: 'حتسور الجليل', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'ראש פינה': { lat: 32.969, lng: 35.542, en: 'Rosh Pina', ar: 'روش بينا', region: 'Upper Galilee', regionHe: 'גליל עליון', regionAr: 'الجليل الأعلى', countdown: 15 },
+  'כנף': { lat: 32.800, lng: 35.744, en: 'Kanaf', ar: 'كناف', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'קצרין': { lat: 32.996, lng: 35.692, en: 'Katzrin', ar: 'كتسرين', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 15 },
+  'מג\'דל שמס': { lat: 33.270, lng: 35.773, en: 'Majdal Shams', ar: 'مجدل شمس', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'מסעדה': { lat: 33.231, lng: 35.748, en: "Mas'ada", ar: 'مسعدة', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'עין קנייא': { lat: 33.244, lng: 35.762, en: 'Ein Qiniyye', ar: 'عين قنية', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'בוקעאתא': { lat: 33.226, lng: 35.781, en: "Buq'ata", ar: 'بقعاتا', region: 'Golan Heights', regionHe: 'רמת הגולן', regionAr: 'مرتفعات الجولان', countdown: 0 },
+  'כפר יאסיף': { lat: 32.948, lng: 35.139, en: 'Kafr Yasif', ar: 'كفر ياسيف', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'ג\'דיידה': { lat: 32.929, lng: 35.145, en: 'Judeida', ar: 'الجديدة', region: 'Western Galilee', regionHe: 'גליל מערבי', regionAr: 'الجليل الغربي', countdown: 15 },
+  'עספיא': { lat: 32.729, lng: 35.055, en: 'Isfiya', ar: 'عسفيا', region: 'Haifa District', regionHe: 'מחוז חיפה', regionAr: 'منطقة حيفا', countdown: 60 },
+  'דלית אל-כרמל': { lat: 32.695, lng: 35.042, en: 'Daliyat al-Karmel', ar: 'دالية الكرمل', region: 'Haifa District', regionHe: 'מחוז חיפה', regionAr: 'منطقة حيفا', countdown: 60 },
+  'אום אל-פחם': { lat: 32.519, lng: 35.153, en: 'Umm al-Fahm', ar: 'أم الفحم', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 45 },
+  'באקה אל-גרביה': { lat: 32.419, lng: 35.049, en: 'Baqa al-Gharbiyye', ar: 'باقة الغربية', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 45 },
+  'ג\'ת': { lat: 32.389, lng: 35.026, en: 'Jatt', ar: 'جت', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 45 },
+  'טייבה': { lat: 32.267, lng: 35.009, en: 'Tayibe', ar: 'الطيبة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'טירה': { lat: 32.234, lng: 34.952, en: 'Tira', ar: 'الطيرة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'קלנסווה': { lat: 32.286, lng: 34.986, en: 'Qalansawe', ar: 'قلنسوة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'ג\'לג\'וליה': { lat: 32.155, lng: 34.961, en: 'Jaljulia', ar: 'جلجولية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'רהט': { lat: 31.395, lng: 34.759, en: 'Rahat', ar: 'رهط', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'ערערה-בנגב': { lat: 31.148, lng: 34.989, en: 'Ar\'ara BaNegev', ar: 'عرعرة النقب', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'לקיה': { lat: 31.321, lng: 34.818, en: 'Lakiya', ar: 'لقية', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'חורה': { lat: 31.296, lng: 34.913, en: 'Hura', ar: 'حورة', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'תל שבע': { lat: 31.252, lng: 34.825, en: 'Tel Sheva', ar: 'تل السبع', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'עומר': { lat: 31.265, lng: 34.850, en: 'Omer', ar: 'عومر', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'מיתר': { lat: 31.324, lng: 34.935, en: 'Meitar', ar: 'ميتار', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'להבים': { lat: 31.373, lng: 34.812, en: 'Lehavim', ar: 'لهافيم', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'ערד-תעשייה': { lat: 31.260, lng: 35.200, en: 'Arad Industrial', ar: 'عراد صناعية', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
+  'ירוחם': { lat: 30.988, lng: 34.929, en: 'Yeruham', ar: 'يروحام', region: 'Southern Negev', regionHe: 'דרום הנגב', regionAr: 'النقب الجنوبي', countdown: 90 },
+  'מצפה רמון': { lat: 30.611, lng: 34.801, en: 'Mitzpe Ramon', ar: 'متسبي رامون', region: 'Southern Negev', regionHe: 'דרום הנגב', regionAr: 'النقب الجنوبي', countdown: 90 },
+  'עין גדי': { lat: 31.462, lng: 35.389, en: 'Ein Gedi', ar: 'عين جدي', region: 'Dead Sea', regionHe: 'ים המלח', regionAr: 'البحر الميت', countdown: 90 },
+  'נען': { lat: 31.873, lng: 34.869, en: "Na'an", ar: 'نعان', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'קריית מלאכי': { lat: 31.728, lng: 34.748, en: 'Kiryat Malakhi', ar: 'كريات ملاخي', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 45 },
+  'גן יבנה': { lat: 31.793, lng: 34.707, en: 'Gan Yavne', ar: 'غان يافني', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 45 },
+  'אופקים': { lat: 31.312, lng: 34.622, en: 'Ofakim', ar: 'أوفاكيم', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 45 },
+  'נתיבות': { lat: 31.420, lng: 34.589, en: 'Netivot', ar: 'نتيفوت', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 30 },
 };
 
 let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
 const OREF_CACHE_TTL = 5000;
+
+const HE_TRANSLITERATION: Record<string, string> = {
+  'א': 'a', 'ב': 'b', 'ג': 'g', 'ד': 'd', 'ה': 'h', 'ו': 'v', 'ז': 'z', 'ח': 'kh', 'ט': 't',
+  'י': 'y', 'כ': 'k', 'ך': 'k', 'ל': 'l', 'מ': 'm', 'ם': 'm', 'נ': 'n', 'ן': 'n', 'ס': 's',
+  'ע': 'a', 'פ': 'p', 'ף': 'f', 'צ': 'tz', 'ץ': 'tz', 'ק': 'k', 'ר': 'r', 'ש': 'sh', 'ת': 't',
+  "'": "'", "׳": "'", '"': '', '״': '',
+};
+
+function transliterateHebrew(he: string): string {
+  if (!/[\u0590-\u05FF]/.test(he)) return he;
+  let result = '';
+  for (const ch of he) {
+    if (HE_TRANSLITERATION[ch] !== undefined) {
+      result += HE_TRANSLITERATION[ch];
+    } else {
+      result += ch;
+    }
+  }
+  result = result.replace(/\s+/g, ' ').trim();
+  return result.charAt(0).toUpperCase() + result.slice(1);
+}
 
 function parseCityAlerts(cities: string[], threat: number, timestamp: string): RedAlert[] {
   const alerts: RedAlert[] = [];
@@ -1118,9 +1208,10 @@ function parseCityAlerts(cities: string[], threat: number, timestamp: string): R
     const trimmed = cityHe.trim();
     if (!trimmed) continue;
     const known = OREF_CITY_COORDS[trimmed];
+    const cityEn = known?.en || transliterateHebrew(trimmed);
     alerts.push({
       id: `oref-${trimmed}-${threat}-${timestamp}`,
-      city: known?.en || trimmed,
+      city: cityEn,
       cityHe: trimmed,
       cityAr: known?.ar || trimmed,
       region: known?.region || 'Israel',
