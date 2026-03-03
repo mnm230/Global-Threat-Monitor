@@ -3915,7 +3915,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -4036,7 +4036,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);

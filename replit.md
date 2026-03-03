@@ -57,6 +57,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Sound Improvements:** Distinct synthesized tones per threat type (rockets=rapid beep, missiles=sustained low sweep, UAV=3-pulse mid-tone, hostile aircraft=descending siren). Volume slider (0-100%), silent mode toggle. Settings stored in localStorage.
 - **Alert History Timeline:** 24h scrollable timeline in Alert History overlay. 96 x 15-min buckets with stacked bars colored by threat type. Visual clustering (5+ alerts = highlight). Escalation detection (3+ increasing consecutive buckets). Click bucket to view details.
 - **Browser Push Notifications:** Service Worker (`client/public/sw.js`) enables persistent notifications when tab is backgrounded. Uses `postMessage` to SW which calls `showNotification`. Click notification focuses/opens dashboard tab. Notification level setting: All/Critical Only/None.
+- **X / Twitter Feed Panel:** Live X/Twitter OSINT feed panel scraping 8 accounts (FirstSquawk, AvichayAdraee, IntelCrab, sentdefender, IsraelRadar_, AuroraIntel, Faytuks, Conflicts). Backend: `fetchXFeeds()` with 2-min cache, `/api/x-feed` REST endpoint, `x-feed` SSE event at 30s intervals. Frontend: `XFeedPanel` component with account filter tabs, verified badge, category badges (breaking/military/diplomatic/humanitarian/economic/nuclear), relative timestamps, external links. Panel ID: `xfeed`, visible by default in Default layout preset.
 
 ## External Dependencies
 - **ADS-B Data:** `adsb.lol` (for live flight tracking)
