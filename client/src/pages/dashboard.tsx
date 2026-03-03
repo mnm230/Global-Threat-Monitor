@@ -81,6 +81,7 @@ import {
   TriangleAlert,
   Menu,
   Cpu,
+  Video,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -471,7 +472,7 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -484,6 +485,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
   seismic: { icon: Activity, label: 'Seismic', labelAr: '\u0632\u0644\u0627\u0632\u0644' },
   cyber: { icon: Cpu, label: 'Cyber', labelAr: '\u0633\u064A\u0628\u0631\u0627\u0646\u064A' },
+  livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
 };
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
@@ -584,26 +586,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false },
-    colWidths: { telegram: 16, intel: 16, map: 42, alerts: 26, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100 },
     rowSplit: 50,
   },
 ];
@@ -1932,6 +1934,79 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   );
 }
 
+function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const [ytVideoId, setYtVideoId] = useState('bNyUyrR0PHo');
+  const [customUrl, setCustomUrl] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
+  const handleSetUrl = useCallback(() => {
+    const match = customUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([a-zA-Z0-9_-]{11})/);
+    if (match) {
+      setYtVideoId(match[1]);
+      setShowUrlInput(false);
+      setCustomUrl('');
+    }
+  }, [customUrl]);
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="livefeed-panel">
+      <PanelHeader
+        icon={<Video className="w-3.5 h-3.5 text-red-400" />}
+        title={language === 'en' ? 'LIVE FEED' : '\u0628\u062B \u0645\u0628\u0627\u0634\u0631'}
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        extra={
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
+              <span className="text-[9px] text-red-400/80 font-bold tracking-wider font-mono">LIVE</span>
+            </div>
+            <button
+              onClick={() => setShowUrlInput(p => !p)}
+              className="w-6 h-6 rounded flex items-center justify-center text-foreground/30 hover:text-primary hover:bg-primary/10 transition-colors"
+              aria-label="Change stream URL"
+              data-testid="button-change-stream"
+            >
+              <Settings className="w-3 h-3" />
+            </button>
+          </div>
+        }
+      />
+      {showUrlInput && (
+        <div className="px-3 py-2 border-b border-white/[0.04] bg-card/40 flex items-center gap-2 shrink-0">
+          <input
+            type="text"
+            value={customUrl}
+            onChange={e => setCustomUrl(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSetUrl()}
+            placeholder="Paste YouTube live URL..."
+            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded px-2 py-1 text-[10px] text-foreground/70 placeholder:text-foreground/20 font-mono focus:outline-none focus:border-primary/40"
+            data-testid="input-stream-url"
+          />
+          <button
+            onClick={handleSetUrl}
+            className="px-2 py-1 rounded text-[9px] font-bold bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+            data-testid="button-set-stream"
+          >
+            SET
+          </button>
+        </div>
+      )}
+      <div className="flex-1 min-h-0 bg-black relative">
+        <iframe
+          src={`https://www.youtube.com/embed/${ytVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1`}
+          className="absolute inset-0 w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title="Live Feed"
+          data-testid="livefeed-iframe"
+        />
+      </div>
+    </div>
+  );
+}
+
 function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [threatFilter, setThreatFilter] = useState<string>('all');
@@ -2955,20 +3030,26 @@ export default function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      setIsTablet(w >= 768 && w < 1200);
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
-      if (saved.visiblePanels) return saved.visiblePanels;
+      if (saved.visiblePanels) return { ...defaultVisible, ...saved.visiblePanels };
     } catch {}
-    return { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false };
+    return defaultVisible;
   });
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [maximizedPanel, setMaximizedPanel] = useState<PanelId | null>(null);
@@ -3045,7 +3126,7 @@ export default function Dashboard() {
     try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
   }, [showWatchlist]);
 
-  const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts'];
+  const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
   const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
@@ -3054,14 +3135,14 @@ export default function Dashboard() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWidths: Record<PanelId, number> = {
-    telegram: 16, intel: 16, map: 42, alerts: 26,
+    telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
     seismic: 22, cyber: 22,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
-      if (saved.colWidths) return saved.colWidths;
+      if (saved.colWidths) return { ...defaultWidths, ...saved.colWidths };
     } catch {}
     return defaultWidths;
   });
@@ -3190,6 +3271,8 @@ export default function Dashboard() {
           return <SeismicPanel earthquakes={earthquakes} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'cyber':
           return <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'livefeed':
+          return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;
@@ -3205,7 +3288,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
+    <div className={`flex flex-col bg-background text-foreground ${isTablet || isMobile ? 'min-h-screen' : 'h-screen overflow-hidden'}`} data-testid="dashboard">
       <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative z-50" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
@@ -3235,7 +3318,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <div className="hidden md:flex items-center"><LiveClock /></div>
           <div className="w-px h-4 bg-border/30 hidden md:block" />
-          {isMobile ? (
+          {isMobile || isTablet ? (
             <button
               onClick={() => setShowMobileMenu(p => !p)}
               className="w-10 h-10 flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-white/5 transition-colors"
@@ -3288,7 +3371,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {showMobileMenu && isMobile && (
+      {showMobileMenu && (isMobile || isTablet) && (
         <div className="border-b border-primary/20 bg-background/95 backdrop-blur-md px-3 py-2 flex flex-wrap gap-1.5 shrink-0 z-50" data-testid="mobile-menu">
           <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { toggleNotifications(); setShowMobileMenu(false); }} aria-label="Notifications"><Bell className="w-4 h-4 mr-1" />Notif</Button>
           <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setSoundEnabled(p => !p); setShowMobileMenu(false); }} aria-label="Sound"><Volume2 className="w-4 h-4 mr-1" />Sound</Button>
@@ -3304,33 +3387,26 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div ref={containerRef} className="flex-1 flex flex-col min-h-0 overflow-hidden" data-testid="resizable-panels">
+      <div ref={containerRef} className={`flex-1 flex flex-col min-h-0 ${isTablet || isMobile ? 'overflow-y-auto' : 'overflow-hidden'}`} data-testid="resizable-panels">
         {isMobile ? (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {renderPanel(mobileActiveTab)}
-            </div>
-            <div className="h-12 border-t border-white/[0.04] flex items-center justify-around bg-card/60 backdrop-blur-md shrink-0" data-testid="mobile-tab-bar" role="tablist" aria-label="Panel navigation">
-              {allPanels.filter(id => visiblePanels[id]).slice(0, 6).map(id => {
-                const cfg = PANEL_CONFIG[id];
-                const Icon = cfg.icon;
-                const isActive = mobileActiveTab === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setMobileActiveTab(id)}
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-label={cfg.label}
-                    className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] justify-center ${isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground/40'}`}
-                    data-testid={`mobile-tab-${id}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider">{cfg.label.slice(0, 4)}</span>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex flex-col gap-px">
+            {allPanels.filter(id => visiblePanels[id]).map(id => (
+              <div key={id} className="border-b border-white/[0.04]" style={{ minHeight: id === 'map' || id === 'livefeed' ? '300px' : '250px', height: id === 'map' ? '50vh' : id === 'livefeed' ? '40vh' : '350px' }}>
+                {renderPanel(id)}
+              </div>
+            ))}
+          </div>
+        ) : isTablet ? (
+          <div className="grid grid-cols-2 gap-px bg-white/[0.02]">
+            {allPanels.filter(id => visiblePanels[id]).map(id => (
+              <div
+                key={id}
+                className={`border border-white/[0.03] bg-background ${id === 'map' ? 'col-span-2' : ''}`}
+                style={{ minHeight: id === 'map' ? '400px' : id === 'livefeed' ? '300px' : '320px', height: id === 'map' ? '50vh' : id === 'livefeed' ? '40vh' : '380px' }}
+              >
+                {renderPanel(id)}
+              </div>
+            ))}
           </div>
         ) : maximizedPanel && visiblePanels[maximizedPanel] ? (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -3341,7 +3417,7 @@ export default function Dashboard() {
             <div className="text-center">
               <PanelLeft className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
               <p className="text-xs text-muted-foreground/50 font-medium">{language === 'en' ? 'All panels minimized' : '\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0635\u063A\u0631\u0629'}</p>
-              <p className="text-[11px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
+              <p className="text-[10px] text-muted-foreground/30 mt-1">{language === 'en' ? 'Restore panels from the bar below' : '\u0627\u0633\u062A\u0639\u062F \u0627\u0644\u0644\u0648\u062D\u0627\u062A \u0645\u0646 \u0627\u0644\u0634\u0631\u064A\u0637 \u0623\u062F\u0646\u0627\u0647'}</p>
             </div>
           </div>
         ) : (
