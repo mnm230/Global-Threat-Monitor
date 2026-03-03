@@ -7,7 +7,7 @@ import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
 import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 interface ViewState {
   longitude: number;
@@ -985,6 +985,37 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         bearing: viewState.bearing,
         interactive: false,
         attributionControl: false,
+      });
+
+      map.on('style.load', () => {
+        const layers = map.getStyle()?.layers || [];
+        for (const layer of layers) {
+          if (layer.id.includes('boundary') || layer.id.includes('border') || layer.id.includes('admin')) {
+            try {
+              if (layer.type === 'line') {
+                map.setPaintProperty(layer.id, 'line-opacity', 0.7);
+                map.setPaintProperty(layer.id, 'line-color', '#556677');
+              }
+            } catch {}
+          }
+          if (layer.id.includes('water') && layer.type === 'fill') {
+            try {
+              map.setPaintProperty(layer.id, 'fill-color', '#0d1b2a');
+            } catch {}
+          }
+          if (layer.type === 'background') {
+            try {
+              map.setPaintProperty(layer.id, 'background-color', '#0a0e17');
+            } catch {}
+          }
+          if (layer.id.includes('landcover') || layer.id.includes('landuse')) {
+            try {
+              if (layer.type === 'fill') {
+                map.setPaintProperty(layer.id, 'fill-opacity', 0.15);
+              }
+            } catch {}
+          }
+        }
       });
 
       mapRef.current = map;

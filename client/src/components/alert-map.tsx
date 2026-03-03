@@ -3,7 +3,7 @@ import { useEffect, useRef, useMemo } from 'react';
 import { Map as MapLibreMap, Popup, LngLatBounds } from 'maplibre-gl';
 import type { RedAlert } from '@shared/schema';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 const THREAT_COLORS: Record<string, string> = {
   rockets: '#ef4444',
@@ -153,19 +153,43 @@ export default function AlertMap({
         const mins = Math.floor(remaining / 60);
         const secs = remaining % 60;
 
+        const container = document.createElement('div');
+        Object.assign(container.style, { fontFamily: 'monospace', fontSize: '12px', color: '#fff', background: '#1a1a2e', padding: '8px', borderRadius: '6px' });
+
+        const cityEl = document.createElement('div');
+        Object.assign(cityEl.style, { fontWeight: '900', fontSize: '13px', color: props.color, marginBottom: '4px' });
+        cityEl.textContent = props.city;
+        container.appendChild(cityEl);
+
+        const regionEl = document.createElement('div');
+        Object.assign(regionEl.style, { color: '#aaa', fontSize: '10px', marginBottom: '2px' });
+        regionEl.textContent = `${props.region} · ${props.country}`;
+        container.appendChild(regionEl);
+
+        const badgeRow = document.createElement('div');
+        Object.assign(badgeRow.style, { display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' });
+        const threatBadge = document.createElement('span');
+        Object.assign(threatBadge.style, { background: `${props.color}22`, color: props.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', border: `1px solid ${props.color}44` });
+        threatBadge.textContent = (props.threatType || '').replace(/_/g, ' ');
+        badgeRow.appendChild(threatBadge);
+        if (props.source === 'live') {
+          const apiBadge = document.createElement('span');
+          Object.assign(apiBadge.style, { background: '#10b98122', color: '#10b981', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', border: '1px solid #10b98144' });
+          apiBadge.textContent = 'API';
+          badgeRow.appendChild(apiBadge);
+        }
+        container.appendChild(badgeRow);
+
+        if (remaining > 0) {
+          const timerEl = document.createElement('div');
+          Object.assign(timerEl.style, { marginTop: '6px', fontSize: '11px', color: '#ef4444', fontWeight: '700' });
+          timerEl.textContent = `⏱ ${mins}:${secs.toString().padStart(2, '0')} remaining`;
+          container.appendChild(timerEl);
+        }
+
         const popup = new Popup({ closeButton: true, maxWidth: '220px' })
           .setLngLat(coords)
-          .setHTML(`
-            <div style="font-family:monospace;font-size:12px;color:#fff;background:#1a1a2e;padding:8px;border-radius:6px;">
-              <div style="font-weight:900;font-size:13px;color:${props.color};margin-bottom:4px;">${props.city}</div>
-              <div style="color:#aaa;font-size:10px;margin-bottom:2px;">${props.region} · ${props.country}</div>
-              <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
-                <span style="background:${props.color}22;color:${props.color};padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;border:1px solid ${props.color}44;">${props.threatType.replace(/_/g, ' ')}</span>
-                ${props.source === 'live' ? '<span style="background:#10b98122;color:#10b981;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:900;border:1px solid #10b98144;">API</span>' : ''}
-              </div>
-              ${remaining > 0 ? `<div style="margin-top:6px;font-size:11px;color:#ef4444;font-weight:700;">⏱ ${mins}:${secs.toString().padStart(2, '0')} remaining</div>` : ''}
-            </div>
-          `)
+          .setDOMContent(container)
           .addTo(map);
         popupRef.current = popup;
       });

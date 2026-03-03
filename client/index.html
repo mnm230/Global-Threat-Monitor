@@ -15,6 +15,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if (window.trustedTypes && window.trustedTypes.createPolicy) {
+        try { window.trustedTypes.createPolicy('default', { createHTML: function(s){return s}, createScript: function(s){return s}, createScriptURL: function(s){return s} }); } catch(e) {}
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

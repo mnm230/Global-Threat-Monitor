@@ -20,7 +20,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 **Technical Implementations:**
 - **Frontend:** Developed using React, TypeScript, Vite, TailwindCSS, and Shadcn UI for a robust and efficient user interface.
 - **Backend:** An Express.js REST API serves data and handles external API integrations.
-- **Mapping & Visualization:** Utilizes deck.gl and MapLibre GL with a CARTO dark basemap, supporting both 2D and 3D globe visualizations. Features 37 infrastructure data layers categorized for operational, military, strategic, and humanitarian insights.
+- **Mapping & Visualization:** Utilizes deck.gl and MapLibre GL with a CARTO Dark Matter basemap (with labels/borders), supporting both 2D and 3D globe visualizations. Features 40+ infrastructure data layers categorized for operational, military, strategic, and humanitarian insights. Map style enhanced on load with custom border colors (#556677), deep navy water (#0d1b2a), dark background (#0a0e17), and subtle land cover. Alert Map panel uses separate MapLibre instance for red alert heatmap visualization.
 - **Real-time Data:** Employs Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates across all data types (commodities, ADS-B, red-alerts, sirens, events, news, telegram, AI-brief).
 - **Data Handling:** Shared TypeScript types (`shared/schema.ts`) ensure data consistency across frontend and backend.
 - **Red Alert System:** Integrates multiple primary and fallback APIs for real-time Israeli Red Alerts (Tzeva Adom), displaying alerts with visual urgency tiers and trilingual support.
