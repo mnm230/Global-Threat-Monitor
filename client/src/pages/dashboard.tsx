@@ -408,13 +408,14 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
   return (
     <div
-      className={`${direction === 'col' ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize'} shrink-0 transition-all duration-300 relative group touch-none ${isDragging ? 'bg-primary/50' : 'bg-white/[0.04] hover:bg-primary/25'}`}
+      className={`${direction === 'col' ? 'w-[3px] cursor-col-resize' : 'h-[3px] cursor-row-resize'} shrink-0 transition-all duration-200 relative group touch-none ${isDragging ? 'bg-primary/60' : 'bg-transparent hover:bg-primary/20'}`}
       onMouseDown={() => setIsDragging(true)}
       onTouchStart={handleTouchStart}
       data-testid="resize-handle"
+      style={{ background: isDragging ? undefined : 'linear-gradient(to ' + (direction === 'col' ? 'right' : 'bottom') + ', transparent, hsl(220 30% 10%), transparent)' }}
     >
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-16 -ml-[7px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-16 -mt-[7px]'} rounded-full transition-colors ${isDragging ? 'bg-primary/15' : 'bg-transparent group-hover:bg-primary/10'}`} />
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-8' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[1px] w-8'} rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-transparent group-hover:bg-primary/40'}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-20 -ml-[9px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-20 -mt-[9px]'} rounded transition-colors ${isDragging ? 'bg-primary/10' : 'bg-transparent group-hover:bg-primary/5'}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-10' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[2px] w-10'} rounded-full transition-all duration-200 ${isDragging ? 'bg-primary shadow-[0_0_8px_hsl(38_95%_54%/0.4)]' : 'bg-transparent group-hover:bg-primary/50'}`} />
     </div>
   );
 }
@@ -492,12 +493,12 @@ function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+      className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-all duration-150"
       title="Close panel"
       aria-label="Close panel"
       data-testid="button-panel-close"
     >
-      <X className="w-3.5 h-3.5" />
+      <X className="w-3 h-3" />
     </button>
   );
 }
@@ -506,12 +507,12 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/40 hover:text-primary hover:bg-primary/15 active:bg-primary/25 transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+      className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/30 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-all duration-150"
       title={isMaximized ? "Restore panel" : "Maximize panel"}
       aria-label={isMaximized ? "Restore panel" : "Maximize panel"}
       data-testid="button-panel-maximize"
     >
-      {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+      {isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
     </button>
   );
 }
@@ -1091,11 +1092,11 @@ function LiveClock() {
   });
 
   return (
-    <div className="flex items-center gap-2" data-testid="text-clock">
-      <span className="text-[9px] text-foreground/20 font-mono hidden md:inline">{dateStr}</span>
-      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05]">
-        <span className="text-[10px] text-foreground/70 font-mono font-semibold tabular-nums tracking-widest">{formatted}</span>
-        <span className="text-[8px] text-primary/30 font-mono font-bold tracking-widest">UTC</span>
+    <div className="flex items-center gap-2.5" data-testid="text-clock">
+      <span className="text-[9px] text-foreground/25 font-mono hidden md:inline tracking-wide">{dateStr}</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-background/80 border border-border/50">
+        <span className="text-[11px] text-primary/90 font-mono font-bold tabular-nums tracking-[0.12em]">{formatted}</span>
+        <span className="text-[8px] text-primary/40 font-mono font-bold tracking-widest">UTC</span>
       </div>
     </div>
   );
@@ -1108,26 +1109,26 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-white/[0.03] bg-card/20" />;
+  if (!commodities.length) return <div className="h-8 border-b border-border/30 bg-card/40" />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative bg-card/30 shrink-0" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card to-transparent z-10 flex items-center gap-1 pl-2.5">
-        <div className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
-        <span className="text-[8px] font-bold tracking-[0.25em] text-primary/35 font-mono">MKT</span>
+    <div className="h-8 border-b border-border/30 overflow-hidden relative bg-card/60 shrink-0" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-card via-card/90 to-transparent z-10 flex items-center gap-1.5 pl-3">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0" />
+        <span className="text-[8px] font-black tracking-[0.3em] text-primary/45 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-card to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-4 animate-ticker-scroll whitespace-nowrap pl-14">
+      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-card via-card/90 to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-20">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1 font-mono text-[10px]">
-            <span className="text-foreground/40 font-semibold">{c.symbol}</span>
-            <span className="text-foreground/55 tabular-nums">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-px tabular-nums ${c.change >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
+            <span className="text-foreground/50 font-bold">{c.symbol}</span>
+            <span className="text-foreground/70 tabular-nums font-medium">{formatPrice(c)}</span>
+            <span className={`inline-flex items-center gap-0.5 tabular-nums font-bold ${c.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
-            <span className="text-white/[0.06] mx-0.5">{'\u2502'}</span>
+            <span className="text-border/40 mx-1">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -1257,22 +1258,23 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-white/[0.02] to-transparent shrink-0 relative overflow-hidden">
-      <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/20 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/70">{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/60 font-mono">{title}</span>
+    <div className="h-9 px-3 border-b border-border/40 flex items-center gap-2 bg-card/80 shrink-0 relative">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+      <div className="w-5 h-5 rounded bg-primary/[0.08] border border-primary/[0.12] flex items-center justify-center shrink-0">
+        <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/80">{icon}</span>
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/70 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] px-1.5 py-px font-mono text-foreground/50 bg-white/[0.05] rounded-sm border border-white/[0.06] tabular-nums leading-none font-bold">
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-primary/70 bg-primary/[0.06] rounded border border-primary/[0.12] tabular-nums leading-none font-bold">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-emerald-500/[0.06] border border-emerald-500/10">
-          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 3px rgb(52 211 153 / 0.5)'}} />
-          <span className="text-[8px] uppercase tracking-[0.2em] text-emerald-400/60 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
+          <span className="text-[8px] uppercase tracking-[0.15em] text-emerald-400/80 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -1311,9 +1313,9 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3.5 py-1.5 bg-gradient-to-r from-primary/[0.05] to-transparent border-y border-primary/[0.12] flex items-center gap-2">
-      <div className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
-      <span className="text-[10px] uppercase tracking-[0.22em] text-primary/40 font-bold font-mono">{label}</span>
+    <div className="px-3.5 py-1.5 bg-card/60 border-y border-border/30 flex items-center gap-2">
+      <div className="w-1 h-1 rounded-full bg-primary/40 shrink-0" />
+      <span className="text-[9px] uppercase tracking-[0.25em] text-primary/50 font-black font-mono">{label}</span>
     </div>
   );
 }
@@ -2997,26 +2999,25 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   const CATEGORY_COLORS: Record<string, string> = {
     breaking: 'text-red-400',
     military: 'text-amber-400',
-    diplomatic: 'text-blue-400',
+    diplomatic: 'text-sky-400',
     economic: 'text-emerald-400',
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-7 border-t border-white/[0.03] bg-card/20 overflow-hidden relative shrink-0" data-testid="news-ticker">
-      <div className="absolute inset-y-0 left-0 w-14 bg-gradient-to-r from-card to-transparent z-10 flex items-center pl-2.5">
-        <span className="text-[8px] font-bold tracking-[0.25em] text-primary/35 font-mono">INTEL</span>
+    <div className="h-7 border-t border-border/30 bg-card/40 overflow-hidden relative shrink-0" data-testid="news-ticker">
+      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-card via-card/90 to-transparent z-10 flex items-center pl-3">
+        <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">NEWS</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-card to-transparent z-10" />
-      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
+      <div className="absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-card via-card/90 to-transparent z-10" />
+      <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
-            <span className={`font-bold uppercase tracking-wider text-[9px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
+            <span className={`font-black uppercase tracking-wider text-[9px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
               {item.category}
             </span>
-            <span className="text-foreground/75">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
-            <span className="text-muted-foreground/30 text-[10px]">·</span>
-            <span className="text-muted-foreground/50 text-[10px]">{item.source}</span>
-            <span className="text-border/30 mx-2">|</span>
+            <span className="text-foreground/80">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
+            <span className="text-muted-foreground/40 text-[10px]">{item.source}</span>
+            <span className="text-border/30 mx-2">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -3289,82 +3290,81 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground ${isTablet || isMobile ? 'min-h-screen' : 'h-screen overflow-hidden'}`} data-testid="dashboard">
-      <header className="h-12 border-b border-white/[0.06] flex items-center justify-between px-3 md:px-5 bg-card/80 backdrop-blur-xl shrink-0 relative z-50" style={{boxShadow:'inset 0 -1px 0 hsl(36 90% 52% / 0.06), 0 4px 24px hsl(0 0% 0% / 0.5)'}}>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20" style={{boxShadow:'0 0 12px hsl(36 90% 52% / 0.15), inset 0 1px 0 hsl(36 90% 52% / 0.1)'}}>
-              <Crosshair className="w-3.5 h-3.5 text-primary" />
+      <header className="h-11 border-b border-border/50 flex items-center justify-between px-3 md:px-5 bg-card shrink-0 relative z-50" style={{boxShadow:'0 2px 12px hsl(0 0% 0% / 0.4)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/10 via-primary/50 to-primary/10" />
+        <div className="flex items-center gap-2.5 md:gap-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center border border-primary/25" style={{boxShadow:'0 0 16px hsl(38 95% 54% / 0.15)'}}>
+              <Crosshair className="w-4 h-4 text-primary" />
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-black text-[13px] tracking-[0.2em] text-primary font-mono" style={{textShadow:'0 0 24px hsl(36 90% 52% / 0.6), 0 0 48px hsl(36 90% 52% / 0.15)'}}>WARROOM</span>
-              <span className="text-[8px] text-foreground/20 tracking-[0.15em] font-mono hidden sm:block uppercase">
+            <div className="flex flex-col leading-none gap-0.5">
+              <span className="font-black text-sm tracking-[0.25em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(38 95% 54% / 0.5)'}}>WARROOM</span>
+              <span className="text-[7px] text-foreground/25 tracking-[0.2em] font-mono hidden sm:block uppercase">
                 {language === 'en' ? 'Intelligence Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
           </div>
-          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-500/[0.08] border border-red-500/15 hidden sm:flex" style={{boxShadow:'0 0 10px rgb(239 68 68 / 0.08)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(239 68 68 / 0.7)'}} />
-            <span className="text-[9px] text-red-400/80 font-bold tracking-[0.2em] uppercase font-mono">LIVE</span>
+          <div className="w-px h-6 bg-border/40 hidden sm:block" />
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-500/[0.06] border border-red-500/20 hidden sm:flex">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.6)'}} />
+            <span className="text-[9px] text-red-400 font-black tracking-[0.2em] uppercase font-mono">LIVE</span>
           </div>
-          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 12px rgb(239 68 68 / 0.3)' : threatLevel.level === 'HIGH' ? '0 0 10px rgb(249 115 22 / 0.2)' : 'none'}}>
+          <div className="w-px h-6 bg-border/40 hidden sm:block" />
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 15px rgb(239 68 68 / 0.25)' : threatLevel.level === 'HIGH' ? '0 0 12px rgb(249 115 22 / 0.15)' : 'none'}}>
             <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
-            <span className={`text-[10px] font-black tracking-[0.18em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+            <span className={`text-[10px] font-black tracking-[0.2em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="hidden md:flex items-center"><LiveClock /></div>
-          <div className="w-px h-4 bg-border/30 hidden md:block" />
+          <div className="w-px h-5 bg-border/30 hidden md:block" />
           {isMobile || isTablet ? (
             <button
               onClick={() => setShowMobileMenu(p => !p)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-white/5 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-colors"
               aria-label="Open menu"
               data-testid="button-mobile-menu"
             >
               <Menu className="w-5 h-5" />
             </button>
           ) : (
-            <div className="flex items-center gap-px">
-              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded-md text-[11px] ${notificationsEnabled ? 'text-primary' : 'text-foreground/25'} hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40`} onClick={toggleNotifications} data-testid="button-notifications-toggle" aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'} title="Desktop Notifications">
+            <div className="flex items-center gap-0.5">
+              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded text-[11px] ${notificationsEnabled ? 'text-primary' : 'text-foreground/30'} hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150`} onClick={toggleNotifications} data-testid="button-notifications-toggle" aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'} title="Desktop Notifications">
                 {notificationsEnabled ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
               </Button>
-              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded-md text-[11px] ${soundEnabled ? 'text-primary' : 'text-foreground/25'} hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
+              <Button size="sm" variant="ghost" className={`px-2 h-7 rounded text-[11px] ${soundEnabled ? 'text-primary' : 'text-foreground/30'} hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-amber-400/80 hover:bg-amber-500/[0.06] active:bg-amber-500/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] active:bg-amber-500/15 transition-all duration-150" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
                 <StickyNote className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-amber-400/80 hover:bg-amber-500/[0.06] active:bg-amber-500/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] active:bg-amber-500/15 transition-all duration-150" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
                 <Eye className="w-3.5 h-3.5" />
               </Button>
               <div className="relative">
-                <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-primary/80 hover:bg-primary/[0.06] active:bg-primary/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" aria-label="Layout Presets" title="Layout Presets">
+                <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-primary hover:bg-primary/[0.08] active:bg-primary/15 transition-all duration-150" onClick={() => setShowLayoutPresets(p => !p)} data-testid="button-layouts" aria-label="Layout Presets" title="Layout Presets">
                   <Layout className="w-3.5 h-3.5" />
                 </Button>
                 {showLayoutPresets && (
                   <LayoutPresetsDropdown language={language} presets={savedPresets} onLoad={loadPreset} onSave={savePreset} onDelete={deletePreset} onClose={() => setShowLayoutPresets(false)} />
                 )}
               </div>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-emerald-400/80 hover:bg-emerald-500/[0.06] active:bg-emerald-500/10 transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={handleExport} data-testid="button-export" aria-label="Export Report" title="Export Report">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-emerald-400 hover:bg-emerald-500/[0.08] active:bg-emerald-500/15 transition-all duration-150" onClick={handleExport} data-testid="button-export" aria-label="Export Report" title="Export Report">
                 <FileDown className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/25 hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setShowSettings(true)} data-testid="button-settings" aria-label="Settings" title="Settings">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150" onClick={() => setShowSettings(true)} data-testid="button-settings" aria-label="Settings" title="Settings">
                 <Settings className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded-md text-foreground/30 hover:text-foreground/70 hover:bg-white/[0.04] active:bg-white/[0.08] transition-all duration-150 font-mono text-[10px] focus-visible:ring-1 focus-visible:ring-primary/40" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle" aria-label={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/35 hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150 font-mono text-[10px]" onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')} data-testid="button-language-toggle" aria-label={language === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
                 <Languages className="w-3.5 h-3.5 mr-0.5" />
                 {language === 'en' ? '\u0639\u0631\u0628\u064A' : 'EN'}
               </Button>
             </div>
           )}
-          <div className="w-px h-4 bg-white/[0.06]" />
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${connected ? 'bg-emerald-500/[0.06] border-emerald-500/15' : 'bg-red-500/[0.06] border-red-500/15'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} style={{boxShadow: connected ? '0 0 8px rgb(34 197 94 / 0.06)' : '0 0 8px rgb(239 68 68 / 0.06)'}}>
-            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 4px rgb(34 197 94 / 0.6)' : '0 0 4px rgb(239 68 68 / 0.6)'}} />
-            <span className={`text-[10px] font-bold tracking-wider font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
+          <div className="w-px h-5 bg-border/30" />
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border ${connected ? 'bg-emerald-500/[0.06] border-emerald-500/20' : 'bg-red-500/[0.06] border-red-500/20'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'}>
+            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 5px rgb(34 197 94 / 0.6)' : '0 0 5px rgb(239 68 68 / 0.6)'}} />
+            <span className={`text-[9px] font-bold tracking-[0.15em] font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
               {connected ? (language === 'en' ? 'SSE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'OFF' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
@@ -3372,7 +3372,7 @@ export default function Dashboard() {
       </header>
 
       {showMobileMenu && (isMobile || isTablet) && (
-        <div className="border-b border-primary/20 bg-background/95 backdrop-blur-md px-3 py-2 flex flex-wrap gap-1.5 shrink-0 z-50" data-testid="mobile-menu">
+        <div className="border-b border-border/40 bg-card/95 backdrop-blur-md px-3 py-2 flex flex-wrap gap-1.5 shrink-0 z-50" data-testid="mobile-menu">
           <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { toggleNotifications(); setShowMobileMenu(false); }} aria-label="Notifications"><Bell className="w-4 h-4 mr-1" />Notif</Button>
           <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setSoundEnabled(p => !p); setShowMobileMenu(false); }} aria-label="Sound"><Volume2 className="w-4 h-4 mr-1" />Sound</Button>
           <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowNotes(true); setShowMobileMenu(false); }} aria-label="Notes"><StickyNote className="w-4 h-4 mr-1" />Notes</Button>
