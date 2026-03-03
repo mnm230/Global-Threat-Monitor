@@ -2322,7 +2322,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
   );
 }
 
-const DEFAULT_CHANNELS = ['@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@ShipTracker', '@OilMarkets'];
+const DEFAULT_CHANNELS = ['@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@ShipTracker', '@OilMarkets', '@wfwitness', '@rnintel'];
 
 function TelegramPanel({
   messages,
