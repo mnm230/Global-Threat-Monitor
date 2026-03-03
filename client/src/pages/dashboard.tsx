@@ -1074,9 +1074,11 @@ function LiveClock() {
 
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
-      <span className="text-xs text-muted-foreground font-mono hidden md:inline">{dateStr}</span>
-      <span className="text-xs text-foreground font-mono font-semibold tabular-nums tracking-tight">{formatted}</span>
-      <span className="text-[11px] text-muted-foreground/60">UTC</span>
+      <span className="text-[11px] text-muted-foreground/45 font-mono hidden md:inline">{dateStr}</span>
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-card/50 border border-border/20">
+        <span className="text-xs text-foreground/85 font-mono font-semibold tabular-nums tracking-widest">{formatted}</span>
+        <span className="text-[9px] text-primary/40 font-mono font-bold tracking-widest">UTC</span>
+      </div>
     </div>
   );
 }
@@ -1092,9 +1094,10 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-8 border-b border-primary/10 bg-primary/3 overflow-hidden relative" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 flex items-center pl-2">
-        <span className="text-[9px] font-bold tracking-[0.25em] text-primary/60 font-mono">MKT</span>
+    <div className="h-8 border-b border-border/25 overflow-hidden relative bg-gradient-to-r from-card/50 via-background to-background" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-10 flex items-center gap-1.5 pl-3">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary/35 shrink-0" />
+        <span className="text-[9px] font-bold tracking-[0.3em] text-primary/45 font-mono">MKTS</span>
       </div>
       <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
       <div className="absolute flex items-center h-full gap-5 animate-ticker-scroll whitespace-nowrap pl-12">
@@ -1236,21 +1239,24 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-primary/[0.08] to-transparent shrink-0 relative">
-      <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-primary/80 via-primary/50 to-primary/10 rounded-r" />
-      <span className="text-primary shrink-0">{icon}</span>
-      <span className="text-xs font-bold uppercase tracking-[0.15em] text-primary/90 font-mono">{title}</span>
+    <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2.5 bg-gradient-to-r from-primary/[0.07] to-transparent shrink-0 relative overflow-hidden">
+      <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-primary via-primary/50 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
+      <div className="w-5 h-5 rounded-[5px] bg-primary/10 border border-primary/15 flex items-center justify-center shrink-0">
+        <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/70">{icon}</span>
+      </div>
+      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/55 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-xs px-1.5 py-0 font-mono text-primary/50 bg-primary/5 rounded border border-primary/15">
+        <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(52 211 153 / 0.8)'}} />
-          <span className="text-xs uppercase tracking-[0.15em] text-emerald-400/80 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.6)'}} />
+          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -1270,7 +1276,7 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
 function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
-      className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2.5 font-mono text-xs items-center hover-elevate transition-colors"
+      className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2.5 font-mono text-xs items-center hover-elevate transition-colors border-l-2 ${c.change >= 0 ? 'border-l-emerald-500/20' : 'border-l-red-500/20'}`}
       data-testid={`commodity-${c.symbol}`}
     >
       <div className="flex flex-col min-w-0">
@@ -1290,8 +1296,9 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3 py-1 bg-primary/5 border-y border-primary/10">
-      <span className="text-xs uppercase tracking-[0.15em] text-primary/50 font-bold font-mono">{label}</span>
+    <div className="px-3.5 py-1.5 bg-gradient-to-r from-primary/[0.05] to-transparent border-y border-primary/[0.12] flex items-center gap-2">
+      <div className="w-1 h-1 rounded-full bg-primary/30 shrink-0" />
+      <span className="text-[10px] uppercase tracking-[0.22em] text-primary/40 font-bold font-mono">{label}</span>
     </div>
   );
 }
@@ -1510,19 +1517,20 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
 
   return (
     <div className="h-full flex flex-col" data-testid="adsb-panel">
-      <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-cyan-500/[0.08] to-transparent shrink-0 relative">
-        <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-cyan-400/80 via-cyan-400/50 to-cyan-400/10 rounded-r" />
-        <Radar className="w-3.5 h-3.5 text-cyan-400/80" />
-        <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
-          ADS-B
-        </span>
-        <span className="text-xs px-1.5 py-0 font-mono text-cyan-400/60 bg-cyan-950/30 rounded border border-cyan-500/20">
+      <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2.5 bg-gradient-to-r from-cyan-500/[0.07] to-transparent shrink-0 relative overflow-hidden">
+        <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-cyan-400 via-cyan-400/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
+        <div className="w-5 h-5 rounded-[5px] bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center shrink-0">
+          <Radar className="w-3 h-3 text-cyan-400/80" />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/55 font-mono">ADS-B</span>
+        <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
           {adsbFlights.length}
         </span>
         <div className="flex-1" />
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(34 197 94 / 0.6)'}} />
+          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -1879,10 +1887,12 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   return (
     <div className="flex flex-col h-full" data-testid="red-alert-panel">
-      <div className={`px-4 py-3 border-b flex items-center gap-2 shrink-0 relative ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-border/20 bg-gradient-to-r from-red-500/[0.08] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 12px rgb(239 68 68 / 0.3)'} : undefined}>
-        {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-red-500/70 via-red-500/40 to-red-500/10 rounded-r" />}
-        <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'bg-white/20' : 'bg-red-950/30'}`}>
-          <AlertOctagon className={`w-4 h-4 ${hasActiveAlerts ? 'text-white' : 'text-red-400/60'}`} />
+      <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3.5 py-2.5'} border-b flex items-center gap-2.5 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-border/20 bg-gradient-to-r from-red-500/[0.07] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 16px rgb(239 68 68 / 0.35)'} : undefined}>
+        {hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />}
+        {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-red-500 via-red-500/50 to-transparent" />}
+        {!hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />}
+        <div className={`flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'w-6 h-6 rounded bg-white/20' : 'w-5 h-5 rounded-[5px] bg-red-500/10 border border-red-500/15'}`}>
+          <AlertOctagon className={`${hasActiveAlerts ? 'w-4 h-4 text-white' : 'w-3 h-3 text-red-400/70'}`} />
         </div>
         <div className="flex flex-col leading-none">
           <span className={`text-xs font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
@@ -2496,13 +2506,16 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col" data-testid="ai-intel-panel">
-      <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.08] to-transparent shrink-0 relative">
-        <div className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-purple-400/80 via-purple-400/50 to-purple-400/10 rounded-r" />
-        <Brain className="w-3.5 h-3.5 text-purple-400/80" />
-        <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/80">
+      <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2.5 bg-gradient-to-r from-purple-500/[0.07] to-transparent shrink-0 relative overflow-hidden">
+        <div className="absolute left-0 inset-y-0 w-0.5 bg-gradient-to-b from-purple-400 via-purple-400/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.015] to-transparent pointer-events-none" />
+        <div className="w-5 h-5 rounded-[5px] bg-purple-500/10 border border-purple-500/15 flex items-center justify-center shrink-0">
+          <Brain className="w-3 h-3 text-purple-400/80" />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-foreground/55 font-mono">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
-        <span className="text-xs px-1.5 py-0 font-mono text-purple-400/50 bg-purple-950/30 rounded border border-purple-500/20">
+        <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
           {brief?.model || '...'}
         </span>
         {anomalies.length > 0 && (
@@ -2511,9 +2524,9 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
           </span>
         )}
         <div className="flex-1" />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
           <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
-          <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
+          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -3043,28 +3056,29 @@ export default function Dashboard() {
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden" data-testid="dashboard">
-      <header className="h-14 border-b border-primary/20 flex items-center justify-between px-3 md:px-5 bg-background/80 backdrop-blur-md shrink-0" style={{boxShadow:'0 1px 0 hsl(32 95% 50% / 0.08), 0 4px 16px hsl(0 0% 0% / 0.3)'}}>
+      <header className="h-14 border-b border-primary/20 flex items-center justify-between px-3 md:px-5 bg-background/80 backdrop-blur-md shrink-0 relative" style={{boxShadow:'0 1px 0 hsl(32 95% 50% / 0.08), 0 4px 20px hsl(0 0% 0% / 0.4)'}}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center border border-primary/30">
-              <Crosshair className="w-3 h-3 text-primary" />
+            <div className="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center border border-primary/25" style={{boxShadow:'0 0 8px hsl(32 95% 50% / 0.2)'}}>
+              <Crosshair className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-bold text-sm tracking-[0.12em] text-primary font-mono" style={{textShadow:'0 0 24px hsl(32 95% 50% / 0.8), 0 0 48px hsl(32 95% 50% / 0.3)'}}>WARROOM</span>
-              <span className="text-[10px] text-muted-foreground/40 tracking-[0.1em] font-mono hidden sm:block">
-                {language === 'en' ? 'ME INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
+              <span className="font-black text-sm tracking-[0.15em] text-primary font-mono" style={{textShadow:'0 0 20px hsl(32 95% 50% / 0.7), 0 0 40px hsl(32 95% 50% / 0.25)'}}>WARROOM</span>
+              <span className="text-[9px] text-primary/30 tracking-[0.12em] font-mono hidden sm:block uppercase">
+                {language === 'en' ? 'ME Intel Terminal' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
               </span>
             </div>
           </div>
-          <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-500/25 hidden sm:flex" style={{boxShadow:'0 0 12px rgb(239 68 68 / 0.15)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.8)'}} />
-            <span className="text-xs text-red-400 font-bold tracking-[0.15em] uppercase font-mono">LIVE</span>
+          <div className="w-px h-5 bg-border/25 hidden sm:block" />
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-950/30 border border-red-500/20 hidden sm:flex" style={{boxShadow:'0 0 10px rgb(239 68 68 / 0.12)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(239 68 68 / 0.8)'}} />
+            <span className="text-[10px] text-red-400/90 font-bold tracking-[0.2em] uppercase font-mono">LIVE</span>
           </div>
-          <div className="w-px h-5 bg-border/30 hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
-            <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
-            <span className={`text-xs font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+          <div className="w-px h-5 bg-border/25 hidden sm:block" />
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
+            <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
+            <span className={`text-[10px] font-black tracking-[0.18em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
