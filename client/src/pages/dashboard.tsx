@@ -483,7 +483,7 @@ function useAlertSound(alerts: { id: string }[], enabled: boolean) {
   }, [alerts, enabled]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -497,6 +497,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   seismic: { icon: Activity, label: 'Seismic', labelAr: '\u0632\u0644\u0627\u0632\u0644' },
   cyber: { icon: Cpu, label: 'Cyber', labelAr: '\u0633\u064A\u0628\u0631\u0627\u0646\u064A' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
+  alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
 };
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
@@ -636,6 +637,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'radar',    x: 0,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
   { i: 'seismic',  x: 4,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
   { i: 'cyber',    x: 8,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
+  { i: 'alertmap', x: 0,  y: 10, w: 6, h: 4, minW: 2, minH: 2 },
 ];
 
 interface Correlation {
@@ -2985,6 +2987,71 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
   );
 }
 
+const AlertMapComponent = lazy(() => import('@/components/alert-map'));
+
+function AlertMapPanel({
+  alerts,
+  language,
+  onClose,
+  onMaximize,
+  isMaximized,
+}: {
+  alerts: RedAlert[];
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  const activeAlerts = alerts.filter(a => {
+    const elapsed = (Date.now() - new Date(a.timestamp).getTime()) / 1000;
+    return elapsed < a.countdown || a.countdown === 0;
+  });
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
+      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-red-500/[0.06] to-transparent shrink-0 relative">
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />
+        <MapPin className="w-3 h-3 text-red-400/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
+          {language === 'en' ? 'Alert Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}
+        </span>
+        {activeAlerts.length > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 font-mono font-black bg-red-500/20 text-red-300 rounded-full border border-red-500/30 animate-pulse">
+            {activeAlerts.length}
+          </span>
+        )}
+        <div className="flex-1" />
+        <div className="flex items-center gap-1">
+          <div className={`w-1.5 h-1.5 rounded-full ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse-dot' : 'bg-emerald-500'}`} />
+          <span className={`text-xs uppercase tracking-[0.15em] font-bold ${activeAlerts.length > 0 ? 'text-red-500/60' : 'text-emerald-500/60'}`}>
+            {activeAlerts.length > 0 ? 'ACTIVE' : 'CLEAR'}
+          </span>
+        </div>
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+      <div className="flex-1 relative min-h-0">
+        <div className="absolute inset-0">
+          <MapErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center bg-card/20">
+                  <div className="text-center">
+                    <MapPin className="w-8 h-8 text-red-400 mx-auto mb-2 animate-pulse" />
+                    <p className="text-[11px] text-muted-foreground">Loading alert map...</p>
+                  </div>
+                </div>
+              }
+            >
+              <AlertMapComponent alerts={alerts} language={language} />
+            </Suspense>
+          </MapErrorBoundary>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MapSection({
   events,
   flights,
@@ -3140,7 +3207,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -3250,7 +3317,7 @@ export default function Dashboard() {
   }, [showWatchlist]);
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -3400,6 +3467,8 @@ export default function Dashboard() {
           return <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
           return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'alertmap':
+          return <AlertMapPanel alerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
