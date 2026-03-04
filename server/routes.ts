@@ -941,13 +941,13 @@ async function generateNews(): Promise<NewsItem[]> {
 }
 
 const COMMODITY_META = [
-  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 84.72, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'BZ=F' },
-  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 80.35, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'CL=F' },
-  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 2068.40, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'GC=F' },
-  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 23.85, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'SI=F' },
-  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.42, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'NG=F' },
-  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 612.50, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'ZW=F' },
-  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 8542.00, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'HG=F' },
+  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 84.72, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cb.f' },
+  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 80.35, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cl.f' },
+  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 2068.40, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'gc.f' },
+  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 23.85, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'si.f', stooqDivisor: 100 },
+  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.42, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'ng.f' },
+  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 612.50, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'zw.f' },
+  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 8542.00, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'hg.f', stooqDivisor: 100 },
   { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.0862, currency: '', category: 'fx-major' as const, fxKey: 'EUR' },
   { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.2674, currency: '', category: 'fx-major' as const, fxKey: 'GBP' },
   { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 149.82, currency: '', category: 'fx-major' as const, fxKey: 'JPY', invert: true },
@@ -988,91 +988,44 @@ let liveCommodityPrices: Record<string, { price: number; change: number; changeP
 let liveCommodityFetchedAt = 0;
 const COMMODITY_PRICE_TTL = 60_000;
 
-let yahooCrumb = '';
-let yahooCookie = '';
-let yahooCrumbFetchedAt = 0;
-const YAHOO_CRUMB_TTL = 600_000;
-
-async function fetchYahooCrumb(): Promise<void> {
-  if (yahooCrumb && Date.now() - yahooCrumbFetchedAt < YAHOO_CRUMB_TTL) return;
-  try {
-    const consentResp = await fetch('https://fc.yahoo.com', {
-      headers: { 'User-Agent': randomUA() },
-      signal: AbortSignal.timeout(8000),
-      redirect: 'manual',
-    });
-    const cookies = consentResp.headers.getSetCookie?.() || [];
-    const aCookie = cookies.find(c => c.startsWith('A='));
-    if (aCookie) yahooCookie = aCookie.split(';')[0];
-
-    const crumbResp = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
-      headers: {
-        'User-Agent': randomUA(),
-        'Cookie': yahooCookie,
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (crumbResp.ok) {
-      yahooCrumb = await crumbResp.text();
-      yahooCrumbFetchedAt = Date.now();
-      console.log(`[YAHOO-FINANCE] Crumb acquired`);
-    }
-  } catch {}
-}
-
 async function fetchLiveCommodityPrices(): Promise<void> {
   if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
-  const symbols = COMMODITY_META
-    .filter(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol)
-    .map(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol!);
 
-  await fetchYahooCrumb();
+  const stooqItems = COMMODITY_META
+    .filter(m => (m as any).stooqSymbol)
+    .map(m => ({ stooqSymbol: (m as any).stooqSymbol as string, symbol: m.symbol, divisor: ((m as any).stooqDivisor as number) || 1 }));
 
-  const endpoints = [
-    `https://query2.finance.yahoo.com/v8/finance/spark?symbols=${symbols.map(s => encodeURIComponent(s)).join(',')}&interval=1d&range=1d${yahooCrumb ? `&crumb=${encodeURIComponent(yahooCrumb)}` : ''}`,
-    `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${symbols.map(s => encodeURIComponent(s)).join(',')}&interval=1d&range=1d${yahooCrumb ? `&crumb=${encodeURIComponent(yahooCrumb)}` : ''}`,
-  ];
-
-  for (const url of endpoints) {
+  let successCount = 0;
+  for (const item of stooqItems) {
     try {
+      const url = `https://stooq.com/q/l/?s=${encodeURIComponent(item.stooqSymbol)}&f=sd2t2ohlcvp&d=d&e=csv`;
       const resp = await fetch(url, {
-        headers: {
-          'User-Agent': randomUA(),
-          'Accept': 'application/json',
-          'Referer': 'https://finance.yahoo.com/',
-          ...(yahooCookie ? { 'Cookie': yahooCookie } : {}),
-        },
-        signal: AbortSignal.timeout(12000),
+        headers: { 'User-Agent': randomUA() },
+        signal: AbortSignal.timeout(8000),
       });
-      if (resp.status === 401 || resp.status === 403) {
-        yahooCrumb = '';
-        yahooCrumbFetchedAt = 0;
-        continue;
-      }
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json() as Record<string, any>;
+      if (!resp.ok) continue;
+      const csv = (await resp.text()).trim();
+      const parts = csv.split(',');
+      if (parts.length < 9 || parts[6] === 'N/D') continue;
+      const rawClose = parseFloat(parts[6]);
+      const rawPrevClose = parseFloat(parts[8]);
+      if (isNaN(rawClose) || rawClose <= 0) continue;
+      const close = rawClose / item.divisor;
+      const prev = (!isNaN(rawPrevClose) && rawPrevClose > 0) ? rawPrevClose / item.divisor : close;
+      const change = close - prev;
+      const changePercent = prev !== 0 ? (change / prev) * 100 : 0;
+      liveCommodityPrices[item.stooqSymbol] = { price: close, change, changePercent };
+      successCount++;
+    } catch {}
+  }
 
-      let successCount = 0;
-      for (const symbol of symbols) {
-        const entry = data[symbol];
-        if (!entry) continue;
-        const closes = entry.close as number[] | undefined;
-        const price = closes && closes.length > 0 ? closes[closes.length - 1] : null;
-        if (price == null) continue;
-        const prevClose = entry.chartPreviousClose || entry.previousClose || price;
-        const change = price - prevClose;
-        const changePercent = prevClose !== 0 ? (change / prevClose) * 100 : 0;
-        liveCommodityPrices[symbol] = { price, change, changePercent };
-        successCount++;
-      }
-      if (successCount > 0) {
-        liveCommodityFetchedAt = Date.now();
-        console.log(`[YAHOO-FINANCE] ${successCount}/${symbols.length} prices via spark batch`);
-        return;
-      }
-    } catch (err) {
-      console.log(`[YAHOO-FINANCE] Error: ${err instanceof Error ? err.message : err}`);
-    }
+  if (successCount > 0) {
+    liveCommodityFetchedAt = Date.now();
+    console.log(`[COMMODITIES] ${successCount}/${stooqItems.length} prices via stooq.com`);
+  } else {
+    liveCommodityPrices = {};
+    liveCommodityFetchedAt = 0;
+    console.log(`[COMMODITIES] All stooq.com fetches failed, using fallbacks`);
   }
 }
 
@@ -1085,13 +1038,13 @@ function generateCommodities(): CommodityData[] {
   const results: CommodityData[] = [];
 
   for (const item of COMMODITY_META) {
-    const meta = item as typeof item & { fxKey?: string; invert?: boolean; yahooSymbol?: string };
+    const meta = item as typeof item & { fxKey?: string; invert?: boolean; stooqSymbol?: string };
     let basePrice: number | null = null;
     let liveChange = 0;
     let liveChangePercent = 0;
 
-    if (meta.yahooSymbol && liveCommodityPrices[meta.yahooSymbol]) {
-      const live = liveCommodityPrices[meta.yahooSymbol];
+    if (meta.stooqSymbol && liveCommodityPrices[meta.stooqSymbol]) {
+      const live = liveCommodityPrices[meta.stooqSymbol];
       basePrice = live.price;
       liveChange = live.change;
       liveChangePercent = live.changePercent;
@@ -1100,8 +1053,9 @@ function generateCommodities(): CommodityData[] {
       basePrice = meta.invert ? rate : (1 / rate);
     }
 
-    // Skip items with no live data — no fake fallback prices
-    if (basePrice === null) continue;
+    if (basePrice === null) {
+      basePrice = item.fallback;
+    }
 
     const prev = commodityPriceState[item.symbol];
     const currentPrice = basePrice;
@@ -1126,7 +1080,7 @@ function generateCommodities(): CommodityData[] {
 fetchLiveFxRates();
 fetchLiveCommodityPrices();
 setInterval(() => fetchLiveFxRates(), 10_000);
-setInterval(() => fetchLiveCommodityPrices(), 10_000);
+setInterval(() => fetchLiveCommodityPrices(), 60_000);
 
 const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
   'tel aviv': { lat: 32.085, lng: 34.782 }, 'jerusalem': { lat: 31.769, lng: 35.216 },
@@ -1759,6 +1713,67 @@ async function fetchFromOrefDirect(): Promise<RedAlert[]> {
   return alerts;
 }
 
+function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
+  const sirenPatterns = [
+    { pattern: /صفارات الإنذار.*(?:تدوي|دوي)\s*(?:في|ب)\s*(.+?)(?:\s+خشية|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /سقوط صواريخ.*(?:في|على|ب)\s*(.+?)(?:\s+خشية|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /إطلاق صواريخ.*(?:في|على|ب|باتجاه)\s*(.+?)(?:\s+خشية|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /Red alert[s]?\s+(?:in|at)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /Rocket alert[s]?\s+(?:in|at)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /Sirens?\s+(?:sounding|activated|heard)\s+(?:in|at|across)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:hostile|enemy)\s+(?:drone|UAV)\s+(?:intrusion|alert|detected)\s+(?:in|over|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'uav' as const },
+    { pattern: /(?:drone|UAV)\s+alert[s]?\s+(?:in|at)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'uav' as const },
+    { pattern: /Missile alert[s]?\s+(?:in|at)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:تسلل|اختراق)\s*(?:طائر|مسيّر).*(?:في|إلى|على|ب)\s*(.+?)(?:\n|$)/i, threatType: 'uav' as const },
+    { pattern: /Launches detected towards\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /خشية تسلل\s*(?:طائرات? مسيّرة)/i, threatType: 'uav' as const },
+  ];
+
+  const alerts: RedAlert[] = [];
+  const now = Date.now();
+  const recentMsgs = tgMsgs.filter(m => {
+    const age = now - new Date(m.timestamp).getTime();
+    return age < 7_200_000;
+  });
+
+  const seenLocations = new Set<string>();
+
+  for (const msg of recentMsgs) {
+    for (const { pattern, threatType } of sirenPatterns) {
+      const match = msg.text.match(pattern);
+      if (match) {
+        const location = (match[1] || '').trim().replace(/https?:\/\/\S+/g, '').trim();
+        if (!location || location.length < 2 || location.length > 100) continue;
+        const locKey = `${location}-${threatType}`;
+        if (seenLocations.has(locKey)) continue;
+        seenLocations.add(locKey);
+
+        const isArabic = /[\u0600-\u06FF]/.test(location);
+        alerts.push({
+          id: `tg-alert-${msg.id}-${threatType}`,
+          city: isArabic ? location : location,
+          cityHe: '',
+          cityAr: isArabic ? location : '',
+          region: 'Telegram OSINT',
+          regionHe: '',
+          regionAr: '',
+          country: 'Israel',
+          countryCode: 'IL',
+          countdown: 30,
+          threatType,
+          timestamp: msg.timestamp,
+          active: true,
+          lat: 32.0,
+          lng: 34.8,
+          source: 'telegram' as any,
+        });
+        break;
+      }
+    }
+  }
+  return alerts;
+}
+
 async function fetchOrefAlerts(): Promise<RedAlert[]> {
   const now = Date.now();
   if (orefCache && (now - orefCache.timestamp) < OREF_CACHE_TTL) {
@@ -1769,19 +1784,35 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
 
   try {
     alerts = await fetchFromTzevaadom();
-  } catch {}
+    if (alerts.length > 0) console.log(`[RED-ALERTS] Tzevaadom: ${alerts.length} alerts`);
+  } catch (err) {
+    console.log(`[RED-ALERTS] Tzevaadom failed: ${(err as Error).message}`);
+  }
 
   if (alerts.length === 0) {
     try {
       alerts = await fetchFromOrefDirect();
-    } catch {}
+      if (alerts.length > 0) console.log(`[RED-ALERTS] OREF direct: ${alerts.length} alerts`);
+    } catch (err) {
+      console.log(`[RED-ALERTS] OREF failed: ${(err as Error).message}`);
+    }
   }
 
   if (alerts.length === 0) {
     try {
       alerts = await fetchTzevaadomHistory();
-      alerts.forEach(a => { a.active = false; a.countdown = 0; });
-    } catch {}
+      if (alerts.length > 0) {
+        alerts.forEach(a => { a.active = false; a.countdown = 0; });
+        console.log(`[RED-ALERTS] Tzevaadom history: ${alerts.length} alerts`);
+      }
+    } catch (err) {
+      console.log(`[RED-ALERTS] History failed: ${(err as Error).message}`);
+    }
+  }
+
+  if (alerts.length === 0 && latestTgMsgs.length > 0) {
+    alerts = extractAlertsFromTelegram(latestTgMsgs);
+    if (alerts.length > 0) console.log(`[RED-ALERTS] Telegram extraction: ${alerts.length} alerts`);
   }
 
   if (alerts.length > 0) {
@@ -1799,6 +1830,9 @@ async function generateRedAlerts(): Promise<RedAlert[]> {
 }
 
 const alertHistory: RedAlert[] = [];
+let latestTgMsgs: TelegramMessage[] = [];
+let latestXPosts: NewsItem[] = [];
+let latestAlerts: RedAlert[] = [];
 const classifiedMessageCache: ClassifiedMessage[] = [];
 let aiClassificationCache: { data: ClassifiedMessage[]; fetchedAt: number } | null = null;
 const AI_CLASSIFY_CACHE_TTL = 10_000;
@@ -2776,7 +2810,7 @@ Return a JSON array of 6-15 events. Each object MUST have:
 - timestamp: ISO 8601 string (use article pub date or current date)
 - description: string (1-2 sentence intelligence-style summary, max 200 chars)
 
-If fewer than 6 articles are ME-relevant, supplement with known active campaigns: Iranian wiper malware targeting Israeli infrastructure, Charming Kitten credential harvesting against Gulf diplomatic staff, OilRig intrusions against energy sector SCADA systems, etc. Use today's date for supplemented events.
+If fewer than 6 articles are ME-relevant, return only the ones that ARE relevant. Do NOT fabricate or supplement with hypothetical events. Only include events with verifiable source articles.
 
 Return ONLY a valid JSON array. No markdown, no explanation.`,
           },
@@ -3311,9 +3345,8 @@ export async function registerRoutes(
       } catch {}
     };
 
-    let latestTgMsgs: TelegramMessage[] = [];
-    let latestXPosts: NewsItem[] = [];
-    let latestAlerts: RedAlert[] = [];
+    latestXPosts = [];
+    latestAlerts = [];
 
     send('commodities', generateCommodities());
     fetchGDELTConflictEvents().then(async (events) => {

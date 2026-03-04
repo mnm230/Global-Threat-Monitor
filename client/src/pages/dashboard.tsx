@@ -2325,9 +2325,9 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 }
 
 const LIVE_CHANNELS = [
-  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: 'f-GBjGE6Mlw' },
+  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: 'gCNeDWCI0vo' },
   { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: 'bNyUyrR0PHo' },
-  { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: '' },
+  { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: 'U--OjmpjF5o' },
   { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: 'NiRIbKwAejk' },
   { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: '' },
 ] as const;
@@ -4543,6 +4543,9 @@ export default function Dashboard() {
   const [isTablet, setIsTablet] = useState(false);
   const [mobileActivePanel, setMobileActivePanel] = useState<PanelId>('map');
   const [showMobilePanelPicker, setShowMobilePanelPicker] = useState(false);
+  const swipeRef = useRef<{ x: number; y: number; locked: boolean } | null>(null);
+  const panelWrapperRef = useRef<HTMLDivElement>(null);
+  const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'intel', 'markets'];
 
   useEffect(() => {
     const check = () => {
@@ -4672,6 +4675,43 @@ export default function Dashboard() {
     (Object.keys(visiblePanels) as PanelId[]).filter(k => !visiblePanels[k]),
     [visiblePanels]
   );
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    swipeRef.current = { x: t.clientX, y: t.clientY, locked: false };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!swipeRef.current) return;
+    const dx = e.changedTouches[0].clientX - swipeRef.current.x;
+    swipeRef.current = null;
+    const threshold = Math.min(60, window.innerWidth * 0.15);
+    if (Math.abs(dx) < threshold) return;
+    const idx = SWIPE_TABS.indexOf(mobileActivePanel);
+    const base = idx === -1 ? 0 : idx;
+    if (dx < 0) {
+      setMobileActivePanel(SWIPE_TABS[(base + 1) % SWIPE_TABS.length]);
+    } else {
+      setMobileActivePanel(SWIPE_TABS[(base - 1 + SWIPE_TABS.length) % SWIPE_TABS.length]);
+    }
+    setShowMobilePanelPicker(false);
+  }, [mobileActivePanel]);
+
+  useEffect(() => {
+    const el = panelWrapperRef.current;
+    if (!el || !isMobile) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (!swipeRef.current || swipeRef.current.locked) return;
+      const dx = Math.abs(e.touches[0].clientX - swipeRef.current.x);
+      const dy = Math.abs(e.touches[0].clientY - swipeRef.current.y);
+      if (dx > dy && dx > 8) {
+        swipeRef.current.locked = true;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onTouchMove);
+  }, [isMobile]);
 
   useAlertSound(redAlerts.map(a => ({ id: a.id, threatType: a.threatType })), soundEnabled, settings.silentMode, settings.volume);
   useAlertSound(sirens.map(s => ({ id: s.id, threatType: s.threatType })), soundEnabled, settings.silentMode, settings.volume);
@@ -5002,7 +5042,12 @@ export default function Dashboard() {
       <div className="flex-1 min-h-0 overflow-auto" data-testid="resizable-panels">
         {isMobile ? (
           <div className="flex flex-col h-full min-h-0">
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div
+              ref={panelWrapperRef}
+              className="flex-1 min-h-0 overflow-hidden"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               {renderPanel(mobileActivePanel)}
             </div>
             <div className="shrink-0 border-t border-white/[0.07] flex items-center overflow-x-auto warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 30% 2.5%)' }} data-testid="mobile-tab-bar">
@@ -5015,44 +5060,64 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                    className={`flex-1 min-w-[52px] py-2 flex flex-col items-center gap-0.5 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/35 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
+                    className={`flex-1 min-w-[48px] py-2 flex flex-col items-center gap-0.5 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/35 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
                     data-testid={`mobile-tab-${id}`}
                   >
                     {isActive && <div className="absolute top-0 left-3 right-3 h-[2px] bg-primary rounded-b" />}
                     <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                    <span className={`text-[8px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/35'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/35'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
                     {hasAlert && <div className="absolute top-1.5 right-3 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
                   </button>
                 );
               })}
               <button
                 onClick={() => setShowMobilePanelPicker(p => !p)}
-                className={`min-w-[52px] py-2 flex flex-col items-center gap-0.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/35'}`}
+                className={`min-w-[48px] py-2 flex flex-col items-center gap-0.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/35'}`}
                 data-testid="mobile-tab-more"
               >
                 <MoreHorizontal className="w-4 h-4" />
-                <span className="text-[8px] font-mono font-bold uppercase tracking-wide">{language === 'ar' ? 'المزيد' : 'More'}</span>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wide">{language === 'ar' ? 'المزيد' : 'More'}</span>
               </button>
             </div>
+            {/* Bottom Sheet Backdrop */}
             {showMobilePanelPicker && (
-              <div className="absolute bottom-16 left-0 right-0 z-50 bg-background/98 backdrop-blur-xl border-t border-white/[0.08] p-3 grid grid-cols-4 gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }} data-testid="mobile-panel-picker">
-                {allPanels.filter(id => !['map', 'alerts', 'telegram', 'events', 'intel', 'markets'].includes(id)).map(id => {
+              <div
+                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowMobilePanelPicker(false)}
+              />
+            )}
+            {/* Bottom Sheet */}
+            <div
+              className={`fixed left-0 right-0 bottom-0 z-50 warroom-bottom-sheet ${showMobilePanelPicker ? 'warroom-bottom-sheet--open' : ''}`}
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 60px)' }}
+              data-testid="mobile-panel-picker"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-foreground/40">
+                  {language === 'ar' ? 'لوحات' : 'Panels'}
+                </span>
+                <button onClick={() => setShowMobilePanelPicker(false)} className="w-6 h-6 flex items-center justify-center text-foreground/30 hover:text-foreground/60">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-2 p-3">
+                {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
                   return (
                     <button
                       key={id}
                       onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${mobileActivePanel === id ? 'bg-primary/15 text-primary' : 'text-foreground/40 hover:bg-white/[0.04]'}`}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors ${mobileActivePanel === id ? 'bg-primary/15 text-primary' : 'text-foreground/40 bg-white/[0.03] active:bg-white/[0.07]'}`}
                       data-testid={`mobile-picker-${id}`}
                     >
                       <Icon className="w-5 h-5" />
-                      <span className="text-[9px] font-mono font-bold">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                      <span className="text-[9px] font-mono font-bold leading-tight text-center">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
                     </button>
                   );
                 })}
               </div>
-            )}
+            </div>
           </div>
         ) : isTablet ? (
           <div className="grid grid-cols-2 gap-0.5 p-0.5 h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)' }}>

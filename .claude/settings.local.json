@@ -13,7 +13,8 @@
       "WebFetch(domain:www.youtube.com)",
       "Bash(netstat:*)",
       "Bash(pkill:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
