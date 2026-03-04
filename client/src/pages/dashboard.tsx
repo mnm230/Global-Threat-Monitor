@@ -87,6 +87,7 @@ import {
   Menu,
   Cpu,
   Video,
+  MoreHorizontal,
 } from 'lucide-react';
 import { SiTelegram, SiX } from 'react-icons/si';
 
@@ -4439,6 +4440,8 @@ export default function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const [mobileActivePanel, setMobileActivePanel] = useState<PanelId>('map');
+  const [showMobilePanelPicker, setShowMobilePanelPicker] = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -4744,21 +4747,25 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col bg-background text-foreground h-screen overflow-hidden" data-testid="dashboard">
-      <header className={`${isTouchDevice ? 'min-h-[44px]' : 'h-7'} border-b border-white/[0.07] flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2.5%)'}}>
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black tracking-[0.35em] text-primary font-mono select-none">◈ WARROOM</span>
-          </div>
-          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
+    <div className="flex flex-col bg-background text-foreground h-screen overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
+      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-7'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2.5%)'}}>
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
+          <span className={`${isMobile ? 'text-[10px]' : 'text-[11px]'} font-black tracking-[0.3em] text-primary font-mono select-none whitespace-nowrap`}>◈ WARROOM</span>
+          <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
             <span className="text-[7px] text-red-400/90 font-black tracking-[0.25em] uppercase font-mono">LIVE</span>
           </div>
-          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
-            <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
-            <span className={`text-[7px] font-black tracking-[0.2em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+          {isMobile && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.06), transparent)', border:'1px solid hsl(0 80% 50% / 0.12)'}}>
+              <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse-dot" />
+              <span className="text-[6px] text-red-400/70 font-black tracking-wider uppercase font-mono">LIVE</span>
+            </div>
+          )}
+          <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
+          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
+            <ShieldAlert className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} ${threatLevel.color}`} />
+            <span className={`${isMobile ? 'text-[6px]' : 'text-[7px]'} font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -4892,26 +4899,72 @@ export default function Dashboard() {
         </div>
       )}
 
-      <TickerBar commodities={commodities} />
+      {!isMobile && <TickerBar commodities={commodities} />}
 
       <SirenBanner sirens={sirens} language={language} />
 
       <div className="flex-1 min-h-0 overflow-auto" data-testid="resizable-panels">
         {isMobile ? (
-          <div className="flex flex-col gap-px">
-            {allPanels.filter(id => visiblePanels[id]).map(id => (
-              <div key={id} className="border-b border-white/[0.04]" style={{ minHeight: id === 'map' || id === 'livefeed' ? '300px' : '250px', height: id === 'map' ? '50vh' : id === 'livefeed' ? '40vh' : '350px' }}>
-                {renderPanel(id)}
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {renderPanel(mobileActivePanel)}
+            </div>
+            <div className="shrink-0 border-t border-white/[0.06] flex items-center overflow-x-auto warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} data-testid="mobile-tab-bar">
+              {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
+                const cfg = PANEL_CONFIG[id];
+                const Icon = cfg.icon;
+                const isActive = mobileActivePanel === id;
+                const hasAlert = id === 'alerts' && redAlerts.length > 0;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
+                    className={`flex-1 min-w-[52px] py-1.5 flex flex-col items-center gap-0.5 transition-colors relative ${isActive ? 'text-primary' : 'text-foreground/30'} ${hasAlert ? 'text-red-400' : ''}`}
+                    data-testid={`mobile-tab-${id}`}
+                  >
+                    {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" />}
+                    <Icon className="w-4 h-4" />
+                    <span className="text-[8px] font-mono font-bold uppercase tracking-wider">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    {hasAlert && <div className="absolute top-1 right-2 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setShowMobilePanelPicker(p => !p)}
+                className={`min-w-[52px] py-1.5 flex flex-col items-center gap-0.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/30'}`}
+                data-testid="mobile-tab-more"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                <span className="text-[8px] font-mono font-bold uppercase tracking-wider">{language === 'ar' ? 'المزيد' : 'More'}</span>
+              </button>
+            </div>
+            {showMobilePanelPicker && (
+              <div className="absolute bottom-16 left-0 right-0 z-50 bg-background/98 backdrop-blur-xl border-t border-white/[0.08] p-3 grid grid-cols-4 gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }} data-testid="mobile-panel-picker">
+                {allPanels.filter(id => !['map', 'alerts', 'telegram', 'events', 'intel', 'markets'].includes(id)).map(id => {
+                  const cfg = PANEL_CONFIG[id];
+                  const Icon = cfg.icon;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${mobileActivePanel === id ? 'bg-primary/15 text-primary' : 'text-foreground/40 hover:bg-white/[0.04]'}`}
+                      data-testid={`mobile-picker-${id}`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-[9px] font-mono font-bold">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
         ) : isTablet ? (
-          <div className="grid grid-cols-2 gap-px bg-white/[0.02]">
+          <div className="grid grid-cols-2 gap-0.5 p-0.5 h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)' }}>
             {allPanels.filter(id => visiblePanels[id]).map(id => (
               <div
                 key={id}
-                className={`border border-white/[0.03] bg-background ${id === 'map' ? 'col-span-2' : ''}`}
-                style={{ minHeight: id === 'map' ? '400px' : id === 'livefeed' ? '300px' : '320px', height: id === 'map' ? '50vh' : id === 'livefeed' ? '40vh' : '380px' }}
+                className={`border border-white/[0.04] bg-background overflow-hidden ${id === 'map' || id === 'alertmap' || id === 'godseye' ? 'col-span-2' : ''}`}
+                style={{ minHeight: id === 'map' ? '280px' : '180px' }}
               >
                 {renderPanel(id)}
               </div>
@@ -4965,54 +5018,56 @@ export default function Dashboard() {
         )}
       </div>
 
-      <EventTimeline events={events} language={language} />
+      {!isMobile && <EventTimeline events={events} language={language} />}
 
-      <NewsTicker news={news} language={language} />
+      {!isMobile && <NewsTicker news={news} language={language} />}
 
-      <div className="h-7 border-t border-white/[0.04] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'linear-gradient(180deg, hsl(225 28% 4%) 0%, hsl(225 30% 3%) 100%)'}}>
-        <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
-          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
-          <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
+      {!isMobile && (
+        <div className="h-7 border-t border-white/[0.04] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'linear-gradient(180deg, hsl(225 28% 4%) 0%, hsl(225 30% 3%) 100%)'}}>
+          <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
+            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
+            <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
+          </div>
+          <div className="w-px h-3 bg-white/[0.04]" />
+          <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>12</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
+            <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">VES</span>{ships.length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">MKT</span>{commodities.length}</span>
+          </div>
+          {(redAlerts.length > 0 || sirens.length > 0) && (
+            <>
+              <div className="w-px h-3 bg-white/[0.05]" />
+              <div className="flex items-center gap-1.5 text-[9px] font-mono">
+                {redAlerts.length > 0 && (
+                  <span className="text-red-400/80 font-bold animate-pulse px-1.5 py-px rounded-sm bg-red-500/[0.08] border border-red-500/15">
+                    RED {redAlerts.length}
+                  </span>
+                )}
+                {sirens.length > 0 && (
+                  <span className="text-red-400/60 font-bold px-1.5 py-px rounded-sm bg-red-500/[0.05] border border-red-500/10">
+                    SRN {sirens.length}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+          {correlations.length > 0 && (
+            <>
+              <div className="w-px h-3 bg-white/[0.05]" />
+              <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-purple-500/[0.05] border border-purple-500/10">
+                <Link2 className="w-2.5 h-2.5 text-purple-400/50" />
+                <span className="text-[9px] text-purple-400/60 font-mono font-semibold">{correlations.length} CORR</span>
+              </div>
+            </>
+          )}
+          <span className="text-[7px] text-foreground/12 font-mono ml-auto hidden sm:inline tracking-[0.15em] font-medium">
+            M.M &mdash; WARROOM v2.1
+          </span>
         </div>
-        <div className="w-px h-3 bg-white/[0.04]" />
-        <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>12</span>
-          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
-          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
-          <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
-          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">VES</span>{ships.length}</span>
-          <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">MKT</span>{commodities.length}</span>
-        </div>
-        {(redAlerts.length > 0 || sirens.length > 0) && (
-          <>
-            <div className="w-px h-3 bg-white/[0.05]" />
-            <div className="flex items-center gap-1.5 text-[9px] font-mono">
-              {redAlerts.length > 0 && (
-                <span className="text-red-400/80 font-bold animate-pulse px-1.5 py-px rounded-sm bg-red-500/[0.08] border border-red-500/15">
-                  RED {redAlerts.length}
-                </span>
-              )}
-              {sirens.length > 0 && (
-                <span className="text-red-400/60 font-bold px-1.5 py-px rounded-sm bg-red-500/[0.05] border border-red-500/10">
-                  SRN {sirens.length}
-                </span>
-              )}
-            </div>
-          </>
-        )}
-        {correlations.length > 0 && (
-          <>
-            <div className="w-px h-3 bg-white/[0.05]" />
-            <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-purple-500/[0.05] border border-purple-500/10">
-              <Link2 className="w-2.5 h-2.5 text-purple-400/50" />
-              <span className="text-[9px] text-purple-400/60 font-mono font-semibold">{correlations.length} CORR</span>
-            </div>
-          </>
-        )}
-        <span className="text-[7px] text-foreground/12 font-mono ml-auto hidden sm:inline tracking-[0.15em] font-medium">
-          M.M &mdash; WARROOM v2.1
-        </span>
-      </div>
+      )}
 
       {showNotes && <NotesOverlay language={language} onClose={() => setShowNotes(false)} />}
       {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} onUpdate={setWatchlist} />}

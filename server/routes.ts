@@ -3225,17 +3225,39 @@ export async function registerRoutes(
 
   app.get('/api/alert-history', (_req, res) => {
     const now = Date.now();
-    const history = alertHistory.map(a => {
-      const age = now - new Date(a.timestamp).getTime();
-      const resolved = !a.active || age > a.countdown * 1000;
-      return {
-        ...a,
-        resolved,
-        resolvedAt: resolved ? new Date(new Date(a.timestamp).getTime() + a.countdown * 1000).toISOString() : undefined,
-      };
-    });
-    history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    res.json(history.slice(0, 500));
+    const BUCKET_COUNT = 96;
+    const BUCKET_SIZE_MS = 15 * 60 * 1000;
+    const windowStart = now - BUCKET_COUNT * BUCKET_SIZE_MS;
+
+    const buckets: Array<{ startTime: string; endTime: string; count: number; alerts: any[] }> = [];
+    for (let i = 0; i < BUCKET_COUNT; i++) {
+      const bStart = windowStart + i * BUCKET_SIZE_MS;
+      const bEnd = bStart + BUCKET_SIZE_MS;
+      buckets.push({
+        startTime: new Date(bStart).toISOString(),
+        endTime: new Date(bEnd).toISOString(),
+        count: 0,
+        alerts: [],
+      });
+    }
+
+    for (const alert of alertHistory) {
+      const alertTime = new Date(alert.timestamp).getTime();
+      if (alertTime < windowStart || alertTime >= now) continue;
+      const bucketIndex = Math.floor((alertTime - windowStart) / BUCKET_SIZE_MS);
+      if (bucketIndex >= 0 && bucketIndex < BUCKET_COUNT) {
+        const age = now - alertTime;
+        const resolved = !alert.active || age > alert.countdown * 1000;
+        buckets[bucketIndex].alerts.push({
+          ...alert,
+          resolved,
+          resolvedAt: resolved ? new Date(alertTime + alert.countdown * 1000).toISOString() : undefined,
+        });
+        buckets[bucketIndex].count++;
+      }
+    }
+
+    res.json(buckets);
   });
 
   app.get('/api/replay-data', (_req, res) => {

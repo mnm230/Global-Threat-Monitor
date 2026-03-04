@@ -24,6 +24,10 @@ self.addEventListener('message', (event) => {
   }
 });
 
+self.addEventListener('fetch', (event) => {
+  event.respondWith(fetch(event.request));
+});
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/';
