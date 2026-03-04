@@ -2842,7 +2842,7 @@ export async function registerRoutes(
   const LIVE_TELEGRAM_CHANNELS = [
     'CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel',
     'ELINTNews', 'BNONewsRoom', 'FirstSquawk', 'Middle_East_Spectator', 'interbellumnews',
-    'WarMonitor3', 'claboriau', 'lebaborim', 'lebanonnews2',
+    'WarMonitor3', 'claboriau', 'lebaborim', 'lebanonnews2', 'bintjbeilnews',
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
