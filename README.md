@@ -82,7 +82,6 @@ client/                     # React frontend (Vite)
     components/
       conflict-map.tsx      # Primary 3D map with deck.gl layers
       alert-map.tsx         # Red alert heatmap visualization
-      godseye-map.tsx       # God's Eye satellite view
       ui/                   # Shadcn UI components
     index.css               # Global styles, CSS variables, dark theme
 

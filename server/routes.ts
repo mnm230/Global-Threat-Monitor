@@ -3305,12 +3305,5 @@ export async function registerRoutes(
     res.json(buckets);
   });
 
-  app.get('/api/replay-data', (_req, res) => {
-    res.json({
-      events: historicalEvents,
-      alerts: alertHistory.slice(0, 500),
-    });
-  });
-
   return httpServer;
 }

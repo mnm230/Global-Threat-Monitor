@@ -13,7 +13,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Theme:** Bloomberg Terminal-inspired dark aesthetic with a warm amber primary accent (`hsl(36 90% 52%)`) and a blue-tinted near-black background (`hsl(228 28% 4%)`).
 - **Typography:** JetBrains Mono for data, Inter for UI text. Compact font sizes (9-10px) for high information density.
 - **Responsiveness:** Adaptive layout for mobile, tablet, and desktop, with specific UI adjustments for each breakpoint and comprehensive touch screen support.
-- **Panel System:** Features 9 core panels (`news`, `telegram`, `intel`, `map`, `events`, `radar`, `adsb`, `alerts`, `markets`) in a customizable, resizable grid.
+- **Panel System:** Features 14 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `seismic`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`) in a customizable, resizable grid. God's Eye replay panel was removed.
 
 **Technical Implementations:**
 - **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI.

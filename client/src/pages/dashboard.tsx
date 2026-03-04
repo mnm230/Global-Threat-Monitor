@@ -92,7 +92,6 @@ import {
 import { SiTelegram, SiX } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
-const GodEyeMap = lazy(() => import('@/components/godseye-map'));
 
 interface WARROOMSettings {
   criticalThreshold: number;
@@ -535,7 +534,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed' | 'godseye';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -552,7 +551,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
   xfeed: { icon: MessageSquare, label: 'X / Twitter', labelAr: '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631' },
-  godseye: { icon: Eye, label: "God's Eye", labelAr: '\u0639\u064A\u0646 \u0627\u0644\u0644\u0647' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -710,26 +708,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, godseye: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, godseye: 36 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false, godseye: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, godseye: 36 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false, godseye: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, godseye: 36 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false, godseye: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100, godseye: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100 },
     rowSplit: 50,
   },
 ];
@@ -751,7 +749,6 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'alertmap',  x: 0,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 4,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'xfeed',     x: 8,  y: 12, w: 2, h: 4, minW: 1, minH: 2 },
-  { i: 'godseye',   x: 10, y: 12, w: 2, h: 4, minW: 2, minH: 2 },
 ];
 
 interface Correlation {
@@ -4245,122 +4242,6 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
   );
 }
 
-function GodEyeReplayPanel({ language, onClose, onMaximize, isMaximized }: {
-  language: 'en' | 'ar';
-  onClose?: () => void;
-  onMaximize?: () => void;
-  isMaximized?: boolean;
-}) {
-  const SEVEN_DAYS_AGO = Date.now() - 7 * 24 * 3600 * 1000;
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-
-  const [replayData, setReplayData] = useState<{ events: ConflictEvent[]; alerts: RedAlert[] } | null>(null);
-  const [replayTime, setReplayTime] = useState(SEVEN_DAYS_AGO);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(300);
-  const intervalRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    fetch('/api/replay-data')
-      .then(r => r.json())
-      .then(data => {
-        setReplayData(data);
-        if (data.events.length > 0) {
-          setReplayTime(new Date(data.events[0].timestamp).getTime());
-        }
-      })
-      .catch(() => setReplayData({ events: [], alerts: [] }));
-  }, []);
-
-  useEffect(() => {
-    if (!playing) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
-    intervalRef.current = window.setInterval(() => {
-      setReplayTime(prev => {
-        const next = prev + speed * 1000;
-        if (next >= Date.now()) { setPlaying(false); return Date.now(); }
-        return next;
-      });
-    }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [playing, speed]);
-
-  const eventCountAtTime = replayData
-    ? replayData.events.filter(e => new Date(e.timestamp).getTime() <= replayTime).length
-    : 0;
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="panel-godseye">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <Eye className="w-3 h-3 text-primary/50 shrink-0" />
-        <span className="text-[9px] font-mono font-bold text-foreground/45 tracking-[0.18em] uppercase">{t("God's Eye", 'عين الله')}</span>
-        <span className="text-[8px] text-primary/40 font-mono">REPLAY</span>
-        <div className="flex-1" />
-        <span className="text-[9px] font-mono text-foreground/40">{eventCountAtTime} {t('events', 'أحداث')}</span>
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
-
-      <div className="flex-1 relative min-h-0">
-        <Suspense fallback={<div className="flex items-center justify-center h-full text-foreground/30 text-[10px] font-mono">LOADING MAP...</div>}>
-          <GodEyeMap
-            events={replayData?.events ?? []}
-            alerts={replayData?.alerts ?? []}
-            replayTime={replayTime}
-            playing={playing}
-          />
-        </Suspense>
-        <div className="absolute top-2 left-2 z-[1000] bg-black/80 rounded px-2 py-1 pointer-events-none">
-          <span className="text-[10px] font-mono text-primary">{new Date(replayTime).toUTCString()}</span>
-        </div>
-      </div>
-
-      <div className="shrink-0 px-3 py-2 border-t border-white/[0.04] space-y-1.5" style={{background:'hsl(225 30% 3%)'}}>
-        <input
-          type="range"
-          min={SEVEN_DAYS_AGO}
-          max={Date.now()}
-          value={replayTime}
-          onChange={e => { setPlaying(false); setReplayTime(Number(e.target.value)); }}
-          className="w-full h-1 accent-primary"
-          style={{cursor:'pointer'}}
-        />
-        <div className="flex justify-between text-[8px] text-foreground/25 font-mono">
-          <span>7D AGO</span>
-          <span>NOW</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setPlaying(false); setReplayTime(SEVEN_DAYS_AGO); }}
-            className="text-[10px] text-foreground/40 hover:text-foreground/70 px-1"
-            title="Rewind"
-          >⏮</button>
-          <button
-            onClick={() => setPlaying(p => !p)}
-            className="px-3 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary text-[10px] font-bold transition-colors"
-          >
-            {playing ? '⏸ PAUSE' : '▶ PLAY'}
-          </button>
-          <div className="flex gap-0.5 ml-auto">
-            {([60, 300, 900, 3600] as const).map(s => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                className={`text-[8px] px-1.5 py-0.5 rounded font-mono transition-colors ${speed === s ? 'bg-primary/20 text-primary' : 'text-foreground/30 hover:text-foreground/60'}`}
-              >
-                {s === 60 ? '1×' : s === 300 ? '5×' : s === 900 ? '15×' : '60×'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function PanelSidebar({
   visiblePanels,
   openPanel,
@@ -4379,7 +4260,7 @@ function PanelSidebar({
   aiBrief: import('@shared/schema').AIBrief | null;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed', 'godseye'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed'];
 
   const AI_MODELS = [
     { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
@@ -4637,7 +4518,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, godseye: false };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -4761,7 +4642,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed', 'godseye'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -4771,7 +4652,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, godseye: 36,
+    seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -4917,8 +4798,6 @@ export default function Dashboard() {
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'xfeed':
           return <XFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'godseye':
-          return <GodEyeReplayPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -5059,7 +4938,6 @@ export default function Dashboard() {
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
               xfeed: xPosts.length > 0 ? `${xPosts.length}` : '',
-              godseye: '',
             }}
           />
         )}
@@ -5141,7 +5019,7 @@ export default function Dashboard() {
             {allPanels.filter(id => visiblePanels[id]).map(id => (
               <div
                 key={id}
-                className={`border border-white/[0.04] bg-background overflow-hidden ${id === 'map' || id === 'alertmap' || id === 'godseye' ? 'col-span-2' : ''}`}
+                className={`border border-white/[0.04] bg-background overflow-hidden ${id === 'map' || id === 'alertmap' ? 'col-span-2' : ''}`}
                 style={{ minHeight: id === 'map' ? '280px' : '180px' }}
               >
                 {renderPanel(id)}
