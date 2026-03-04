@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@deck.gl/core": "^9.2.10",
     "@deck.gl/layers": "^9.2.10",
     "@deck.gl/react": "^9.2.10",
