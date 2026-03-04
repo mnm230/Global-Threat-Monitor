@@ -432,6 +432,94 @@ async function scrapeXAccount(screenName: string): Promise<NewsItem[]> {
   }
 }
 
+const ACCOUNT_LABELS: Record<string, string> = {
+  AvichayAdraee: 'IDF Arabic Spokesperson',
+  IDF: 'IDF Official',
+  IsraelRadar_: 'Israel Radar',
+  IsraeliPM: 'Israeli PM',
+  NaharnetEnglish: 'Naharnet Lebanon',
+  LBCINews: 'LBCI News Lebanon',
+  AlJumhuriya_ar: 'Al Jumhuriya (AR)',
+  IntelCrab: 'Intel Crab',
+  sentdefender: 'Sentinel Defender',
+  AuroraIntel: 'Aurora Intel',
+  Faytuks: 'Faytuks',
+  Conflicts: 'Conflicts',
+  ELINTNews: 'ELINT News',
+  charles_lister: 'Charles Lister',
+  QalaatAlMudiq: 'Qalaat Al-Mudiq',
+  MiddleEastEye: 'Middle East Eye',
+  igaboriau: 'Igor Sushko',
+  NotWoofers: 'OSINT (Woofers)',
+  FirstSquawk: 'First Squawk',
+  BNONews: 'BNO News',
+  NOWLebanon: 'NOW Lebanon',
+};
+
+const NITTER_INSTANCES = [
+  'https://nitter.privacydev.net',
+  'https://nitter.poast.org',
+  'https://nitter.woodland.cafe',
+  'https://nitter.1d4.us',
+  'https://xcancel.com',
+];
+
+function parseNitterRSS(xml: string, screenName: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
+  const rssItems = xml.split(/<item[\s>]/i).slice(1, 21);
+
+  for (const item of rssItems) {
+    const cdataTitle = item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i)?.[1];
+    const plainTitle = item.match(/<title>([\s\S]*?)<\/title>/i)?.[1];
+    let text = (cdataTitle || plainTitle || '').replace(/<[^>]+>/g, '').trim();
+
+    const cdataDesc = item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/i)?.[1];
+    const plainDesc = item.match(/<description>([\s\S]*?)<\/description>/i)?.[1];
+    const descText = (cdataDesc || plainDesc || '').replace(/<[^>]+>/g, '').trim();
+
+    if ((!text || text.length < 10) && descText.length > 10) text = descText;
+    if (!text || text.length < 10) continue;
+
+    if (text.startsWith('RT by @') || text.startsWith('R to @')) continue;
+
+    text = text.replace(/https?:\/\/\S+/g, '').trim();
+    if (text.length < 5) continue;
+
+    const hasHebrew = /[\u0590-\u05FF\uFB1D-\uFB4F]/.test(text);
+    const hasFarsi = /[\u06A9\u06AF\u06CC\u067E\u0686\u0698]/.test(text);
+    const hasCyrillic = /[\u0400-\u04FF]/.test(text);
+    if (hasHebrew || hasFarsi || hasCyrillic) continue;
+
+    if (text.length > 300) text = text.substring(0, 297) + '...';
+    text = sanitizeText(text);
+
+    const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1]?.trim();
+    let timestamp = new Date().toISOString();
+    if (pubDate) { try { timestamp = new Date(pubDate).toISOString(); } catch {} }
+
+    const link = item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.replace(/<[^>]+>/g, '').trim();
+    let url: string | undefined;
+    if (link) {
+      const tweetIdMatch = link.match(/\/status\/(\d+)/);
+      url = tweetIdMatch ? `https://x.com/${screenName}/status/${tweetIdMatch[1]}` : `https://x.com/${screenName}`;
+    }
+
+    const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
+
+    items.push({
+      id: `x_${screenName}_${items.length}_${Date.now()}`,
+      title: text,
+      ...(titleAr ? { titleAr } : {}),
+      source: sourceLabel,
+      category: classifyTitle(text),
+      timestamp,
+      url,
+    });
+  }
+  return items;
+}
+
 async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
   const cached = xFeedCache.get(screenName);
 
@@ -441,18 +529,34 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     return [];
   }
 
-  const items: NewsItem[] = [];
-  let timeout: ReturnType<typeof setTimeout> | null = null;
+  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+  for (const instance of NITTER_INSTANCES) {
+    try {
+      const rssUrl = `${instance}/${screenName}/rss`;
+      const response = await fetch(rssUrl, {
+        headers: { 'User-Agent': ua, 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (response.status === 429) {
+        continue;
+      }
+      if (!response.ok) continue;
+
+      const xml = await response.text();
+      if (!xml.includes('<item') && !xml.includes('<entry')) continue;
+
+      const items = parseNitterRSS(xml, screenName);
+      if (items.length > 0) {
+        xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+        console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via ${new URL(instance).hostname}`);
+        return items;
+      }
+    } catch {}
+  }
+
   try {
-    const controller = new AbortController();
-    timeout = setTimeout(() => controller.abort(), 10000);
-    const userAgents = [
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0',
-      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    ];
-    const ua = userAgents[Math.floor(Math.random() * userAgents.length)];
     const response = await fetch(
       `https://syndication.twitter.com/srv/timeline-profile/screen-name/${screenName}`,
       {
@@ -461,18 +565,19 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
           'Referer': 'https://platform.twitter.com/',
-          'Cache-Control': 'no-cache',
         },
-        signal: controller.signal,
+        signal: AbortSignal.timeout(10000),
       }
     );
-    clearTimeout(timeout);
+
+    if (response.status === 429) {
+      xRateLimitedAccounts.set(screenName, Date.now() + X_RATE_LIMIT_BACKOFF);
+      console.log(`[X-FEED] @${screenName} rate limited (429), backing off`);
+      if (cached) return cached.data;
+      return [];
+    }
 
     if (!response.ok) {
-      if (response.status === 429) {
-        xRateLimitedAccounts.set(screenName, Date.now() + X_RATE_LIMIT_BACKOFF);
-        console.log(`[X-FEED] @${screenName} rate limited (429), backing off for ${X_RATE_LIMIT_BACKOFF / 60000} minutes`);
-      }
       if (cached) return cached.data;
       return [];
     }
@@ -480,7 +585,6 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     const html = await response.text();
     const jsonMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (!jsonMatch) {
-      console.log(`[X-FEED] No __NEXT_DATA__ found for @${screenName}, HTML length: ${html.length}`);
       if (cached) return cached.data;
       return [];
     }
@@ -493,72 +597,34 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
         ? Object.values(rawEntries)
         : null;
     if (!entries || entries.length === 0) {
-      console.log(`[X-FEED] No entries found for @${screenName}, rawEntries type: ${typeof rawEntries}`);
       if (cached) return cached.data;
       return [];
     }
 
-    const ACCOUNT_LABELS: Record<string, string> = {
-      // Israeli / official
-      AvichayAdraee: 'IDF Arabic Spokesperson',
-      IDF: 'IDF Official',
-      IsraelRadar_: 'Israel Radar',
-      IsraeliPM: 'Israeli PM',
-      // Lebanon
-      NaharnetEnglish: 'Naharnet Lebanon',
-      LBCINews: 'LBCI News Lebanon',
-      AlJumhuriya_ar: 'Al Jumhuriya (AR)',
-      // OSINT / analysts
-      IntelCrab: 'Intel Crab',
-      sentdefender: 'Sentinel Defender',
-      AuroraIntel: 'Aurora Intel',
-      Faytuks: 'Faytuks',
-      Conflicts: 'Conflicts',
-      ELINTNews: 'ELINT News',
-      charles_lister: 'Charles Lister',
-      QalaatAlMudiq: 'Qalaat Al-Mudiq',
-      MiddleEastEye: 'Middle East Eye',
-      igaboriau: 'Igor Sushko',
-      NotWoofers: 'OSINT (Woofers)',
-      // Breaking news
-      FirstSquawk: 'First Squawk',
-      BNONews: 'BNO News',
-      NOWLebanon: 'NOW Lebanon',
-    };
     const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
+    const items: NewsItem[] = [];
 
-    let count = 0;
     for (const entry of entries) {
-      if (count >= 20) break;
+      if (items.length >= 20) break;
       const tweet = entry?.content?.tweet;
       if (!tweet) continue;
 
       let text = tweet.full_text || tweet.text || '';
       if (!text || text.length < 10) continue;
-
       text = text.replace(/https?:\/\/t\.co\/\S+/g, '').trim();
       if (text.length < 5) continue;
 
-      // Only allow English and Arabic — skip Hebrew, Farsi, and other scripts
       const hasHebrew = /[\u0590-\u05FF\uFB1D-\uFB4F]/.test(text);
       const hasFarsi = /[\u06A9\u06AF\u06CC\u067E\u0686\u0698]/.test(text);
       const hasCyrillic = /[\u0400-\u04FF]/.test(text);
       if (hasHebrew || hasFarsi || hasCyrillic) continue;
 
-      if (text.length > 300) {
-        text = text.substring(0, 297) + '...';
-      }
+      if (text.length > 300) text = text.substring(0, 297) + '...';
       text = sanitizeText(text);
-
-      const category = classifyTitle(text);
 
       let timestamp = '';
       if (tweet.created_at) {
-        try {
-          timestamp = new Date(tweet.created_at).toISOString();
-        } catch {
-          timestamp = new Date().toISOString();
-        }
+        try { timestamp = new Date(tweet.created_at).toISOString(); } catch { timestamp = new Date().toISOString(); }
       } else {
         timestamp = new Date().toISOString();
       }
@@ -566,42 +632,41 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
 
       items.push({
-        id: `x_${screenName}_${tweet.id_str || count}`,
+        id: `x_${screenName}_${tweet.id_str || items.length}`,
         title: text,
         ...(titleAr ? { titleAr } : {}),
         source: sourceLabel,
-        category,
+        category: classifyTitle(text),
         timestamp,
         url: tweet.permalink ? `https://x.com${tweet.permalink}` : undefined,
       });
-      count++;
     }
 
-    xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
     if (items.length > 0) {
-      console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName}`);
+      xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+      console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via syndication`);
+      return items;
     }
   } catch (err) {
-    console.log(`[X-FEED] Error scraping @${screenName}:`, err instanceof Error ? err.message : err);
-    if (cached) return cached.data;
-    return [];
-  } finally {
-    if (timeout) clearTimeout(timeout);
+    console.log(`[X-FEED] Syndication error for @${screenName}:`, err instanceof Error ? err.message : err);
   }
 
-  return items;
+  if (cached) return cached.data;
+  return [];
 }
 
 const OSINT_RSS_FEEDS = [
-  { url: 'https://liveuamap.com/rss/mideast', source: 'LiveUAMap ME', icon: 'map' },
-  { url: 'https://www.janes.com/feeds/news', source: 'Janes Defense', icon: 'shield' },
-  { url: 'https://www.longwarjournal.org/feed', source: 'Long War Journal', icon: 'target' },
-  { url: 'https://www.criticalthreats.org/feed', source: 'Critical Threats', icon: 'alert' },
-  { url: 'https://www.understandingwar.org/feed', source: 'ISW', icon: 'chart' },
-  { url: 'https://feeds.feedburner.com/defenseone/all', source: 'Defense One', icon: 'shield' },
-  { url: 'https://breakingdefense.com/feed/', source: 'Breaking Defense', icon: 'alert' },
-  { url: 'https://www.timesofisrael.com/feed/', source: 'Times of Israel', icon: 'news' },
-  { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya EN', icon: 'news' },
+  { url: 'https://www.longwarjournal.org/feed', source: 'Long War Journal' },
+  { url: 'https://breakingdefense.com/feed/', source: 'Breaking Defense' },
+  { url: 'https://www.middleeasteye.net/rss', source: 'Middle East Eye' },
+  { url: 'https://www.al-monitor.com/rss', source: 'Al-Monitor' },
+  { url: 'https://www.middleeastmonitor.com/feed/', source: 'MEMO' },
+  { url: 'https://www.jpost.com/rss/rssfeedsfrontpage.aspx', source: 'Jerusalem Post' },
+  { url: 'https://feeds.feedburner.com/WarOnTheRocks', source: 'War on the Rocks' },
+  { url: 'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', source: 'Defense News' },
+  { url: 'https://english.aawsat.com/feed', source: 'Asharq Al-Awsat' },
+  { url: 'https://www.presstv.ir/RSS', source: 'Press TV (Iran)' },
+  { url: 'https://www.i24news.tv/en/rss', source: 'i24 News (Israel)' },
 ];
 let osintFeedCache: { data: NewsItem[]; fetchedAt: number } | null = null;
 const OSINT_FEED_CACHE_TTL = 60_000;
@@ -666,10 +731,10 @@ async function fetchXFeeds(): Promise<NewsItem[]> {
   }
   const xPosts = results.flat();
 
-  if (xPosts.length < 5) {
-    const osintPosts = await fetchOSINTRSSFeeds();
-    xPosts.push(...osintPosts);
-  }
+  const osintPosts = await fetchOSINTRSSFeeds();
+  xPosts.push(...osintPosts);
+
+  console.log(`[X-FEED] Total: ${xPosts.length} posts (${xPosts.length - osintPosts.length} from X accounts, ${osintPosts.length} from OSINT RSS)`);
 
   xPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   return xPosts;

@@ -2493,8 +2493,6 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     if (!deckContainerRef.current) return;
 
     const container = deckContainerRef.current;
-    const rect = container.getBoundingClientRect();
-    console.log('[ConflictMap] Deck container rect:', rect.width, rect.height);
 
     let deck: Deck;
     try {
@@ -2515,7 +2513,6 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
 
     deckRef.current = deck;
-    console.log('[ConflictMap] Deck.gl initialized successfully');
 
     return () => {
       deck.finalize();
@@ -2533,17 +2530,6 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
   }, [layers, viewState]);
 
-  useEffect(() => {
-    console.log('[ConflictMap] Layer data counts:', {
-      events: events.length,
-      flights: flights.length,
-      ships: ships.length,
-      adsb: adsbFlights.length,
-      alerts: redAlerts.length,
-      thermal: thermalHotspots.length,
-      layerCount: layers.length,
-    });
-  }, [events.length, flights.length, ships.length, adsbFlights.length, redAlerts.length, thermalHotspots.length, layers.length]);
 
   // Live stats for HUD
   const milCount = adsbFlights.filter(f => f.type === 'military' || f.type === 'surveillance').length;

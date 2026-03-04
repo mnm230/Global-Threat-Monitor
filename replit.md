@@ -46,7 +46,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications`, `api.tzevaadom.co.il/alerts-history`, `oref.org.il`
 - **Earthquake Data:** USGS
 - **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov`)
-- **X/Twitter News Feeds:** Primary: `syndication.twitter.com`. Fallback: OSINT RSS feeds (Long War Journal, Breaking Defense, Times of Israel, Al Arabiya EN, Defense One, ISW, Critical Threats, LiveUAMap, Janes Defense).
+- **OSINT Feed:** Primary: Nitter RSS instances (privacydev, poast, woodland.cafe, 1d4.us, xcancel). Syndication fallback: `syndication.twitter.com`. OSINT RSS feeds (11 sources): Long War Journal, Breaking Defense, Middle East Eye, Al-Monitor, MEMO, Jerusalem Post, War on the Rocks, Defense News, Asharq Al-Awsat, Press TV, i24 News. Always merged with X account posts when available.
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui

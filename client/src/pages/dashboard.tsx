@@ -3753,7 +3753,7 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
       <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <SiX className="w-3 h-3 text-primary/50 shrink-0" />
-        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{t('X / Twitter', '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631')}</span>
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{t('OSINT Feed', '\u0645\u0635\u0627\u062F\u0631 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A\u064A\u0629')}</span>
         <span className="text-[8px] font-mono text-foreground/25 tabular-nums leading-none">[{filtered.length}]</span>
         {posts.length > 0 && <span className="text-[7px] uppercase tracking-widest text-emerald-400/50 font-mono ml-0.5">LIVE</span>}
         <div className="flex-1" />
