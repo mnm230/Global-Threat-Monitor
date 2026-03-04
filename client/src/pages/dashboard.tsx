@@ -1908,11 +1908,38 @@ const EVENT_TYPE_ICONS: Record<string, string> = {
   nuclear:   '☢️',
 };
 
+const AI_EVENT_ASSESSMENTS: Record<string, string> = {
+  missile: 'Ballistic trajectory detected — high-confidence threat vector',
+  airstrike: 'Fixed-wing or rotary engagement — confirm air defense posture',
+  defense: 'Intercept system activation — assess effectiveness window',
+  naval: 'Maritime posture shift — monitor Strait of Hormuz corridor',
+  ground: 'Frontline contact reported — satellite imagery recommended',
+  nuclear: 'Strategic asset activity — immediate escalation risk',
+};
+
 function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximized }: { events: ConflictEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const sorted = [...events].sort((a, b) => {
-    const order = { critical: 0, high: 1, medium: 2, low: 3 };
-    return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
-  });
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const sorted = [...events].sort((a, b) => {
+      const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+      return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
+    });
+    if (!query.trim()) return sorted;
+    const q = query.toLowerCase();
+    // Smart NL filter: match type, severity, country, title
+    return sorted.filter(e => {
+      if (q.includes('missile') && e.type !== 'missile') return q.includes(e.type);
+      const matchType = e.type.includes(q);
+      const matchSev = e.severity.includes(q);
+      const matchTitle = e.title.toLowerCase().includes(q);
+      const matchCountry = e.country?.toLowerCase().includes(q) ?? false;
+      const matchDesc = e.description?.toLowerCase().includes(q) ?? false;
+      // semantic shortcuts
+      if (q === 'critical' || q === 'high' || q === 'medium' || q === 'low') return matchSev;
+      return matchType || matchSev || matchTitle || matchCountry || matchDesc;
+    });
+  }, [events, query]);
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -1925,14 +1952,35 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
         onMaximize={onMaximize}
         isMaximized={isMaximized}
       />
-      {events.length === 0 && (
+      {/* AI Natural Language Filter */}
+      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(225 28% 3.5%)'}}>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 25% 5%)', border:'1px solid hsl(225 18% 9%)'}}>
+          <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="filter: 'missiles', 'iran', 'critical'..."
+            className="flex-1 bg-transparent text-[9px] font-mono text-foreground/70 placeholder:text-foreground/20 outline-none"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="text-foreground/30 hover:text-foreground/60 text-[8px] font-mono">✕</button>
+          )}
+        </div>
+      </div>
+      {filtered.length === 0 && query && (
+        <div className="px-3 py-3 text-center">
+          <p className="text-[9px] text-foreground/25 font-mono">NO MATCH — try 'missile', 'high', country name</p>
+        </div>
+      )}
+      {events.length === 0 && !query && (
         <div className="px-3 py-6 text-center">
           <Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
           <p className="text-[10px] text-foreground/25">No active events</p>
         </div>
       )}
       <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-        {sorted.map((e) => {
+        {filtered.map((e) => {
           const sev = SEVERITY_STYLES[e.severity] || SEVERITY_STYLES.low;
           const icon = EVENT_TYPE_ICONS[e.type] || '📍';
           return (
@@ -1954,11 +2002,17 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
               <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-1.5">
                 {language === 'ar' && e.descriptionAr ? e.descriptionAr : e.description}
               </p>
-              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/70">
+              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/70 mb-1">
                 <span className="uppercase tracking-wider text-foreground/50">{e.type}</span>
                 <span className="text-foreground/30">·</span>
                 <span>{timeAgo(e.timestamp)}</span>
               </div>
+              {AI_EVENT_ASSESSMENTS[e.type] && (
+                <div className="flex items-start gap-1 mt-0.5">
+                  <span className="text-[7px] font-mono font-bold text-primary/40 shrink-0 mt-0.5">AI▸</span>
+                  <span className="text-[8px] font-mono text-foreground/30 leading-snug italic">{AI_EVENT_ASSESSMENTS[e.type]}</span>
+                </div>
+              )}
             </div>
           );
         })}
@@ -2458,14 +2512,17 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       {hasActiveAlerts && (
         <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
           <div className="px-2 py-1.5">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city / country...'}
-              className="w-full h-7 text-[10px] font-mono px-2.5 rounded bg-red-950/40 border border-red-800/30 text-red-100/90 placeholder:text-red-400/30 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/20"
-              data-testid="input-red-alert-search"
-            />
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 25% 5%)', border:'1px solid hsl(225 18% 9%)'}}>
+              <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={language === 'ar' ? 'ابحث عن مدينة...' : "AI▸ filter: 'rockets near Tel Aviv', 'critical'..."}
+                className="flex-1 bg-transparent text-[10px] font-mono text-red-100/90 placeholder:text-red-400/30 focus:outline-none h-5"
+                data-testid="input-red-alert-search"
+              />
+            </div>
           </div>
           <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
             {[
@@ -3873,6 +3930,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         'OpenAI': 'from-emerald-500/10 border-emerald-500/20 text-emerald-400',
                         'Anthropic': 'from-orange-500/10 border-orange-500/20 text-orange-400',
                         'Google': 'from-blue-500/10 border-blue-500/20 text-blue-400',
+                        'xAI': 'from-rose-500/10 border-rose-500/20 text-rose-400',
                       };
                       const colors = engineColors[assessment.engine] || 'from-gray-500/10 border-gray-500/20 text-gray-400';
                       const borderColor = colors.split(' ')[1];
@@ -4267,37 +4325,56 @@ function PanelSidebar({
   openPanel,
   closePanel,
   language,
+  panelStats,
+  connected,
+  aiBrief,
 }: {
   visiblePanels: Record<PanelId, boolean>;
   openPanel: (id: PanelId) => void;
   closePanel: (id: PanelId) => void;
   language: 'en' | 'ar';
+  panelStats: Partial<Record<PanelId, string | number>>;
+  connected: boolean;
+  aiBrief: import('@shared/schema').AIBrief | null;
 }) {
-  const topGroup: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
+  const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
   const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed', 'godseye'];
+
+  const AI_MODELS = [
+    { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
+    { key: 'claude',   label: 'CLAUDE',    color: 'bg-sky-400' },
+    { key: 'gemini',   label: 'GEMINI',    color: 'bg-violet-400' },
+    { key: 'grok',     label: 'GROK',      color: 'bg-amber-400' },
+  ];
 
   const renderBtn = (id: PanelId) => {
     const cfg = PANEL_CONFIG[id];
     if (!cfg) return null;
     const Icon = cfg.icon;
     const active = visiblePanels[id];
+    const stat = panelStats[id];
     return (
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        title={language === 'en' ? cfg.label : cfg.labelAr}
-        className={`w-11 h-9 flex flex-col items-center justify-center gap-0.5 relative transition-colors duration-100 border-r-2
+        className={`w-full h-8 flex items-center gap-2.5 px-3 relative transition-colors duration-100 border-r-2 group
           ${active
             ? 'text-primary border-primary'
-            : 'text-foreground/20 hover:text-foreground/50 border-transparent hover:bg-white/[0.02]'
+            : 'text-foreground/25 hover:text-foreground/60 border-transparent hover:bg-white/[0.02]'
           }`}
         style={active ? {background:'hsl(36 100% 50% / 0.05)'} : undefined}
         data-testid={`sidebar-panel-${id}`}
+        title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
         <Icon className="w-3 h-3 shrink-0" />
-        <span className="text-[5.5px] font-mono font-bold uppercase tracking-wider leading-none opacity-60">
-          {cfg.label.slice(0, 4)}
+        <span className="text-[9px] font-mono font-bold uppercase tracking-wider flex-1 text-left leading-none truncate">
+          {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
+        {stat !== undefined && stat !== '' && (
+          <span className={`text-[7px] font-mono tabular-nums shrink-0 ${active ? 'text-primary/50' : 'text-foreground/20'}`}>
+            {stat}
+          </span>
+        )}
       </button>
     );
   };
@@ -4305,14 +4382,51 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 44, background: 'hsl(225 30% 2.5%)' }}
+      style={{ width: 220, background: 'hsl(225 30% 2.5%)' }}
     >
-      <div className="flex flex-col pt-1">
+      {/* PANELS section */}
+      <div className="px-3 pt-3 pb-1.5">
+        <span className="text-[7px] font-mono font-bold text-foreground/20 tracking-[0.25em] uppercase">◈ PANELS</span>
+      </div>
+      <div className="flex flex-col">
         {topGroup.map(renderBtn)}
       </div>
-      <div className="mx-2 my-1.5 h-px bg-white/[0.05]" />
+      <div className="mx-3 my-1.5 h-px bg-white/[0.04]" />
       <div className="flex flex-col">
         {bottomGroup.map(renderBtn)}
+      </div>
+
+      {/* AI MODELS section */}
+      <div className="mt-auto">
+        <div className="mx-3 my-1.5 h-px bg-white/[0.04]" />
+        <div className="px-3 pt-1 pb-1.5">
+          <span className="text-[7px] font-mono font-bold text-foreground/20 tracking-[0.25em] uppercase">◈ AI MODELS</span>
+        </div>
+        <div className="flex flex-col pb-2">
+          {AI_MODELS.map(m => {
+            const isReady = connected;
+            return (
+              <div key={m.key} className="flex items-center gap-2.5 px-3 h-7">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isReady ? m.color : 'bg-foreground/10'}`}
+                  style={isReady ? {boxShadow:`0 0 4px currentColor`} : undefined} />
+                <span className="text-[8px] font-mono text-foreground/35 flex-1 uppercase tracking-wider">{m.label}</span>
+                <span className={`text-[7px] font-mono font-bold ${isReady ? 'text-emerald-400/50' : 'text-foreground/15'}`}>
+                  {isReady ? 'READY' : 'OFF'}
+                </span>
+              </div>
+            );
+          })}
+          {aiBrief && (
+            <div className="mx-3 mt-1 px-2 py-1 rounded-none" style={{background:'hsl(36 100% 50% / 0.05)', border:'1px solid hsl(36 100% 50% / 0.12)'}}>
+              <div className="text-[7px] font-mono text-foreground/30 uppercase tracking-widest mb-0.5">Risk Level</div>
+              <div className={`text-[9px] font-mono font-bold ${
+                aiBrief.riskLevel === 'EXTREME' ? 'text-red-400' :
+                aiBrief.riskLevel === 'HIGH' ? 'text-orange-400' :
+                aiBrief.riskLevel === 'ELEVATED' ? 'text-yellow-400' : 'text-emerald-400'
+              }`}>{aiBrief.riskLevel}</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -4743,6 +4857,25 @@ export default function Dashboard() {
             openPanel={openPanel}
             closePanel={closePanel}
             language={language}
+            connected={connected}
+            aiBrief={aiBrief}
+            panelStats={{
+              map: 'LIVE',
+              alerts: redAlerts.length > 0 ? `${redAlerts.length} ACTIVE` : '',
+              intel: aiBrief ? aiBrief.riskLevel : 'STANDBY',
+              telegram: telegramMessages.length > 0 ? `${telegramMessages.length}` : '',
+              livefeed: '',
+              events: events.length > 0 ? `${events.length}` : '',
+              radar: flights.length > 0 ? `${flights.length}` : '',
+              adsb: adsbFlights.length > 0 ? `${adsbFlights.length}` : '',
+              markets: commodities.length > 0 ? `${commodities.length}` : '',
+              seismic: earthquakes.length > 0 ? `${earthquakes.length}` : '',
+              cyber: cyberEvents.length > 0 ? `${cyberEvents.length}` : '',
+              alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
+              analytics: '',
+              xfeed: xPosts.length > 0 ? `${xPosts.length}` : '',
+              godseye: '',
+            }}
           />
         )}
         <div className="flex-1 min-w-0 overflow-hidden flex flex-col">

@@ -23,6 +23,11 @@ const gemini = new GoogleGenAI({
   },
 });
 
+const grok = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL,
+});
+
 const ADSB_API_BASE = 'https://api.adsb.lol/v2';
 
 const ADSB_QUERY_POINTS = [
@@ -2186,6 +2191,44 @@ async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMes
     }
   };
 
+  const runGrok = async (): Promise<LLMAssessment> => {
+    const start = Date.now();
+    try {
+      const resp = await grok.chat.completions.create({
+        model: 'x-ai/grok-3',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 8192,
+      });
+      const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          engine: 'xAI',
+          model: 'Grok-3',
+          riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'].includes(parsed.riskLevel) ? parsed.riskLevel : 'HIGH') as LLMAssessment['riskLevel'],
+          summary: parsed.summary || 'Assessment pending.',
+          keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights.slice(0, 5) : [],
+          confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+          generatedAt: new Date().toISOString(),
+          latencyMs: Date.now() - start,
+          status: 'success',
+        };
+      }
+      throw new Error('No valid JSON in response');
+    } catch (err) {
+      return {
+        engine: 'xAI', model: 'Grok-3', riskLevel: 'MODERATE', summary: '',
+        keyInsights: [], confidence: 0, generatedAt: new Date().toISOString(),
+        latencyMs: Date.now() - start, status: 'error', error: (err as Error).message,
+      };
+    }
+  };
+
   const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
     Promise.race([promise, new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms))]);
 
@@ -2199,6 +2242,7 @@ async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMes
     withTimeout(runOpenAI(), 15000, timeoutFallback('OpenAI', 'GPT-4.1')),
     withTimeout(runAnthropic(), 15000, timeoutFallback('Anthropic', 'Claude Sonnet')),
     withTimeout(runGemini(), 15000, timeoutFallback('Google', 'Gemini 2.5 Flash')),
+    withTimeout(runGrok(), 15000, timeoutFallback('xAI', 'Grok-3')),
   ]);
   const assessments = results.map(r => r.status === 'fulfilled' ? r.value : {
     engine: 'Unknown', model: 'Unknown', riskLevel: 'MODERATE' as const, summary: '',

@@ -556,7 +556,8 @@ type LayerKey =
   | 'noFlyZones'
   | 'satelliteThermal'
   | 'thermalHeatmap'
-  | 'alertHeatmap';
+  | 'alertHeatmap'
+  | 'aiHeatmap';
 
 const MISSILE_TRAJECTORIES = [
   { id: 'traj-1', source: [51.4, 35.7], target: [34.8, 32.1], label: 'Tehran > Tel Aviv', type: 'ballistic' },
@@ -650,6 +651,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'thermalHeatmap', label: 'Thermal Heat Map', color: '#ff3300', defaultOn: false, group: 'satellite' },
 
   { key: 'alertHeatmap', label: 'Alert Density Map', color: '#dc2626', defaultOn: false, group: 'operational' },
+  { key: 'aiHeatmap', label: 'AI Threat Heatmap', color: '#ff0000', defaultOn: false, group: 'operational' },
 ];
 
 interface SearchItem {
