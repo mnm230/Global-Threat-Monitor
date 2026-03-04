@@ -1143,7 +1143,7 @@ function geocodeFromTitle(title: string): { lat: number; lng: number } | null {
 }
 
 let gdeltCache: { data: ConflictEvent[]; fetchedAt: number } | null = null;
-const GDELT_CACHE_TTL = 10_000;
+const GDELT_CACHE_TTL = 8_000;
 
 // Rolling 7-day historical event buffer
 const HISTORY_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -1191,19 +1191,24 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   try {
     const hotspots = await fetchThermalHotspots();
     const recentHotspots = hotspots
-      .filter(h => Date.now() - new Date(h.timestamp).getTime() < 24 * 3600 * 1000)
-      .slice(0, 30);
+      .filter(h => {
+        const ts = new Date(`${h.acqDate}T${String(h.acqTime).padStart(4, '0').slice(0, 2)}:${String(h.acqTime).padStart(4, '0').slice(2)}:00Z`).getTime();
+        return !isNaN(ts) && Date.now() - ts < 48 * 3600 * 1000;
+      })
+      .slice(0, 40);
     for (let i = 0; i < recentHotspots.length; i++) {
       const h = recentHotspots[i];
+      const ts = new Date(`${h.acqDate}T${String(h.acqTime).padStart(4, '0').slice(0, 2)}:${String(h.acqTime).padStart(4, '0').slice(2)}:00Z`).toISOString();
+      const confLabel = h.confidence === 'high' ? 'HIGH' : h.confidence === 'nominal' ? 'NOM' : 'LOW';
       events.push({
-        id: `thermal_${i}`,
+        id: `thermal_${h.lat.toFixed(3)}_${h.lng.toFixed(3)}_${i}`,
         type: 'airstrike',
         lat: h.lat,
         lng: h.lng,
-        title: `Thermal anomaly (${h.confidence}% confidence)`,
-        description: `NASA FIRMS satellite detection - ${h.brightness.toFixed(0)}K brightness`,
-        timestamp: h.timestamp,
-        severity: h.confidence >= 80 ? 'high' : h.confidence >= 50 ? 'medium' : 'low',
+        title: `Thermal anomaly (${confLabel} confidence)`,
+        description: `NASA FIRMS satellite detection - ${h.brightness.toFixed(0)}K brightness, ${h.frp.toFixed(1)} MW FRP`,
+        timestamp: ts,
+        severity: h.confidence === 'high' ? 'high' : h.confidence === 'nominal' ? 'medium' : 'low',
       });
     }
   } catch {}
@@ -1269,7 +1274,13 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
 
   gdeltCache = { data: deduped, fetchedAt: Date.now() };
   mergeIntoHistory(deduped);
-  console.log(`[EVENTS] ${deduped.length} real conflict events (alerts: ${events.filter(e => e.id.startsWith('alert_')).length}, thermal: ${events.filter(e => e.id.startsWith('thermal_')).length}, seismic: ${events.filter(e => e.id.startsWith('eq_')).length}, gdelt: ${events.filter(e => e.id.startsWith('gdelt_')).length})`);
+  const counts = {
+    alerts: events.filter(e => e.id.startsWith('alert_')).length,
+    thermal: events.filter(e => e.id.startsWith('thermal_')).length,
+    seismic: events.filter(e => e.id.startsWith('eq_')).length,
+    gdelt: events.filter(e => e.id.startsWith('gdelt_')).length,
+  };
+  console.log(`[EVENTS] ${deduped.length} real conflict events (alerts: ${counts.alerts}, thermal: ${counts.thermal}, seismic: ${counts.seismic}, gdelt: ${counts.gdelt})`);
   return deduped;
 }
 

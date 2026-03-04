@@ -1253,13 +1253,13 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-6 border-b border-white/[0.03]" style={{background:'hsl(225 30% 3.5%)'}} />;
+  if (!commodities.length) return <div className="h-7 border-b border-white/[0.03]" style={{background:'hsl(225 30% 3.5%)'}} />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-6 border-b border-white/[0.03] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 0%, hsl(225 30% 3.5%) 50%, hsl(225 28% 4%) 100%)'}}>
+    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 0%, hsl(225 30% 3.5%) 50%, hsl(225 28% 4%) 100%)'}}>
       <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 70%, transparent)'}}>
-        <span className="text-[7px] font-black tracking-[0.35em] text-primary/35 font-mono">MKT</span>
+        <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">MKT</span>
       </div>
       <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 28% 4%) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
@@ -1401,21 +1401,21 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-      <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/50 shrink-0">{icon}</span>
-      <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{title}</span>
+    <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/55 shrink-0">{icon}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[8px] font-mono text-foreground/25 tabular-nums leading-none">
-          [{count}]
+        <span className="text-[9px] font-mono text-foreground/30 tabular-nums leading-none bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">
+          {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1">
-          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
-          <span className="text-[7px] uppercase tracking-widest text-emerald-400/50 font-mono">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+          <span className="text-[8px] uppercase tracking-widest text-emerald-400/60 font-mono font-bold">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -1454,9 +1454,9 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
 
 function SectionLabel({ label }: { label: string }) {
   return (
-    <div className="px-3.5 py-1.5 bg-card/60 border-y border-border/30 flex items-center gap-2">
-      <div className="w-1 h-1 rounded-full bg-primary/40 shrink-0" />
-      <span className="text-[9px] uppercase tracking-[0.25em] text-primary/50 font-black font-mono">{label}</span>
+    <div className="px-3.5 py-1.5 bg-card/40 border-y border-border/20 flex items-center gap-2">
+      <div className="w-1 h-1 rounded-full bg-primary/35 shrink-0" />
+      <span className="text-[9px] uppercase tracking-[0.2em] text-foreground/30 font-bold font-mono">{label}</span>
     </div>
   );
 }
@@ -1728,23 +1728,21 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
-      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-cyan-500/[0.04] to-transparent shrink-0 relative overflow-hidden">
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/60 via-cyan-400/30 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
-        <div className="w-4 h-4 rounded bg-cyan-500/[0.08] border border-cyan-500/10 flex items-center justify-center shrink-0">
-          <Radar className="w-2.5 h-2.5 text-cyan-400/70" />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">ADS-B</span>
-        <span className="text-[10px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
+      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
+        <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">ADS-B</span>
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
           {adsbFlights.length}
         </span>
         <div className="flex-1" />
         {(() => {
           const isLive = adsbFlights.length > 0 && adsbFlights[0]?.id?.startsWith('live-');
           return (
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${isLive ? 'bg-emerald-500/[0.08] border border-emerald-500/[0.15]' : 'bg-amber-500/[0.08] border border-amber-500/[0.15]'}`}>
+            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm ${isLive ? 'bg-emerald-500/[0.06] border border-emerald-500/[0.12]' : 'bg-amber-500/[0.06] border border-amber-500/[0.12]'}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse-dot`} style={{boxShadow: isLive ? '0 0 4px rgb(34 197 94 / 0.6)' : '0 0 4px rgb(245 158 11 / 0.6)'}} />
-              <span className={`text-[9px] uppercase tracking-[0.2em] font-bold font-mono ${isLive ? 'text-emerald-400/70' : 'text-amber-400/70'}`}>{isLive ? 'LIVE' : 'SIM'}</span>
+              <span className={`text-[8px] uppercase tracking-widest font-bold font-mono ${isLive ? 'text-emerald-400/60' : 'text-amber-400/60'}`}>{isLive ? 'LIVE' : 'SIM'}</span>
             </div>
           );
         })()}
@@ -3285,27 +3283,25 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden">
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/60 via-purple-400/30 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />
-        <div className="w-4 h-4 rounded bg-purple-500/[0.08] border border-purple-500/10 flex items-center justify-center shrink-0">
-          <Brain className="w-2.5 h-2.5 text-purple-400/70" />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
+      <div className="panel-drag-handle h-7 px-2.5 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
+        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
+        <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">
           {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
         </span>
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/25 bg-white/[0.03] rounded border border-white/[0.05] tabular-nums leading-none">
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.03] rounded border border-white/[0.06] tabular-nums leading-none">
           {brief?.model || '...'}
         </span>
         {anomalies.length > 0 && (
           <span className="text-[9px] px-1.5 py-0.5 font-mono font-bold text-amber-300/80 bg-amber-950/30 rounded border border-amber-500/20 animate-pulse" data-testid="anomaly-badge">
-            {anomalies.length} ANOMALY
+            {anomalies.length} ANOM
           </span>
         )}
         <div className="flex-1" />
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
-          <Sparkles className="w-2.5 h-2.5 text-purple-400/40" />
-          <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+          <span className="text-[8px] uppercase tracking-widest text-emerald-400/60 font-mono font-bold">LIVE</span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -3893,12 +3889,12 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <BarChart3 className="w-3 h-3 text-blue-400/50 shrink-0" />
-        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
+      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
+        <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
         <div className="flex-1" />
-        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-analytics">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
+        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10 transition-colors" data-testid="button-maximize-analytics">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
       <ScrollArea className="flex-1 min-h-0">
@@ -4279,17 +4275,20 @@ function PanelSidebar({
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className="w-full h-8 flex items-center gap-2.5 px-3 relative transition-colors duration-100 border-r-2 group border-primary text-[#ebebeb] text-[19px] font-semibold"
-        style={active ? {background:'hsl(36 100% 50% / 0.05)'} : undefined}
+        className={`w-full h-8 flex items-center gap-2.5 px-3 relative transition-all duration-150 border-r-2 group
+          ${active
+            ? 'border-primary/80 text-foreground/85 bg-primary/[0.07]'
+            : 'border-transparent text-foreground/35 hover:text-foreground/65 hover:bg-white/[0.025] active:bg-white/[0.04]'
+          }`}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        <Icon className="w-3 h-3 shrink-0" />
-        <span className="text-[9px] font-mono font-bold uppercase tracking-wider flex-1 text-left leading-none truncate">
+        <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-primary/70' : 'text-foreground/30 group-hover:text-foreground/50'}`} />
+        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider flex-1 text-left leading-none truncate transition-colors ${active ? 'text-foreground/80' : 'text-foreground/35 group-hover:text-foreground/60'}`}>
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[7px] font-mono tabular-nums shrink-0 ${active ? 'text-primary/50' : 'text-foreground/20'}`}>
+          <span className={`text-[8px] font-mono tabular-nums shrink-0 px-1 py-0.5 rounded transition-colors ${active ? 'text-primary/60 bg-primary/10' : 'text-foreground/20'}`}>
             {stat}
           </span>
         )}
@@ -4300,11 +4299,12 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 220, background: 'hsl(225 30% 2.5%)' }}
+      style={{ width: 200, background: 'hsl(225 30% 2.5%)' }}
     >
       {/* PANELS section */}
-      <div className="px-3 pt-3 pb-1.5">
-        <span className="text-[7px] font-mono font-bold text-foreground/20 tracking-[0.25em] uppercase">◈ PANELS</span>
+      <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
+        <div className="w-1 h-1 rounded-full bg-primary/30" />
+        <span className="text-[8px] font-mono font-bold text-foreground/25 tracking-[0.25em] uppercase">Panels</span>
       </div>
       <div className="flex flex-col">
         {topGroup.map(renderBtn)}
@@ -4316,28 +4316,30 @@ function PanelSidebar({
 
       {/* AI MODELS section */}
       <div className="mt-auto">
-        <div className="mx-3 my-1.5 h-px bg-white/[0.04]" />
-        <div className="px-3 pt-1 pb-1.5">
-          <span className="text-[7px] font-mono font-bold text-foreground/20 tracking-[0.25em] uppercase">◈ AI MODELS</span>
+        <div className="mx-3 my-2 h-px bg-white/[0.04]" />
+        <div className="px-3 pt-1 pb-1.5 flex items-center gap-2">
+          <Brain className="w-3 h-3 text-foreground/20" />
+          <span className="text-[8px] font-mono font-bold text-foreground/25 tracking-[0.2em] uppercase">AI Models</span>
+          <div className={`ml-auto w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400/50'}`} />
         </div>
-        <div className="flex flex-col pb-2">
+        <div className="flex flex-col pb-3">
           {AI_MODELS.map(m => {
             const isReady = connected;
             return (
               <div key={m.key} className="flex items-center gap-2.5 px-3 h-7">
-                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isReady ? m.color : 'bg-foreground/10'}`}
-                  style={isReady ? {boxShadow:`0 0 4px currentColor`} : undefined} />
-                <span className="text-[8px] font-mono text-foreground/35 flex-1 uppercase tracking-wider">{m.label}</span>
-                <span className={`text-[7px] font-mono font-bold ${isReady ? 'text-emerald-400/50' : 'text-foreground/15'}`}>
-                  {isReady ? 'READY' : 'OFF'}
+                <div className={`w-2 h-2 rounded-full shrink-0 transition-all ${isReady ? m.color : 'bg-foreground/10'}`}
+                  style={isReady ? {boxShadow:`0 0 5px currentColor`} : undefined} />
+                <span className={`text-[9px] font-mono flex-1 uppercase tracking-wider transition-colors ${isReady ? 'text-foreground/45' : 'text-foreground/20'}`}>{m.label}</span>
+                <span className={`text-[8px] font-mono font-bold px-1 py-0.5 rounded transition-colors ${isReady ? 'text-emerald-400/60 bg-emerald-500/[0.06]' : 'text-foreground/15'}`}>
+                  {isReady ? 'ON' : 'OFF'}
                 </span>
               </div>
             );
           })}
           {aiBrief && (
-            <div className="mx-3 mt-1 px-2 py-1 rounded-none" style={{background:'hsl(36 100% 50% / 0.05)', border:'1px solid hsl(36 100% 50% / 0.12)'}}>
-              <div className="text-[7px] font-mono text-foreground/30 uppercase tracking-widest mb-0.5">Risk Level</div>
-              <div className={`text-[9px] font-mono font-bold ${
+            <div className="mx-3 mt-2 px-2.5 py-2 rounded-sm" style={{background:'hsl(36 100% 50% / 0.06)', border:'1px solid hsl(36 100% 50% / 0.15)'}}>
+              <div className="text-[8px] font-mono text-foreground/35 uppercase tracking-widest mb-1">Threat Assessment</div>
+              <div className={`text-[10px] font-mono font-black tracking-wider ${
                 aiBrief.riskLevel === 'EXTREME' ? 'text-red-400' :
                 aiBrief.riskLevel === 'HIGH' ? 'text-orange-400' :
                 aiBrief.riskLevel === 'ELEVATED' ? 'text-yellow-400' : 'text-emerald-400'
@@ -4805,13 +4807,13 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col bg-background text-foreground h-screen overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-7'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2.5%)'}}>
-        <div className="flex items-center gap-2 md:gap-4 min-w-0">
-          <span className={`${isMobile ? 'text-[10px]' : 'text-[11px]'} font-black tracking-[0.3em] text-primary font-mono select-none whitespace-nowrap`}>◈ WARROOM</span>
+      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2%)'}}>
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} font-black tracking-[0.28em] text-primary font-mono select-none whitespace-nowrap`}>◈ WARROOM</span>
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
-            <span className="text-[7px] text-red-400/90 font-black tracking-[0.25em] uppercase font-mono">LIVE</span>
+            <span className="text-[8px] text-red-400/90 font-black tracking-[0.2em] uppercase font-mono">LIVE</span>
           </div>
           {isMobile && (
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.06), transparent)', border:'1px solid hsl(0 80% 50% / 0.12)'}}>
@@ -4820,9 +4822,9 @@ export default function Dashboard() {
             </div>
           )}
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
-          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
-            <ShieldAlert className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3 h-3'} ${threatLevel.color}`} />
-            <span className={`${isMobile ? 'text-[6px]' : 'text-[7px]'} font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
+            <ShieldAlert className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} ${threatLevel.color}`} />
+            <span className={`${isMobile ? 'text-[6px]' : 'text-[8px]'} font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -4905,10 +4907,10 @@ export default function Dashboard() {
             </div>
           )}
           <div className="w-px h-4 bg-white/[0.05]" />
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm ${connected ? 'bg-emerald-500/[0.04]' : 'bg-red-500/[0.04]'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} style={{border: connected ? '1px solid hsl(152 72% 38% / 0.15)' : '1px solid hsl(0 80% 55% / 0.15)'}}>
+          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-all ${connected ? 'bg-emerald-500/[0.05]' : 'bg-red-500/[0.06]'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} title={connected ? 'Stream connected' : 'Stream disconnected'} style={{border: connected ? '1px solid hsl(152 72% 38% / 0.18)' : '1px solid hsl(0 80% 55% / 0.2)'}}>
             <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 6px rgb(34 197 94 / 0.5)' : '0 0 6px rgb(239 68 68 / 0.5)'}} />
-            <span className={`text-[8px] font-bold tracking-[0.2em] font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
-              {connected ? (language === 'en' ? 'SSE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'OFF' : '\u0645\u0646\u0642\u0637\u0639')}
+            <span className={`text-[8px] font-bold tracking-[0.2em] font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/75' : 'text-red-400/75'}`}>
+              {connected ? (language === 'en' ? 'ONLINE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'OFFLINE' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
         </div>
@@ -4965,7 +4967,7 @@ export default function Dashboard() {
             <div className="flex-1 min-h-0 overflow-hidden">
               {renderPanel(mobileActivePanel)}
             </div>
-            <div className="shrink-0 border-t border-white/[0.06] flex items-center overflow-x-auto warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} data-testid="mobile-tab-bar">
+            <div className="shrink-0 border-t border-white/[0.07] flex items-center overflow-x-auto warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 30% 2.5%)' }} data-testid="mobile-tab-bar">
               {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -4975,23 +4977,23 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                    className={`flex-1 min-w-[52px] py-1.5 flex flex-col items-center gap-0.5 transition-colors relative ${isActive ? 'text-primary' : 'text-foreground/30'} ${hasAlert ? 'text-red-400' : ''}`}
+                    className={`flex-1 min-w-[52px] py-2 flex flex-col items-center gap-0.5 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/35 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
                     data-testid={`mobile-tab-${id}`}
                   >
-                    {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" />}
-                    <Icon className="w-4 h-4" />
-                    <span className="text-[8px] font-mono font-bold uppercase tracking-wider">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
-                    {hasAlert && <div className="absolute top-1 right-2 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
+                    {isActive && <div className="absolute top-0 left-3 right-3 h-[2px] bg-primary rounded-b" />}
+                    <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                    <span className={`text-[8px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/35'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    {hasAlert && <div className="absolute top-1.5 right-3 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
                   </button>
                 );
               })}
               <button
                 onClick={() => setShowMobilePanelPicker(p => !p)}
-                className={`min-w-[52px] py-1.5 flex flex-col items-center gap-0.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/30'}`}
+                className={`min-w-[52px] py-2 flex flex-col items-center gap-0.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/35'}`}
                 data-testid="mobile-tab-more"
               >
                 <MoreHorizontal className="w-4 h-4" />
-                <span className="text-[8px] font-mono font-bold uppercase tracking-wider">{language === 'ar' ? 'المزيد' : 'More'}</span>
+                <span className="text-[8px] font-mono font-bold uppercase tracking-wide">{language === 'ar' ? 'المزيد' : 'More'}</span>
               </button>
             </div>
             {showMobilePanelPicker && (
