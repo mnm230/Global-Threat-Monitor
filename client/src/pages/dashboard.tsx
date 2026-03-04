@@ -1609,9 +1609,8 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
           <p className="text-[10px] text-foreground/25">Scanning airspace...</p>
         </div>
       )}
-
       {selectedFlight && (
-        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 28% 6%))'}} data-testid="flight-detail-card">
+        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 28% 6%))'}} data-testid="flight-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
             <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
@@ -1650,7 +1649,6 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
           </div>
         </div>
       )}
-
       <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((f) => {
           const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
@@ -3751,7 +3749,6 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
         {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-xfeed">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-
       <div className="px-2 py-1.5 border-b border-white/[0.04] overflow-x-auto flex items-center gap-1 shrink-0">
         <button
           onClick={() => setActiveAccount(null)}
@@ -3771,7 +3768,6 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
           </button>
         ))}
       </div>
-
       <ScrollArea className="flex-1 min-h-0">
         <div className="divide-y divide-white/[0.03]">
           {filtered.length === 0 ? (

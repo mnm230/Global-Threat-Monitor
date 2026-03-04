@@ -364,7 +364,6 @@ const X_FEED_ACCOUNTS = [
   'IsraelRadar_',       // Israel Radar — real-time alerts (EN)
   'IsraeliPM',          // Israeli PM office (EN)
   // --- Lebanon / Hezbollah monitoring ---
-  'Lebanese_PM',        // Lebanese PM official (EN+AR)
   'NaharnetEnglish',    // Naharnet — Lebanese news English (EN)
   'LBCINews',           // LBCI Lebanon news (AR/EN)
   'AlJumhuriya_ar',     // Lebanese political news (AR)
@@ -480,7 +479,6 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       IsraelRadar_: 'Israel Radar',
       IsraeliPM: 'Israeli PM',
       // Lebanon
-      Lebanese_PM: 'Lebanese PM',
       NaharnetEnglish: 'Naharnet Lebanon',
       LBCINews: 'LBCI News Lebanon',
       AlJumhuriya_ar: 'Al Jumhuriya (AR)',
