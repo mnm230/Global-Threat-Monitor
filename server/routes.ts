@@ -984,43 +984,47 @@ async function fetchLiveFxRates(): Promise<Record<string, number>> {
   return liveFxRates;
 }
 
-// Live commodity prices from Yahoo Finance (free, no API key required)
 let liveCommodityPrices: Record<string, { price: number; change: number; changePercent: number }> = {};
 let liveCommodityFetchedAt = 0;
-const COMMODITY_PRICE_TTL = 10_000;
+const COMMODITY_PRICE_TTL = 60_000;
 
 async function fetchLiveCommodityPrices(): Promise<void> {
   if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
   const symbols = COMMODITY_META
     .filter(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol)
-    .map(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol!)
-    .join(',');
+    .map(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol!);
+
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
+    const symbolsParam = symbols.map(s => encodeURIComponent(s)).join(',');
+    const url = `https://query2.finance.yahoo.com/v8/finance/spark?symbols=${symbolsParam}&interval=1d&range=1d`;
     const resp = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'User-Agent': randomUA(),
         'Accept': 'application/json',
-        'Referer': 'https://finance.yahoo.com',
+        'Referer': 'https://finance.yahoo.com/',
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(12000),
     });
-    if (!resp.ok) throw new Error(`Yahoo Finance HTTP ${resp.status}`);
-    const data = await resp.json() as { quoteResponse?: { result?: Array<{ symbol: string; regularMarketPrice?: number; regularMarketChange?: number; regularMarketChangePercent?: number }> } };
-    const results = data?.quoteResponse?.result || [];
-    for (const q of results) {
-      if (q.regularMarketPrice != null) {
-        liveCommodityPrices[q.symbol] = {
-          price: q.regularMarketPrice,
-          change: q.regularMarketChange ?? 0,
-          changePercent: q.regularMarketChangePercent ?? 0,
-        };
-      }
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json() as Record<string, any>;
+
+    let successCount = 0;
+    for (const symbol of symbols) {
+      const entry = data[symbol];
+      if (!entry) continue;
+      const closes = entry.close as number[] | undefined;
+      const price = closes && closes.length > 0 ? closes[closes.length - 1] : null;
+      if (price == null) continue;
+      const prevClose = entry.chartPreviousClose || entry.previousClose || price;
+      const change = price - prevClose;
+      const changePercent = prevClose !== 0 ? (change / prevClose) * 100 : 0;
+      liveCommodityPrices[symbol] = { price, change, changePercent };
+      successCount++;
     }
     liveCommodityFetchedAt = Date.now();
-    console.log(`[YAHOO-FINANCE] Fetched ${results.length} commodity prices`);
+    console.log(`[YAHOO-FINANCE] ${successCount}/${symbols.length} prices via spark batch`);
   } catch (err) {
-    console.log('[YAHOO-FINANCE] Error:', err instanceof Error ? err.message : err);
+    console.log(`[YAHOO-FINANCE] Error: ${err instanceof Error ? err.message : err}`);
   }
 }
 
@@ -2801,26 +2805,8 @@ Return ONLY a valid JSON array. No markdown, no explanation.`,
 
     console.log(`[CYBER] ME-filtered: ${deduped.length} events (GPT ME: ${gptME.length}, OTX ME: ${otxME.length})`);
 
-    if (deduped.length >= 3) {
-      cyberCache = { data: deduped, fetchedAt: Date.now() };
-      return deduped;
-    }
-
-    const now = new Date().toISOString();
-    const fallbackEvents: CyberEvent[] = [
-      { id: `cy_fb_1_${Date.now()}`, type: 'malware', target: 'Israeli Water Authority SCADA Systems', attacker: 'APT42 (Charming Kitten)', severity: 'critical', sector: 'infrastructure', country: 'Israel', timestamp: now, description: 'Iranian APT42 deploys custom wiper malware targeting Israeli water infrastructure control systems.' },
-      { id: `cy_fb_2_${Date.now()}`, type: 'intrusion', target: 'Saudi Aramco Corporate Network', attacker: 'APT34 (OilRig)', severity: 'high', sector: 'energy', country: 'Saudi Arabia', timestamp: now, description: 'OilRig conducts spear-phishing campaign against Saudi Aramco employees using spoofed contractor emails.' },
-      { id: `cy_fb_3_${Date.now()}`, type: 'phishing', target: 'UAE Ministry of Foreign Affairs', attacker: 'MuddyWater', severity: 'high', sector: 'government', country: 'UAE', timestamp: now, description: 'MuddyWater credential harvesting campaign targets UAE diplomatic staff via fake Microsoft 365 login pages.' },
-      { id: `cy_fb_4_${Date.now()}`, type: 'ddos', target: 'Iranian Banking Infrastructure', attacker: 'Predatory Sparrow', severity: 'high', sector: 'financial', country: 'Iran', timestamp: now, description: 'Sustained DDoS attacks against Iranian banking portals disrupt online transactions across major banks.' },
-      { id: `cy_fb_5_${Date.now()}`, type: 'scada', target: 'Haifa Port Control Systems', attacker: 'Lebanese Cedar', severity: 'critical', sector: 'infrastructure', country: 'Israel', timestamp: now, description: 'Lebanese Cedar APT probes Haifa port operational technology networks for SCADA vulnerabilities.' },
-      { id: `cy_fb_6_${Date.now()}`, type: 'data_exfil', target: 'Turkish Defense Ministry Servers', attacker: 'Unknown', severity: 'high', sector: 'military', country: 'Turkey', timestamp: now, description: 'Data exfiltration detected from Turkish defense ministry classified document servers.' },
-      { id: `cy_fb_7_${Date.now()}`, type: 'defacement', target: 'Qatar News Agency Website', attacker: 'Gaza Cybergang', severity: 'medium', sector: 'media', country: 'Qatar', timestamp: now, description: 'Qatar News Agency website defaced with political messaging attributed to Gaza-linked hacktivists.' },
-      { id: `cy_fb_8_${Date.now()}`, type: 'intrusion', target: 'Bahrain Telecom Backbone', attacker: 'APT33 (Elfin)', severity: 'high', sector: 'telecom', country: 'Bahrain', timestamp: now, description: 'APT33 maintains persistent access to Bahraini telecommunications provider for signals intelligence.' },
-    ];
-    const combined = [...deduped, ...fallbackEvents].slice(0, 12);
-    cyberCache = { data: combined, fetchedAt: Date.now() };
-    console.log(`[CYBER] Using ${deduped.length} real + ${combined.length - deduped.length} supplemented ME events`);
-    return combined;
+    cyberCache = { data: deduped, fetchedAt: Date.now() };
+    return deduped;
   } catch (err) {
     console.error('[CYBER] Fetch error:', err instanceof Error ? err.message : err);
     return cyberCache?.data || [];
@@ -3155,10 +3141,15 @@ export async function registerRoutes(
       send('events', { events, flights, ships: [] });
     });
     generateNews().then(news => send('news', news));
-    send('sirens', []);
     generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
+      const activeSirens = alerts.filter(a => {
+        const ts = new Date(a.timestamp).getTime();
+        if (isNaN(ts)) return false;
+        return Date.now() - ts < 300_000;
+      });
+      send('sirens', activeSirens);
     });
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
     fetchLiveTelegram().then(tgMsgs => {
@@ -3184,6 +3175,12 @@ export async function registerRoutes(
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
+      const activeSirens = alerts.filter(a => {
+        const ts = new Date(a.timestamp).getTime();
+        if (isNaN(ts)) return false;
+        return Date.now() - ts < 300_000;
+      });
+      send('sirens', activeSirens);
     }), 3000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(async (events) => {

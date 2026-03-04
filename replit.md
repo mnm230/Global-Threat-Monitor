@@ -46,6 +46,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications`, `api.tzevaadom.co.il/alerts-history`, `oref.org.il`
 - **Earthquake Data:** USGS
 - **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov`)
+- **Commodity Prices:** Yahoo Finance v8 spark batch endpoint (`query2.finance.yahoo.com/v8/finance/spark`) — single request for all 7 symbols (BZ=F, CL=F, GC=F, SI=F, NG=F, ZW=F, HG=F), 60s TTL. Returns close prices with previousClose for delta calculation.
 - **OSINT Feed:** Multi-layer X scraping: xcancel.com/nitter.cz HTML scraping (primary, extracts tweet-content/tweet-date/tweet-link from timeline HTML), Nitter RSS (secondary), X syndication endpoint (fallback). Uses UA rotation (6 user agents) and exponential backoff for rate-limited accounts. OSINT RSS feeds (17 sources): Long War Journal, Breaking Defense, Middle East Eye, Al-Monitor, MEMO, Jerusalem Post, War on the Rocks, Defense News, Asharq Al-Awsat, Press TV, i24 News, Times of Israel, Al Arabiya, France 24 ME, BBC Middle East, Al Jazeera, NYT Middle East. Always merged with X account posts when available.
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons

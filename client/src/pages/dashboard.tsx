@@ -5200,7 +5200,7 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>12</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, xPosts.length > 0, earthquakes.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0, ships.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
             <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
