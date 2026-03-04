@@ -2848,7 +2848,7 @@ export async function registerRoutes(
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
-  const TELEGRAM_CACHE_TTL = 10_000;
+  const TELEGRAM_CACHE_TTL = 0;
   const MAX_CACHE_CHANNELS = 50;
   const ALLOWED_CHANNEL_PATTERN = /^[a-zA-Z0-9_]{3,64}$/;
 
@@ -3390,7 +3390,7 @@ export async function registerRoutes(
         const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
         send('breaking-news', breaking);
       }).catch(() => {});
-    }, 15000));
+    }, 5000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
       const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];

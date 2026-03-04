@@ -2818,7 +2818,7 @@ function TelegramPanel({
         return [];
       }
     },
-    refetchInterval: 10000,
+    refetchInterval: 5000,
     staleTime: 0,
     enabled: allChannels.length > 0,
   });
