@@ -357,7 +357,32 @@ async function fetchMediastack(): Promise<NewsItem[]> {
   }
 }
 
-const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee', 'IntelCrab', 'sentdefender', 'IsraelRadar_', 'AuroraIntel', 'Faytuks', 'Conflicts', 'BNONews', 'igaboriau', 'NotWoofers', 'ELINTNews', 'charles_lister'];
+const X_FEED_ACCOUNTS = [
+  // --- Israeli military / official ---
+  'AvichayAdraee',      // IDF Arabic Spokesperson (EN+AR)
+  'IDF',                // Israeli Defense Forces official (EN)
+  'IsraelRadar_',       // Israel Radar — real-time alerts (EN)
+  'IsraeliPM',          // Israeli PM office (EN)
+  // --- Lebanon / Hezbollah monitoring ---
+  'Lebanese_PM',        // Lebanese PM official (EN+AR)
+  'NaharnetEnglish',    // Naharnet — Lebanese news English (EN)
+  'LBCINews',           // LBCI Lebanon news (AR/EN)
+  'AlJumhuriya_ar',     // Lebanese political news (AR)
+  // --- Regional OSINT / conflict ---
+  'IntelCrab',          // Intel Crab — ME OSINT (EN)
+  'sentdefender',       // Sentinel Defender (EN)
+  'AuroraIntel',        // Aurora Intel (EN)
+  'Faytuks',            // Faytuks — ME news (EN+AR)
+  'Conflicts',          // Conflicts — global conflict tracking (EN)
+  'ELINTNews',          // ELINT News (EN)
+  'charles_lister',     // Charles Lister — Syria/Lebanon analyst (EN)
+  'QalaatAlMudiq',      // Qalaat Al-Mudiq — Syria/Lebanon OSINT (EN+AR)
+  'MiddleEastEye',      // Middle East Eye (EN+AR)
+  // --- Breaking news ---
+  'FirstSquawk',        // First Squawk — financial/geopolitical (EN)
+  'BNONews',            // BNO News — breaking (EN)
+  'NOWLebanon',         // NOW Lebanon — English Lebanon news (EN)
+];
 const X_CACHE_TTL = 120_000;
 const X_RATE_LIMIT_BACKOFF = 300_000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
@@ -449,19 +474,30 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     }
 
     const ACCOUNT_LABELS: Record<string, string> = {
-      FirstSquawk: 'First Squawk',
-      AvichayAdraee: 'IDF Spokesperson',
-      IntelCrab: 'Intel Crab',
-      sentdefender: 'Sentinel',
+      // Israeli / official
+      AvichayAdraee: 'IDF Arabic Spokesperson',
+      IDF: 'IDF Official',
       IsraelRadar_: 'Israel Radar',
+      IsraeliPM: 'Israeli PM',
+      // Lebanon
+      Lebanese_PM: 'Lebanese PM',
+      NaharnetEnglish: 'Naharnet Lebanon',
+      LBCINews: 'LBCI News Lebanon',
+      AlJumhuriya_ar: 'Al Jumhuriya (AR)',
+      // OSINT / analysts
+      IntelCrab: 'Intel Crab',
+      sentdefender: 'Sentinel Defender',
       AuroraIntel: 'Aurora Intel',
       Faytuks: 'Faytuks',
       Conflicts: 'Conflicts',
-      BNONews: 'BNO News',
-      igaboriau: 'Igor Sushko',
-      NotWoofers: 'OSINT (Woofers)',
       ELINTNews: 'ELINT News',
       charles_lister: 'Charles Lister',
+      QalaatAlMudiq: 'Qalaat Al-Mudiq',
+      MiddleEastEye: 'Middle East Eye',
+      // Breaking news
+      FirstSquawk: 'First Squawk',
+      BNONews: 'BNO News',
+      NOWLebanon: 'NOW Lebanon',
     };
     const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
 
@@ -476,6 +512,12 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
 
       text = text.replace(/https?:\/\/t\.co\/\S+/g, '').trim();
       if (text.length < 5) continue;
+
+      // Only allow English and Arabic — skip Hebrew, Farsi, and other scripts
+      const hasHebrew = /[\u0590-\u05FF\uFB1D-\uFB4F]/.test(text);
+      const hasFarsi = /[\u06A9\u06AF\u06CC\u067E\u0686\u0698]/.test(text);
+      const hasCyrillic = /[\u0400-\u04FF]/.test(text);
+      if (hasHebrew || hasFarsi || hasCyrillic) continue;
 
       if (text.length > 300) {
         text = text.substring(0, 297) + '...';
