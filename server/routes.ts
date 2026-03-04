@@ -782,8 +782,8 @@ const OSINT_RSS_FEEDS = [
   { url: 'https://english.aawsat.com/feed', source: 'Asharq Al-Awsat' },
   { url: 'https://www.presstv.ir/RSS', source: 'Press TV (Iran)' },
   { url: 'https://www.i24news.tv/en/rss', source: 'i24 News (Israel)' },
-  { url: 'https://www.timesofisrael.com/feed/', source: 'Times of Israel' },
-  { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya' },
+  { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', source: 'The National' },
+  { url: 'https://news.google.com/rss/search?q=middle+east+conflict&hl=en-US&gl=US&ceid=US:en', source: 'Google News ME' },
   { url: 'https://www.france24.com/en/middle-east/rss', source: 'France 24 ME' },
   { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
@@ -870,7 +870,7 @@ function randomPick<T>(arr: T[]): T {
 const FREE_NEWS_RSS_FEEDS = [
   { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
-  { url: 'https://feeds.reuters.com/reuters/worldnews', source: 'Reuters' },
+  { url: 'https://news.google.com/rss/search?q=iran+israel+war&hl=en-US&gl=US&ceid=US:en', source: 'Google News War' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
 ];
 
@@ -1102,6 +1102,20 @@ const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
   'hebron': { lat: 31.529, lng: 35.095 }, 'jenin': { lat: 32.461, lng: 35.300 },
   'ramallah': { lat: 31.903, lng: 35.204 }, 'sidon': { lat: 33.563, lng: 35.376 },
   'tyre': { lat: 33.273, lng: 35.194 }, 'baalbek': { lat: 34.006, lng: 36.218 },
+  // South Lebanon — IDF ground invasion axis (2024–25)
+  'bint jbeil': { lat: 33.117, lng: 35.432 }, 'bint jbail': { lat: 33.117, lng: 35.432 },
+  'khiam': { lat: 33.359, lng: 35.611 }, 'al-khiam': { lat: 33.359, lng: 35.611 },
+  'maroun al-ras': { lat: 33.079, lng: 35.465 }, 'maroun': { lat: 33.079, lng: 35.465 },
+  'taybeh': { lat: 33.135, lng: 35.490 }, 'ayta ash-shab': { lat: 33.078, lng: 35.384 },
+  'yaroun': { lat: 33.092, lng: 35.468 }, 'labbouneh': { lat: 33.069, lng: 35.301 },
+  'kfar kila': { lat: 33.332, lng: 35.572 }, 'aitaroun': { lat: 33.070, lng: 35.451 },
+  'adaisseh': { lat: 33.286, lng: 35.607 }, 'markaba': { lat: 33.316, lng: 35.582 },
+  'alma ash-shab': { lat: 33.098, lng: 35.330 }, 'rmeish': { lat: 33.077, lng: 35.399 },
+  'nabatieh': { lat: 33.377, lng: 35.484 }, 'marjayoun': { lat: 33.359, lng: 35.593 },
+  'hasbaya': { lat: 33.397, lng: 35.690 }, 'kafr shuba': { lat: 33.418, lng: 35.689 },
+  'wazzani': { lat: 33.258, lng: 35.616 }, 'ghajar': { lat: 33.280, lng: 35.643 },
+  'houla': { lat: 33.290, lng: 35.580 }, 'shebaa': { lat: 33.436, lng: 35.710 },
+  'shebaa farms': { lat: 33.450, lng: 35.750 }, 'southern lebanon': { lat: 33.200, lng: 35.450 },
   'deir ez-zor': { lat: 35.336, lng: 40.145 }, 'idlib': { lat: 35.931, lng: 36.634 },
   'latakia': { lat: 35.524, lng: 35.791 }, 'basra': { lat: 30.508, lng: 47.784 },
   'mosul': { lat: 36.340, lng: 43.130 }, 'erbil': { lat: 36.191, lng: 44.009 },
@@ -1165,6 +1179,136 @@ function mergeIntoHistory(events: ConflictEvent[]) {
   historicalEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 }
 
+// South Lebanon village → coordinates for ground event extraction
+const SOUTH_LEBANON_VILLAGES: Record<string, { lat: number; lng: number; label: string }> = {
+  'bint jbeil': { lat: 33.117, lng: 35.432, label: 'Bint Jbeil' },
+  'bint jbail': { lat: 33.117, lng: 35.432, label: 'Bint Jbeil' },
+  'khiam': { lat: 33.359, lng: 35.611, label: 'Al-Khiam' },
+  'al-khiam': { lat: 33.359, lng: 35.611, label: 'Al-Khiam' },
+  'maroun al-ras': { lat: 33.079, lng: 35.465, label: "Maroun al-Ras" },
+  'maroun': { lat: 33.079, lng: 35.465, label: "Maroun al-Ras" },
+  'taybeh': { lat: 33.135, lng: 35.490, label: 'Taybeh' },
+  'ayta ash-shab': { lat: 33.078, lng: 35.384, label: "Ayta ash-Shab" },
+  'yaroun': { lat: 33.092, lng: 35.468, label: 'Yaroun' },
+  'labbouneh': { lat: 33.069, lng: 35.301, label: 'Labbouneh' },
+  'kfar kila': { lat: 33.332, lng: 35.572, label: 'Kfar Kila' },
+  'aitaroun': { lat: 33.070, lng: 35.451, label: 'Aitaroun' },
+  'adaisseh': { lat: 33.286, lng: 35.607, label: 'Adaisseh' },
+  'markaba': { lat: 33.316, lng: 35.582, label: 'Markaba' },
+  'alma ash-shab': { lat: 33.098, lng: 35.330, label: "Alma ash-Shab" },
+  'rmeish': { lat: 33.077, lng: 35.399, label: 'Rmeish' },
+  'nabatieh': { lat: 33.377, lng: 35.484, label: 'Nabatieh' },
+  'marjayoun': { lat: 33.359, lng: 35.593, label: 'Marjayoun' },
+  'hasbaya': { lat: 33.397, lng: 35.690, label: 'Hasbaya' },
+  'kafr shuba': { lat: 33.418, lng: 35.689, label: 'Kafr Shuba' },
+  'wazzani': { lat: 33.258, lng: 35.616, label: 'Wazzani' },
+  'ghajar': { lat: 33.280, lng: 35.643, label: 'Ghajar' },
+  'houla': { lat: 33.290, lng: 35.580, label: 'Houla' },
+  'shebaa': { lat: 33.436, lng: 35.710, label: 'Shebaa' },
+  'shebaa farms': { lat: 33.450, lng: 35.750, label: 'Shebaa Farms' },
+  'southern lebanon': { lat: 33.200, lng: 35.450, label: 'Southern Lebanon' },
+  'south lebanon': { lat: 33.200, lng: 35.450, label: 'Southern Lebanon' },
+  'litani': { lat: 33.280, lng: 35.480, label: 'Litani River' },
+};
+
+const GROUND_INVASION_PATTERNS = [
+  /idf\s+(?:forces?|troops?|soldiers?|units?)\s+(?:enter|advance|push|move|operate|raid|storm)\s+(?:into\s+)?([a-z\s\-']+)/i,
+  /(?:ground\s+(?:incursion|invasion|operation|offensive|forces?)|land\s+(?:operation|invasion|incursion))\s+(?:into\s+|in\s+|near\s+)?([a-z\s\-']+)/i,
+  /(?:tanks?|armored|infantry|troops?|forces?)\s+(?:enter|inside|advancing|spotted|seen)\s+(?:in\s+|into\s+)?([a-z\s\-']+)/i,
+  /(?:clashes?|fighting|combat|battle|engagement)\s+(?:in|at|near|around)\s+([a-z\s\-']+)/i,
+  /(?:airstrike|strike|bombing|shelling|artillery)\s+(?:in|on|near|targeting)\s+([a-z\s\-']+)/i,
+  /([a-z\s\-']+)\s+(?:under\s+attack|targeted|raided|stormed|bombarded|shelled)/i,
+  /hezbollah\s+(?:fire|launches?|fires?|targets?|attacks?)\s+(?:from|near|at)\s+([a-z\s\-']+)/i,
+  /(?:القوات الإسرائيلية|قوات الجيش الإسرائيلي|الجيش الإسرائيلي)\s+(?:تتوغل|تدخل|تتقدم|تتمركز)\s+(?:في|إلى|داخل)\s+([^\n.،]+)/i,
+  /(?:اشتباكات|معارك|قصف|غارات?)\s+(?:في|على|قرب|بالقرب من)\s+([^\n.،]+)/i,
+  /(?:بلدة|قرية|منطقة)\s+([^\n.،]+)\s+(?:تتعرض|تحت نيران|استهداف)/i,
+];
+
+function extractLebanonGroundEvents(tgMsgs: TelegramMessage[]): ConflictEvent[] {
+  const events: ConflictEvent[] = [];
+  const now = Date.now();
+  const seen = new Set<string>();
+
+  const recentMsgs = tgMsgs.filter(m => now - new Date(m.timestamp).getTime() < 12 * 3_600_000);
+
+  for (const msg of recentMsgs) {
+    const text = msg.text;
+    if (!text || text.length < 10) continue;
+
+    // Quick pre-filter: must mention Lebanon/Hezbollah/southern/invasion keywords
+    const hasLebanonContext = /lebanon|hezbollah|south lebanon|litani|idf ground|ground operation|بنت جبيل|الخيام|مارون|لبنان|جنوب لبنان|حزب الله/i.test(text);
+    if (!hasLebanonContext) continue;
+
+    let matchedVillage: { lat: number; lng: number; label: string } | null = null;
+    let locationName = '';
+
+    // Try named village match first (most precise)
+    const lowerText = text.toLowerCase();
+    for (const [key, village] of Object.entries(SOUTH_LEBANON_VILLAGES)) {
+      if (lowerText.includes(key)) {
+        matchedVillage = village;
+        locationName = village.label;
+        break;
+      }
+    }
+
+    // Try regex pattern extraction
+    if (!matchedVillage) {
+      for (const pattern of GROUND_INVASION_PATTERNS) {
+        const m = text.match(pattern);
+        if (m && m[1]) {
+          const loc = m[1].trim().toLowerCase().replace(/[.!?,]+$/, '');
+          if (loc.length < 3 || loc.length > 40) continue;
+          const known = SOUTH_LEBANON_VILLAGES[loc];
+          if (known) { matchedVillage = known; locationName = known.label; break; }
+          // Check partial matches
+          for (const [key, village] of Object.entries(SOUTH_LEBANON_VILLAGES)) {
+            if (loc.includes(key) || key.includes(loc)) {
+              matchedVillage = village; locationName = village.label; break;
+            }
+          }
+          if (matchedVillage) break;
+        }
+      }
+    }
+
+    // Fall back to general south Lebanon coords if we have the context but no village
+    if (!matchedVillage) {
+      matchedVillage = { lat: 33.150, lng: 35.420, label: 'Southern Lebanon' };
+      locationName = 'Southern Lebanon';
+    }
+
+    const dedupeKey = `${matchedVillage.lat.toFixed(2)}_${matchedVillage.lng.toFixed(2)}_${msg.id}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    // Classify event type from content
+    let type: ConflictEvent['type'] = 'ground';
+    if (/airstrike|air strike|bomb|strike|غارة|قصف جوي/i.test(text)) type = 'airstrike';
+    else if (/missile|rocket|ballistic|صاروخ|إطلاق/i.test(text)) type = 'missile';
+    else if (/intercept|iron dome|defense|اعتراض/i.test(text)) type = 'defense';
+
+    let severity: ConflictEvent['severity'] = 'medium';
+    if (/killed|dead|casualt|martyr|شهيد|قتيل|مجزرة/i.test(text)) severity = 'critical';
+    else if (/advance|enter|storm|تتوغل|تدخل|اقتحام/i.test(text)) severity = 'high';
+
+    const snippet = text.length > 120 ? text.substring(0, 117) + '…' : text;
+
+    events.push({
+      id: `tg_ground_${msg.id}`,
+      type,
+      lat: matchedVillage.lat,
+      lng: matchedVillage.lng,
+      title: `[Ground] ${locationName}`,
+      description: `${msg.channel} — ${snippet}`,
+      timestamp: msg.timestamp,
+      severity,
+    });
+  }
+
+  return events;
+}
+
 async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   if (gdeltCache && Date.now() - gdeltCache.fetchedAt < GDELT_CACHE_TTL) {
     return gdeltCache.data;
@@ -1187,6 +1331,15 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
         timestamp: alert.timestamp,
         severity: alert.countdown <= 15 ? 'critical' : alert.countdown <= 45 ? 'high' : 'medium',
       });
+    }
+  } catch {}
+
+  // Lebanon ground invasion events from Telegram
+  try {
+    if (latestTgMsgs.length > 0) {
+      const groundEvents = extractLebanonGroundEvents(latestTgMsgs);
+      events.push(...groundEvents);
+      if (groundEvents.length > 0) console.log(`[GROUND] ${groundEvents.length} Lebanon ground events from Telegram`);
     }
   } catch {}
 
@@ -1563,6 +1716,38 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
   'נתיבות': { lat: 31.420, lng: 34.589, en: 'Netivot', ar: 'نتيفوت', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 30 },
 };
 
+const OREF_HISTORY_URL = 'https://www.oref.org.il/warningMessages/alert/History/AlertsHistory.json';
+const PIKUD_CITIES_URL = 'https://raw.githubusercontent.com/eladnava/pikud-haoref-api/master/cities.json';
+
+// Dynamically-fetched city data from pikud-haoref-api (run once at startup)
+let dynamicCityCache: Map<string, { lat: number; lng: number; en: string; ar: string; zone_en: string; countdown: number }> | null = null;
+
+async function fetchDynamicCities() {
+  try {
+    const resp = await fetch(PIKUD_CITIES_URL, { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) return;
+    const cities = await resp.json();
+    if (!Array.isArray(cities)) return;
+    dynamicCityCache = new Map();
+    for (const c of cities) {
+      if (c.name && c.name_en && c.lat != null && c.lng != null) {
+        dynamicCityCache.set(c.name, {
+          lat: c.lat, lng: c.lng,
+          en: c.name_en,
+          ar: c.name_ar || c.name_en,
+          zone_en: c.zone_en || 'Israel',
+          countdown: c.countdown ?? 30,
+        });
+      }
+    }
+    console.log(`[CITIES] Loaded ${dynamicCityCache.size} cities from pikud-haoref-api`);
+  } catch (e) {
+    console.log('[CITIES] Failed to fetch dynamic cities:', (e as Error).message);
+  }
+}
+
+fetchDynamicCities();
+
 let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
 const OREF_CACHE_TTL = 0;
 
@@ -1593,7 +1778,14 @@ function parseCityAlerts(cities: string[], threat: number, timestamp: string): R
   for (const cityHe of cities) {
     const trimmed = cityHe.trim();
     if (!trimmed) continue;
-    const known = OREF_CITY_COORDS[trimmed];
+    const staticKnown = OREF_CITY_COORDS[trimmed];
+    let known: typeof staticKnown | undefined = staticKnown;
+    if (!known) {
+      const dyn = dynamicCityCache?.get(trimmed);
+      if (dyn) {
+        known = { lat: dyn.lat, lng: dyn.lng, en: dyn.en, ar: dyn.ar, region: dyn.zone_en, regionHe: '', regionAr: '', countdown: dyn.countdown };
+      }
+    }
     const cityEn = known?.en || transliterateHebrew(trimmed);
     alerts.push({
       id: `oref-${trimmed}-${threat}-${timestamp}`,
@@ -1691,10 +1883,12 @@ async function fetchFromOrefDirect(): Promise<RedAlert[]> {
   const resp = await fetch(OREF_API_URL, {
     signal: controller.signal,
     headers: {
-      'Referer': 'https://www.oref.org.il/',
+      'Referer': 'https://www.oref.org.il/11226-he/pakar.aspx',
       'X-Requested-With': 'XMLHttpRequest',
-      'Accept': 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; WARROOM/2.0)',
+      'Accept': 'application/json, text/plain, */*',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36',
+      'Pragma': 'no-cache',
+      'Cache-Control': 'max-age=0',
     },
   });
   clearTimeout(timeout);
@@ -1709,6 +1903,36 @@ async function fetchFromOrefDirect(): Promise<RedAlert[]> {
     const cat = item.cat || 1;
     const ts = item.date ? new Date(item.date).toISOString() : new Date().toISOString();
     alerts.push(...parseCityAlerts([cityHe], cat, ts));
+  }
+  return alerts;
+}
+
+async function fetchFromOrefHistory(): Promise<RedAlert[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  const resp = await fetch(OREF_HISTORY_URL, {
+    signal: controller.signal,
+    headers: {
+      'Referer': 'https://www.oref.org.il/11226-he/pakar.aspx',
+      'X-Requested-With': 'XMLHttpRequest',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36',
+      'Pragma': 'no-cache',
+      'Cache-Control': 'max-age=0',
+    },
+  });
+  clearTimeout(timeout);
+  if (!resp.ok) return [];
+  const raw = await resp.json();
+  if (!Array.isArray(raw)) return [];
+  const alerts: RedAlert[] = [];
+  const now = Date.now();
+  for (const item of raw.slice(0, 30)) {
+    const alertTime = item.alertDate ? new Date(item.alertDate).getTime() : 0;
+    if (alertTime && (now - alertTime) > 7_200_000) continue;
+    const cities: string[] = Array.isArray(item.cities) ? item.cities : [item.data || ''].filter(Boolean);
+    const threat = item.category ?? item.threat ?? 1;
+    const ts = item.alertDate ? new Date(item.alertDate).toISOString() : new Date().toISOString();
+    alerts.push(...parseCityAlerts(cities, threat, ts));
   }
   return alerts;
 }
@@ -1869,6 +2093,18 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
       if (alerts.length > 0) console.log(`[RED-ALERTS] OREF direct: ${alerts.length} alerts`);
     } catch (err) {
       console.log(`[RED-ALERTS] OREF failed: ${(err as Error).message}`);
+    }
+  }
+
+  if (alerts.length === 0) {
+    try {
+      alerts = await fetchFromOrefHistory();
+      if (alerts.length > 0) {
+        alerts.forEach(a => { a.active = false; a.countdown = 0; });
+        console.log(`[RED-ALERTS] OREF history: ${alerts.length} alerts`);
+      }
+    } catch (err) {
+      console.log(`[RED-ALERTS] OREF history failed: ${(err as Error).message}`);
     }
   }
 
@@ -2722,7 +2958,7 @@ const CYBER_CACHE_TTL = 10_000;
 let cyberCache: { data: CyberEvent[]; fetchedAt: number } | null = null;
 
 const CYBER_RSS_FEEDS = [
-  'https://www.bleepingcomputer.com/feed/',
+  'https://cyberscoop.com/feed/',
   'https://feeds.feedburner.com/TheHackersNews',
   'https://therecord.media/feed/',
   'https://www.darkreading.com/rss.xml',
@@ -2948,11 +3184,28 @@ export async function registerRoutes(
   });
 
   const LIVE_TELEGRAM_CHANNELS = [
+    // --- Global OSINT / conflict trackers ---
     'CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel',
     'ELINTNews', 'BNONewsRoom', 'FirstSquawk', 'Middle_East_Spectator', 'interbellumnews',
-    'WarMonitor3', 'claboriau', 'lebaborim', 'lebanonnews2', 'bintjbeilnews',
-    'NewsInIsrael', 'alaborim', 'AbuAliEnglish', 'Yemen_Press', 'clashreport',
-    'inaborim', 'MEConflictNews',
+    'WarMonitor3', 'claboriau', 'clashreport', 'MEConflictNews', 'AbuAliEnglish',
+    // --- Israeli side ---
+    'NewsInIsrael', 'alaborim', 'inaborim', 'IsraelWarRoom',
+    // --- Lebanon ground invasion — Lebanese / Hezbollah perspective ---
+    'almanarnews',       // Al-Manar TV (Hezbollah) — ground ops, south Lebanon (AR)
+    'AlAhedNews',        // Al-Ahed News — Hezbollah-linked, front-line updates (AR)
+    'lebaborim',         // Lebanon war updates (AR/EN)
+    'bintjbeilnews',     // Bint Jbeil — key southern Lebanon battle zone (AR)
+    'lebanonnews2',      // Lebanon news aggregator (AR/EN)
+    'QudsN',             // Jerusalem / Palestine / Lebanon network (AR)
+    // --- Lebanon ground invasion — English OSINT ---
+    'NaharnetEnglish',   // Naharnet Lebanese news (EN)
+    'L24English',        // Lebanon 24 English (EN)
+    'LBCINews',          // LBCI Lebanese broadcaster (AR/EN)
+    'NOWLebanon',        // NOW Lebanon — English political/conflict coverage (EN)
+    // --- South Lebanon village-level coverage ---
+    'southlebanon',      // South Lebanon ground reports (AR)
+    'nabatiehnews',      // Nabatieh governorate — IDF ground axis (AR)
+    'Yemen_Press',       // Regional conflict updates (AR)
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();

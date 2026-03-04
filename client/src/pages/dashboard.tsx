@@ -3761,24 +3761,48 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
   isMaximized?: boolean;
 }) {
   const [activeAccount, setActiveAccount] = useState<string | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const selectorRef = useRef<HTMLDivElement>(null);
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
 
   const accounts = useMemo(() => {
     const map = new Map<string, number>();
-    posts.forEach(p => {
-      map.set(p.source, (map.get(p.source) || 0) + 1);
-    });
+    posts.forEach(p => { map.set(p.source, (map.get(p.source) || 0) + 1); });
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [posts]);
+
+  const updateScrollState = useCallback(() => {
+    const el = selectorRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = selectorRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
+  }, [accounts, updateScrollState]);
+
+  const scrollSelector = useCallback((dir: 'left' | 'right') => {
+    const el = selectorRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'right' ? 160 : -160, behavior: 'smooth' });
+  }, []);
 
   const filtered = activeAccount ? posts.filter(p => p.source === activeAccount) : posts;
 
   const timeAgo = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
-    if (diff < 60000) return `${Math.floor(diff / 1000)}s`;
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-    return `${Math.floor(diff / 86400000)}d`;
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
   };
 
   const categoryColors: Record<string, string> = {
@@ -3792,59 +3816,126 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      {/* Panel header */}
+      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <SiX className="w-3 h-3 text-primary/50 shrink-0" />
-        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{t('OSINT Feed', '\u0645\u0635\u0627\u062F\u0631 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A\u064A\u0629')}</span>
-        <span className="text-[8px] font-mono text-foreground/25 tabular-nums leading-none">[{filtered.length}]</span>
-        {posts.length > 0 && <span className="text-[7px] uppercase tracking-widest text-emerald-400/50 font-mono ml-0.5">LIVE</span>}
+        <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/50 font-mono">{t('X / OSINT FEED', 'مصادر استخباراتية')}</span>
+        {posts.length > 0 && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.06] border border-emerald-500/[0.15]">
+            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
+            <span className="text-[8px] font-bold font-mono text-emerald-400/80 tracking-wider">LIVE</span>
+          </div>
+        )}
+        <span className="text-[9px] font-mono text-foreground/25 tabular-nums">{filtered.length} posts</span>
         <div className="flex-1" />
         {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-xfeed">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-      <div className="px-2 py-1.5 border-b border-white/[0.04] overflow-x-auto flex items-center gap-1 shrink-0">
-        <button
-          onClick={() => setActiveAccount(null)}
-          className={`text-[9px] font-mono px-2 py-1 rounded whitespace-nowrap transition-colors ${!activeAccount ? 'bg-white/10 text-foreground/80 font-bold' : 'text-foreground/40 hover:bg-white/5'}`}
-          data-testid="button-xfeed-all"
+
+      {/* Account selector rail */}
+      <div className="shrink-0 border-b border-white/[0.05] relative" style={{background:'hsl(225 28% 2.5%)'}}>
+        {/* Left fade + arrow */}
+        {canScrollLeft && (
+          <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to right, hsl(225 28% 2.5%) 60%, transparent)'}}>
+            <button
+              className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
+              onClick={() => scrollSelector('left')}
+              aria-label="Scroll left"
+            >
+              <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+            </button>
+          </div>
+        )}
+        {/* Scrollable pill row */}
+        <div
+          ref={selectorRef}
+          className="flex items-center gap-1.5 px-2 py-2 overflow-x-auto"
+          style={{scrollbarWidth:'none', WebkitOverflowScrolling:'touch', scrollSnapType:'x proximity'} as React.CSSProperties}
         >
-          {t('ALL', '\u0627\u0644\u0643\u0644')} ({posts.length})
-        </button>
-        {accounts.map(([name, count]) => (
+          {/* ALL pill */}
           <button
-            key={name}
-            onClick={() => setActiveAccount(activeAccount === name ? null : name)}
-            className={`text-[9px] font-mono px-2 py-1 rounded whitespace-nowrap transition-colors ${activeAccount === name ? 'bg-white/10 text-foreground/80 font-bold' : 'text-foreground/40 hover:bg-white/5'}`}
-            data-testid={`button-xfeed-account-${name.replace(/\s+/g, '-')}`}
+            onClick={() => setActiveAccount(null)}
+            style={{scrollSnapAlign:'start'}}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono whitespace-nowrap transition-all shrink-0 border ${
+              !activeAccount
+                ? 'bg-primary/15 text-primary border-primary/30 shadow-[0_0_10px_hsl(36_100%_50%/0.1)]'
+                : 'text-foreground/45 border-white/[0.07] hover:bg-white/[0.05] hover:text-foreground/70 hover:border-white/[0.12]'
+            }`}
+            data-testid="button-xfeed-all"
           >
-            {name} ({count})
+            <SiX className="w-3 h-3 opacity-60 shrink-0" />
+            {t('ALL', 'الكل')}
+            <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-md font-black ${!activeAccount ? 'bg-primary/25 text-primary' : 'bg-white/[0.08] text-foreground/40'}`}>{posts.length}</span>
           </button>
-        ))}
+          {/* Per-account pills */}
+          {accounts.map(([name, count]) => {
+            const isActive = activeAccount === name;
+            return (
+              <button
+                key={name}
+                onClick={() => setActiveAccount(isActive ? null : name)}
+                style={{scrollSnapAlign:'start'}}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono whitespace-nowrap transition-all shrink-0 border ${
+                  isActive
+                    ? 'bg-primary/15 text-primary border-primary/30 shadow-[0_0_10px_hsl(36_100%_50%/0.1)]'
+                    : 'text-foreground/45 border-white/[0.07] hover:bg-white/[0.05] hover:text-foreground/70 hover:border-white/[0.12]'
+                }`}
+                data-testid={`button-xfeed-account-${name.replace(/\s+/g, '-')}`}
+              >
+                <span className={`text-[10px] ${isActive ? 'text-primary/50' : 'text-foreground/25'}`}>@</span>
+                <span>{name}</span>
+                <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-md font-black ${isActive ? 'bg-primary/25 text-primary' : 'bg-white/[0.08] text-foreground/40'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* Right fade + arrow */}
+        {canScrollRight && (
+          <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to left, hsl(225 28% 2.5%) 60%, transparent)'}}>
+            <button
+              className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
+              onClick={() => scrollSelector('right')}
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="divide-y divide-white/[0.03]">
-          {filtered.length === 0 ? (
-            <div className="py-8 text-center">
-              <Loader2 className="w-5 h-5 text-foreground/20 animate-spin mx-auto mb-2" />
-              <p className="text-[10px] text-foreground/30 font-mono">{t('Loading X feeds...', '\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062A...')}</p>
-            </div>
-          ) : (
-            filtered.map(post => (
-              <div key={post.id} className="px-3 py-2.5 hover:bg-white/[0.02] transition-colors group" data-testid={`xfeed-post-${post.id}`}>
-                <div className="flex items-start gap-2">
-                  <div className="w-7 h-7 rounded-full bg-neutral-800 border border-white/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <SiX className="w-3 h-3 text-foreground/50" />
+
+      {/* Feed */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{scrollBehavior:'smooth'}}>
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center">
+            <Loader2 className="w-6 h-6 text-foreground/15 animate-spin mx-auto mb-3" />
+            <p className="text-[11px] text-foreground/30 font-mono font-bold">{t('Loading X feeds…', 'جاري تحميل المنشورات…')}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.04]">
+            {filtered.map(post => (
+              <div key={post.id} className="px-3 py-3.5 hover:bg-white/[0.025] transition-colors group" data-testid={`xfeed-post-${post.id}`}>
+                <div className="flex items-start gap-2.5">
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 mt-0.5">
+                    <SiX className="w-3.5 h-3.5 text-foreground/40" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[11px] font-bold text-foreground/80 truncate">{post.source}</span>
-                      <svg className="w-3 h-3 text-blue-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.27 4.8-5.23 1.47 1.36-6.2 6.76z"/></svg>
-                      <span className="text-[9px] text-foreground/30 font-mono tabular-nums ml-auto shrink-0">{timeAgo(post.timestamp)}</span>
+                    {/* Source + time row */}
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-[13px] font-black text-foreground/85 truncate leading-tight">{post.source}</span>
+                      {/* Verified badge */}
+                      <svg className="w-3.5 h-3.5 text-blue-400/80 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.27 4.8-5.23 1.47 1.36-6.2 6.76z"/></svg>
+                      <span className="text-[10px] text-foreground/30 font-mono tabular-nums ml-auto shrink-0">{timeAgo(post.timestamp)}</span>
                     </div>
-                    <p className="text-[11px] text-foreground/70 leading-relaxed mb-1.5">{language === 'ar' && (post as { titleAr?: string }).titleAr ? (post as { titleAr?: string }).titleAr : post.title}</p>
+                    {/* Post content */}
+                    <p className="text-[13px] font-bold text-foreground/80 leading-snug mb-2.5">
+                      {language === 'ar' && (post as { titleAr?: string }).titleAr ? (post as { titleAr?: string }).titleAr : post.title}
+                    </p>
+                    {/* Footer: category + link */}
                     <div className="flex items-center gap-2 flex-wrap">
                       {post.category && (
-                        <span className={`text-[8px] font-bold font-mono uppercase px-1.5 py-0.5 rounded border ${categoryColors[post.category] || 'bg-white/5 text-foreground/40 border-white/10'}`}>
+                        <span className={`text-[9px] font-black font-mono uppercase px-2 py-0.5 rounded-full border ${categoryColors[post.category] || 'bg-white/5 text-foreground/40 border-white/10'}`}>
                           {post.category}
                         </span>
                       )}
@@ -3853,22 +3944,22 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
                           href={post.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[9px] text-blue-400/60 hover:text-blue-400 font-mono flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-[10px] text-blue-400/50 hover:text-blue-400 font-mono font-bold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`link-xfeed-${post.id}`}
                         >
-                          <ExternalLink className="w-2.5 h-2.5" />
-                          x.com
+                          <ExternalLink className="w-3 h-3" />
+                          Open on X
                         </a>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </ScrollArea>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
