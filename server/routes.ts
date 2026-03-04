@@ -2425,6 +2425,7 @@ const CYBER_RSS_FEEDS = [
   'https://unit42.paloaltonetworks.com/feed/',
   'https://blog.checkpoint.com/feed/',
   'https://securelist.com/feed/',
+  'https://cybershafarat.com/feed/',
 ];
 
 const ME_COUNTRIES = new Set([

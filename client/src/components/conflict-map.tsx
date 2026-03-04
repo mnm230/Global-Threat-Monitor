@@ -2,6 +2,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { Deck } from '@deck.gl/core';
+import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer, TextLayer, IconLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
@@ -795,6 +796,7 @@ interface ConflictMapProps {
 
 export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE, focusLocation }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const deckContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
   const isMountedStyle = useRef(true);
@@ -2488,23 +2490,16 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
   }, [events, flights, ships, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!deckContainerRef.current) return;
 
-    const canvas = document.createElement('canvas');
-    canvas.id = 'deck-canvas';
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'auto';
-    canvas.style.zIndex = '1';
-    containerRef.current.appendChild(canvas);
+    const container = deckContainerRef.current;
+    const rect = container.getBoundingClientRect();
+    console.log('[ConflictMap] Deck container rect:', rect.width, rect.height);
 
     let deck: Deck;
     try {
       deck = new Deck({
-        canvas,
+        parent: container,
         initialViewState: viewState,
         controller: true,
         layers: [],
@@ -2512,6 +2507,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         onClick: handleMapClick as any,
         onViewStateChange: onViewStateChange as any,
         getTooltip: () => null,
+        style: { position: 'absolute', top: '0', left: '0', width: '100%', height: '100%' },
       });
     } catch (err) {
       console.warn('[ConflictMap] Deck.gl WebGL init failed:', err);
@@ -2519,13 +2515,11 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
 
     deckRef.current = deck;
+    console.log('[ConflictMap] Deck.gl initialized successfully');
 
     return () => {
       deck.finalize();
       deckRef.current = null;
-      if (canvas.parentNode) {
-        canvas.parentNode.removeChild(canvas);
-      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -2539,6 +2533,18 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
   }, [layers, viewState]);
 
+  useEffect(() => {
+    console.log('[ConflictMap] Layer data counts:', {
+      events: events.length,
+      flights: flights.length,
+      ships: ships.length,
+      adsb: adsbFlights.length,
+      alerts: redAlerts.length,
+      thermal: thermalHotspots.length,
+      layerCount: layers.length,
+    });
+  }, [events.length, flights.length, ships.length, adsbFlights.length, redAlerts.length, thermalHotspots.length, layers.length]);
+
   // Live stats for HUD
   const milCount = adsbFlights.filter(f => f.type === 'military' || f.type === 'surveillance').length;
   const civCount = adsbFlights.filter(f => f.type === 'commercial' || f.type === 'cargo').length;
@@ -2548,7 +2554,8 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', fontFamily: "'JetBrains Mono', monospace" }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} />
+      <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }} />
+      <div ref={deckContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1, pointerEvents: 'auto' }} />
 
       {/* ── TOP HUD BAR ── */}
       <div style={{
