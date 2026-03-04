@@ -456,22 +456,14 @@ const ACCOUNT_LABELS: Record<string, string> = {
   NOWLebanon: 'NOW Lebanon',
 };
 
-const NITTER_INSTANCES = [
-  'https://nitter.privacydev.net',
-  'https://nitter.poast.org',
-  'https://nitter.woodland.cafe',
-  'https://nitter.1d4.us',
+const XCANCEL_INSTANCES = [
   'https://xcancel.com',
   'https://nitter.cz',
-  'https://nitter.net',
-  'https://twiiit.com',
-  'https://nitter.hu',
 ];
 
-const RSSHUB_INSTANCES = [
-  'https://rsshub.app',
-  'https://rsshub.rssforever.com',
-  'https://hub.slarker.me',
+const NITTER_RSS_INSTANCES = [
+  'https://xcancel.com',
+  'https://nitter.cz',
 ];
 
 const USER_AGENTS = [
@@ -545,6 +537,71 @@ function parseNitterRSS(xml: string, screenName: string): NewsItem[] {
   return items;
 }
 
+function parseXcancelHTML(html: string, screenName: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
+
+  const contentBlocks = html.match(/class="tweet-content[^"]*"[^>]*>([\s\S]*?)<\/div/g) || [];
+  const dateMatches = html.match(/tweet-date[^>]*><a[^>]*title="([^"]*?)"/g) || [];
+  const linkMatches = html.match(/tweet-link[^>]*href="([^"]*?)"/g) || [];
+
+  const dates: string[] = dateMatches.map(d => {
+    const m = d.match(/title="([^"]*?)"/);
+    return m ? m[1] : '';
+  });
+  const links: string[] = linkMatches.map(l => {
+    const m = l.match(/href="([^"]*?)"/);
+    return m ? m[1] : '';
+  });
+
+  for (let i = 0; i < contentBlocks.length && items.length < 20; i++) {
+    const rawContent = contentBlocks[i].match(/>([\s\S]*?)<\/div/)?.[1] || '';
+    let text = rawContent.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#036;/g, '$').trim();
+    text = text.replace(/\s+/g, ' ');
+
+    if (!text || text.length < 10) continue;
+    if (text.startsWith('RT by @') || text.startsWith('R to @')) continue;
+
+    text = text.replace(/https?:\/\/\S+/g, '').trim();
+    if (text.length < 5) continue;
+
+    const hasHebrew = /[\u0590-\u05FF\uFB1D-\uFB4F]/.test(text);
+    const hasFarsi = /[\u06A9\u06AF\u06CC\u067E\u0686\u0698]/.test(text);
+    const hasCyrillic = /[\u0400-\u04FF]/.test(text);
+    if (hasHebrew || hasFarsi || hasCyrillic) continue;
+
+    if (text.length > 300) text = text.substring(0, 297) + '...';
+    text = sanitizeText(text);
+
+    let timestamp = new Date().toISOString();
+    if (i < dates.length && dates[i]) {
+      try {
+        const cleaned = dates[i].replace(' · ', ' ').replace(' UTC', ' UTC');
+        timestamp = new Date(cleaned).toISOString();
+      } catch {}
+    }
+
+    let url = `https://x.com/${screenName}`;
+    if (i < links.length && links[i]) {
+      const tweetIdMatch = links[i].match(/\/status\/(\d+)/);
+      if (tweetIdMatch) url = `https://x.com/${screenName}/status/${tweetIdMatch[1]}`;
+    }
+
+    const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
+
+    items.push({
+      id: `x_${screenName}_${items.length}_${Date.now()}`,
+      title: text,
+      ...(titleAr ? { titleAr } : {}),
+      source: sourceLabel,
+      category: classifyTitle(text),
+      timestamp,
+      url,
+    });
+  }
+  return items;
+}
+
 async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
   const cached = xFeedCache.get(screenName);
 
@@ -554,91 +611,62 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     return [];
   }
 
-  const shuffledNitter = [...NITTER_INSTANCES].sort(() => Math.random() - 0.5);
+  const shuffledXcancel = [...XCANCEL_INSTANCES].sort(() => Math.random() - 0.5);
+  for (const instance of shuffledXcancel) {
+    try {
+      const response = await fetch(`${instance}/${screenName}`, {
+        headers: {
+          'User-Agent': randomUA(),
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (response.status === 429) continue;
+      if (!response.ok) continue;
 
-  for (const instance of shuffledNitter) {
+      const html = await response.text();
+      if (!html.includes('timeline-item') && !html.includes('tweet-content')) {
+        continue;
+      }
+
+      const items = parseXcancelHTML(html, screenName);
+      if (items.length > 0) {
+        xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+        xBackoffMultipliers.delete(screenName);
+        console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via ${new URL(instance).hostname} (HTML)`);
+        return items;
+      }
+    } catch (e: any) {
+      console.log(`[X-FEED] ${new URL(instance).hostname} error for @${screenName}: ${e?.message?.substring(0, 80) || 'unknown'}`);
+    }
+  }
+
+  const shuffledNitterRSS = [...NITTER_RSS_INSTANCES].sort(() => Math.random() - 0.5);
+  for (const instance of shuffledNitterRSS) {
     try {
       const rssUrl = `${instance}/${screenName}/rss`;
       const response = await fetch(rssUrl, {
         headers: { 'User-Agent': randomUA(), 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
         signal: AbortSignal.timeout(8000),
       });
-
-      if (response.status === 429) {
-        continue;
-      }
-      if (!response.ok) continue;
-
-      const xml = await response.text();
-      if (!xml.includes('<item') && !xml.includes('<entry')) continue;
-
-      const items = parseNitterRSS(xml, screenName);
-      if (items.length > 0) {
-        xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
-        xBackoffMultipliers.delete(screenName);
-        console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via ${new URL(instance).hostname}`);
-        return items;
-      }
-    } catch {}
-  }
-
-  for (const hub of RSSHUB_INSTANCES) {
-    try {
-      const rssUrl = `${hub}/twitter/user/${screenName}`;
-      const response = await fetch(rssUrl, {
-        headers: { 'User-Agent': randomUA(), 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
-        signal: AbortSignal.timeout(8000),
-      });
       if (response.status === 429) continue;
       if (!response.ok) continue;
+
       const xml = await response.text();
       if (!xml.includes('<item') && !xml.includes('<entry')) continue;
+
       const items = parseNitterRSS(xml, screenName);
       if (items.length > 0) {
         xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
         xBackoffMultipliers.delete(screenName);
-        console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via RSSHub (${new URL(hub).hostname})`);
+        console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via ${new URL(instance).hostname} (RSS)`);
         return items;
       }
-    } catch {}
-  }
-
-  try {
-    const fxResponse = await fetch(`https://api.fxtwitter.com/${screenName}`, {
-      headers: { 'User-Agent': randomUA(), 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (fxResponse.ok) {
-      const fxData = await fxResponse.json() as any;
-      const tweets = fxData?.tweets || fxData?.timeline?.entries || [];
-      if (Array.isArray(tweets) && tweets.length > 0) {
-        const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
-        const items: NewsItem[] = [];
-        for (const tweet of tweets.slice(0, 20)) {
-          let text = (tweet.text || tweet.content || '').replace(/https?:\/\/\S+/g, '').trim();
-          if (!text || text.length < 10) continue;
-          text = sanitizeText(text);
-          if (text.length > 300) text = text.substring(0, 297) + '...';
-          const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
-          items.push({
-            id: `x_${screenName}_${items.length}_${Date.now()}`,
-            title: text,
-            ...(titleAr ? { titleAr } : {}),
-            source: sourceLabel,
-            category: classifyTitle(text),
-            timestamp: tweet.created_at ? new Date(tweet.created_at).toISOString() : new Date().toISOString(),
-            url: tweet.url || `https://x.com/${screenName}`,
-          });
-        }
-        if (items.length > 0) {
-          xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
-          xBackoffMultipliers.delete(screenName);
-          console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via FxTwitter`);
-          return items;
-        }
-      }
+    } catch (e: any) {
+      console.log(`[X-FEED] RSS ${new URL(instance).hostname} error for @${screenName}: ${e?.message?.substring(0, 80) || 'unknown'}`);
     }
-  } catch {}
+  }
 
   try {
     const response = await fetch(
