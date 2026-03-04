@@ -46,9 +46,9 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications`, `api.tzevaadom.co.il/alerts-history`, `oref.org.il`
 - **Earthquake Data:** USGS
 - **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov`)
-- **OSINT Feed:** Primary: Nitter RSS instances (privacydev, poast, woodland.cafe, 1d4.us, xcancel). Syndication fallback: `syndication.twitter.com`. OSINT RSS feeds (11 sources): Long War Journal, Breaking Defense, Middle East Eye, Al-Monitor, MEMO, Jerusalem Post, War on the Rocks, Defense News, Asharq Al-Awsat, Press TV, i24 News. Always merged with X account posts when available.
+- **OSINT Feed:** Multi-layer X scraping: 9 Nitter instances (shuffled per request), 3 RSSHub instances, FxTwitter API, and X syndication endpoint as fallbacks. Uses UA rotation (6 user agents) and exponential backoff for rate-limited accounts. OSINT RSS feeds (17 sources): Long War Journal, Breaking Defense, Middle East Eye, Al-Monitor, MEMO, Jerusalem Post, War on the Rocks, Defense News, Asharq Al-Awsat, Press TV, i24 News, Times of Israel, Al Arabiya, France 24 ME, BBC Middle East, Al Jazeera, NYT Middle East. Always merged with X account posts when available.
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui
-- **Telegram:** `t.me/s/` (for public channel scraping)
+- **Telegram:** `t.me/s/` (for public channel scraping) — 15 channels: CIG_telegram, IntelCrab, GeoConfirmed, sentaborim, OSINTdefender, AviationIntel, rnintel, ELINTNews, BNONewsRoom, FirstSquawk, Middle_East_Spectator, interbellumnews, WarMonitor3, claboriau, lebaborim, lebanonnews2
 - **YouTube:** YouTube API (for embedding live streams)

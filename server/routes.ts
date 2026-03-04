@@ -462,7 +462,32 @@ const NITTER_INSTANCES = [
   'https://nitter.woodland.cafe',
   'https://nitter.1d4.us',
   'https://xcancel.com',
+  'https://nitter.cz',
+  'https://nitter.net',
+  'https://twiiit.com',
+  'https://nitter.hu',
 ];
+
+const RSSHUB_INSTANCES = [
+  'https://rsshub.app',
+  'https://rsshub.rssforever.com',
+  'https://hub.slarker.me',
+];
+
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0',
+];
+
+function randomUA(): string {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+const xBackoffMultipliers = new Map<string, number>();
 
 function parseNitterRSS(xml: string, screenName: string): NewsItem[] {
   const items: NewsItem[] = [];
@@ -529,13 +554,13 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     return [];
   }
 
-  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+  const shuffledNitter = [...NITTER_INSTANCES].sort(() => Math.random() - 0.5);
 
-  for (const instance of NITTER_INSTANCES) {
+  for (const instance of shuffledNitter) {
     try {
       const rssUrl = `${instance}/${screenName}/rss`;
       const response = await fetch(rssUrl, {
-        headers: { 'User-Agent': ua, 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
+        headers: { 'User-Agent': randomUA(), 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
         signal: AbortSignal.timeout(8000),
       });
 
@@ -550,18 +575,77 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       const items = parseNitterRSS(xml, screenName);
       if (items.length > 0) {
         xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+        xBackoffMultipliers.delete(screenName);
         console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via ${new URL(instance).hostname}`);
         return items;
       }
     } catch {}
   }
 
+  for (const hub of RSSHUB_INSTANCES) {
+    try {
+      const rssUrl = `${hub}/twitter/user/${screenName}`;
+      const response = await fetch(rssUrl, {
+        headers: { 'User-Agent': randomUA(), 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (response.status === 429) continue;
+      if (!response.ok) continue;
+      const xml = await response.text();
+      if (!xml.includes('<item') && !xml.includes('<entry')) continue;
+      const items = parseNitterRSS(xml, screenName);
+      if (items.length > 0) {
+        xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+        xBackoffMultipliers.delete(screenName);
+        console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via RSSHub (${new URL(hub).hostname})`);
+        return items;
+      }
+    } catch {}
+  }
+
+  try {
+    const fxResponse = await fetch(`https://api.fxtwitter.com/${screenName}`, {
+      headers: { 'User-Agent': randomUA(), 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (fxResponse.ok) {
+      const fxData = await fxResponse.json() as any;
+      const tweets = fxData?.tweets || fxData?.timeline?.entries || [];
+      if (Array.isArray(tweets) && tweets.length > 0) {
+        const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
+        const items: NewsItem[] = [];
+        for (const tweet of tweets.slice(0, 20)) {
+          let text = (tweet.text || tweet.content || '').replace(/https?:\/\/\S+/g, '').trim();
+          if (!text || text.length < 10) continue;
+          text = sanitizeText(text);
+          if (text.length > 300) text = text.substring(0, 297) + '...';
+          const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
+          items.push({
+            id: `x_${screenName}_${items.length}_${Date.now()}`,
+            title: text,
+            ...(titleAr ? { titleAr } : {}),
+            source: sourceLabel,
+            category: classifyTitle(text),
+            timestamp: tweet.created_at ? new Date(tweet.created_at).toISOString() : new Date().toISOString(),
+            url: tweet.url || `https://x.com/${screenName}`,
+          });
+        }
+        if (items.length > 0) {
+          xFeedCache.set(screenName, { data: items, fetchedAt: Date.now() });
+          xBackoffMultipliers.delete(screenName);
+          console.log(`[X-FEED] Fetched ${items.length} posts from @${screenName} via FxTwitter`);
+          return items;
+        }
+      }
+    }
+  } catch {}
+
   try {
     const response = await fetch(
       `https://syndication.twitter.com/srv/timeline-profile/screen-name/${screenName}`,
       {
         headers: {
-          'User-Agent': ua,
+          'User-Agent': randomUA(),
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
           'Referer': 'https://platform.twitter.com/',
@@ -571,8 +655,11 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     );
 
     if (response.status === 429) {
-      xRateLimitedAccounts.set(screenName, Date.now() + X_RATE_LIMIT_BACKOFF);
-      console.log(`[X-FEED] @${screenName} rate limited (429), backing off`);
+      const mult = xBackoffMultipliers.get(screenName) ?? 1;
+      const backoff = Math.min(X_RATE_LIMIT_BACKOFF * mult, 1800_000);
+      xRateLimitedAccounts.set(screenName, Date.now() + backoff);
+      xBackoffMultipliers.set(screenName, Math.min(mult * 2, 6));
+      console.log(`[X-FEED] @${screenName} rate limited (429), backing off ${Math.round(backoff / 1000)}s`);
       if (cached) return cached.data;
       return [];
     }
@@ -667,6 +754,12 @@ const OSINT_RSS_FEEDS = [
   { url: 'https://english.aawsat.com/feed', source: 'Asharq Al-Awsat' },
   { url: 'https://www.presstv.ir/RSS', source: 'Press TV (Iran)' },
   { url: 'https://www.i24news.tv/en/rss', source: 'i24 News (Israel)' },
+  { url: 'https://www.timesofisrael.com/feed/', source: 'Times of Israel' },
+  { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya' },
+  { url: 'https://www.france24.com/en/middle-east/rss', source: 'France 24 ME' },
+  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
 ];
 let osintFeedCache: { data: NewsItem[]; fetchedAt: number } | null = null;
 const OSINT_FEED_CACHE_TTL = 60_000;
@@ -717,7 +810,7 @@ async function fetchOSINTRSSFeeds(): Promise<NewsItem[]> {
 }
 
 async function fetchXFeeds(): Promise<NewsItem[]> {
-  const batchSize = 3;
+  const batchSize = 2;
   const results: NewsItem[][] = [];
   for (let i = 0; i < X_FEED_ACCOUNTS.length; i += batchSize) {
     const batch = X_FEED_ACCOUNTS.slice(i, i + batchSize);
@@ -726,7 +819,8 @@ async function fetchXFeeds(): Promise<NewsItem[]> {
       if (r.status === 'fulfilled' && r.value.length > 0) results.push(r.value);
     }
     if (i + batchSize < X_FEED_ACCOUNTS.length) {
-      await new Promise(r => setTimeout(r, 2000));
+      const jitter = 1000 + Math.floor(Math.random() * 3000);
+      await new Promise(r => setTimeout(r, jitter));
     }
   }
   const xPosts = results.flat();
@@ -2726,7 +2820,11 @@ export async function registerRoutes(
     });
   });
 
-  const LIVE_TELEGRAM_CHANNELS = ['CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel'];
+  const LIVE_TELEGRAM_CHANNELS = [
+    'CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel',
+    'ELINTNews', 'BNONewsRoom', 'FirstSquawk', 'Middle_East_Spectator', 'interbellumnews',
+    'WarMonitor3', 'claboriau', 'lebaborim', 'lebanonnews2',
+  ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
   const TELEGRAM_CACHE_TTL = 10_000;
