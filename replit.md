@@ -13,7 +13,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Theme:** Bloomberg Terminal-inspired dark aesthetic with a warm amber primary accent (`hsl(36 90% 52%)`) and a blue-tinted near-black background (`hsl(228 28% 4%)`).
 - **Typography:** JetBrains Mono for data, Inter for UI text. Compact font sizes (9-10px) for high information density.
 - **Responsiveness:** Adaptive layout for mobile, tablet, and desktop, with specific UI adjustments for each breakpoint and comprehensive touch screen support.
-- **Panel System:** Features 14 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `seismic`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`) in a customizable, resizable grid. God's Eye replay panel was removed.
+- **Panel System:** Features 13 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`) in a customizable, resizable grid. Seismic and God's Eye panels were removed.
 
 **Technical Implementations:**
 - **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI.
@@ -38,13 +38,12 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Interactive Elements:** Radar Panel Click-to-Detail (flights/ships), Flight Click-to-Pan.
 - **Sound Improvements:** Distinct synthesized tones per threat type with volume control.
 
-**SSE Intervals:** commodities 15s, ADS-B 10s, red-alerts 3s, GDELT 15s, news 15s, telegram 15s, AI brief 10s, X feed 60s, earthquakes 10s, thermal 10s, cyber 10s, classified 10s, analytics 10s.
+**SSE Intervals:** commodities 15s, ADS-B 10s, red-alerts 3s, GDELT 15s, news 15s, telegram 15s, AI brief 10s, X feed 60s, thermal 10s, cyber 10s, classified 10s, analytics 10s.
 **Cache TTLs:** All caches ≤10s with specific longer TTLs for X (120s) and OSINT_RSS (60s). Global cache flush every 15 minutes.
 
 ## External Dependencies
 - **ADS-B Data:** `adsb.lol`
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications`, `api.tzevaadom.co.il/alerts-history`, `oref.org.il`
-- **Earthquake Data:** USGS
 - **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov`) — timestamps constructed from `acqDate`+`acqTime` fields, 48h recency filter, up to 40 hotspots as conflict events
 - **Commodity Prices:** Yahoo Finance v8 spark batch endpoint with crumb/cookie authentication. Fetches consent cookie from `fc.yahoo.com`, gets crumb from `/v1/test/getcrumb`, then queries `query2.finance.yahoo.com/v8/finance/spark` (with `query1` fallback). Single request for all 7 symbols (BZ=F, CL=F, GC=F, SI=F, NG=F, ZW=F, HG=F), 60s TTL. Crumb cached for 10 minutes. Auto-resets crumb on 401/403.
 - **OSINT Feed:** Multi-layer X scraping: xcancel.com/nitter.cz HTML scraping (primary, extracts tweet-content/tweet-date/tweet-link from timeline HTML), Nitter RSS (secondary), X syndication endpoint (fallback). Uses UA rotation (6 user agents) and exponential backoff for rate-limited accounts. OSINT RSS feeds (17 sources): Long War Journal, Breaking Defense, Middle East Eye, Al-Monitor, MEMO, Jerusalem Post, War on the Rocks, Defense News, Asharq Al-Awsat, Press TV, i24 News, Times of Israel, Al Arabiya, France 24 ME, BBC Middle East, Al Jazeera, NYT Middle East. Always merged with X account posts when available.

@@ -13,7 +13,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -1262,23 +1262,6 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   } catch {}
 
   try {
-    const eqs = await fetchEarthquakes();
-    for (let i = 0; i < eqs.length; i++) {
-      const eq = eqs[i];
-      events.push({
-        id: `eq_${i}`,
-        type: 'ground',
-        lat: eq.lat,
-        lng: eq.lng,
-        title: `M${eq.magnitude} Earthquake`,
-        description: `${eq.place || 'Unknown location'} - Depth: ${eq.depth}km`,
-        timestamp: eq.timestamp,
-        severity: eq.magnitude >= 5 ? 'critical' : eq.magnitude >= 4 ? 'high' : eq.magnitude >= 3 ? 'medium' : 'low',
-      });
-    }
-  } catch {}
-
-  try {
     const query = encodeURIComponent('(missile OR airstrike OR attack OR military) (Israel OR Iran OR Lebanon OR Syria OR Gaza)');
     const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=artlist&maxrecords=50&format=json&sort=datedesc&timespan=24h`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -1325,10 +1308,9 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   const counts = {
     alerts: events.filter(e => e.id.startsWith('alert_')).length,
     thermal: events.filter(e => e.id.startsWith('thermal_')).length,
-    seismic: events.filter(e => e.id.startsWith('eq_')).length,
     gdelt: events.filter(e => e.id.startsWith('gdelt_')).length,
   };
-  console.log(`[EVENTS] ${deduped.length} real conflict events (alerts: ${counts.alerts}, thermal: ${counts.thermal}, seismic: ${counts.seismic}, gdelt: ${counts.gdelt})`);
+  console.log(`[EVENTS] ${deduped.length} real conflict events (alerts: ${counts.alerts}, thermal: ${counts.thermal}, gdelt: ${counts.gdelt})`);
   return deduped;
 }
 
@@ -2564,42 +2546,6 @@ async function generateDeductionLive(query: string, alerts: RedAlert[], messages
 
 
 
-let earthquakeCache: { data: EarthquakeEvent[]; fetchedAt: number } | null = null;
-const EQ_CACHE_TTL = 10_000;
-
-async function fetchEarthquakes(): Promise<EarthquakeEvent[]> {
-  if (earthquakeCache && Date.now() - earthquakeCache.fetchedAt < EQ_CACHE_TTL) {
-    return earthquakeCache.data;
-  }
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 9000);
-    const resp = await fetch(
-      'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=12&maxlatitude=42&minlongitude=24&maxlongitude=63&minmagnitude=2.5&limit=25&orderby=time',
-      { headers: { 'User-Agent': 'WARROOM-Dashboard/1.0' }, signal: controller.signal }
-    );
-    clearTimeout(timeout);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const json = await resp.json() as { features: Array<{ id: string; properties: { mag: number; place: string; time: number; url: string; felt: number; tsunami: number }; geometry: { coordinates: [number, number, number] } }> };
-    const events: EarthquakeEvent[] = json.features.map(f => ({
-      id: f.id,
-      magnitude: Math.round(f.properties.mag * 10) / 10,
-      place: f.properties.place,
-      lat: f.geometry.coordinates[1],
-      lng: f.geometry.coordinates[0],
-      depth: Math.round(f.geometry.coordinates[2] * 10) / 10,
-      timestamp: new Date(f.properties.time).toISOString(),
-      url: f.properties.url,
-      felt: f.properties.felt || 0,
-      tsunami: f.properties.tsunami || 0,
-    }));
-    earthquakeCache = { data: events, fetchedAt: Date.now() };
-    return events;
-  } catch {
-    return earthquakeCache?.data || [];
-  }
-}
-
 let thermalCache: { data: ThermalHotspot[]; fetchedAt: number } | null = null;
 const THERMAL_CACHE_TTL = 10_000;
 
@@ -3251,7 +3197,6 @@ export async function registerRoutes(
     });
     fetchCyberEvents().then(events => send('cyber', events));
     fetchXFeeds().then(xPosts => send('x-feed', xPosts));
-    fetchEarthquakes().then(eqs => send('earthquakes', eqs));
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
@@ -3285,7 +3230,7 @@ export async function registerRoutes(
       send('ai-brief', brief);
     }, 10000));
     intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 60000));
-    intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 10000));
+
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
     intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 10000));
 
@@ -3318,7 +3263,6 @@ export async function registerRoutes(
       aiBriefCache = null;
       aiClassificationCache = null;
       multiLLMCache = null;
-      earthquakeCache = null;
       thermalCache = null;
       cyberCache = null;
     }, 15 * 60 * 1000));
@@ -3326,11 +3270,6 @@ export async function registerRoutes(
     req.on('close', () => {
       intervals.forEach(clearInterval);
     });
-  });
-
-  app.get('/api/earthquakes', async (_req, res) => {
-    const data = await fetchEarthquakes();
-    res.json(data);
   });
 
   app.get('/api/thermal-hotspots', async (_req, res) => {

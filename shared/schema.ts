@@ -227,19 +227,6 @@ export interface AnalyticsSnapshot {
   modelAgreement?: number;
 }
 
-export interface EarthquakeEvent {
-  id: string;
-  magnitude: number;
-  place: string;
-  lat: number;
-  lng: number;
-  depth: number;
-  timestamp: string;
-  url?: string;
-  felt?: number;
-  tsunami?: number;
-}
-
 export interface CyberEvent {
   id: string;
   type: 'ddos' | 'intrusion' | 'malware' | 'phishing' | 'defacement' | 'data_exfil' | 'scada';

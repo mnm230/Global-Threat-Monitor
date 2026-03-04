@@ -23,7 +23,6 @@ import type {
   AIBrief,
   AIDeduction,
   AdsbFlight,
-  EarthquakeEvent,
   CyberEvent,
   ThermalHotspot,
 } from '@shared/schema';
@@ -241,7 +240,6 @@ interface SSEData {
   adsbFlights: AdsbFlight[];
   aiBrief: AIBrief | null;
   telegramMessages: TelegramMessage[];
-  earthquakes: EarthquakeEvent[];
   cyberEvents: CyberEvent[];
   thermalHotspots: ThermalHotspot[];
   xPosts: NewsItem[];
@@ -259,7 +257,6 @@ function useSSE(): SSEData {
   const [adsbFlights, setAdsbFlights] = useState<AdsbFlight[]>([]);
   const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
-  const [earthquakes, setEarthquakes] = useState<EarthquakeEvent[]>([]);
   const [cyberEvents, setCyberEvents] = useState<CyberEvent[]>([]);
   const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
   const [xPosts, setXPosts] = useState<NewsItem[]>([]);
@@ -308,9 +305,6 @@ function useSSE(): SSEData {
       es.addEventListener('telegram', (e) => {
         try { setTelegramMessages(JSON.parse(e.data)); } catch {}
       });
-      es.addEventListener('earthquakes', (e) => {
-        try { setEarthquakes(JSON.parse(e.data)); } catch {}
-      });
       es.addEventListener('cyber', (e) => {
         try { setCyberEvents(JSON.parse(e.data)); } catch {}
       });
@@ -340,7 +334,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, xPosts, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -534,7 +528,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -545,7 +539,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   adsb: { icon: Radar, label: 'ADS-B', labelAr: '\u0645\u0631\u0627\u0642\u0628\u0629 \u062C\u0648\u064A\u0629' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
-  seismic: { icon: Activity, label: 'Seismic', labelAr: '\u0632\u0644\u0627\u0632\u0644' },
   cyber: { icon: Cpu, label: 'Cyber', labelAr: '\u0633\u064A\u0628\u0631\u0627\u0646\u064A' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
@@ -708,26 +701,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100 },
     rowSplit: 50,
   },
 ];
@@ -744,8 +737,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'radar',     x: 9,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
   { i: 'adsb',      x: 0,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
   { i: 'markets',   x: 3,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'seismic',   x: 6,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'cyber',     x: 9,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'cyber',     x: 6,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
   { i: 'alertmap',  x: 0,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 4,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'xfeed',     x: 8,  y: 12, w: 2, h: 4, minW: 1, minH: 2 },
@@ -2145,34 +2137,6 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
   );
 }
 
-function SeismicPanel({ earthquakes, language, onClose, onMaximize, isMaximized }: { earthquakes: EarthquakeEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const sorted = [...earthquakes].sort((a, b) => b.magnitude - a.magnitude);
-  const magColor = (m: number) => m >= 6 ? 'text-red-400 bg-red-950/40 border-red-500/30' : m >= 5 ? 'text-orange-400 bg-orange-950/40 border-orange-500/30' : m >= 4 ? 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30' : 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30';
-  const magBorderColor = (m: number) => m >= 6 ? 'rgb(239 68 68 / 0.6)' : m >= 5 ? 'rgb(249 115 22 / 0.5)' : m >= 4 ? 'rgb(234 179 8 / 0.4)' : 'transparent';
-  return (
-    <div className="h-full flex flex-col min-h-0">
-      <PanelHeader title={language === 'en' ? 'Seismic Activity' : 'النشاط الزلزالي'} icon={<Activity className="w-3.5 h-3.5" />} live count={earthquakes.length} onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized} />
-      {earthquakes.length === 0 && <div className="px-3 py-6 text-center"><Activity className="w-5 h-5 text-muted-foreground mx-auto mb-2" /><p className="text-[10px] text-foreground/25">Loading seismic data...</p></div>}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-        {sorted.map((eq) => (
-          <div key={eq.id} className="px-3 py-3 hover-elevate animate-fade-in border-l-2" style={{ borderLeftColor: magBorderColor(eq.magnitude) }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono shrink-0 tabular-nums ${magColor(eq.magnitude)}`}>M{eq.magnitude.toFixed(1)}</span>
-              <span className="text-xs font-bold font-mono text-foreground truncate flex-1">{eq.place}</span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
-              <span><span className="text-foreground/40">DEP</span> {eq.depth.toFixed(0)}km</span>
-              {eq.felt && <span><span className="text-foreground/40">FELT</span> {eq.felt}</span>}
-              {eq.tsunami === 1 && <span className="text-cyan-400 font-bold">TSUNAMI</span>}
-              <span className="ml-auto">{timeAgo(eq.timestamp)}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="px-3 py-2 border-t border-white/[0.03] shrink-0"><span className="text-[9px] text-foreground/15 font-mono">Source: USGS · M2.5+ Middle East</span></div>
-    </div>
-  );
-}
 
 const CYBER_TYPE_LABELS: Record<string, string> = { ddos: 'DDoS', intrusion: 'INTRU', malware: 'MALWR', phishing: 'PHISH', defacement: 'DEFAC', data_exfil: 'EXFIL', scada: 'SCADA' };
 const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-orange-950/40 border-orange-500/30', intrusion: 'text-red-400 bg-red-950/40 border-red-500/30', malware: 'text-purple-400 bg-purple-950/40 border-purple-500/30', phishing: 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30', defacement: 'text-blue-400 bg-blue-950/40 border-blue-500/30', data_exfil: 'text-red-400 bg-red-950/40 border-red-500/30', scada: 'text-red-400 bg-red-950/40 border-red-500/30' };
@@ -4256,7 +4220,7 @@ function PanelSidebar({
   aiBrief: import('@shared/schema').AIBrief | null;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed'];
 
   const AI_MODELS = [
     { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
@@ -4520,7 +4484,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -4563,7 +4527,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, xPosts, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' } | null>(null);
@@ -4644,7 +4608,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -4654,7 +4618,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16,
+    cyber: 22, alertmap: 28, analytics: 28, xfeed: 16,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -4788,8 +4752,6 @@ export default function Dashboard() {
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'seismic':
-          return <SeismicPanel earthquakes={earthquakes} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'cyber':
           return <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
@@ -4935,7 +4897,6 @@ export default function Dashboard() {
               radar: flights.length > 0 ? `${flights.length}` : '',
               adsb: adsbFlights.length > 0 ? `${adsbFlights.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
-              seismic: earthquakes.length > 0 ? `${earthquakes.length}` : '',
               cyber: cyberEvents.length > 0 ? `${cyberEvents.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
@@ -5088,7 +5049,7 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, xPosts.length > 0, earthquakes.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0, ships.length > 0].filter(Boolean).length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, xPosts.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0, ships.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
             <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
