@@ -1557,27 +1557,70 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
 
     const ADSB_COLORS: Record<string, [number, number, number]> = {
-      military: [239, 68, 68],
-      surveillance: [34, 211, 238],
-      commercial: [34, 197, 94],
-      cargo: [245, 158, 11],
-      private: [168, 85, 247],
-      government: [59, 130, 246],
+      military:    [255,  60,  60],   // vivid red
+      surveillance:[0,   220, 255],   // bright cyan
+      commercial:  [50,  220, 120],   // green
+      cargo:       [255, 165,  30],   // amber-orange
+      private:     [190, 100, 255],   // purple
+      government:  [80,  160, 255],   // blue
     };
 
     if (layerVisibility.adsbFlights && adsbFlights.length > 0) {
+      // -- glow layer (military + surveillance only) --
+      const flaggedFlights = adsbFlights.filter(f => f.flagged);
+      if (flaggedFlights.length > 0) {
+        result.push(
+          new ScatterplotLayer({
+            id: 'adsb-glow-layer',
+            data: flaggedFlights,
+            getPosition: (d: AdsbFlight) => [d.lng, d.lat],
+            getRadius: 20000,
+            getFillColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.military), 22] as [number, number, number, number],
+            stroked: false,
+            radiusMinPixels: 10,
+            radiusMaxPixels: 30,
+            pickable: false,
+          })
+        );
+      }
+
+      // -- heading vector lines --
+      const flightsWithSpeed = adsbFlights.filter(f => f.groundSpeed > 30 && f.heading !== undefined);
+      if (flightsWithSpeed.length > 0) {
+        const HDG_DIST_M = 25000; // project ~25km ahead
+        result.push(
+          new LineLayer({
+            id: 'adsb-heading-layer',
+            data: flightsWithSpeed,
+            getSourcePosition: (d: AdsbFlight) => [d.lng, d.lat],
+            getTargetPosition: (d: AdsbFlight) => {
+              const rad = (d.heading * Math.PI) / 180;
+              const dLat = (HDG_DIST_M * Math.cos(rad)) / 111320;
+              const dLng = (HDG_DIST_M * Math.sin(rad)) / (111320 * Math.cos((d.lat * Math.PI) / 180));
+              return [d.lng + dLng, d.lat + dLat];
+            },
+            getColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 160 : 60] as [number, number, number, number],
+            getWidth: (d: AdsbFlight) => d.flagged ? 2 : 1,
+            widthMinPixels: 1,
+            widthMaxPixels: 3,
+            pickable: false,
+          })
+        );
+      }
+
+      // -- main dot layer --
       result.push(
         new ScatterplotLayer({
           id: 'adsb-layer',
           data: adsbFlights,
           getPosition: (d: AdsbFlight) => [d.lng, d.lat],
-          getRadius: 5000,
-          getFillColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || [34, 197, 94]), d.flagged ? 200 : 120] as [number, number, number, number],
-          getLineColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || [34, 197, 94]), 255] as [number, number, number, number],
+          getRadius: (d: AdsbFlight) => d.flagged ? 6000 : 4000,
+          getFillColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 230 : 150] as [number, number, number, number],
+          getLineColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), 255] as [number, number, number, number],
           stroked: true,
           lineWidthMinPixels: 1,
           radiusMinPixels: 3,
-          radiusMaxPixels: 10,
+          radiusMaxPixels: 14,
           pickable: true,
         })
       );

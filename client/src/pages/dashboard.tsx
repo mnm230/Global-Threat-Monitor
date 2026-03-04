@@ -1691,13 +1691,13 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
   );
 }
 
-const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; label: string }> = {
-  military:     { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    label: 'MIL' },
-  surveillance: { color: 'text-cyan-400',   bg: 'bg-cyan-950/40 border-cyan-500/30',  label: 'ISR' },
-  commercial:   { color: 'text-green-400',  bg: 'bg-green-950/40 border-green-500/30', label: 'CIV' },
-  cargo:        { color: 'text-amber-400',  bg: 'bg-amber-950/40 border-amber-500/30', label: 'CGO' },
-  private:      { color: 'text-purple-400', bg: 'bg-purple-950/40 border-purple-500/30', label: 'PVT' },
-  government:   { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'GOV' },
+const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; dot: string; label: string }> = {
+  military:     { color: 'text-red-300',     bg: 'bg-red-950/60 border-red-400/50',       dot: 'bg-red-400',     label: 'MIL' },
+  surveillance: { color: 'text-cyan-300',    bg: 'bg-cyan-950/60 border-cyan-400/50',     dot: 'bg-cyan-400',    label: 'ISR' },
+  commercial:   { color: 'text-emerald-300', bg: 'bg-emerald-950/50 border-emerald-500/35', dot: 'bg-emerald-400', label: 'CIV' },
+  cargo:        { color: 'text-amber-300',   bg: 'bg-amber-950/50 border-amber-400/40',   dot: 'bg-amber-400',   label: 'CGO' },
+  private:      { color: 'text-violet-300',  bg: 'bg-violet-950/50 border-violet-400/40', dot: 'bg-violet-400',  label: 'PVT' },
+  government:   { color: 'text-sky-300',     bg: 'bg-sky-950/50 border-sky-400/40',       dot: 'bg-sky-400',     label: 'GOV' },
 };
 
 function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number) => void }) {
@@ -4527,6 +4527,7 @@ export default function Dashboard() {
   const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
+  const [popupMapLocation, setPopupMapLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -4733,7 +4734,7 @@ export default function Dashboard() {
           return (
             <>
               <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng) => setMapFocusLocation({ lat, lng, zoom: 9 })} />
+                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupMapLocation({ lat, lng }); }} />
               </div>
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <MaritimePanel ships={ships} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
@@ -4741,7 +4742,7 @@ export default function Dashboard() {
             </>
           );
         case 'adsb':
-          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng) => setMapFocusLocation({ lat, lng, zoom: 9 })} />;
+          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupMapLocation({ lat, lng }); }} />;
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':
@@ -5090,6 +5091,35 @@ export default function Dashboard() {
         </div>
       )}
 
+      {popupMapLocation && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPopupMapLocation(null)} data-testid="popup-map-overlay">
+          <div className="relative w-[90vw] max-w-[700px] h-[60vh] max-h-[500px] rounded-lg border border-white/10 bg-[#0a0e17] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()} data-testid="popup-map-container">
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 bg-[#0a0e17]/90 border-b border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <Target className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[11px] font-mono font-bold text-foreground/80">{language === 'en' ? 'LOCATION' : 'الموقع'}</span>
+                <span className="text-[10px] font-mono text-foreground/40">{popupMapLocation.lat.toFixed(4)}, {popupMapLocation.lng.toFixed(4)}</span>
+              </div>
+              <button
+                onClick={() => setPopupMapLocation(null)}
+                className="w-6 h-6 rounded flex items-center justify-center text-foreground/40 hover:text-foreground/80 hover:bg-white/[0.06] transition-colors"
+                data-testid="button-close-popup-map"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <iframe
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${popupMapLocation.lng - 0.5},${popupMapLocation.lat - 0.3},${popupMapLocation.lng + 0.5},${popupMapLocation.lat + 0.3}&layer=mapnik&marker=${popupMapLocation.lat},${popupMapLocation.lng}`}
+              className="absolute inset-0 w-full h-full pt-9"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              title="Flight Location"
+              data-testid="popup-map-iframe"
+            />
+          </div>
+        </div>
+      )}
       {showNotes && <NotesOverlay language={language} onClose={() => setShowNotes(false)} />}
       {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} onUpdate={setWatchlist} />}
       {showAlertHistory && <AlertHistoryOverlay language={language} onClose={() => setShowAlertHistory(false)} />}

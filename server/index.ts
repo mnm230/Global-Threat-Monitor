@@ -24,7 +24,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
       connectSrc: ["'self'", "https:", "wss:", "ws:"],
       mediaSrc: ["'self'", "https:", "blob:"],
-      frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com", "https://www.openstreetmap.org"],
       workerSrc: ["'self'", "blob:"],
     },
   },

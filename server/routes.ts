@@ -40,22 +40,37 @@ const grok = new OpenAI({
 const ADSB_API_BASE = 'https://api.adsb.lol/v2';
 
 const ADSB_QUERY_POINTS = [
-  { lat: 32.0, lon: 35.0, dist: 200 },
-  { lat: 28.0, lon: 50.0, dist: 250 },
-  { lat: 25.5, lon: 55.0, dist: 200 },
-  { lat: 33.5, lon: 44.0, dist: 200 },
+  { lat: 32.0, lon: 35.0, dist: 250 },  // Israel / Palestine / West Bank
+  { lat: 33.9, lon: 35.5, dist: 180 },  // Lebanon / Cyprus / eastern Med
+  { lat: 28.0, lon: 50.0, dist: 250 },  // Persian Gulf / Iran coast
+  { lat: 25.5, lon: 55.0, dist: 200 },  // UAE / Gulf of Oman / Hormuz
+  { lat: 33.5, lon: 44.0, dist: 200 },  // Iraq / Syria border
+  { lat: 27.0, lon: 34.0, dist: 200 },  // Red Sea / Yemen approaches
 ];
 
 const MILITARY_HEX_PREFIXES = [
   'AE', 'AF', '3F', '43C', '43D',
-  '738', '06A',
+  '738', '739', '73A',   // Israel
+  '06A', '06B',          // Iran
+  '71C',                 // Lebanon (LAF)
 ];
 
 const MILITARY_CALLSIGN_PATTERNS = [
-  /^FORTE/i, /^DUKE/i, /^HOMER/i, /^JAKE/i, /^RCH/i, /^NCHO/i,
-  /^EVAC/i, /^RFF/i, /^LAGR/i, /^TOPCAT/i, /^DARKS/i,
-  /^IAF/i, /^IRGC/i, /^IRIAF/i, /^GAF/i,
-  /^VIPER/i, /^COBRA/i, /^HAWK/i, /^REAPER/i,
+  // US SIGINT / surveillance
+  /^FORTE/i, /^DUKE/i, /^HOMER/i, /^JAKE/i, /^NCHO/i,
+  /^LAGR/i, /^TOPCAT/i, /^DARKS/i, /^REAPER/i,
+  // US airlift / tanker
+  /^RCH/i, /^EVAC/i, /^RFF/i, /^JAKE/i,
+  // Israel (IDF/IAF)
+  /^IAF/i, /^ELBIT/i,
+  // Iran
+  /^IRGC/i, /^IRIAF/i,
+  // Lebanon Armed Forces
+  /^LAF/i, /^LBAF/i,
+  // NATO / European
+  /^GAF/i, /^RAFAIR/i, /^ASCOT/i, /^USMIL/i,
+  // Generic military fighters/tankers
+  /^VIPER/i, /^COBRA/i, /^HAWK/i, /^MAGMA/i, /^REACH/i,
 ];
 
 const SURVEILLANCE_TYPES = ['GLEX', 'GL5T', 'E3CF', 'E3TF', 'E6', 'RC135', 'P8', 'RQ4', 'MQ9', 'U2'];
@@ -121,21 +136,29 @@ function countryFromHex(hex: string): string {
   const h = hex.toUpperCase();
   if (h.startsWith('738') || h.startsWith('739') || h.startsWith('73A')) return 'Israel';
   if (h.startsWith('06A') || h.startsWith('06B')) return 'Iran';
-  if (h.startsWith('AE') || h.startsWith('AF') || h.startsWith('A')) return 'USA';
-  if (h.startsWith('710') || h.startsWith('711')) return 'Saudi Arabia';
+  if (h.startsWith('71C') || h.startsWith('71D')) return 'Lebanon';
+  if (h.startsWith('710') || h.startsWith('711') || h.startsWith('712')) return 'Saudi Arabia';
+  if (h.startsWith('715') || h.startsWith('716')) return 'Kuwait';
+  if (h.startsWith('713') || h.startsWith('714')) return 'Iraq';
+  if (h.startsWith('71A') || h.startsWith('71B')) return 'Syria';
+  if (h.startsWith('4B1') || h.startsWith('4B2')) return 'Jordan';
+  if (h.startsWith('AE') || h.startsWith('AF') || h.startsWith('A8') || h.startsWith('AA')) return 'USA';
   if (h.startsWith('400') || h.startsWith('401') || h.startsWith('43')) return 'UK';
   if (h.startsWith('3C') || h.startsWith('3D')) return 'Germany';
   if (h.startsWith('47')) return 'France';
   if (h.startsWith('896') || h.startsWith('897')) return 'South Korea';
   if (h.startsWith('780')) return 'China';
   if (h.startsWith('4CA')) return 'Ireland';
-  if (h.startsWith('4B')) return 'Bahrain';
-  if (h.startsWith('A6') || h.startsWith('896E')) return 'UAE';
-  if (h.startsWith('760')) return 'Qatar';
+  if (h.startsWith('4B0')) return 'Bahrain';
+  if (h.startsWith('760') || h.startsWith('A6E')) return 'UAE';
+  if (h.startsWith('75')) return 'Qatar';
   if (h.startsWith('800') || h.startsWith('801')) return 'India';
   if (h.startsWith('C0')) return 'Canada';
   if (h.startsWith('50')) return 'Australia';
   if (h.startsWith('86')) return 'Japan';
+  if (h.startsWith('48') || h.startsWith('49')) return 'Turkey';
+  if (h.startsWith('896E')) return 'UAE';
+  if (h.startsWith('76')) return 'Qatar';
   return 'Unknown';
 }
 
@@ -178,7 +201,7 @@ function transformAdsbAircraft(ac: Record<string, unknown>, index: number): Adsb
 
 let cachedLiveFlights: AdsbFlight[] = [];
 let lastFetchTime = 0;
-const FETCH_COOLDOWN_MS = 0;
+const FETCH_COOLDOWN_MS = 8000; // refresh at most every 8s; serve cache in between
 
 async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
   const now = Date.now();
@@ -213,7 +236,7 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
           const lat = a.lat as number | undefined;
           const lon = a.lon as number | undefined;
           if (lat === undefined || lon === undefined) return false;
-          return lat > 15 && lat < 42 && lon > 25 && lon < 65;
+          return lat > 10 && lat < 45 && lon > 22 && lon < 68;
         });
       } catch { return []; }
     })();
