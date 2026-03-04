@@ -2292,10 +2292,10 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
 
   const currentChannel = LIVE_CHANNELS.find(c => c.id === activeChannel)!;
   const embedSrc = customVideoId
-    ? `https://www.youtube.com/embed/${customVideoId}?autoplay=1&mute=0&rel=0&modestbranding=1`
+    ? `https://www.youtube-nocookie.com/embed/${customVideoId}?autoplay=1&mute=1&rel=0&modestbranding=1`
     : currentChannel.videoId
-      ? `https://www.youtube.com/embed/${currentChannel.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`
-      : `https://www.youtube.com/embed/live_stream?channel=${currentChannel.channelId}&autoplay=1&mute=0&rel=0&modestbranding=1`;
+      ? `https://www.youtube-nocookie.com/embed/${currentChannel.videoId}?autoplay=1&mute=1&rel=0&modestbranding=1`
+      : `https://www.youtube-nocookie.com/embed/live_stream?channel=${currentChannel.channelId}&autoplay=1&mute=1&rel=0&modestbranding=1`;
 
   const handleSetUrl = useCallback(() => {
     const match = customUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([a-zA-Z0-9_-]{11})/);
@@ -2376,11 +2376,13 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
       )}
       <div className="flex-1 min-h-0 bg-black relative">
         <iframe
-          key={customVideoId || currentChannel.channelId}
+          key={customVideoId || currentChannel.videoId || currentChannel.channelId}
           src={embedSrc}
           className="absolute inset-0 w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-presentation allow-forms"
           title="Live Feed"
           data-testid="livefeed-iframe"
           onError={() => setIframeError(true)}

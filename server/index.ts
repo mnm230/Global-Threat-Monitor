@@ -24,11 +24,12 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
       connectSrc: ["'self'", "https:", "wss:", "ws:"],
       mediaSrc: ["'self'", "https:", "blob:"],
-      frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://www.youtube-nocookie.com"],
       workerSrc: ["'self'", "blob:"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
