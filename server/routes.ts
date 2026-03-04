@@ -1749,22 +1749,96 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
         seenLocations.add(locKey);
 
         const isArabic = /[\u0600-\u06FF]/.test(location);
+
+        let cityEn = location;
+        let cityAr = isArabic ? location : '';
+        let cityHe = '';
+        let region = 'Telegram OSINT';
+        let regionHe = '';
+        let regionAr = '';
+        let lat = 32.0;
+        let lng = 34.8;
+        let countdown = 30;
+
+        if (isArabic) {
+          const arToEn: Record<string, string> = {
+            'كريات شمونه': 'Kiryat Shmona', 'كريات شمونة': 'Kiryat Shmona',
+            'حيفا': 'Haifa', 'تل أبيب': 'Tel Aviv', 'القدس': 'Jerusalem',
+            'عسقلان': 'Ashkelon', 'أسدود': 'Ashdod', 'سديروت': 'Sderot',
+            'بئر السبع': "Be'er Sheva", 'نهاريا': 'Nahariya', 'عكا': 'Acre',
+            'صفد': 'Safed', 'طبريا': 'Tiberias', 'نتانيا': 'Netanya',
+            'إيلات': 'Eilat', 'هرتسليا': 'Herzliya', 'كرميئيل': 'Karmiel',
+            'المطلة': 'Metula', 'الخيام': 'Al-Khiam', 'لدة الخيام': 'Al-Khiam',
+            'بنت جبيل': 'Bint Jbeil', 'النبطية': 'Nabatieh', 'صيدا': 'Sidon',
+            'صور': 'Tyre', 'بيروت': 'Beirut', 'بعلبك': 'Baalbek',
+            'طرابلس': 'Tripoli', 'دمشق': 'Damascus', 'حلب': 'Aleppo',
+            'بغداد': 'Baghdad', 'أربيل': 'Erbil', 'طهران': 'Tehran',
+            'الرياض': 'Riyadh', 'صنعاء': 'Sanaa', 'عدن': 'Aden',
+            'مأرب': 'Marib', 'الحديدة': 'Hodeidah',
+            'رمات غان': 'Ramat Gan', 'بات يام': 'Bat Yam', 'حولون': 'Holon',
+            'ريشون لتسيون': 'Rishon LeZion', 'رحوفوت': 'Rehovot',
+            'بني براك': 'Bnei Brak', 'اللد': 'Lod', 'الرملة': 'Ramla',
+            'الجليل': 'Galilee', 'الجليل الأعلى': 'Upper Galilee',
+            'جنوب لبنان': 'South Lebanon', 'شمال إسرائيل': 'Northern Israel',
+            'العفولة': 'Afula', 'الخضيرة': 'Hadera',
+            'معالوت ترشيحا': "Ma'alot-Tarshiha",
+            'جديدة المكر': 'Judeida-Makr', 'أبو سنان': 'Abu Snan',
+            'دير الأسد': 'Deir al-Asad', 'كفر مندا': 'Kafr Manda',
+          };
+
+          const arKey = location.trim();
+          if (arToEn[arKey]) {
+            cityEn = arToEn[arKey];
+          } else {
+            for (const [ar, en] of Object.entries(arToEn)) {
+              if (arKey.includes(ar)) { cityEn = en; break; }
+            }
+            if (cityEn === location) {
+              cityEn = `Alert Zone (${location.substring(0, 30)})`;
+            }
+          }
+
+          const heKey = Object.entries(OREF_CITY_COORDS).find(([_, v]) => v.en === cityEn);
+          if (heKey) {
+            const coords = heKey[1];
+            cityHe = heKey[0];
+            lat = coords.lat;
+            lng = coords.lng;
+            region = coords.region;
+            regionHe = coords.regionHe;
+            regionAr = coords.regionAr;
+            countdown = coords.countdown;
+          }
+        }
+
+        const knownPool = RED_ALERT_POOL.find(p => p.city === cityEn);
+        if (knownPool) {
+          lat = knownPool.lat;
+          lng = knownPool.lng;
+          region = knownPool.region;
+          regionHe = knownPool.regionHe;
+          regionAr = knownPool.regionAr;
+          countdown = knownPool.countdown;
+          cityHe = knownPool.cityHe;
+          cityAr = knownPool.cityAr || cityAr;
+        }
+
         alerts.push({
           id: `tg-alert-${msg.id}-${threatType}`,
-          city: isArabic ? location : location,
-          cityHe: '',
-          cityAr: isArabic ? location : '',
-          region: 'Telegram OSINT',
-          regionHe: '',
-          regionAr: '',
-          country: 'Israel',
-          countryCode: 'IL',
-          countdown: 30,
+          city: cityEn,
+          cityHe,
+          cityAr,
+          region,
+          regionHe,
+          regionAr,
+          country: knownPool?.country || 'Israel',
+          countryCode: knownPool?.countryCode || 'IL',
+          countdown,
           threatType,
           timestamp: msg.timestamp,
           active: true,
-          lat: 32.0,
-          lng: 34.8,
+          lat,
+          lng,
           source: 'telegram' as any,
         });
         break;
