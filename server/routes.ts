@@ -988,43 +988,91 @@ let liveCommodityPrices: Record<string, { price: number; change: number; changeP
 let liveCommodityFetchedAt = 0;
 const COMMODITY_PRICE_TTL = 60_000;
 
+let yahooCrumb = '';
+let yahooCookie = '';
+let yahooCrumbFetchedAt = 0;
+const YAHOO_CRUMB_TTL = 600_000;
+
+async function fetchYahooCrumb(): Promise<void> {
+  if (yahooCrumb && Date.now() - yahooCrumbFetchedAt < YAHOO_CRUMB_TTL) return;
+  try {
+    const consentResp = await fetch('https://fc.yahoo.com', {
+      headers: { 'User-Agent': randomUA() },
+      signal: AbortSignal.timeout(8000),
+      redirect: 'manual',
+    });
+    const cookies = consentResp.headers.getSetCookie?.() || [];
+    const aCookie = cookies.find(c => c.startsWith('A='));
+    if (aCookie) yahooCookie = aCookie.split(';')[0];
+
+    const crumbResp = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+      headers: {
+        'User-Agent': randomUA(),
+        'Cookie': yahooCookie,
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (crumbResp.ok) {
+      yahooCrumb = await crumbResp.text();
+      yahooCrumbFetchedAt = Date.now();
+      console.log(`[YAHOO-FINANCE] Crumb acquired`);
+    }
+  } catch {}
+}
+
 async function fetchLiveCommodityPrices(): Promise<void> {
   if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
   const symbols = COMMODITY_META
     .filter(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol)
     .map(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol!);
 
-  try {
-    const symbolsParam = symbols.map(s => encodeURIComponent(s)).join(',');
-    const url = `https://query2.finance.yahoo.com/v8/finance/spark?symbols=${symbolsParam}&interval=1d&range=1d`;
-    const resp = await fetch(url, {
-      headers: {
-        'User-Agent': randomUA(),
-        'Accept': 'application/json',
-        'Referer': 'https://finance.yahoo.com/',
-      },
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json() as Record<string, any>;
+  await fetchYahooCrumb();
 
-    let successCount = 0;
-    for (const symbol of symbols) {
-      const entry = data[symbol];
-      if (!entry) continue;
-      const closes = entry.close as number[] | undefined;
-      const price = closes && closes.length > 0 ? closes[closes.length - 1] : null;
-      if (price == null) continue;
-      const prevClose = entry.chartPreviousClose || entry.previousClose || price;
-      const change = price - prevClose;
-      const changePercent = prevClose !== 0 ? (change / prevClose) * 100 : 0;
-      liveCommodityPrices[symbol] = { price, change, changePercent };
-      successCount++;
+  const endpoints = [
+    `https://query2.finance.yahoo.com/v8/finance/spark?symbols=${symbols.map(s => encodeURIComponent(s)).join(',')}&interval=1d&range=1d${yahooCrumb ? `&crumb=${encodeURIComponent(yahooCrumb)}` : ''}`,
+    `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${symbols.map(s => encodeURIComponent(s)).join(',')}&interval=1d&range=1d${yahooCrumb ? `&crumb=${encodeURIComponent(yahooCrumb)}` : ''}`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          'User-Agent': randomUA(),
+          'Accept': 'application/json',
+          'Referer': 'https://finance.yahoo.com/',
+          ...(yahooCookie ? { 'Cookie': yahooCookie } : {}),
+        },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (resp.status === 401 || resp.status === 403) {
+        yahooCrumb = '';
+        yahooCrumbFetchedAt = 0;
+        continue;
+      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json() as Record<string, any>;
+
+      let successCount = 0;
+      for (const symbol of symbols) {
+        const entry = data[symbol];
+        if (!entry) continue;
+        const closes = entry.close as number[] | undefined;
+        const price = closes && closes.length > 0 ? closes[closes.length - 1] : null;
+        if (price == null) continue;
+        const prevClose = entry.chartPreviousClose || entry.previousClose || price;
+        const change = price - prevClose;
+        const changePercent = prevClose !== 0 ? (change / prevClose) * 100 : 0;
+        liveCommodityPrices[symbol] = { price, change, changePercent };
+        successCount++;
+      }
+      if (successCount > 0) {
+        liveCommodityFetchedAt = Date.now();
+        console.log(`[YAHOO-FINANCE] ${successCount}/${symbols.length} prices via spark batch`);
+        return;
+      }
+    } catch (err) {
+      console.log(`[YAHOO-FINANCE] Error: ${err instanceof Error ? err.message : err}`);
     }
-    liveCommodityFetchedAt = Date.now();
-    console.log(`[YAHOO-FINANCE] ${successCount}/${symbols.length} prices via spark batch`);
-  } catch (err) {
-    console.log(`[YAHOO-FINANCE] Error: ${err instanceof Error ? err.message : err}`);
   }
 }
 
@@ -3123,6 +3171,38 @@ export async function registerRoutes(
     res.json(scores);
   });
 
+  const SIREN_THREAT_MAP: Record<string, 'rocket' | 'missile' | 'uav' | 'hostile_aircraft'> = {
+    rockets: 'rocket',
+    missiles: 'missile',
+    uav_intrusion: 'uav',
+    hostile_aircraft_intrusion: 'hostile_aircraft',
+  };
+
+  function mapAlertsToSirens(alerts: RedAlert[]): SirenAlert[] {
+    const now = Date.now();
+    const sirenThreatTypes = new Set(['rockets', 'missiles', 'uav_intrusion', 'hostile_aircraft_intrusion']);
+    return alerts
+      .filter(a => {
+        if (!sirenThreatTypes.has(a.threatType)) return false;
+        const ts = new Date(a.timestamp).getTime();
+        if (isNaN(ts)) return false;
+        if (a.active) return true;
+        const remaining = a.countdown - Math.floor((now - ts) / 1000);
+        if (remaining > 0) return true;
+        return now - ts < 900_000;
+      })
+      .map(a => ({
+        id: `siren_${a.id}`,
+        location: a.city,
+        locationAr: a.cityAr,
+        region: a.region,
+        regionAr: a.regionAr,
+        threatType: SIREN_THREAT_MAP[a.threatType] || 'rocket',
+        timestamp: a.timestamp,
+        active: a.active || (a.countdown > 0 && (a.countdown - Math.floor((now - new Date(a.timestamp).getTime()) / 1000)) > 0),
+      }));
+  }
+
   app.get('/api/stream', (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -3155,12 +3235,10 @@ export async function registerRoutes(
     generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
-      const activeSirens = alerts.filter(a => {
-        const ts = new Date(a.timestamp).getTime();
-        if (isNaN(ts)) return false;
-        return Date.now() - ts < 300_000;
-      });
+      const activeSirens = mapAlertsToSirens(alerts);
       send('sirens', activeSirens);
+      const analytics = generateAnalytics(alerts, classifiedMessageCache);
+      send('analytics', analytics);
     });
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
     fetchLiveTelegram().then(tgMsgs => {
@@ -3176,21 +3254,12 @@ export async function registerRoutes(
     fetchEarthquakes().then(eqs => send('earthquakes', eqs));
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
-    generateRedAlerts().then(alerts => {
-      const analytics = generateAnalytics(alerts, classifiedMessageCache);
-      send('analytics', analytics);
-    });
-
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
     intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 10000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
-      const activeSirens = alerts.filter(a => {
-        const ts = new Date(a.timestamp).getTime();
-        if (isNaN(ts)) return false;
-        return Date.now() - ts < 300_000;
-      });
+      const activeSirens = mapAlertsToSirens(alerts);
       send('sirens', activeSirens);
     }), 5000));
     intervals.push(setInterval(() => {
