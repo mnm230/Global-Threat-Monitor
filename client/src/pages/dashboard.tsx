@@ -1933,7 +1933,7 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
       const matchType = e.type.includes(q);
       const matchSev = e.severity.includes(q);
       const matchTitle = e.title.toLowerCase().includes(q);
-      const matchCountry = e.country?.toLowerCase().includes(q) ?? false;
+      const matchCountry = (e as any).country?.toLowerCase().includes(q) ?? false;
       const matchDesc = e.description?.toLowerCase().includes(q) ?? false;
       // semantic shortcuts
       if (q === 'critical' || q === 'high' || q === 'medium' || q === 'low') return matchSev;
@@ -4744,7 +4744,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col bg-background text-foreground min-h-screen" data-testid="dashboard">
+    <div className="flex flex-col bg-background text-foreground h-screen overflow-hidden" data-testid="dashboard">
       <header className={`${isTouchDevice ? 'min-h-[44px]' : 'h-7'} border-b border-white/[0.07] flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2.5%)'}}>
         <div className="flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2">
@@ -4896,7 +4896,7 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} language={language} />
 
-      <div className="flex-1" data-testid="resizable-panels">
+      <div className="flex-1 min-h-0 overflow-auto" data-testid="resizable-panels">
         {isMobile ? (
           <div className="flex flex-col gap-px">
             {allPanels.filter(id => visiblePanels[id]).map(id => (

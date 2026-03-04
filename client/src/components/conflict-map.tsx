@@ -2108,6 +2108,30 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       );
     }
 
+    if (layerVisibility.aiHeatmap) {
+      // Weight events by severity for AI risk heatmap
+      const severityWeight: Record<string, number> = { critical: 1.0, high: 0.7, medium: 0.4, low: 0.2 };
+      result.push(
+        new HeatmapLayer({
+          id: 'ai-threat-heatmap',
+          data: events,
+          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+          getWeight: (d: ConflictEvent) => severityWeight[d.severity] ?? 0.3,
+          radiusPixels: 80,
+          intensity: 1.5,
+          threshold: 0.03,
+          colorRange: [
+            [0, 0, 255, 0],
+            [0, 255, 255, 128],
+            [0, 255, 0, 180],
+            [255, 255, 0, 200],
+            [255, 128, 0, 220],
+            [255, 0, 0, 240],
+          ],
+        })
+      );
+    }
+
     if (layerVisibility.animatedArcs) {
       const ARC_COLORS: Record<string, [number, number, number]> = {
         ballistic: [239, 68, 68],
@@ -2451,6 +2475,13 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
                     <path d="m14.5 12.5 2-2" /><path d="m11.5 9.5 2-2" /><path d="m8.5 6.5 2-2" /><path d="m17.5 15.5 2-2" />
                   </svg>
                   {measureMode ? 'ON' : (language === 'ar' ? 'قياس' : 'MEAS')}
+                </button>
+                <button
+                  onClick={() => setLayerVisibility(prev => ({ ...prev, aiHeatmap: !prev.aiHeatmap }))}
+                  className={`text-[8px] font-mono px-1.5 py-0.5 rounded-none transition-colors ${layerVisibility.aiHeatmap ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-foreground/30 hover:text-foreground/60 border border-white/[0.06]'}`}
+                  title="AI Threat Heatmap"
+                >
+                  AI HEAT
                 </button>
               </div>
 
