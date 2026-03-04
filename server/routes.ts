@@ -149,7 +149,7 @@ function transformAdsbAircraft(ac: Record<string, unknown>, index: number): Adsb
 
 let cachedLiveFlights: AdsbFlight[] = [];
 let lastFetchTime = 0;
-const FETCH_COOLDOWN_MS = 5000;
+const FETCH_COOLDOWN_MS = 0;
 
 async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
   const now = Date.now();
@@ -237,7 +237,7 @@ function classifyTitle(text: string): 'breaking' | 'military' | 'diplomatic' | '
 }
 
 // --- Live News API Integration ---
-const NEWS_CACHE_TTL = 5 * 60 * 1000;
+const NEWS_CACHE_TTL = 10_000;
 const NEWS_QUERY = 'israel OR iran OR hezbollah OR hamas OR missile OR attack OR war OR conflict';
 
 let newsApiCache: { data: NewsItem[]; fetchedAt: number } | null = null;
@@ -329,8 +329,8 @@ async function fetchMediastack(): Promise<NewsItem[]> {
 }
 
 const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee', 'IntelCrab', 'sentdefender', 'IsraelRadar_', 'AuroraIntel', 'Faytuks', 'Conflicts', 'BNONews', 'igaboriau', 'NotWoofers', 'ELINTNews', 'charles_lister'];
-const X_CACHE_TTL = 2 * 60 * 1000;
-const X_RATE_LIMIT_BACKOFF = 10 * 60 * 1000;
+const X_CACHE_TTL = 10_000;
+const X_RATE_LIMIT_BACKOFF = 30_000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
 const xInFlight = new Map<string, Promise<NewsItem[]>>();
 let xRateLimitedUntil = 0;
@@ -637,7 +637,7 @@ const FREE_NEWS_RSS_FEEDS = [
 ];
 
 let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
-const FREE_RSS_TTL = 5 * 60 * 1000;
+const FREE_RSS_TTL = 10_000;
 
 async function fetchFreeNewsRSS(): Promise<NewsItem[]> {
   if (freeRssCache && Date.now() - freeRssCache.fetchedAt < FREE_RSS_TTL) return freeRssCache.data;
@@ -726,7 +726,7 @@ const COMMODITY_META = [
 
 let liveFxRates: Record<string, number> = {};
 let liveFxFetchedAt = 0;
-const FX_CACHE_TTL = 5 * 60 * 1000;
+const FX_CACHE_TTL = 10_000;
 
 async function fetchLiveFxRates(): Promise<Record<string, number>> {
   if (Date.now() - liveFxFetchedAt < FX_CACHE_TTL && Object.keys(liveFxRates).length > 0) {
@@ -751,7 +751,7 @@ async function fetchLiveFxRates(): Promise<Record<string, number>> {
 // Live commodity prices from Yahoo Finance (free, no API key required)
 let liveCommodityPrices: Record<string, { price: number; change: number; changePercent: number }> = {};
 let liveCommodityFetchedAt = 0;
-const COMMODITY_PRICE_TTL = 3 * 60 * 1000;
+const COMMODITY_PRICE_TTL = 10_000;
 
 async function fetchLiveCommodityPrices(): Promise<void> {
   if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
@@ -836,8 +836,8 @@ function generateCommodities(): CommodityData[] {
 
 fetchLiveFxRates();
 fetchLiveCommodityPrices();
-setInterval(() => fetchLiveFxRates(), FX_CACHE_TTL);
-setInterval(() => fetchLiveCommodityPrices(), COMMODITY_PRICE_TTL);
+setInterval(() => fetchLiveFxRates(), 10_000);
+setInterval(() => fetchLiveCommodityPrices(), 10_000);
 
 const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
   'tel aviv': { lat: 32.085, lng: 34.782 }, 'jerusalem': { lat: 31.769, lng: 35.216 },
@@ -902,7 +902,7 @@ function geocodeFromTitle(title: string): { lat: number; lng: number } | null {
 }
 
 let gdeltCache: { data: ConflictEvent[]; fetchedAt: number } | null = null;
-const GDELT_CACHE_TTL = 5 * 60 * 1000;
+const GDELT_CACHE_TTL = 10_000;
 
 // Rolling 7-day historical event buffer
 const HISTORY_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -1523,7 +1523,7 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
 };
 
 let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
-const OREF_CACHE_TTL = 5000;
+const OREF_CACHE_TTL = 0;
 
 const HE_TRANSLITERATION: Record<string, string> = {
   'א': 'a', 'ב': 'b', 'ג': 'g', 'ד': 'd', 'ה': 'h', 'ו': 'v', 'ז': 'z', 'ח': 'kh', 'ט': 't',
@@ -1714,9 +1714,9 @@ async function generateRedAlerts(): Promise<RedAlert[]> {
 const alertHistory: RedAlert[] = [];
 const classifiedMessageCache: ClassifiedMessage[] = [];
 let aiClassificationCache: { data: ClassifiedMessage[]; fetchedAt: number } | null = null;
-const AI_CLASSIFY_CACHE_TTL = 30_000;
+const AI_CLASSIFY_CACHE_TTL = 10_000;
 let aiBriefCache: { data: AIBrief; fetchedAt: number } | null = null;
-const AI_BRIEF_CACHE_TTL = 120_000;
+const AI_BRIEF_CACHE_TTL = 10_000;
 
 function recordAlertHistory(alerts: RedAlert[]) {
   for (const a of alerts) {
@@ -2295,7 +2295,7 @@ function generateDeductionStatic(query: string): AIDeduction {
 }
 
 let earthquakeCache: { data: EarthquakeEvent[]; fetchedAt: number } | null = null;
-const EQ_CACHE_TTL = 5 * 60 * 1000;
+const EQ_CACHE_TTL = 10_000;
 
 async function fetchEarthquakes(): Promise<EarthquakeEvent[]> {
   if (earthquakeCache && Date.now() - earthquakeCache.fetchedAt < EQ_CACHE_TTL) {
@@ -2331,7 +2331,7 @@ async function fetchEarthquakes(): Promise<EarthquakeEvent[]> {
 }
 
 let thermalCache: { data: ThermalHotspot[]; fetchedAt: number } | null = null;
-const THERMAL_CACHE_TTL = 15 * 60 * 1000;
+const THERMAL_CACHE_TTL = 10_000;
 
 async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
   if (thermalCache && Date.now() - thermalCache.fetchedAt < THERMAL_CACHE_TTL) {
@@ -2394,7 +2394,7 @@ async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
 }
 
 // --- Real Cyber Threat Intelligence ---
-const CYBER_CACHE_TTL = 15 * 60 * 1000; // 15 min
+const CYBER_CACHE_TTL = 10_000;
 let cyberCache: { data: CyberEvent[]; fetchedAt: number } | null = null;
 
 const CYBER_RSS_FEEDS = [
@@ -2568,7 +2568,7 @@ export async function registerRoutes(
   const LIVE_TELEGRAM_CHANNELS = ['CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel'];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
-  const TELEGRAM_CACHE_TTL = 30 * 1000;
+  const TELEGRAM_CACHE_TTL = 10_000;
   const MAX_CACHE_CHANNELS = 50;
   const ALLOWED_CHANNEL_PATTERN = /^[a-zA-Z0-9_]{3,64}$/;
 
@@ -2878,21 +2878,21 @@ export async function registerRoutes(
     }), 8000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(events => send('events', { events, flights: [], ships: [] }));
-    }, 60000));
-    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 20000));
+    }, 10000));
+    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 10000));
     intervals.push(setInterval(() => {
       fetchLiveTelegram().then(tgMsgs => send('telegram', tgMsgs)).catch(() => {});
-    }, 30000));
+    }, 10000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
       const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];
       const brief = await generateAIBriefLive(alerts, messages);
       send('ai-brief', brief);
-    }, 60000));
+    }, 10000));
     intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 5000));
-    intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
-    intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 15 * 60000));
-    intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 15 * 60000));
+    intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 10000));
+    intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
+    intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 10000));
 
     intervals.push(setInterval(async () => {
       const tgMsgs = await fetchLiveTelegram().catch(() => []);
@@ -2900,13 +2900,13 @@ export async function registerRoutes(
         const classified = await classifyMessages(tgMsgs);
         send('classified', classified);
       }
-    }, 30000));
+    }, 10000));
 
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
       const analytics = generateAnalytics(alerts, classifiedMessageCache);
       send('analytics', analytics);
-    }, 15000));
+    }, 10000));
 
     req.on('close', () => {
       intervals.forEach(clearInterval);

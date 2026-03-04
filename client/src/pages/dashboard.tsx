@@ -2684,7 +2684,7 @@ function TelegramPanel({
       }
     },
     refetchInterval: 10000,
-    staleTime: 8000,
+    staleTime: 0,
     enabled: allChannels.length > 0,
   });
 
@@ -3735,7 +3735,8 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 }) {
   const { data: analytics } = useQuery<AnalyticsData>({
     queryKey: ['/api/analytics'],
-    refetchInterval: 15000,
+    refetchInterval: 10000,
+    staleTime: 0,
   });
 
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
@@ -3890,7 +3891,8 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
   const { data: history = [], isLoading } = useQuery<Array<RedAlert & { resolved: boolean; resolvedAt?: string }>>({
     queryKey: ['/api/alert-history'],
-    refetchInterval: 30000,
+    refetchInterval: 10000,
+    staleTime: 0,
   });
   const [selectedBucket, setSelectedBucket] = useState<number | null>(null);
 
