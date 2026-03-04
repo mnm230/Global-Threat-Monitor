@@ -3,6 +3,15 @@ import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
+
+function sanitizeText(text: string): string {
+  return text
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/on\w+\s*=/gi, '');
+}
 import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment } from "@shared/schema";
 
 const openai = new OpenAI({
@@ -349,8 +358,8 @@ async function fetchMediastack(): Promise<NewsItem[]> {
 }
 
 const X_FEED_ACCOUNTS = ['FirstSquawk', 'AvichayAdraee', 'IntelCrab', 'sentdefender', 'IsraelRadar_', 'AuroraIntel', 'Faytuks', 'Conflicts', 'BNONews', 'igaboriau', 'NotWoofers', 'ELINTNews', 'charles_lister'];
-const X_CACHE_TTL = 10_000;
-const X_RATE_LIMIT_BACKOFF = 30_000;
+const X_CACHE_TTL = 120_000;
+const X_RATE_LIMIT_BACKOFF = 300_000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
 const xInFlight = new Map<string, Promise<NewsItem[]>>();
 let xRateLimitedUntil = 0;
@@ -386,11 +395,18 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
   try {
     const controller = new AbortController();
     timeout = setTimeout(() => controller.abort(), 10000);
+    const userAgents = [
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    ];
+    const ua = userAgents[Math.floor(Math.random() * userAgents.length)];
     const response = await fetch(
       `https://syndication.twitter.com/srv/timeline-profile/screen-name/${screenName}`,
       {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'User-Agent': ua,
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9,ar;q=0.8',
           'Referer': 'https://platform.twitter.com/',
@@ -457,6 +473,7 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       if (text.length > 300) {
         text = text.substring(0, 297) + '...';
       }
+      text = sanitizeText(text);
 
       const category = classifyTitle(text);
 
@@ -501,12 +518,16 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
 }
 
 async function fetchXFeeds(): Promise<NewsItem[]> {
+  const batchSize = 3;
   const results: NewsItem[][] = [];
-  for (const account of X_FEED_ACCOUNTS) {
-    const items = await scrapeXAccount(account);
-    results.push(items);
-    if (X_FEED_ACCOUNTS.indexOf(account) < X_FEED_ACCOUNTS.length - 1) {
-      await new Promise(r => setTimeout(r, 1500));
+  for (let i = 0; i < X_FEED_ACCOUNTS.length; i += batchSize) {
+    const batch = X_FEED_ACCOUNTS.slice(i, i + batchSize);
+    const batchResults = await Promise.allSettled(batch.map(a => scrapeXAccount(a)));
+    for (const r of batchResults) {
+      if (r.status === 'fulfilled') results.push(r.value);
+    }
+    if (i + batchSize < X_FEED_ACCOUNTS.length) {
+      await new Promise(r => setTimeout(r, 2000));
     }
   }
   const all = results.flat();
@@ -2915,6 +2936,7 @@ export async function registerRoutes(
         if (text && text.length > 500) {
           text = text.substring(0, 497) + '...';
         }
+        if (text) text = sanitizeText(text);
 
         msgs.push({
           id: `live_${channel}_${postId.replace('/', '_')}`,
@@ -3113,26 +3135,26 @@ export async function registerRoutes(
       send('analytics', analytics);
     });
 
-    intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
-    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 2000));
+    intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
+    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 10000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
     }), 8000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(events => send('events', { events, flights: [], ships: [] }));
-    }, 10000));
-    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 10000));
+    }, 15000));
+    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
     intervals.push(setInterval(() => {
       fetchLiveTelegram().then(tgMsgs => send('telegram', tgMsgs)).catch(() => {});
-    }, 10000));
+    }, 15000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
       const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];
       const brief = await generateAIBriefLive(alerts, messages);
       send('ai-brief', brief);
     }, 10000));
-    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 5000));
+    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 60000));
     intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 10000));
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
     intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 10000));

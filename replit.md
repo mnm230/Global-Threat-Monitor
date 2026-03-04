@@ -75,4 +75,10 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui
 - **Telegram:** `t.me/s/` (for public channel scraping, 30s cache TTL with in-flight request deduplication and rate-limit backoff)
+
+## Security
+- **sanitizeText():** Strips all HTML tags, script/style blocks, `javascript:` URIs, and event handler attributes from feed content. Applied after `stripHtmlToText()` as a second safety layer. Does NOT use HTML entity encoding (which caused double-encoding of `&amp;quot;` in Telegram/X feeds). React auto-escapes all text content on render — no `dangerouslySetInnerHTML` is used.
+- **Helmet CSP:** Content Security Policy headers via helmet, allowing YouTube iframes, CARTO tiles, and external images.
+- **Rate Limiting:** express-rate-limit at 120 req/min; SSE endpoints exempt.
+- **Body Size Limits:** 1mb max request body.
 - **YouTube:** YouTube API (for embedding live streams)

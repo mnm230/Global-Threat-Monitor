@@ -11,7 +11,8 @@
       "WebFetch(domain:www.livehdtv.com)",
       "WebFetch(domain:fomnybox.com)",
       "WebFetch(domain:www.youtube.com)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(pkill:*)"
     ]
   }
 }
