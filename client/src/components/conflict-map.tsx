@@ -2,7 +2,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { Deck } from '@deck.gl/core';
-import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer } from '@deck.gl/layers';
+import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer, TextLayer, IconLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
 import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
@@ -602,7 +602,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'events', label: 'Conflict Events', color: '#ef4444', defaultOn: true, group: 'operational' },
   { key: 'flights', label: 'Flight Tracks', color: '#22d3ee', defaultOn: true, group: 'operational' },
   { key: 'ships', label: 'Ship Tracks', color: '#3b82f6', defaultOn: true, group: 'operational' },
-  { key: 'adsbFlights', label: 'ADS-B Flights', color: '#06b6d4', defaultOn: false, group: 'operational' },
+  { key: 'adsbFlights', label: 'ADS-B Live Flights', color: '#06b6d4', defaultOn: true, group: 'operational' },
   { key: 'missileLines', label: 'Missile Trajectories', color: '#ef4444', defaultOn: true, group: 'operational' },
   { key: 'animatedArcs', label: 'Animated Missile Arcs', color: '#f43f5e', defaultOn: false, group: 'operational' },
   { key: 'heatmap', label: 'Threat Heat Map', color: '#fbbf24', defaultOn: false, group: 'operational' },
@@ -650,7 +650,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'satelliteThermal', label: 'Thermal Hotspots', color: '#ff6b35', defaultOn: false, group: 'satellite' },
   { key: 'thermalHeatmap', label: 'Thermal Heat Map', color: '#ff3300', defaultOn: false, group: 'satellite' },
 
-  { key: 'alertHeatmap', label: 'Alert Density Map', color: '#dc2626', defaultOn: false, group: 'operational' },
+  { key: 'alertHeatmap', label: 'Alert Density Map', color: '#dc2626', defaultOn: true, group: 'operational' },
   { key: 'aiHeatmap', label: 'AI Threat Heatmap', color: '#ff0000', defaultOn: false, group: 'operational' },
 ];
 
@@ -991,12 +991,24 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         const c = SHIP_COLORS[s.type] || [59, 130, 246];
         accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
         coords = { lat: s.lat, lng: s.lng };
+      } else if (layerId === 'red-alert-dot') {
+        const a = obj as unknown as RedAlert;
+        text = `🔴 ${language === 'ar' && a.cityAr ? a.cityAr : a.city}`;
+        const typeLabels: Record<string, string> = { missiles: 'MISSILES', rockets: 'ROCKETS', hostile_aircraft_intrusion: 'HOSTILE AIRCRAFT', uav_intrusion: 'UAV INTRUSION' };
+        detail = `${typeLabels[a.threatType] || a.threatType} · ${a.region} · ${a.countdown}s shelter`;
+        category = 'RED ALERT';
+        accentColor = '#ff1e1e';
+        coords = { lat: a.lat, lng: a.lng };
+        timestamp = a.timestamp;
       } else if (layerId === 'adsb-layer') {
-        text = `${obj.callsign} (${obj.hex})`;
-        detail = `${obj.aircraft} · ${obj.country} · ${obj.altitude}ft`;
-        category = 'adsb';
-        accentColor = '#22d3ee';
-        coords = { lat: obj.lat as number, lng: obj.lng as number };
+        const f = obj as unknown as AdsbFlight;
+        const POPUP_COLORS: Record<string, string> = { military: '#ff3c3c', surveillance: '#00d4ff', cargo: '#ffa81e', government: '#50a0ff', private: '#be64ff', commercial: '#32dc78' };
+        text = `${f.callsign} · ${f.hex}`;
+        const vr = f.verticalRate > 0 ? `↑${f.verticalRate}fpm` : f.verticalRate < 0 ? `↓${Math.abs(f.verticalRate)}fpm` : 'level';
+        detail = `${f.aircraft} · ${f.country}\nAlt: ${f.altitude.toLocaleString()}ft · ${f.groundSpeed}kts · ${vr}\nHdg: ${Math.round(f.heading)}° · Sqk: ${f.squawk}`;
+        category = f.type.toUpperCase();
+        accentColor = POPUP_COLORS[f.type] || '#22d3ee';
+        coords = { lat: f.lat as number, lng: f.lng as number };
       } else {
         text = (obj.name as string) || '';
         const detailParts = [obj.type || obj.system || obj.capacity, obj.operator || obj.group || obj.force, obj.country].filter(Boolean);
@@ -2370,8 +2382,110 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       );
     }
 
+    // ── Red Alert live pulsing markers ──
+    if (redAlerts.length > 0) {
+      const pulse = (Math.sin(arcTime * 0.06) + 1) / 2; // 0..1 oscillation
+      const outerAlpha = Math.round(15 + pulse * 40);
+      const ringAlpha  = Math.round(60 + pulse * 120);
+
+      // Threat → color map
+      const ALERT_COLORS: Record<string, [number, number, number]> = {
+        missiles:                   [255,  30,  30],
+        rockets:                    [255, 100,  30],
+        hostile_aircraft_intrusion: [255, 200,  30],
+        uav_intrusion:              [200, 100, 255],
+      };
+
+      // Outer glow
+      result.push(new ScatterplotLayer({
+        id: 'red-alert-glow',
+        data: redAlerts,
+        getPosition: (d: RedAlert) => [d.lng, d.lat],
+        getRadius: 18000,
+        getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), outerAlpha] as [number,number,number,number],
+        stroked: false,
+        radiusMinPixels: 20,
+        radiusMaxPixels: 60,
+        pickable: false,
+      }));
+
+      // Pulsing ring
+      result.push(new ScatterplotLayer({
+        id: 'red-alert-ring',
+        data: redAlerts,
+        getPosition: (d: RedAlert) => [d.lng, d.lat],
+        getRadius: 10000,
+        getFillColor: [0,0,0,0],
+        getLineColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), ringAlpha] as [number,number,number,number],
+        stroked: true,
+        lineWidthMinPixels: 2,
+        radiusMinPixels: 10,
+        radiusMaxPixels: 35,
+        pickable: false,
+      }));
+
+      // Center dot
+      result.push(new ScatterplotLayer({
+        id: 'red-alert-dot',
+        data: redAlerts,
+        getPosition: (d: RedAlert) => [d.lng, d.lat],
+        getRadius: 3000,
+        getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 255] as [number,number,number,number],
+        getLineColor: [255, 255, 255, 200],
+        stroked: true,
+        lineWidthMinPixels: 1,
+        radiusMinPixels: 4,
+        radiusMaxPixels: 10,
+        pickable: true,
+      }));
+
+      // City label
+      result.push(new TextLayer({
+        id: 'red-alert-label',
+        data: redAlerts,
+        getPosition: (d: RedAlert) => [d.lng, d.lat],
+        getText: (d: RedAlert) => `⚠ ${d.city}`,
+        getSize: 11,
+        getColor: [255, 80, 80, 220],
+        getPixelOffset: [0, -16],
+        fontFamily: 'monospace',
+        fontWeight: 'bold',
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'bottom',
+        pickable: false,
+      }));
+    }
+
+    // ── ADS-B military/flagged callsign labels ──
+    if (layerVisibility.adsbFlights && adsbFlights.length > 0) {
+      const labelFlights = adsbFlights.filter(f => f.flagged && f.callsign !== 'N/A');
+      if (labelFlights.length > 0) {
+        result.push(new TextLayer({
+          id: 'adsb-callsign-labels',
+          data: labelFlights,
+          getPosition: (d: AdsbFlight) => [d.lng, d.lat],
+          getText: (d: AdsbFlight) => d.callsign,
+          getSize: 10,
+          getColor: (d: AdsbFlight) => {
+            const C: Record<string, [number,number,number,number]> = {
+              military:    [255,  80,  80, 210],
+              surveillance:[0,   210, 255, 210],
+              government:  [80,  160, 255, 190],
+            };
+            return C[d.type] || [255, 255, 255, 160];
+          },
+          getPixelOffset: [0, -14],
+          fontFamily: 'monospace',
+          fontWeight: 'bold',
+          getTextAnchor: 'middle',
+          getAlignmentBaseline: 'bottom',
+          pickable: false,
+        }));
+      }
+    }
+
     return result;
-  }, [events, flights, ships, adsbFlights, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+  }, [events, flights, ships, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -2425,9 +2539,47 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
   }, [layers, viewState]);
 
+  // Live stats for HUD
+  const milCount = adsbFlights.filter(f => f.type === 'military' || f.type === 'surveillance').length;
+  const civCount = adsbFlights.filter(f => f.type === 'commercial' || f.type === 'cargo').length;
+  const alertCount = redAlerts.length;
+  const eventCount = events.length;
+  const criticalEvents = events.filter(e => e.severity === 'critical').length;
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', fontFamily: "'JetBrains Mono', monospace" }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} />
+
+      {/* ── TOP HUD BAR ── */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 15,
+        display: 'flex', alignItems: 'center', gap: 0,
+        background: 'linear-gradient(180deg, rgba(4,6,12,0.92) 0%, rgba(4,6,12,0.0) 100%)',
+        padding: '8px 12px',
+        pointerEvents: 'none',
+      }}>
+        {/* LIVE badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', background: 'rgba(255,30,30,0.12)', border: '1px solid rgba(255,30,30,0.35)', borderRadius: 4, marginRight: 12 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff1e1e', boxShadow: '0 0 6px #ff1e1e', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', color: '#ff6060' }}>LIVE</span>
+        </div>
+        {/* Stats chips */}
+        {[
+          { label: '✈ MIL/ISR', value: milCount, color: '#ff4444', bg: 'rgba(255,40,40,0.10)', border: 'rgba(255,60,60,0.3)' },
+          { label: '✈ CIV',     value: civCount, color: '#32dc78', bg: 'rgba(50,220,120,0.08)', border: 'rgba(50,220,120,0.25)' },
+          { label: '⚠ ALERTS',  value: alertCount, color: alertCount > 0 ? '#ff4444' : '#555', bg: alertCount > 0 ? 'rgba(255,30,30,0.12)' : 'rgba(255,255,255,0.03)', border: alertCount > 0 ? 'rgba(255,50,50,0.4)' : 'rgba(255,255,255,0.06)' },
+          { label: '💥 EVENTS', value: eventCount, color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.25)' },
+          { label: '🔴 CRITICAL', value: criticalEvents, color: '#f43f5e', bg: 'rgba(244,63,94,0.10)', border: 'rgba(244,63,94,0.3)' },
+        ].map(({ label, value, color, bg, border }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', background: bg, border: `1px solid ${border}`, borderRadius: 4, marginRight: 6 }}>
+            <span style={{ fontSize: 8, color: '#555', letterSpacing: '0.1em' }}>{label}</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color, lineHeight: 1, minWidth: 20 }}>{value}</span>
+          </div>
+        ))}
+        <div style={{ marginLeft: 'auto', fontSize: 8, color: '#333', letterSpacing: '0.1em' }}>
+          {new Date().toUTCString().slice(17, 25)} UTC
+        </div>
+      </div>
 
       <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
         <div
@@ -2904,81 +3056,75 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           onClick={() => setTooltip(null)}
           style={{
             position: 'absolute',
-            left: Math.min(tooltip.x + 14, (containerRef.current?.clientWidth || 400) - 300),
-            top: Math.max(tooltip.y - 14, 8),
+            left: Math.min(tooltip.x + 16, (containerRef.current?.clientWidth || 400) - 320),
+            top: Math.max(tooltip.y - 10, 50),
             zIndex: 20,
-            background: 'rgba(8,10,18,0.95)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 8,
+            background: 'rgba(5,8,16,0.97)',
+            backdropFilter: 'blur(24px)',
+            border: `1px solid ${tooltip.accentColor || '#ef4444'}35`,
+            borderRadius: 10,
             overflow: 'hidden',
             pointerEvents: 'auto',
-            maxWidth: 300,
-            minWidth: 200,
+            maxWidth: 320,
+            minWidth: 220,
             cursor: 'pointer',
-            boxShadow: `0 8px 32px rgba(0,0,0,0.7), 0 0 1px ${tooltip.accentColor || '#ef4444'}40`,
+            boxShadow: `0 16px 48px rgba(0,0,0,0.8), 0 0 24px ${tooltip.accentColor || '#ef4444'}20, inset 0 1px 0 rgba(255,255,255,0.04)`,
             display: 'flex',
             flexDirection: 'row',
           }}
         >
+          {/* left accent bar with glow */}
           <div style={{
-            width: 3,
-            minHeight: '100%',
-            background: tooltip.accentColor || '#ef4444',
+            width: 4, minHeight: '100%',
+            background: `linear-gradient(180deg, ${tooltip.accentColor || '#ef4444'}, ${tooltip.accentColor || '#ef4444'}80)`,
             flexShrink: 0,
-            boxShadow: `0 0 8px ${tooltip.accentColor || '#ef4444'}60`,
+            boxShadow: `0 0 12px ${tooltip.accentColor || '#ef4444'}80`,
           }} />
           <div style={{ padding: '10px 14px', flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            {/* header row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               {tooltip.category && (
                 <span style={{
-                  fontSize: 8,
-                  fontWeight: 700,
-                  fontFamily: 'monospace',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
+                  fontSize: 8, fontWeight: 800, fontFamily: 'monospace',
+                  textTransform: 'uppercase', letterSpacing: '0.15em',
                   color: tooltip.accentColor || '#ef4444',
-                  background: `${tooltip.accentColor || '#ef4444'}15`,
-                  padding: '2px 6px',
-                  borderRadius: 3,
+                  background: `${tooltip.accentColor || '#ef4444'}18`,
+                  border: `1px solid ${tooltip.accentColor || '#ef4444'}30`,
+                  padding: '2px 7px', borderRadius: 4,
                 }}>
                   {tooltip.category}
                 </span>
               )}
               {tooltip.timestamp && (
-                <span style={{ fontSize: 9, color: '#555', fontFamily: 'monospace', marginLeft: 'auto' }}>
-                  {new Date(tooltip.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <span style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', marginLeft: 'auto', letterSpacing: '0.05em' }}>
+                  {new Date(tooltip.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               )}
+              <button onClick={(e) => { e.stopPropagation(); setTooltip(null); }} style={{ background: 'none', border: 'none', color: '#333', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0 }}>✕</button>
             </div>
-            <div style={{
-              color: '#e8e8e8',
-              fontSize: 12,
-              fontWeight: 600,
-              lineHeight: 1.3,
-              marginBottom: 4,
-              wordBreak: 'break-word',
-            }}>
+            {/* title */}
+            <div style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 6, wordBreak: 'break-word', letterSpacing: '0.02em' }}>
               {tooltip.text}
             </div>
-            {tooltip.detail && (
-              <div style={{ color: '#777', fontSize: 10, fontFamily: 'monospace', marginBottom: 4 }}>
-                {tooltip.detail}
+            {/* detail — supports newlines */}
+            {tooltip.detail && tooltip.detail.split('\n').map((line, i) => (
+              <div key={i} style={{ color: '#5a6577', fontSize: 10, fontFamily: 'monospace', lineHeight: 1.6, letterSpacing: '0.03em' }}>
+                {line}
               </div>
-            )}
+            ))}
+            {/* coords + map link */}
             {tooltip.coords && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <span style={{ fontSize: 9, color: '#444', fontFamily: 'monospace' }}>
-                  {tooltip.coords.lat.toFixed(4)}°, {tooltip.coords.lng.toFixed(4)}°
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ fontSize: 9, color: '#383f4d', fontFamily: 'monospace' }}>
+                  {tooltip.coords.lat.toFixed(4)}°N {tooltip.coords.lng.toFixed(4)}°E
                 </span>
                 <a
-                  href={`https://www.google.com/maps?q=${tooltip.coords.lat},${tooltip.coords.lng}&z=10&t=k`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`https://www.google.com/maps?q=${tooltip.coords.lat},${tooltip.coords.lng}&z=12&t=k`}
+                  target="_blank" rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ fontSize: 8, color: '#4a90d9', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 600 }}
+                  style={{ fontSize: 8, color: '#4a90d9', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 700, marginLeft: 'auto', letterSpacing: '0.1em' }}
                 >
-                  MAP ↗
+                  SATELLITE ↗
                 </a>
               </div>
             )}

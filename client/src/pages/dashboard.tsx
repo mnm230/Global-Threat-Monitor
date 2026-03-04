@@ -4390,11 +4390,7 @@ function PanelSidebar({
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className={`w-full h-8 flex items-center gap-2.5 px-3 relative transition-colors duration-100 border-r-2 group
-          ${active
-            ? 'text-primary border-primary'
-            : 'text-foreground/25 hover:text-foreground/60 border-transparent hover:bg-white/[0.02]'
-          }`}
+        className="w-full h-8 flex items-center gap-2.5 px-3 relative transition-colors duration-100 border-r-2 group border-primary text-[#ebebeb] text-[19px] font-semibold"
         style={active ? {background:'hsl(36 100% 50% / 0.05)'} : undefined}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
