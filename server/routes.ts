@@ -1,11 +1,26 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot } from "@shared/schema";
+import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+
+const anthropic = new Anthropic({
+  apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL,
+});
+
+const gemini = new GoogleGenAI({
+  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+  httpOptions: {
+    apiVersion: "",
+    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+  },
 });
 
 const ADSB_API_BASE = 'https://api.adsb.lol/v2';
@@ -2036,6 +2051,186 @@ function scoreFalseAlarms(alerts: RedAlert[]): FalseAlarmScore[] {
   return scores;
 }
 
+let multiLLMCache: { data: LLMAssessment[]; fetchedAt: number } | null = null;
+const MULTI_LLM_CACHE_TTL = 30_000;
+
+async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMessage[]): Promise<LLMAssessment[]> {
+  if (multiLLMCache && Date.now() - multiLLMCache.fetchedAt < MULTI_LLM_CACHE_TTL) {
+    return multiLLMCache.data;
+  }
+
+  const alertSummary = alerts.length > 0
+    ? `Active alerts: ${alerts.length}. Regions: ${[...new Set(alerts.map(a => a.country))].join(', ')}. Types: ${[...new Set(alerts.map(a => a.threatType))].join(', ')}. Latest: ${alerts.slice(0, 5).map(a => `${a.city} (${a.threatType})`).join('; ')}.`
+    : 'No active alerts.';
+
+  const criticalMsgs = messages
+    .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
+    .slice(0, 8);
+  const intelDigest = criticalMsgs.map(m => `[${m.channel}] ${m.text.slice(0, 150)}`).join('\n');
+
+  const systemPrompt = `You are a senior military intelligence analyst. Assess the current Middle East threat environment based on the data provided. Return ONLY valid JSON:
+{"riskLevel":"EXTREME|HIGH|ELEVATED|MODERATE|LOW","summary":"2-3 sentence assessment","keyInsights":["insight1","insight2","insight3"],"confidence":0.0-1.0}`;
+
+  const userPrompt = `ALERT STATUS: ${alertSummary}\n\nINTELLIGENCE DIGEST:\n${intelDigest || 'Limited OSINT available.'}`;
+
+  const runOpenAI = async (): Promise<LLMAssessment> => {
+    const start = Date.now();
+    try {
+      const resp = await openai.chat.completions.create({
+        model: 'gpt-4.1',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_completion_tokens: 500,
+      });
+      const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          engine: 'OpenAI',
+          model: 'GPT-4.1',
+          riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'].includes(parsed.riskLevel) ? parsed.riskLevel : 'HIGH') as LLMAssessment['riskLevel'],
+          summary: parsed.summary || 'Assessment pending.',
+          keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights.slice(0, 5) : [],
+          confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+          generatedAt: new Date().toISOString(),
+          latencyMs: Date.now() - start,
+          status: 'success',
+        };
+      }
+      throw new Error('No valid JSON in response');
+    } catch (err) {
+      return {
+        engine: 'OpenAI', model: 'GPT-4.1', riskLevel: 'MODERATE', summary: '',
+        keyInsights: [], confidence: 0, generatedAt: new Date().toISOString(),
+        latencyMs: Date.now() - start, status: 'error', error: (err as Error).message,
+      };
+    }
+  };
+
+  const runAnthropic = async (): Promise<LLMAssessment> => {
+    const start = Date.now();
+    try {
+      const resp = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+      const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          engine: 'Anthropic',
+          model: 'Claude Sonnet',
+          riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'].includes(parsed.riskLevel) ? parsed.riskLevel : 'HIGH') as LLMAssessment['riskLevel'],
+          summary: parsed.summary || 'Assessment pending.',
+          keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights.slice(0, 5) : [],
+          confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+          generatedAt: new Date().toISOString(),
+          latencyMs: Date.now() - start,
+          status: 'success',
+        };
+      }
+      throw new Error('No valid JSON in response');
+    } catch (err) {
+      return {
+        engine: 'Anthropic', model: 'Claude Sonnet', riskLevel: 'MODERATE', summary: '',
+        keyInsights: [], confidence: 0, generatedAt: new Date().toISOString(),
+        latencyMs: Date.now() - start, status: 'error', error: (err as Error).message,
+      };
+    }
+  };
+
+  const runGemini = async (): Promise<LLMAssessment> => {
+    const start = Date.now();
+    try {
+      const resp = await gemini.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `${systemPrompt}\n\n${userPrompt}`,
+        config: { maxOutputTokens: 800, temperature: 0.3, thinkingConfig: { thinkingBudget: 0 } },
+      });
+      let raw = '';
+      if (resp.candidates && resp.candidates[0]?.content?.parts) {
+        for (const part of resp.candidates[0].content.parts) {
+          if (part.text) raw += part.text;
+        }
+      }
+      raw = raw.trim() || resp.text?.trim() || '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          engine: 'Google',
+          model: 'Gemini 2.5 Flash',
+          riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'].includes(parsed.riskLevel) ? parsed.riskLevel : 'HIGH') as LLMAssessment['riskLevel'],
+          summary: parsed.summary || 'Assessment pending.',
+          keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights.slice(0, 5) : [],
+          confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
+          generatedAt: new Date().toISOString(),
+          latencyMs: Date.now() - start,
+          status: 'success',
+        };
+      }
+      throw new Error('No valid JSON in response');
+    } catch (err) {
+      return {
+        engine: 'Google', model: 'Gemini 2.5 Flash', riskLevel: 'MODERATE', summary: '',
+        keyInsights: [], confidence: 0, generatedAt: new Date().toISOString(),
+        latencyMs: Date.now() - start, status: 'error', error: (err as Error).message,
+      };
+    }
+  };
+
+  const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
+    Promise.race([promise, new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms))]);
+
+  const timeoutFallback = (engine: string, model: string): LLMAssessment => ({
+    engine, model, riskLevel: 'MODERATE', summary: '', keyInsights: [],
+    confidence: 0, generatedAt: new Date().toISOString(), latencyMs: 15000,
+    status: 'timeout', error: 'Request timed out (15s)',
+  });
+
+  const results = await Promise.allSettled([
+    withTimeout(runOpenAI(), 15000, timeoutFallback('OpenAI', 'GPT-4.1')),
+    withTimeout(runAnthropic(), 15000, timeoutFallback('Anthropic', 'Claude Sonnet')),
+    withTimeout(runGemini(), 15000, timeoutFallback('Google', 'Gemini 2.5 Flash')),
+  ]);
+  const assessments = results.map(r => r.status === 'fulfilled' ? r.value : {
+    engine: 'Unknown', model: 'Unknown', riskLevel: 'MODERATE' as const, summary: '',
+    keyInsights: [], confidence: 0, generatedAt: new Date().toISOString(),
+    latencyMs: 0, status: 'error' as const, error: 'Promise rejected',
+  });
+
+  multiLLMCache = { data: assessments, fetchedAt: Date.now() };
+  return assessments;
+}
+
+function computeConsensus(assessments: LLMAssessment[]): { consensusRisk: LLMAssessment['riskLevel']; modelAgreement: number } {
+  const successful = assessments.filter(a => a.status === 'success');
+  if (successful.length === 0) return { consensusRisk: 'MODERATE', modelAgreement: 0 };
+
+  const riskOrder: Record<string, number> = { LOW: 1, MODERATE: 2, ELEVATED: 3, HIGH: 4, EXTREME: 5 };
+  const riskValues = successful.map(a => riskOrder[a.riskLevel] || 2);
+  const avgRisk = riskValues.reduce((s, v) => s + v, 0) / riskValues.length;
+
+  let consensusRisk: LLMAssessment['riskLevel'] = 'MODERATE';
+  if (avgRisk >= 4.5) consensusRisk = 'EXTREME';
+  else if (avgRisk >= 3.5) consensusRisk = 'HIGH';
+  else if (avgRisk >= 2.5) consensusRisk = 'ELEVATED';
+  else if (avgRisk >= 1.5) consensusRisk = 'MODERATE';
+  else consensusRisk = 'LOW';
+
+  const maxDiff = Math.max(...riskValues) - Math.min(...riskValues);
+  const modelAgreement = Math.max(0, 1 - maxDiff * 0.25);
+
+  return { consensusRisk, modelAgreement: parseFloat(modelAgreement.toFixed(2)) };
+}
+
 function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[]): AnalyticsSnapshot {
   const regionCounts: Record<string, number> = {};
   const typeCounts: Record<string, number> = {};
@@ -2810,8 +3005,12 @@ export async function registerRoutes(
   app.get('/api/analytics', async (_req, res) => {
     const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
     const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
-    const analytics = generateAnalytics(alerts, messages);
-    res.json(analytics);
+    const [analytics, llmAssessments] = await Promise.all([
+      Promise.resolve(generateAnalytics(alerts, messages)),
+      runMultiLLMAssessment(alerts, messages),
+    ]);
+    const { consensusRisk, modelAgreement } = computeConsensus(llmAssessments);
+    res.json({ ...analytics, llmAssessments, consensusRisk, modelAgreement });
   });
 
   app.get('/api/patterns', async (_req, res) => {

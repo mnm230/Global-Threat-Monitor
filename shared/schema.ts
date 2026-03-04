@@ -198,6 +198,19 @@ export interface FalseAlarmScore {
   recommendation: 'likely_real' | 'uncertain' | 'likely_false';
 }
 
+export interface LLMAssessment {
+  engine: string;
+  model: string;
+  riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
+  summary: string;
+  keyInsights: string[];
+  confidence: number;
+  generatedAt: string;
+  latencyMs: number;
+  status: 'success' | 'error' | 'timeout';
+  error?: string;
+}
+
 export interface AnalyticsSnapshot {
   alertsByRegion: Record<string, number>;
   alertsByType: Record<string, number>;
@@ -209,6 +222,9 @@ export interface AnalyticsSnapshot {
   topSources: { channel: string; count: number; reliability: number }[];
   patterns: AlertPattern[];
   falseAlarms: FalseAlarmScore[];
+  llmAssessments?: LLMAssessment[];
+  consensusRisk?: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
+  modelAgreement?: number;
 }
 
 export interface EarthquakeEvent {

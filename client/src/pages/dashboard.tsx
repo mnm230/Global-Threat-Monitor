@@ -555,7 +555,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-const touchBtnClass = isTouchDevice ? 'w-9 h-9' : 'w-6 h-6';
+const touchBtnClass = isTouchDevice ? 'w-9 h-9' : 'w-5 h-5';
 const touchIconClass = isTouchDevice ? 'w-4 h-4' : 'w-3 h-3';
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
@@ -736,21 +736,21 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
 const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
-  { i: 'telegram', x: 0,  y: 0, w: 3, h: 4, minW: 1, minH: 1 },
-  { i: 'intel',    x: 3,  y: 0, w: 3, h: 4, minW: 1, minH: 1 },
-  { i: 'map',      x: 6,  y: 0, w: 4, h: 5, minW: 2, minH: 2 },
-  { i: 'alerts',   x: 10, y: 0, w: 2, h: 5, minW: 1, minH: 1 },
-  { i: 'livefeed', x: 0,  y: 4, w: 3, h: 3, minW: 1, minH: 1 },
-  { i: 'events',   x: 3,  y: 4, w: 3, h: 3, minW: 1, minH: 1 },
-  { i: 'adsb',     x: 6,  y: 5, w: 3, h: 3, minW: 1, minH: 1 },
-  { i: 'markets',  x: 9,  y: 5, w: 3, h: 3, minW: 1, minH: 1 },
-  { i: 'radar',    x: 0,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
-  { i: 'seismic',  x: 4,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
-  { i: 'cyber',    x: 8,  y: 7, w: 4, h: 3, minW: 1, minH: 1 },
-  { i: 'alertmap', x: 0,  y: 10, w: 6, h: 4, minW: 2, minH: 2 },
-  { i: 'analytics', x: 6, y: 10, w: 6, h: 4, minW: 2, minH: 2 },
-  { i: 'xfeed',     x: 0, y: 14, w: 3, h: 4, minW: 1, minH: 1 },
-  { i: 'godseye',   x: 3, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
+  { i: 'map',       x: 0,  y: 0,  w: 6, h: 5, minW: 3, minH: 3 },
+  { i: 'alerts',    x: 6,  y: 0,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'intel',     x: 9,  y: 0,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'telegram',  x: 0,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
+  { i: 'livefeed',  x: 3,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
+  { i: 'events',    x: 6,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
+  { i: 'radar',     x: 9,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
+  { i: 'adsb',      x: 0,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'markets',   x: 3,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'seismic',   x: 6,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'cyber',     x: 9,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'alertmap',  x: 0,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'analytics', x: 4,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'xfeed',     x: 8,  y: 12, w: 2, h: 4, minW: 1, minH: 2 },
+  { i: 'godseye',   x: 10, y: 12, w: 2, h: 4, minW: 2, minH: 2 },
 ];
 
 interface Correlation {
@@ -1403,22 +1403,21 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-8 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(225 25% 6%) 0%, hsl(225 28% 4.5%) 100%)'}}>
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/70 shrink-0 ml-1">{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/60 font-mono">{title}</span>
+    <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+      <span className="[&>svg]:w-3 [&>svg]:h-3 text-primary/50 shrink-0">{icon}</span>
+      <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.03] rounded-sm tabular-nums leading-none font-semibold border border-white/[0.04]">
-          {count}
+        <span className="text-[8px] font-mono text-foreground/25 tabular-nums leading-none">
+          [{count}]
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'hsl(152 72% 38% / 0.06)', border:'1px solid hsl(152 72% 38% / 0.12)'}}>
-          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(52 211 153 / 0.5)'}} />
-          <span className="text-[7px] uppercase tracking-[0.2em] text-emerald-400/70 font-bold font-mono">LIVE</span>
+        <div className="flex items-center gap-1">
+          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
+          <span className="text-[7px] uppercase tracking-widest text-emerald-400/50 font-mono">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -3367,10 +3366,10 @@ function AlertMapPanel({
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
-      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-red-500/[0.06] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />
-        <MapPin className="w-3 h-3 text-red-400/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+        <MapPin className="w-3 h-3 text-red-400/50 shrink-0" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
           {language === 'en' ? 'Alert Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}
         </span>
         {activeAlerts.length > 0 && (
@@ -3453,10 +3452,10 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-primary/[0.04] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
-        <Target className="w-3 h-3 text-primary/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+        <Target className="w-3 h-3 text-primary/50 shrink-0" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
           {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
         </span>
         <div className="flex items-center gap-px bg-white/[0.02] rounded border border-white/[0.05] p-0.5">
@@ -3574,6 +3573,19 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   );
 }
 
+interface LLMAssessmentData {
+  engine: string;
+  model: string;
+  riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
+  summary: string;
+  keyInsights: string[];
+  confidence: number;
+  generatedAt: string;
+  latencyMs: number;
+  status: 'success' | 'error' | 'timeout';
+  error?: string;
+}
+
 interface AnalyticsData {
   alertsByRegion: Record<string, number>;
   alertsByType: Record<string, number>;
@@ -3585,6 +3597,9 @@ interface AnalyticsData {
   threatTrend: 'escalating' | 'stable' | 'deescalating';
   patterns: PatternData[];
   falseAlarms: FalseAlarmData[];
+  llmAssessments?: LLMAssessmentData[];
+  consensusRisk?: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
+  modelAgreement?: number;
 }
 
 interface PatternData {
@@ -3643,13 +3658,12 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
-      <div className="panel-drag-handle h-8 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(225 25% 6%) 0%, hsl(225 28% 4.5%) 100%)'}}>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
-        <SiX className="w-3 h-3 text-primary/70 shrink-0 ml-1" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/60 font-mono">{t('X / Twitter', '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631')}</span>
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/35 bg-white/[0.03] rounded-sm tabular-nums leading-none font-semibold border border-white/[0.04]">{filtered.length}</span>
-        {posts.length > 0 && <span className="text-[7px] font-mono font-bold text-emerald-400/70 px-1.5 py-0.5 rounded-sm ml-0.5" style={{background:'hsl(152 72% 38% / 0.06)', border:'1px solid hsl(152 72% 38% / 0.12)'}}>LIVE</span>}
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+        <SiX className="w-3 h-3 text-primary/50 shrink-0" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{t('X / Twitter', '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631')}</span>
+        <span className="text-[8px] font-mono text-foreground/25 tabular-nums leading-none">[{filtered.length}]</span>
+        {posts.length > 0 && <span className="text-[7px] uppercase tracking-widest text-emerald-400/50 font-mono ml-0.5">LIVE</span>}
         <div className="flex-1" />
         {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-xfeed">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -3727,6 +3741,35 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
   );
 }
 
+function LLMDivergenceAlert({ assessments, language }: { assessments: LLMAssessmentData[]; language: 'en' | 'ar' }) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const successful = assessments.filter(a => a.status === 'success');
+  if (successful.length < 2) return null;
+  const risks = successful.map(a => a.riskLevel);
+  const allSame = risks.every(r => r === risks[0]);
+  if (!allSame) {
+    return (
+      <div className="mt-2 p-2 rounded bg-yellow-950/20 border border-yellow-500/20" data-testid="divergence-alert">
+        <div className="flex items-center gap-1.5 mb-1">
+          <AlertTriangle className="w-3 h-3 text-yellow-400" />
+          <span className="text-[10px] font-bold font-mono text-yellow-400 uppercase">{t('Model Divergence Detected', 'تم رصد اختلاف بين النماذج')}</span>
+        </div>
+        <p className="text-[9px] text-foreground/50">
+          {successful.map(a => `${a.engine}: ${a.riskLevel}`).join(' · ')}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 p-2 rounded bg-emerald-950/20 border border-emerald-500/20" data-testid="agreement-alert">
+      <div className="flex items-center gap-1.5">
+        <Shield className="w-3 h-3 text-emerald-400" />
+        <span className="text-[10px] font-bold font-mono text-emerald-400 uppercase">{t('All Models Agree', 'جميع النماذج متفقة')}: {risks[0]}</span>
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   language: 'en' | 'ar';
   onClose?: () => void;
@@ -3755,10 +3798,10 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-blue-500/[0.06] to-transparent shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-blue-400/60 via-blue-400/30 to-transparent" />
-        <BarChart3 className="w-3 h-3 text-blue-400/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+        <BarChart3 className="w-3 h-3 text-blue-400/50 shrink-0" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
         <div className="flex-1" />
         {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-analytics">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
@@ -3787,6 +3830,104 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                   <span className={`text-sm font-bold font-mono ${trendColor}`} data-testid="text-trend">{trendIcon} {analytics.threatTrend.toUpperCase()}</span>
                 </div>
               </div>
+
+              {analytics.llmAssessments && analytics.llmAssessments.length > 0 && (
+                <div data-testid="section-multi-llm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="w-3 h-3 text-purple-400/60" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/50 font-mono">{t('Multi-LLM Intelligence Engine', 'محرك الذكاء متعدد النماذج')}</span>
+                  </div>
+
+                  {analytics.consensusRisk && (
+                    <div className={`mb-3 p-2 rounded border ${
+                      analytics.consensusRisk === 'EXTREME' ? 'bg-red-950/30 border-red-500/30' :
+                      analytics.consensusRisk === 'HIGH' ? 'bg-orange-950/30 border-orange-500/30' :
+                      analytics.consensusRisk === 'ELEVATED' ? 'bg-yellow-950/30 border-yellow-500/30' :
+                      'bg-emerald-950/30 border-emerald-500/30'
+                    }`} data-testid="consensus-box">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-mono text-foreground/50 uppercase">{t('Consensus Risk', 'مستوى المخاطر التوافقي')}</span>
+                        <span className={`text-xs font-black font-mono tracking-wider ${
+                          analytics.consensusRisk === 'EXTREME' ? 'text-red-400' :
+                          analytics.consensusRisk === 'HIGH' ? 'text-orange-400' :
+                          analytics.consensusRisk === 'ELEVATED' ? 'text-yellow-400' :
+                          'text-emerald-400'
+                        }`} data-testid="text-consensus-risk">{analytics.consensusRisk}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono text-foreground/40">{t('Model Agreement', 'توافق النماذج')}</span>
+                        <div className="flex-1 h-1.5 bg-white/[0.05] rounded overflow-hidden">
+                          <div className={`h-full rounded transition-all ${
+                            (analytics.modelAgreement ?? 0) > 0.8 ? 'bg-emerald-500' :
+                            (analytics.modelAgreement ?? 0) > 0.5 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} style={{ width: `${(analytics.modelAgreement ?? 0) * 100}%` }} />
+                        </div>
+                        <span className="text-[10px] font-bold font-mono text-foreground/60" data-testid="text-model-agreement">{((analytics.modelAgreement ?? 0) * 100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {analytics.llmAssessments.map((assessment) => {
+                      const engineColors: Record<string, string> = {
+                        'OpenAI': 'from-emerald-500/10 border-emerald-500/20 text-emerald-400',
+                        'Anthropic': 'from-orange-500/10 border-orange-500/20 text-orange-400',
+                        'Google': 'from-blue-500/10 border-blue-500/20 text-blue-400',
+                      };
+                      const colors = engineColors[assessment.engine] || 'from-gray-500/10 border-gray-500/20 text-gray-400';
+                      const borderColor = colors.split(' ')[1];
+                      const textColor = colors.split(' ')[2];
+
+                      const riskColor = assessment.riskLevel === 'EXTREME' ? 'bg-red-500/80 text-white' :
+                        assessment.riskLevel === 'HIGH' ? 'bg-orange-500/80 text-white' :
+                        assessment.riskLevel === 'ELEVATED' ? 'bg-yellow-500/80 text-black' :
+                        assessment.riskLevel === 'MODERATE' ? 'bg-blue-500/80 text-white' :
+                        'bg-emerald-500/80 text-white';
+
+                      return (
+                        <div key={assessment.engine} className={`p-2.5 rounded border bg-gradient-to-r to-transparent ${borderColor} ${colors.split(' ')[0]}`} data-testid={`llm-card-${assessment.engine.toLowerCase()}`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${assessment.status === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                            <span className={`text-[11px] font-bold font-mono ${textColor}`}>{assessment.engine}</span>
+                            <span className="text-[9px] font-mono text-foreground/30">{assessment.model}</span>
+                            <div className="flex-1" />
+                            {assessment.status === 'success' && (
+                              <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${riskColor}`}>{assessment.riskLevel}</span>
+                            )}
+                            <span className="text-[9px] font-mono text-foreground/25">{assessment.latencyMs}ms</span>
+                          </div>
+
+                          {assessment.status === 'success' ? (
+                            <>
+                              <p className="text-[10px] text-foreground/60 leading-relaxed mb-1.5" data-testid={`text-summary-${assessment.engine.toLowerCase()}`}>{assessment.summary}</p>
+                              {assessment.keyInsights.length > 0 && (
+                                <div className="space-y-0.5">
+                                  {assessment.keyInsights.map((insight, idx) => (
+                                    <div key={idx} className="flex items-start gap-1.5">
+                                      <span className={`text-[8px] mt-0.5 ${textColor}`}>▸</span>
+                                      <span className="text-[9px] text-foreground/50 leading-tight">{insight}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 mt-1.5 pt-1 border-t border-white/[0.04]">
+                                <span className="text-[9px] font-mono text-foreground/30">{t('Confidence', 'الثقة')}: {(assessment.confidence * 100).toFixed(0)}%</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 py-1">
+                              <AlertTriangle className="w-3 h-3 text-red-400/60" />
+                              <span className="text-[10px] text-red-400/60 font-mono">{assessment.error || 'Engine unavailable'}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <LLMDivergenceAlert assessments={analytics.llmAssessments} language={language} />
+                </div>
+              )}
 
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('24h Timeline', '\u062C\u062F\u0648\u0644 24 \u0633\u0627\u0639\u0629')}</span>
@@ -4053,11 +4194,10 @@ function GodEyeReplayPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-godseye">
-      <div className="panel-drag-handle h-8 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(225 25% 6%) 0%, hsl(225 28% 4.5%) 100%)'}}>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
-        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
-        <Eye className="w-3 h-3 text-primary/60 shrink-0" />
-        <span className="text-[10px] font-mono font-bold text-foreground/80 tracking-widest uppercase">{t("God's Eye", 'عين الله')}</span>
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+        <Eye className="w-3 h-3 text-primary/50 shrink-0" />
+        <span className="text-[9px] font-mono font-bold text-foreground/45 tracking-[0.18em] uppercase">{t("God's Eye", 'عين الله')}</span>
         <span className="text-[8px] text-primary/40 font-mono">REPLAY</span>
         <div className="flex-1" />
         <span className="text-[9px] font-mono text-foreground/40">{eventCountAtTime} {t('events', 'أحداث')}</span>
@@ -4122,6 +4262,62 @@ function GodEyeReplayPanel({ language, onClose, onMaximize, isMaximized }: {
   );
 }
 
+function PanelSidebar({
+  visiblePanels,
+  openPanel,
+  closePanel,
+  language,
+}: {
+  visiblePanels: Record<PanelId, boolean>;
+  openPanel: (id: PanelId) => void;
+  closePanel: (id: PanelId) => void;
+  language: 'en' | 'ar';
+}) {
+  const topGroup: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed', 'godseye'];
+
+  const renderBtn = (id: PanelId) => {
+    const cfg = PANEL_CONFIG[id];
+    if (!cfg) return null;
+    const Icon = cfg.icon;
+    const active = visiblePanels[id];
+    return (
+      <button
+        key={id}
+        onClick={() => active ? closePanel(id) : openPanel(id)}
+        title={language === 'en' ? cfg.label : cfg.labelAr}
+        className={`w-11 h-9 flex flex-col items-center justify-center gap-0.5 relative transition-colors duration-100 border-r-2
+          ${active
+            ? 'text-primary border-primary'
+            : 'text-foreground/20 hover:text-foreground/50 border-transparent hover:bg-white/[0.02]'
+          }`}
+        style={active ? {background:'hsl(36 100% 50% / 0.05)'} : undefined}
+        data-testid={`sidebar-panel-${id}`}
+      >
+        <Icon className="w-3 h-3 shrink-0" />
+        <span className="text-[5.5px] font-mono font-bold uppercase tracking-wider leading-none opacity-60">
+          {cfg.label.slice(0, 4)}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <div
+      className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
+      style={{ width: 44, background: 'hsl(225 30% 2.5%)' }}
+    >
+      <div className="flex flex-col pt-1">
+        {topGroup.map(renderBtn)}
+      </div>
+      <div className="mx-2 my-1.5 h-px bg-white/[0.05]" />
+      <div className="flex flex-col">
+        {bottomGroup.map(renderBtn)}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [settings, setSettings] = useState<WARROOMSettings>(loadSettings);
@@ -4176,7 +4372,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v2') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         return saved.map((item: GridItemLayout) => {
@@ -4205,7 +4401,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v2', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -4318,7 +4514,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v2', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
@@ -4435,30 +4631,20 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col bg-background text-foreground min-h-screen" data-testid="dashboard">
-      <header className={`${isTouchDevice ? 'min-h-[48px]' : 'h-10'} border-b border-border/40 flex items-center justify-between px-3 md:px-5 shrink-0 relative z-50 warroom-header`} style={{background:'linear-gradient(180deg, hsl(225 28% 5.5%) 0%, hsl(225 30% 3.5%) 100%)', boxShadow:'0 1px 0 hsl(225 20% 10% / 0.3), 0 4px 20px hsl(0 0% 0% / 0.4)'}}>
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.03] to-transparent" />
+      <header className={`${isTouchDevice ? 'min-h-[44px]' : 'h-7'} border-b border-white/[0.07] flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2.5%)'}}>
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className={`${isTouchDevice ? 'w-9 h-9' : 'w-7 h-7'} rounded bg-gradient-to-br from-primary/30 via-primary/15 to-transparent flex items-center justify-center border border-primary/20`} style={{boxShadow:'0 0 12px hsl(36 100% 50% / 0.1), inset 0 1px 0 hsl(36 100% 50% / 0.1)'}}>
-              <Crosshair className={`${isTouchDevice ? 'w-4.5 h-4.5' : 'w-3.5 h-3.5'} text-primary`} />
-            </div>
-            <div className="flex flex-col leading-none gap-0.5">
-              <span className="font-black text-[13px] tracking-[0.3em] text-primary font-mono" style={{textShadow:'0 0 30px hsl(36 100% 50% / 0.4), 0 1px 2px hsl(0 0% 0% / 0.5)'}}>WARROOM</span>
-              <span className="text-[7px] text-foreground/20 tracking-[0.25em] font-mono hidden sm:block uppercase font-medium">
-                {language === 'en' ? 'INTEL TERMINAL' : '\u0645\u062D\u0637\u0629 \u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A'}
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-black tracking-[0.35em] text-primary font-mono select-none">◈ WARROOM</span>
           </div>
           <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.15)'}}>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
-            <span className="text-[8px] text-red-400/90 font-black tracking-[0.25em] uppercase font-mono">LIVE</span>
+            <span className="text-[7px] text-red-400/90 font-black tracking-[0.25em] uppercase font-mono">LIVE</span>
           </div>
           <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
           <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
             <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
-            <span className={`text-[9px] font-black tracking-[0.2em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+            <span className={`text-[7px] font-black tracking-[0.2em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -4550,6 +4736,17 @@ export default function Dashboard() {
         </div>
       </header>
 
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {!isMobile && !isTablet && (
+          <PanelSidebar
+            visiblePanels={visiblePanels}
+            openPanel={openPanel}
+            closePanel={closePanel}
+            language={language}
+          />
+        )}
+        <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+
       {showMobileMenu && (isMobile || isTablet) && (
         <div className="border-b border-border/40 bg-card/95 backdrop-blur-md px-3 py-2 flex flex-wrap gap-1.5 shrink-0 z-50" data-testid="mobile-menu">
           <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { toggleNotifications(); setShowMobileMenu(false); }} aria-label="Notifications"><Bell className="w-4 h-4 mr-1" />Notif</Button>
@@ -4616,12 +4813,12 @@ export default function Dashboard() {
               return (
                 <div
                   key={id}
-                  className={`flex flex-col overflow-hidden rounded border border-white/[0.05] cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-1 ring-red-500/40' : ''}`}
+                  className={`flex flex-col overflow-hidden border border-white/[0.08] cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-1 ring-red-500/40' : ''}`}
                   style={{
-                    background: 'linear-gradient(180deg, hsl(225 28% 4.5%) 0%, hsl(225 30% 3%) 100%)',
+                    background: 'hsl(225 27% 4%)',
                     boxShadow: hasAlertGlow
-                      ? '0 0 25px rgb(239 68 68 / 0.15), inset 0 0 25px rgb(239 68 68 / 0.04), 0 2px 8px hsl(0 0% 0% / 0.4)'
-                      : '0 2px 8px hsl(0 0% 0% / 0.3), inset 0 1px 0 hsl(225 20% 12% / 0.15)',
+                      ? '0 0 20px rgb(239 68 68 / 0.12), 0 0 0 1px hsl(225 18% 9%)'
+                      : '0 0 0 1px hsl(225 18% 9% / 0.5)',
                   }}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
                 >
@@ -4670,29 +4867,6 @@ export default function Dashboard() {
             </div>
           </>
         )}
-        {closedPanels.length > 0 && (
-          <>
-            <div className="w-px h-3 bg-white/[0.05]" />
-            <div className="flex items-center gap-1">
-              {closedPanels.map(id => {
-                const cfg = PANEL_CONFIG[id];
-                const Icon = cfg.icon;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => openPanel(id)}
-                    className="group flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-semibold text-primary/60 bg-primary/[0.05] hover:bg-primary/15 hover:text-primary transition-all duration-150 border border-primary/15 hover:border-primary/30"
-                    title={`Restore ${cfg.label} panel`}
-                    data-testid={`button-open-panel-${id}`}
-                  >
-                    <Icon className="w-2.5 h-2.5" />
-                    {language === 'en' ? cfg.label : cfg.labelAr}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
         {correlations.length > 0 && (
           <>
             <div className="w-px h-3 bg-white/[0.05]" />
@@ -4711,6 +4885,8 @@ export default function Dashboard() {
       {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} onUpdate={setWatchlist} />}
       {showAlertHistory && <AlertHistoryOverlay language={language} onClose={() => setShowAlertHistory(false)} />}
       {showSettings && <SettingsOverlay settings={settings} onSave={setSettings} onClose={() => setShowSettings(false)} language={language} />}
+        </div>
+      </div>
     </div>
   );
 }

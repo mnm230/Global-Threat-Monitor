@@ -26,7 +26,8 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Red Alert System:** Integrates multiple primary and fallback APIs for real-time Israeli Red Alerts (Tzeva Adom), displaying alerts with visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data is sourced from `adsb.lol`, with auto-classification of aircraft types and detailed flight information.
 - **Telegram OSINT:** Scrapes public Telegram channels via `t.me/s/` for live OSINT feeds, with server-side caching, language filtering, and inline media lightbox for images/photos.
-- **AI Intelligence:** AI world brief panel with risk assessment, key developments, and AI deduction/forecasting capabilities (OpenAI GPT, uses `max_completion_tokens`).
+- **AI Intelligence:** AI world brief panel with risk assessment, key developments, and AI deduction/forecasting capabilities.
+- **Multi-LLM Intelligence Engine:** Runs OpenAI GPT-4.1, Anthropic Claude Sonnet 4-6, and Google Gemini 2.5 Flash in parallel for threat assessments. Each model provides independent risk level, summary, key insights, confidence score, and latency. Consensus risk computed via weighted average of risk levels (EXTREME=5, HIGH=4, ELEVATED=3, MODERATE=2, LOW=1). Model agreement percentage shown (based on max divergence). Cached 30s server-side. Integrated into Analytics panel with per-engine cards, divergence/agreement alerts, and consensus box. Frontend shows engine-colored cards (OpenAI=emerald, Anthropic=orange, Google=blue) with status indicators.
 - **Persistence:** Panel visibility, layout presets, and user settings (e.g., alert thresholds, custom watchlists, analyst notes) are persisted in `localStorage`.
 - **Error Handling:** Generic `PanelErrorBoundary` for robust error handling in UI panels.
 - **Accessibility:** Implemented `aria-labels` and `role="status"` for improved accessibility.
