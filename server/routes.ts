@@ -2843,6 +2843,8 @@ export async function registerRoutes(
     'CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel',
     'ELINTNews', 'BNONewsRoom', 'FirstSquawk', 'Middle_East_Spectator', 'interbellumnews',
     'WarMonitor3', 'claboriau', 'lebaborim', 'lebanonnews2', 'bintjbeilnews',
+    'NewsInIsrael', 'alaborim', 'AbuAliEnglish', 'Yemen_Press', 'clashreport',
+    'inaborim', 'MEConflictNews',
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
