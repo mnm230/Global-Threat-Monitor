@@ -3078,10 +3078,17 @@ export async function registerRoutes(
     if (!query || typeof query !== 'string') {
       return res.status(400).json({ error: 'Query string required' });
     }
+    if (query.length > 500) {
+      return res.status(400).json({ error: 'Query too long (max 500 characters)' });
+    }
+    const sanitizedQuery = sanitizeText(query.trim());
+    if (!sanitizedQuery) {
+      return res.status(400).json({ error: 'Query contains no valid content' });
+    }
     const alerts = await generateRedAlerts();
     const messages = classifiedMessageCache;
     try {
-      const result = await generateDeductionLive(query, alerts, messages);
+      const result = await generateDeductionLive(sanitizedQuery, alerts, messages);
       res.json(result);
     } catch {
       res.status(503).json({ error: 'AI deduction unavailable' });
