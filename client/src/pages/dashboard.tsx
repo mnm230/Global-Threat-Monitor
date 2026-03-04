@@ -2275,13 +2275,13 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 }
 
 const LIVE_CHANNELS = [
+  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', videoId: 'gCNeDWCI0vo' },
   { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  videoId: 'bNyUyrR0PHo' },
-  { id: 'alaraby', label: 'ALARABY',  labelAr: 'العربي',     videoId: 'e2RgSa1Wt5o' },
   { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', videoId: 'U--OjmpjF5o' },
 ] as const;
 
 function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const [activeChannel, setActiveChannel] = useState<typeof LIVE_CHANNELS[number]['id']>('aja');
+  const [activeChannel, setActiveChannel] = useState<typeof LIVE_CHANNELS[number]['id']>('aje');
   const [customUrl, setCustomUrl] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [customVideoId, setCustomVideoId] = useState<string | null>(null);

@@ -362,7 +362,7 @@ const X_CACHE_TTL = 120_000;
 const X_RATE_LIMIT_BACKOFF = 300_000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
 const xInFlight = new Map<string, Promise<NewsItem[]>>();
-let xRateLimitedUntil = 0;
+const xRateLimitedAccounts = new Map<string, number>();
 
 async function scrapeXAccount(screenName: string): Promise<NewsItem[]> {
   const cached = xFeedCache.get(screenName);
@@ -385,7 +385,8 @@ async function scrapeXAccount(screenName: string): Promise<NewsItem[]> {
 async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
   const cached = xFeedCache.get(screenName);
 
-  if (Date.now() < xRateLimitedUntil) {
+  const accountRateLimit = xRateLimitedAccounts.get(screenName) ?? 0;
+  if (Date.now() < accountRateLimit) {
     if (cached) return cached.data;
     return [];
   }
@@ -419,8 +420,8 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
 
     if (!response.ok) {
       if (response.status === 429) {
-        xRateLimitedUntil = Date.now() + X_RATE_LIMIT_BACKOFF;
-        console.log(`[X-FEED] Rate limited, backing off for ${X_RATE_LIMIT_BACKOFF / 60000} minutes`);
+        xRateLimitedAccounts.set(screenName, Date.now() + X_RATE_LIMIT_BACKOFF);
+        console.log(`[X-FEED] @${screenName} rate limited (429), backing off for ${X_RATE_LIMIT_BACKOFF / 60000} minutes`);
       }
       if (cached) return cached.data;
       return [];
@@ -435,8 +436,14 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     }
 
     const nextData = JSON.parse(jsonMatch[1]);
-    const entries = nextData?.props?.pageProps?.timeline?.entries;
-    if (!Array.isArray(entries)) {
+    const rawEntries = nextData?.props?.pageProps?.timeline?.entries;
+    const entries = Array.isArray(rawEntries)
+      ? rawEntries
+      : rawEntries && typeof rawEntries === 'object'
+        ? Object.values(rawEntries)
+        : null;
+    if (!entries || entries.length === 0) {
+      console.log(`[X-FEED] No entries found for @${screenName}, rawEntries type: ${typeof rawEntries}`);
       if (cached) return cached.data;
       return [];
     }
@@ -3109,7 +3116,16 @@ export async function registerRoutes(
     };
 
     send('commodities', generateCommodities());
-    fetchGDELTConflictEvents().then(events => send('events', { events, flights: [], ships: [] }));
+    fetchGDELTConflictEvents().then(async (events) => {
+      const adsbFlights = await fetchLiveAdsbFlights();
+      const flights = adsbFlights.map(f => ({
+        id: f.id, callsign: f.callsign,
+        type: (f.type === 'cargo' || f.type === 'private' || f.type === 'government') ? 'commercial' as const : f.type as 'military' | 'commercial' | 'surveillance',
+        lat: f.lat, lng: f.lng, altitude: f.altitude, heading: f.heading,
+        speed: f.groundSpeed, aircraft: f.aircraft, origin: f.origin, squawk: f.squawk,
+      }));
+      send('events', { events, flights, ships: [] });
+    });
     generateNews().then(news => send('news', news));
     send('sirens', []);
     generateRedAlerts().then(alerts => {
@@ -3142,7 +3158,16 @@ export async function registerRoutes(
       send('red-alerts', alerts);
     }), 8000));
     intervals.push(setInterval(() => {
-      fetchGDELTConflictEvents().then(events => send('events', { events, flights: [], ships: [] }));
+      fetchGDELTConflictEvents().then(async (events) => {
+        const adsbFlights = await fetchLiveAdsbFlights();
+        const flights = adsbFlights.map(f => ({
+          id: f.id, callsign: f.callsign,
+          type: (f.type === 'cargo' || f.type === 'private' || f.type === 'government') ? 'commercial' as const : f.type as 'military' | 'commercial' | 'surveillance',
+          lat: f.lat, lng: f.lng, altitude: f.altitude, heading: f.heading,
+          speed: f.groundSpeed, aircraft: f.aircraft, origin: f.origin, squawk: f.squawk,
+        }));
+        send('events', { events, flights, ships: [] });
+      });
     }, 15000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
     intervals.push(setInterval(() => {
