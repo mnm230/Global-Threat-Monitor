@@ -1509,7 +1509,7 @@ function recordAlertHistory(alerts: RedAlert[]) {
       alertHistory.push(a);
     }
   }
-  if (alertHistory.length > 500) alertHistory.splice(0, alertHistory.length - 500);
+  if (alertHistory.length > 2000) alertHistory.splice(0, alertHistory.length - 2000);
 }
 
 async function classifyThreatWithAI(text: string): Promise<ThreatClassification> {
@@ -2847,7 +2847,7 @@ export async function registerRoutes(
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
-    }), 8000));
+    }), 3000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(async (events) => {
         const adsbFlights = await fetchLiveAdsbFlights();
@@ -2888,6 +2888,26 @@ export async function registerRoutes(
       const analytics = generateAnalytics(alerts, classifiedMessageCache);
       send('analytics', analytics);
     }, 10000));
+
+    intervals.push(setInterval(() => {
+      console.log('[CACHE-FLUSH] Clearing all caches (15-min interval)');
+      newsApiCache = null;
+      gnewsCache = null;
+      mediastackCache = null;
+      xFeedCache.clear();
+      osintFeedCache = null;
+      freeRssCache = null;
+      liveFxRates = {};
+      liveFxFetchedAt = 0;
+      gdeltCache = null;
+      orefCache = null;
+      aiBriefCache = null;
+      aiClassificationCache = null;
+      multiLLMCache = null;
+      earthquakeCache = null;
+      thermalCache = null;
+      cyberCache = null;
+    }, 15 * 60 * 1000));
 
     req.on('close', () => {
       intervals.forEach(clearInterval);
