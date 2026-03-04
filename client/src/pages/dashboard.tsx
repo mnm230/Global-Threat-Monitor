@@ -1585,7 +1585,7 @@ function headingToCompass(deg: number): string {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized, onLocateFlight }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onLocateFlight?: (lat: number, lng: number) => void }) {
+function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized, onLocateFlight }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
   const [selectedFlight, setSelectedFlight] = useState<FlightData | null>(null);
   const sorted = [...flights].sort((a, b) => {
     const order = { military: 0, surveillance: 1, commercial: 2 };
@@ -1630,7 +1630,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
             <button
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 border border-primary/20 text-[10px] font-mono font-bold text-primary/80 transition-colors"
               data-testid={`flight-locate-${selectedFlight.id}`}
-              onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng); }}
+              onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng, selectedFlight.callsign, selectedFlight.heading, selectedFlight.altitude, selectedFlight.speed, selectedFlight.type); }}
             >
               <Target className="w-3 h-3" />
               Locate on Map
@@ -1676,7 +1676,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
                 <span><span className="text-foreground/50">HDG</span> {headingToCompass(f.heading)}</span>
                 <button
                   className="ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-primary/15 transition-colors"
-                  onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng); }}
+                  onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng, f.callsign, f.heading, f.altitude, f.speed, f.type); }}
                   title="Locate on map"
                   data-testid={`flight-locate-row-${f.id}`}
                 >
@@ -1700,7 +1700,7 @@ const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; dot: string;
   government:   { color: 'text-sky-300',     bg: 'bg-sky-950/50 border-sky-400/40',       dot: 'bg-sky-400',     label: 'GOV' },
 };
 
-function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number) => void }) {
+function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
   const [filter, setFilter] = useState<string>('all');
   const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
   const isLoading = adsbFlights.length === 0;
@@ -1755,28 +1755,28 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      <div className="px-2 py-1.5 border-b border-white/[0.03] flex gap-1 flex-wrap shrink-0">
+      <div className="px-2 py-1.5 border-b border-white/[0.04] flex gap-1 flex-wrap shrink-0 bg-black/10">
         {[
-          { key: 'all', label: 'All' },
-          { key: 'flagged', label: 'Flagged' },
-          { key: 'military', label: 'MIL' },
-          { key: 'surveillance', label: 'ISR' },
-          { key: 'commercial', label: 'CIV' },
-          { key: 'cargo', label: 'CGO' },
-          { key: 'government', label: 'GOV' },
-          { key: 'private', label: 'PVT' },
-        ].map(({ key, label }) => (
+          { key: 'all',        label: 'All',     activeClass: 'bg-white/[0.08] border-white/20 text-white/80' },
+          { key: 'flagged',    label: '⚑ Alert', activeClass: 'bg-amber-950/60 border-amber-400/40 text-amber-300' },
+          { key: 'military',   label: 'MIL',     activeClass: 'bg-red-950/60 border-red-400/50 text-red-300' },
+          { key: 'surveillance',label: 'ISR',    activeClass: 'bg-cyan-950/60 border-cyan-400/50 text-cyan-300' },
+          { key: 'commercial', label: 'CIV',     activeClass: 'bg-emerald-950/50 border-emerald-500/35 text-emerald-300' },
+          { key: 'cargo',      label: 'CGO',     activeClass: 'bg-amber-950/50 border-amber-400/35 text-amber-300' },
+          { key: 'government', label: 'GOV',     activeClass: 'bg-sky-950/50 border-sky-400/35 text-sky-300' },
+          { key: 'private',    label: 'PVT',     activeClass: 'bg-violet-950/50 border-violet-400/35 text-violet-300' },
+        ].map(({ key, label, activeClass }) => (
           <button
             key={key}
             data-testid={`adsb-filter-${key}`}
             onClick={() => setFilter(key)}
-            className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-mono border transition-colors ${
+            className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-mono border transition-all ${
               filter === key
-                ? 'bg-cyan-950/40 border-cyan-500/25 text-cyan-300/90'
-                : 'bg-white/[0.02] border-white/[0.05] text-foreground/30'
+                ? activeClass
+                : 'bg-white/[0.02] border-white/[0.06] text-foreground/35 hover:text-foreground/55 hover:bg-white/[0.04]'
             }`}
           >
-            {label} {counts[key] ? `(${counts[key]})` : ''}
+            {label}{counts[key] ? ` ${counts[key]}` : ''}
           </button>
         ))}
       </div>
@@ -1821,7 +1821,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
               <button
                 className="flex items-center gap-1.5 px-2 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[10px] font-mono font-bold text-cyan-300 transition-colors"
                 data-testid={`adsb-locate-${selectedFlight.id}`}
-                onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng); }}
+                onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng, selectedFlight.callsign, selectedFlight.heading, selectedFlight.altitude, selectedFlight.groundSpeed, selectedFlight.type); }}
               >
                 <Target className="w-3 h-3" />
                 Locate on Map
@@ -1844,41 +1844,52 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
         <div className="divide-y divide-white/[0.03]">
           {sorted.map((f) => {
             const style = ADSB_TYPE_STYLES[f.type] || ADSB_TYPE_STYLES.commercial;
+            const isMil = f.type === 'military' || f.type === 'surveillance';
             return (
               <div
                 key={f.id}
-                className={`px-3 py-2.5 cursor-pointer transition-colors ${
-                  selectedFlight?.id === f.id ? 'bg-cyan-950/30' : ''
-                } ${f.flagged ? 'border-l-2 border-l-amber-500/60' : ''}`}
+                className={`px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-white/[0.025] ${
+                  selectedFlight?.id === f.id
+                    ? 'bg-white/[0.04]'
+                    : ''
+                } ${isMil
+                    ? 'border-l-2 border-l-red-500/70'
+                    : f.flagged
+                    ? 'border-l-2 border-l-amber-400/60'
+                    : 'border-l-2 border-l-transparent'
+                }`}
                 onClick={() => setSelectedFlight(f)}
                 data-testid={`adsb-flight-${f.id}`}
               >
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  {/* heading arrow */}
                   <span
-                    className="text-foreground/25 shrink-0 inline-block"
-                    style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
-                  >
-                    {'\u25B2'}
-                  </span>
-                  <span className="text-xs font-bold font-mono text-foreground/90 truncate">{f.callsign}</span>
-                  <span className="text-[11px] text-muted-foreground/40 font-mono">{f.hex}</span>
-                  <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono ml-auto ${style.color} ${style.bg}`}>
+                    className={`shrink-0 inline-block ${style.color}`}
+                    style={{ transform: `rotate(${f.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
+                  >▲</span>
+                  <span className="text-[12px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
+                  {/* type badge */}
+                  <span className={`text-[9px] px-1.5 py-[2px] rounded border font-bold font-mono tracking-wider ${style.color} ${style.bg}`}>
                     {style.label}
                   </span>
-                  {f.flagged && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-950/40 border border-amber-500/30 text-amber-400 font-bold font-mono">!</span>}
+                  {/* emergency / flag indicator */}
+                  {f.flagged && (f.squawk === '7700' || f.squawk === '7600' || f.squawk === '7500') && (
+                    <span className="text-[9px] px-1 py-[2px] rounded bg-red-900/60 border border-red-400/50 text-red-300 font-bold font-mono animate-pulse">{f.squawk}</span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/50">
-                  <span>{f.aircraft}</span>
-                  <span>{f.origin} {'\u2192'} {f.destination}</span>
-                  <span className="ml-auto flex items-center gap-1.5">
-                    <span>{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
+                <div className="flex items-center gap-3 text-[10px] font-mono">
+                  <span className="text-foreground/45 truncate max-w-[80px]">{f.aircraft || '—'}</span>
+                  <span className="text-foreground/30">{f.country}</span>
+                  <span className="ml-auto flex items-center gap-2 text-foreground/45">
+                    <span className="tabular-nums">{f.altitude > 0 ? `${Math.round(f.altitude / 100) * 100}ft` : 'GND'}</span>
+                    <span className="tabular-nums">{f.groundSpeed > 0 ? `${f.groundSpeed}kt` : '—'}</span>
                     <button
-                      className="w-5 h-5 flex items-center justify-center rounded hover:bg-cyan-500/15 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng); }}
+                      className="w-4 h-4 flex items-center justify-center rounded hover:bg-cyan-500/20 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng, f.callsign, f.heading, f.altitude, f.groundSpeed, f.type); }}
                       title="Locate on map"
                       data-testid={`adsb-locate-row-${f.id}`}
                     >
-                      <Target className="w-3 h-3 text-cyan-400/40 hover:text-cyan-400/80" />
+                      <Target className="w-2.5 h-2.5 text-cyan-400/50 hover:text-cyan-400" />
                     </button>
                   </span>
                 </div>
@@ -4454,6 +4465,147 @@ function PanelSidebar({
   );
 }
 
+declare const L: any;
+
+function LiveFlightTracker({ flight, allFlights, language, onClose }: {
+  flight: { callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' };
+  allFlights: any[];
+  language: 'en' | 'ar';
+  onClose: () => void;
+}) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMap = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const trailRef = useRef<any>(null);
+  const trailPoints = useRef<[number, number][]>([[flight.lat, flight.lng]]);
+  const [liveData, setLiveData] = useState(flight);
+
+  useEffect(() => {
+    const match = allFlights.find((f: any) => f.callsign === flight.callsign);
+    if (match) {
+      const newData = {
+        ...flight,
+        lat: match.lat,
+        lng: match.lng,
+        heading: match.heading,
+        altitude: match.altitude || match.alt || flight.altitude,
+        speed: match.speed || match.groundSpeed || flight.speed,
+      };
+      setLiveData(newData);
+      const last = trailPoints.current[trailPoints.current.length - 1];
+      if (!last || Math.abs(last[0] - newData.lat) > 0.0001 || Math.abs(last[1] - newData.lng) > 0.0001) {
+        trailPoints.current.push([newData.lat, newData.lng]);
+        if (trailPoints.current.length > 200) trailPoints.current.shift();
+      }
+    }
+  }, [allFlights, flight.callsign]);
+
+  useEffect(() => {
+    if (!mapRef.current || leafletMap.current) return;
+    try {
+      const map = L.map(mapRef.current, {
+        center: [flight.lat, flight.lng],
+        zoom: 10,
+        zoomControl: false,
+        attributionControl: false,
+      });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+      const planeIcon = L.divIcon({
+        className: 'live-plane-icon',
+        html: `<div style="transform:rotate(${flight.heading}deg);font-size:24px;filter:drop-shadow(0 0 6px rgba(0,200,255,0.7));color:#00d4ff;line-height:1;">✈</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+      markerRef.current = L.marker([flight.lat, flight.lng], { icon: planeIcon }).addTo(map);
+
+      trailRef.current = L.polyline([[flight.lat, flight.lng]], {
+        color: '#00d4ff',
+        weight: 2,
+        opacity: 0.5,
+        dashArray: '4 6',
+      }).addTo(map);
+
+      leafletMap.current = map;
+    } catch (e) {
+      console.error('LiveFlightTracker map init failed:', e);
+    }
+    return () => {
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!leafletMap.current || !markerRef.current) return;
+    const pos: [number, number] = [liveData.lat, liveData.lng];
+    markerRef.current.setLatLng(pos);
+    const planeIcon = L.divIcon({
+      className: 'live-plane-icon',
+      html: `<div style="transform:rotate(${liveData.heading}deg);font-size:24px;filter:drop-shadow(0 0 6px rgba(0,200,255,0.7));color:#00d4ff;line-height:1;transition:transform 0.5s ease;">✈</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+    markerRef.current.setIcon(planeIcon);
+    if (trailRef.current) {
+      trailRef.current.setLatLngs(trailPoints.current);
+    }
+    leafletMap.current.panTo(pos, { animate: true, duration: 1 });
+  }, [liveData.lat, liveData.lng, liveData.heading]);
+
+  const typeColor = liveData.type === 'military' ? 'text-red-400' : liveData.type === 'surveillance' ? 'text-amber-400' : 'text-cyan-400';
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  const compass = dirs[Math.round(liveData.heading / 45) % 8];
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose} data-testid="popup-map-overlay">
+      <div className="relative w-[92vw] max-w-[800px] h-[70vh] max-h-[600px] rounded-lg border border-cyan-500/20 bg-[#080c14] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()} data-testid="popup-map-container">
+        <div className="absolute top-0 left-0 right-0 z-[1000] flex items-center justify-between px-3 py-2 bg-[#080c14]/95 border-b border-cyan-500/15">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-[11px] font-mono font-bold text-cyan-300">{language === 'en' ? 'LIVE TRACKING' : 'تتبع مباشر'}</span>
+            </div>
+            <span className={`text-sm font-mono font-bold ${typeColor}`}>{liveData.callsign}</span>
+            <span className="text-[10px] font-mono text-foreground/30 uppercase">{liveData.type}</span>
+          </div>
+          <button onClick={onClose} className="w-6 h-6 rounded flex items-center justify-center text-foreground/40 hover:text-foreground/80 hover:bg-white/[0.08] transition-colors" data-testid="button-close-popup-map">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 z-[1000] flex items-center gap-4 px-3 py-2 bg-[#080c14]/95 border-t border-cyan-500/15">
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] font-mono text-foreground/30">ALT</span>
+            <span className="text-[11px] font-mono text-foreground/70 tabular-nums">{liveData.altitude.toLocaleString()}ft</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] font-mono text-foreground/30">SPD</span>
+            <span className="text-[11px] font-mono text-foreground/70 tabular-nums">{liveData.speed}kts</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] font-mono text-foreground/30">HDG</span>
+            <span className="text-[11px] font-mono text-foreground/70 tabular-nums">{Math.round(liveData.heading)}° {compass}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] font-mono text-foreground/30">POS</span>
+            <span className="text-[11px] font-mono text-foreground/70 tabular-nums">{liveData.lat.toFixed(4)}, {liveData.lng.toFixed(4)}</span>
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[9px] font-mono text-green-400/70">{language === 'en' ? 'LIVE' : 'مباشر'}</span>
+          </div>
+        </div>
+        <div ref={mapRef} className="absolute inset-0 w-full h-full" data-testid="popup-map-leaflet" />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [settings, setSettings] = useState<WARROOMSettings>(loadSettings);
@@ -4527,7 +4679,7 @@ export default function Dashboard() {
   const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
-  const [popupMapLocation, setPopupMapLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
+  const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' } | null>(null);
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -4734,7 +4886,7 @@ export default function Dashboard() {
           return (
             <>
               <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupMapLocation({ lat, lng }); }} />
+                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'radar' }); }} />
               </div>
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <MaritimePanel ships={ships} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
@@ -4742,7 +4894,7 @@ export default function Dashboard() {
             </>
           );
         case 'adsb':
-          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupMapLocation({ lat, lng }); }} />;
+          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'adsb' }); }} />;
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':
@@ -5091,34 +5243,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {popupMapLocation && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setPopupMapLocation(null)} data-testid="popup-map-overlay">
-          <div className="relative w-[90vw] max-w-[700px] h-[60vh] max-h-[500px] rounded-lg border border-white/10 bg-[#0a0e17] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()} data-testid="popup-map-container">
-            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 bg-[#0a0e17]/90 border-b border-white/[0.06]">
-              <div className="flex items-center gap-2">
-                <Target className="w-3.5 h-3.5 text-primary" />
-                <span className="text-[11px] font-mono font-bold text-foreground/80">{language === 'en' ? 'LOCATION' : 'الموقع'}</span>
-                <span className="text-[10px] font-mono text-foreground/40">{popupMapLocation.lat.toFixed(4)}, {popupMapLocation.lng.toFixed(4)}</span>
-              </div>
-              <button
-                onClick={() => setPopupMapLocation(null)}
-                className="w-6 h-6 rounded flex items-center justify-center text-foreground/40 hover:text-foreground/80 hover:bg-white/[0.06] transition-colors"
-                data-testid="button-close-popup-map"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <iframe
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${popupMapLocation.lng - 0.5},${popupMapLocation.lat - 0.3},${popupMapLocation.lng + 0.5},${popupMapLocation.lat + 0.3}&layer=mapnik&marker=${popupMapLocation.lat},${popupMapLocation.lng}`}
-              className="absolute inset-0 w-full h-full pt-9"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              title="Flight Location"
-              data-testid="popup-map-iframe"
-            />
-          </div>
-        </div>
+      {popupTrackFlight && (
+        <LiveFlightTracker
+          flight={popupTrackFlight}
+          allFlights={popupTrackFlight.source === 'adsb' ? adsbFlights : flights}
+          language={language}
+          onClose={() => setPopupTrackFlight(null)}
+        />
       )}
       {showNotes && <NotesOverlay language={language} onClose={() => setShowNotes(false)} />}
       {showWatchlist && <WatchlistOverlay language={language} onClose={() => setShowWatchlist(false)} onUpdate={setWatchlist} />}

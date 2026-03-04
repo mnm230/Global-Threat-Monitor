@@ -400,6 +400,8 @@ const X_FEED_ACCOUNTS = [
   'charles_lister',     // Charles Lister — Syria/Lebanon analyst (EN)
   'QalaatAlMudiq',      // Qalaat Al-Mudiq — Syria/Lebanon OSINT (EN+AR)
   'MiddleEastEye',      // Middle East Eye (EN+AR)
+  'igaboriau',          // Igor Sushko — OSINT analyst (EN)
+  'NotWoofers',         // OSINT Woofers (EN)
   // --- Breaking news ---
   'FirstSquawk',        // First Squawk — financial/geopolitical (EN)
   'BNONews',            // BNO News — breaking (EN)
@@ -515,6 +517,8 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
       charles_lister: 'Charles Lister',
       QalaatAlMudiq: 'Qalaat Al-Mudiq',
       MiddleEastEye: 'Middle East Eye',
+      igaboriau: 'Igor Sushko',
+      NotWoofers: 'OSINT (Woofers)',
       // Breaking news
       FirstSquawk: 'First Squawk',
       BNONews: 'BNO News',
