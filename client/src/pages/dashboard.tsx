@@ -3769,7 +3769,14 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
   const accounts = useMemo(() => {
     const map = new Map<string, number>();
     posts.forEach(p => { map.set(p.source, (map.get(p.source) || 0) + 1); });
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    // Pin AvichayAdraee first if present
+    const pinnedIdx = sorted.findIndex(([name]) => name === 'AvichayAdraee');
+    if (pinnedIdx > 0) {
+      const [pinned] = sorted.splice(pinnedIdx, 1);
+      sorted.unshift(pinned);
+    }
+    return sorted;
   }, [posts]);
 
   const updateScrollState = useCallback(() => {
