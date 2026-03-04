@@ -13,7 +13,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -3117,6 +3117,142 @@ export async function registerRoutes(
     res.json(scores);
   });
 
+  const BREAKING_KEYWORDS_CRITICAL = /\b(BREAKING|URGENT|JUST IN|BREAKING NEWS)\b/i;
+  const BREAKING_PATTERNS_CRITICAL = /\b(nuclear\s+(strike|attack|weapon|detonation)|chemical\s+(attack|weapon)|mass\s+casualt|invaded?|declaration\s+of\s+war|ceasefire\s+(declared|announced|agreement)|capital\s+(hit|struck|attacked|bombed)|strait\s+of\s+hormuz\s+(closed|blocked|mined)|aircraft\s+carrier\s+(hit|sunk|struck)|oil\s+facility\s+(hit|struck|attacked)|blackout\s+hit|total\s+blackout|power\s+grid|all\s+provinces)\b/i;
+  const BREAKING_PATTERNS_HIGH = /\b(airstrike|air\s*strike|missile\s+(hit|strike|launch|attack|fired|intercept)|rocket\s+(fire|barrage|attack|launch)|drone\s+(attack|strike|intercept)|explosion|siren|sirens?\s+(sounding|activated)|ground\s+(operation|invasion|offensive)|troops\s+(advancing|enter)|tanks?\s+(enter|advancing)|intercepted?\s+in\s+the\s+sk(y|ies)|casualties?\s+report|wounded|killed|dead|shot\s+down|base\s+under\s+attack|airport\s+under\s+attack|sunk|sinking|hit\s+by\s+(missile|rocket|drone))\b/i;
+  const EMOJI_URGENCY = /[\u{1F6A8}\u26A0\uFE0F\u{1F4A5}\u{1F525}\u2757\u2755\u{1F680}]/u;
+
+  let breakingNewsCache: BreakingNewsItem[] = [];
+  const seenBreakingIds = new Set<string>();
+
+  function detectBreakingNews(
+    telegramMsgs: TelegramMessage[],
+    xPosts: NewsItem[],
+    alerts: RedAlert[]
+  ): BreakingNewsItem[] {
+    const now = Date.now();
+    const items: BreakingNewsItem[] = [];
+    const recencyMs = 10 * 60 * 1000;
+
+    for (const msg of telegramMsgs) {
+      const ts = new Date(msg.timestamp).getTime();
+      if (isNaN(ts) || now - ts > recencyMs) continue;
+      const text = msg.text || '';
+      if (text.length < 15) continue;
+
+      let severity: 'critical' | 'high' | null = null;
+
+      if (BREAKING_KEYWORDS_CRITICAL.test(text) && (BREAKING_PATTERNS_HIGH.test(text) || BREAKING_PATTERNS_CRITICAL.test(text))) {
+        severity = BREAKING_PATTERNS_CRITICAL.test(text) ? 'critical' : 'high';
+      } else if (BREAKING_PATTERNS_CRITICAL.test(text)) {
+        severity = 'critical';
+      } else if (EMOJI_URGENCY.test(text) && BREAKING_PATTERNS_HIGH.test(text)) {
+        severity = 'high';
+      }
+
+      if (!severity) continue;
+
+      const id = `brk_tg_${msg.id}`;
+      if (seenBreakingIds.has(id)) {
+        const existing = breakingNewsCache.find(b => b.id === id);
+        if (existing) items.push(existing);
+        continue;
+      }
+
+      const headline = text
+        .replace(/https?:\/\/\S+/g, '')
+        .replace(/\n+/g, ' ')
+        .trim()
+        .slice(0, 200);
+
+      if (headline.length < 10) continue;
+
+      seenBreakingIds.add(id);
+      items.push({
+        id,
+        headline,
+        source: 'telegram',
+        channel: msg.channel,
+        severity,
+        timestamp: msg.timestamp,
+        originalText: text.slice(0, 500),
+      });
+    }
+
+    for (const post of xPosts) {
+      const ts = new Date(post.timestamp).getTime();
+      if (isNaN(ts) || now - ts > recencyMs) continue;
+      const text = post.title || '';
+      if (text.length < 15) continue;
+
+      let severity: 'critical' | 'high' | null = null;
+
+      if (BREAKING_KEYWORDS_CRITICAL.test(text) && (BREAKING_PATTERNS_HIGH.test(text) || BREAKING_PATTERNS_CRITICAL.test(text))) {
+        severity = BREAKING_PATTERNS_CRITICAL.test(text) ? 'critical' : 'high';
+      } else if (BREAKING_PATTERNS_CRITICAL.test(text)) {
+        severity = 'critical';
+      } else if (EMOJI_URGENCY.test(text) && BREAKING_PATTERNS_HIGH.test(text)) {
+        severity = 'high';
+      }
+
+      if (!severity) continue;
+
+      const id = `brk_x_${post.id || post.title?.slice(0, 30)}`;
+      if (seenBreakingIds.has(id)) {
+        const existing = breakingNewsCache.find(b => b.id === id);
+        if (existing) items.push(existing);
+        continue;
+      }
+
+      seenBreakingIds.add(id);
+      items.push({
+        id,
+        headline: text.replace(/https?:\/\/\S+/g, '').replace(/\n+/g, ' ').trim().slice(0, 200),
+        source: 'x',
+        channel: post.source,
+        severity,
+        timestamp: post.timestamp,
+      });
+    }
+
+    const activeAlerts = alerts.filter(a => {
+      const ts = new Date(a.timestamp).getTime();
+      return !isNaN(ts) && now - ts < 120_000 && a.active;
+    });
+    if (activeAlerts.length >= 5) {
+      const regions = [...new Set(activeAlerts.map(a => a.region))];
+      const id = `brk_alert_${Math.floor(now / 60000)}`;
+      if (!seenBreakingIds.has(id)) {
+        seenBreakingIds.add(id);
+        items.push({
+          id,
+          headline: `Mass alert activation: ${activeAlerts.length} active sirens across ${regions.join(', ')}`,
+          headlineAr: `\u062A\u0641\u0639\u064A\u0644 \u0625\u0646\u0630\u0627\u0631\u0627\u062A \u062C\u0645\u0627\u0639\u064A\u0629: ${activeAlerts.length} \u0635\u0641\u0627\u0631\u0629 \u0646\u0634\u0637\u0629 \u0641\u064A ${regions.join('\u060C ')}`,
+          source: 'alert',
+          severity: activeAlerts.length >= 15 ? 'critical' : 'high',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    items.sort((a, b) => {
+      if (a.severity !== b.severity) return a.severity === 'critical' ? -1 : 1;
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+
+    const deduped = items.slice(0, 15);
+    breakingNewsCache = deduped;
+
+    if (seenBreakingIds.size > 500) {
+      const keepIds = new Set(deduped.map(i => i.id));
+      for (const id of seenBreakingIds) {
+        if (!keepIds.has(id)) seenBreakingIds.delete(id);
+      }
+    }
+
+    return deduped;
+  }
+
   const SIREN_THREAT_MAP: Record<string, 'rocket' | 'missile' | 'uav' | 'hostile_aircraft'> = {
     rockets: 'rocket',
     missiles: 'missile',
@@ -3166,6 +3302,10 @@ export async function registerRoutes(
       } catch {}
     };
 
+    let latestTgMsgs: TelegramMessage[] = [];
+    let latestXPosts: NewsItem[] = [];
+    let latestAlerts: RedAlert[] = [];
+
     send('commodities', generateCommodities());
     fetchGDELTConflictEvents().then(async (events) => {
       const adsbFlights = await fetchLiveAdsbFlights();
@@ -3179,33 +3319,47 @@ export async function registerRoutes(
     });
     generateNews().then(news => send('news', news));
     generateRedAlerts().then(alerts => {
+      latestAlerts = alerts;
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
       const activeSirens = mapAlertsToSirens(alerts);
       send('sirens', activeSirens);
       const analytics = generateAnalytics(alerts, classifiedMessageCache);
       send('analytics', analytics);
+      const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
+      send('breaking-news', breaking);
     });
     fetchLiveAdsbFlights().then(flights => send('adsb', flights));
     fetchLiveTelegram().then(tgMsgs => {
+      latestTgMsgs = tgMsgs;
       send('telegram', tgMsgs);
       const classified = tgMsgs.map(m => ({ ...m }) as ClassifiedMessage);
       generateAIBriefLive([], classified).then(brief => send('ai-brief', brief));
       classifyMessages(tgMsgs).then(c => send('classified', c));
+      const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
+      send('breaking-news', breaking);
     }).catch(() => {
       send('telegram', []);
     });
     fetchCyberEvents().then(events => send('cyber', events));
-    fetchXFeeds().then(xPosts => send('x-feed', xPosts));
+    fetchXFeeds().then(xPosts => {
+      latestXPosts = xPosts;
+      send('x-feed', xPosts);
+      const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
+      send('breaking-news', breaking);
+    });
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
     intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 10000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
+      latestAlerts = alerts;
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
       const activeSirens = mapAlertsToSirens(alerts);
       send('sirens', activeSirens);
+      const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
+      send('breaking-news', breaking);
     }), 5000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(async (events) => {
@@ -3221,7 +3375,12 @@ export async function registerRoutes(
     }, 15000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
     intervals.push(setInterval(() => {
-      fetchLiveTelegram().then(tgMsgs => send('telegram', tgMsgs)).catch(() => {});
+      fetchLiveTelegram().then(tgMsgs => {
+        latestTgMsgs = tgMsgs;
+        send('telegram', tgMsgs);
+        const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
+        send('breaking-news', breaking);
+      }).catch(() => {});
     }, 15000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
@@ -3229,7 +3388,10 @@ export async function registerRoutes(
       const brief = await generateAIBriefLive(alerts, messages);
       send('ai-brief', brief);
     }, 10000));
-    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 60000));
+    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => {
+      latestXPosts = xPosts;
+      send('x-feed', xPosts);
+    }), 60000));
 
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
     intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 10000));

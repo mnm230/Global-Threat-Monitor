@@ -253,6 +253,17 @@ export interface ThermalHotspot {
   dayNight: 'D' | 'N';
 }
 
+export interface BreakingNewsItem {
+  id: string;
+  headline: string;
+  headlineAr?: string;
+  source: 'telegram' | 'x' | 'alert';
+  channel?: string;
+  severity: 'critical' | 'high';
+  timestamp: string;
+  originalText?: string;
+}
+
 export interface RedditPost {
   id: string;
   subreddit: string;

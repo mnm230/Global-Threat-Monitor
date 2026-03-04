@@ -14,11 +14,19 @@ declare module "http" {
   }
 }
 
+const isDev = process.env.NODE_ENV !== "production";
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        ...(isDev ? ["'unsafe-eval'"] : []),
+        "https://cdn.jsdelivr.net",
+        "https://unpkg.com",
+      ],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
@@ -44,6 +52,18 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', apiLimiter);
+
+// Stricter limit for expensive AI endpoints
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'AI request limit reached, please try again later.' },
+});
+app.use('/api/ai-deduct', aiLimiter);
+app.use('/api/ai-brief', aiLimiter);
+app.use('/api/analytics', aiLimiter);
 
 app.use(
   express.json({
@@ -98,7 +118,7 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = isDev ? (err.message || "Internal Server Error") : "Internal Server Error";
 
     console.error("Internal Server Error:", err);
 
