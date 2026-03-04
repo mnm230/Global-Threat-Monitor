@@ -3181,7 +3181,7 @@ export async function registerRoutes(
         return Date.now() - ts < 300_000;
       });
       send('sirens', activeSirens);
-    }), 3000));
+    }), 5000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(async (events) => {
         const adsbFlights = await fetchLiveAdsbFlights();

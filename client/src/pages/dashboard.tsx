@@ -2220,10 +2220,10 @@ const RED_ALERT_THREAT_LABELS: Record<string, { en: string; ar: string; he: stri
 };
 
 const RED_ALERT_THREAT_COLORS: Record<string, string> = {
-  rockets: 'bg-red-600',
-  missiles: 'bg-orange-600',
-  hostile_aircraft_intrusion: 'bg-purple-600',
-  uav_intrusion: 'bg-yellow-600',
+  rockets: 'bg-red-600 border-red-500/50',
+  missiles: 'bg-orange-600 border-orange-500/50',
+  hostile_aircraft_intrusion: 'bg-purple-600 border-purple-500/50',
+  uav_intrusion: 'bg-yellow-600 border-yellow-500/50',
 };
 
 const THREAT_SEVERITY_ORDER: Record<string, number> = {
@@ -2261,24 +2261,28 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   const isImmediate = alert.countdown === 0;
   const tier = getAlertUrgencyTier(remaining, alert.countdown);
 
-  const tierStyles = {
-    critical: 'text-white',
-    urgent: 'text-red-300',
-    warning: 'text-amber-300',
-    standard: 'text-white/90',
-    expired: 'text-red-900/40',
+  const tierBg: Record<string, string> = {
+    critical: 'bg-red-600/30 border-red-500/60 text-white',
+    urgent: 'bg-red-700/25 border-red-500/40 text-red-200',
+    warning: 'bg-amber-700/20 border-amber-500/30 text-amber-200',
+    standard: 'bg-red-900/20 border-red-700/30 text-white/80',
+    expired: 'bg-transparent border-red-900/15 text-red-900/40',
   };
 
   return (
-    <div className={`font-mono text-center shrink-0 min-w-[44px] ${tier === 'critical' || tier === 'urgent' ? 'animate-pulse' : ''}`}>
+    <div
+      className={`text-center shrink-0 min-w-[48px] rounded-md border px-2 py-1.5 ${tierBg[tier]} ${tier === 'critical' || tier === 'urgent' ? 'animate-pulse' : ''}`}
+      style={tier === 'critical' ? {boxShadow:'0 0 12px rgb(239 68 68 / 0.3)'} : undefined}
+    >
       <div
-        className={`text-lg font-black tabular-nums leading-none ${tierStyles[tier]}`}
+        className="text-[18px] font-black tabular-nums leading-none tracking-tight"
+        style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"}}
         data-testid={`red-alert-countdown-${alert.id}`}
       >
         {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
       </div>
-      <div className={`text-[8px] mt-0.5 uppercase tracking-wider ${tier === 'critical' ? 'text-red-300/60' : 'text-red-300/40'}`}>
-        {isImmediate ? '\u05DE\u05D9\u05D9\u05D3\u05D9' : remaining > 0 ? 'sec' : ''}
+      <div className={`text-[7px] mt-1 uppercase tracking-[0.15em] font-semibold ${tier === 'critical' ? 'text-red-300/70' : 'text-red-400/40'}`}>
+        {isImmediate ? 'IMMEDIATE' : remaining > 0 ? 'SEC' : ''}
       </div>
     </div>
   );
@@ -2499,31 +2503,32 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel">
-      <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3 py-2'} border-b flex items-center gap-2 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60 bg-gradient-to-r from-red-700 to-red-800/70' : 'border-white/[0.04] bg-gradient-to-r from-red-500/[0.04] to-transparent'}`} style={hasActiveAlerts ? {boxShadow:'0 2px 16px rgb(239 68 68 / 0.35)'} : undefined}>
-        {hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />}
+      <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3 py-2'} border-b flex items-center gap-2 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60' : 'border-white/[0.04] bg-gradient-to-r from-red-500/[0.04] to-transparent'}`} style={hasActiveAlerts ? {background:'linear-gradient(135deg, hsl(0 72% 38%) 0%, hsl(0 65% 28%) 50%, hsl(0 60% 22%) 100%)', boxShadow:'0 2px 20px rgb(239 68 68 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.1)'} : undefined}>
+        {hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent pointer-events-none" />}
+        {hasActiveAlerts && <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgb(255_255_255_/_0.06)_0%,_transparent_60%)] pointer-events-none" />}
         {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />}
         {!hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />}
-        <div className={`flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'w-6 h-6 rounded bg-white/20' : 'w-4 h-4 rounded bg-red-500/[0.08] border border-red-500/10'}`}>
-          <AlertOctagon className={`${hasActiveAlerts ? 'w-4 h-4 text-white' : 'w-2.5 h-2.5 text-red-400/60'}`} />
+        <div className={`flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'w-7 h-7 rounded-md bg-white/15 border border-white/20' : 'w-4 h-4 rounded bg-red-500/[0.08] border border-red-500/10'}`} style={hasActiveAlerts ? {boxShadow:'0 0 10px rgb(239 68 68 / 0.3)'} : undefined}>
+          <AlertOctagon className={`${hasActiveAlerts ? 'w-4 h-4 text-white drop-shadow-sm' : 'w-2.5 h-2.5 text-red-400/60'}`} />
         </div>
-        <div className="flex flex-col leading-none">
-          <span className={`text-xs font-bold uppercase tracking-[0.15em] ${hasActiveAlerts ? 'text-white' : 'text-foreground/80'}`}>
+        <div className="flex flex-col leading-none gap-0.5">
+          <span className={`text-[13px] font-black uppercase tracking-[0.18em] ${hasActiveAlerts ? 'text-white drop-shadow-sm' : 'text-foreground/80'}`} style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"}}>
             {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
           </span>
-          <span className={`text-[10px] font-mono ${hasActiveAlerts ? 'text-white/50' : 'text-red-400/40'}`}>Home Front Command | Oref</span>
+          <span className={`text-[9px] tracking-wide ${hasActiveAlerts ? 'text-white/45' : 'text-red-400/40'}`} style={{fontFamily:"'Inter', system-ui, sans-serif"}}>Home Front Command • Oref</span>
         </div>
         {hasActiveAlerts && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] px-2 py-0.5 font-mono text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse">
+            <span className="text-[11px] px-2.5 py-0.5 text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse tabular-nums" style={{fontFamily:"'Inter', system-ui, sans-serif", boxShadow:'0 0 8px rgb(255 255 255 / 0.15)'}}>
               {alerts.length}
             </span>
             {liveCount > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 font-mono font-black bg-emerald-500/30 text-emerald-200 rounded border border-emerald-400/40">
+              <span className="text-[9px] px-1.5 py-0.5 font-bold bg-emerald-500/25 text-emerald-200 rounded border border-emerald-400/30" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
                 {liveCount} API
               </span>
             )}
             {simCount > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 font-mono font-bold bg-white/10 text-white/50 rounded border border-white/15">
+              <span className="text-[9px] px-1.5 py-0.5 font-semibold bg-white/10 text-white/50 rounded border border-white/15" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
                 {simCount} SIM
               </span>
             )}
@@ -2531,9 +2536,9 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         )}
         <div className="flex-1" />
         {hasActiveAlerts && (
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse-dot" />
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/70 font-bold">{liveCount > 0 ? 'LIVE API' : 'LIVE'}</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(255 255 255 / 0.5)'}} />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 font-bold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{liveCount > 0 ? 'LIVE API' : 'LIVE'}</span>
           </div>
         )}
         {onShowHistory && (
@@ -2570,9 +2575,10 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               <button
                 key={key}
                 onClick={() => setThreatFilter(key)}
-                className={`text-[10px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[10px] px-2.5 py-1 rounded-sm font-bold tracking-wider transition-colors ${
                   threatFilter === key ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
+                style={{fontFamily:"'Inter', system-ui, sans-serif"}}
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
             ))}
@@ -2581,9 +2587,10 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
             <div className="px-1.5 pb-2 flex flex-wrap gap-1">
               <button
                 onClick={() => setCountryFilter('ALL')}
-                className={`text-[10px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
+                className={`text-[10px] px-2.5 py-1 rounded-sm font-bold tracking-wider transition-colors ${
                   countryFilter === 'ALL' ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                 }`}
+                style={{fontFamily:"'Inter', system-ui, sans-serif"}}
                 data-testid="button-country-filter-all"
               >ALL ({alerts.length})</button>
               {activeCountries.map(c => {
@@ -2594,9 +2601,10 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   <button
                     key={c}
                     onClick={() => setCountryFilter(c)}
-                    className={`text-[10px] px-2 py-1 rounded font-mono font-bold tracking-wider transition-colors ${
+                    className={`text-[10px] px-2.5 py-1 rounded-sm font-bold tracking-wider transition-colors ${
                       countryFilter === c ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
                     }`}
+                    style={{fontFamily:"'Inter', system-ui, sans-serif"}}
                     data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
                   >{label} ({countryCounts[c]})</button>
                 );
@@ -2608,8 +2616,8 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       {!hasActiveAlerts && (
         <div className="px-3 py-8 text-center flex-1 flex flex-col items-center justify-center">
           <Shield className="w-8 h-8 text-emerald-500/40 mb-3" />
-          <p className="text-xs text-emerald-400/80 font-bold font-mono">{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No Active Alerts'}</p>
-          <p className="text-[10px] text-foreground/20 mt-1 font-mono">All areas safe</p>
+          <p className="text-[13px] text-emerald-400/80 font-semibold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No Active Alerts'}</p>
+          <p className="text-[10px] text-foreground/20 mt-1" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>All areas safe</p>
         </div>
       )}
       <ScrollArea className="flex-1">
@@ -2625,14 +2633,14 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
               <div key={compositeKey}>
                 {showCountryHeader && (
                   <div className={`px-3 py-2 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
-                    <span className="text-xs font-black uppercase tracking-[0.15em] font-mono">{country}</span>
-                    <span className="text-xs opacity-50 font-mono">({countryAlertCount})</span>
+                    <span className="text-[12px] font-black uppercase tracking-[0.15em]" style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, sans-serif"}}>{country}</span>
+                    <span className="text-[11px] opacity-50 tabular-nums" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>({countryAlertCount})</span>
                   </div>
                 )}
                 <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[33px] z-[100]">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-[0.15em] text-red-400/90 font-bold font-mono">{regionName}</span>
-                    <span className="text-[11px] text-red-400/40 font-mono">{regionAlerts.length}</span>
+                    <span className="text-[11px] uppercase tracking-[0.12em] text-red-400/90 font-bold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{regionName}</span>
+                    <span className="text-[11px] text-red-400/40 tabular-nums" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{regionAlerts.length}</span>
                   </div>
                 </div>
                 {regionAlerts.map((alert) => {
@@ -2644,7 +2652,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   const tier = getAlertUrgencyTier(remaining, alert.countdown);
                   const isLive = alert.source === 'live';
 
-                  const tierBg = {
+                  const tierBg: Record<string, string> = {
                     critical: 'bg-red-900/50 border-l-red-400',
                     urgent: 'bg-red-950/40 border-l-amber-500',
                     warning: 'bg-red-950/30 border-l-red-500',
@@ -2655,29 +2663,29 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   return (
                     <div
                       key={alert.id}
-                      className={`px-3 py-3.5 flex items-center gap-3 border-b border-red-900/15 transition-all cursor-pointer border-l-[3px] hover:bg-red-950/50 ${tierBg[tier]} ${tier === 'critical' ? 'animate-pulse' : ''}`}
+                      className={`px-3 py-3 flex items-center gap-3 border-b border-red-900/15 transition-all cursor-pointer border-l-[3px] hover:bg-red-950/50 ${tierBg[tier]} ${tier === 'critical' ? 'animate-pulse' : ''}`}
                       data-testid={`red-alert-${alert.id}`}
-                      style={tier === 'critical' ? {boxShadow:'inset 0 0 20px rgb(239 68 68 / 0.15)'} : undefined}
+                      style={tier === 'critical' ? {boxShadow:'inset 0 0 24px rgb(239 68 68 / 0.12)'} : undefined}
                     >
-                      <div className={`w-3 h-3 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} style={isActive ? {boxShadow:'0 0 8px rgb(239 68 68 / 0.6)'} : undefined} />
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} style={isActive ? {boxShadow:'0 0 10px rgb(239 68 68 / 0.7)'} : undefined} />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className={`text-xs font-black truncate ${isActive ? 'text-red-100' : 'text-red-300/50'}`}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`text-[13px] font-bold truncate leading-tight ${isActive ? 'text-red-50' : 'text-red-300/50'}`} style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"}}>
                             {language === 'ar' ? alert.cityAr : alert.city}
                           </span>
                           {isLive ? (
-                            <span className="text-[8px] px-1 py-px font-mono font-black bg-emerald-500/25 text-emerald-300 rounded border border-emerald-400/30 shrink-0" data-testid={`source-badge-${alert.id}`}>API</span>
+                            <span className="text-[7px] px-1.5 py-px font-bold bg-emerald-500/20 text-emerald-300 rounded-sm border border-emerald-400/25 shrink-0 uppercase tracking-wider" style={{fontFamily:"'Inter', system-ui, sans-serif"}} data-testid={`source-badge-${alert.id}`}>Live</span>
                           ) : (
-                            <span className="text-[8px] px-1 py-px font-mono font-bold bg-white/[0.06] text-white/30 rounded border border-white/[0.08] shrink-0" data-testid={`source-badge-${alert.id}`}>SIM</span>
+                            <span className="text-[7px] px-1.5 py-px font-semibold bg-white/[0.05] text-white/30 rounded-sm border border-white/[0.08] shrink-0 uppercase tracking-wider" style={{fontFamily:"'Inter', system-ui, sans-serif"}} data-testid={`source-badge-${alert.id}`}>Sim</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold tracking-wider uppercase font-mono border ${
+                          <span className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wide uppercase border ${
                             isActive ? `text-white ${threatColor}` : 'text-red-400/30 bg-red-950/30 border-red-900/20'
-                          }`} style={isActive ? {boxShadow:'0 0 10px rgb(239 68 68 / 0.25)'} : undefined}>
+                          }`} style={{fontFamily:"'Inter', system-ui, sans-serif", ...(isActive ? {boxShadow:'0 0 8px rgb(239 68 68 / 0.2)'} : {})}}>
                             {language === 'ar' ? threat.ar : threat.en}
                           </span>
-                          <span className={`text-[9px] font-mono tabular-nums ${isActive ? 'text-red-400/60' : 'text-red-400/25'}`}>
+                          <span className={`text-[9px] tabular-nums ${isActive ? 'text-red-400/50' : 'text-red-400/20'}`} style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
                             {timeAgo(alert.timestamp)}
                           </span>
                         </div>
@@ -2695,25 +2703,25 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         <div className="border-t border-amber-900/30 shrink-0">
           <div className="px-3 py-1.5 bg-amber-950/20 flex items-center gap-2">
             <Siren className="w-3 h-3 text-amber-400/60" />
-            <span className="text-[11px] uppercase tracking-[0.15em] text-amber-400/70 font-bold font-mono">
+            <span className="text-[11px] uppercase tracking-[0.12em] text-amber-400/70 font-bold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
               {language === 'ar' ? '\u0635\u0641\u0627\u0631\u0627\u062A' : 'Sirens'}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 font-mono text-amber-400/50 bg-amber-950/30 rounded border border-amber-500/15">
+            <span className="text-[10px] px-1.5 py-0.5 text-amber-400/50 bg-amber-950/30 rounded-sm border border-amber-500/15 tabular-nums font-semibold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
               {sirens.length}
             </span>
             <div className="flex-1" />
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot" />
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(245 158 11 / 0.5)'}} />
           </div>
           <div className="max-h-[120px] overflow-y-auto">
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
                 <div key={s.id} className="px-3 py-1.5 flex items-center gap-2 border-t border-amber-900/10" data-testid={`siren-panel-${s.id}`}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot shrink-0" />
-                  <span className="text-xs text-amber-300/80 font-bold truncate flex-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot shrink-0" style={{boxShadow:'0 0 4px rgb(245 158 11 / 0.5)'}} />
+                  <span className="text-[12px] text-amber-300/80 font-semibold truncate flex-1" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span className="text-[10px] text-amber-400/40 font-mono">{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span className="text-[9px] text-amber-400/40 tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
@@ -2721,9 +2729,9 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
         </div>
       )}
       <div className="px-3 py-1.5 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
-        <span className="text-[10px] text-red-400/40 font-mono">tzevaadom.co.il</span>
-        <span className="text-[10px] text-red-400/40 font-mono tabular-nums">
-          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'}
+        <span className="text-[9px] text-red-400/35 tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>tzevaadom.co.il</span>
+        <span className="text-[9px] text-red-400/35 tabular-nums tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
+          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'} • 5s refresh
         </span>
       </div>
     </div>
