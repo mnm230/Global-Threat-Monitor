@@ -2325,8 +2325,8 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 }
 
 const LIVE_CHANNELS = [
-  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: 'bNyUyrR0PHo' },
-  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: 'f-GBjGE6Mlw' },
+  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: 'f-GBjGE6Mlw' },
+  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: 'bNyUyrR0PHo' },
   { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: '' },
   { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: 'NiRIbKwAejk' },
   { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: '' },
