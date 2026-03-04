@@ -2276,10 +2276,10 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 }
 
 const LIVE_CHANNELS = [
-  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: '' },
-  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: '' },
+  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: 'bNyUyrR0PHo' },
+  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: 'f-GBjGE6Mlw' },
   { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: '' },
-  { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: '' },
+  { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: 'NiRIbKwAejk' },
   { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: '' },
 ] as const;
 
@@ -2293,7 +2293,9 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
   const currentChannel = LIVE_CHANNELS.find(c => c.id === activeChannel)!;
   const embedSrc = customVideoId
     ? `https://www.youtube.com/embed/${customVideoId}?autoplay=1&mute=0&rel=0&modestbranding=1`
-    : `https://www.youtube.com/embed/live_stream?channel=${currentChannel.channelId}&autoplay=1&mute=0&rel=0&modestbranding=1`;
+    : currentChannel.videoId
+      ? `https://www.youtube.com/embed/${currentChannel.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`
+      : `https://www.youtube.com/embed/live_stream?channel=${currentChannel.channelId}&autoplay=1&mute=0&rel=0&modestbranding=1`;
 
   const handleSetUrl = useCallback(() => {
     const match = customUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([a-zA-Z0-9_-]{11})/);
