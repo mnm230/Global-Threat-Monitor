@@ -37,7 +37,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Markets Panel:** Monitors 17 instruments across commodities, major FX, and regional FX, with a scrolling ticker. FX rates sourced live from Open Exchange Rates API (5-min cache). Commodity prices use real FX rates with no simulated jitter.
 - **Language Toggle:** Supports English and Arabic (RTL).
 - **Live Sirens:** Displays active rocket/missile/UAV sirens via a scrolling red alert banner.
-- **YouTube Live Feed Panel:** Embeds live YouTube streams, configurable via settings.
+- **YouTube Live Feed Panel:** Embeds live YouTube streams using channel-based live embed URLs (`/embed/live_stream?channel=CHANNEL_ID`). 5 channels: Al Jazeera EN, Al Jazeera AR, Sky News Arabia, France 24 EN, TRT World. Channel IDs resolve to current live stream automatically. Custom URL input for pasting any YouTube live URL. Error recovery with RETRY button. Channel selector with overflow scroll.
 - **Map Search:** Autocomplete search for facilities and infrastructure on the map.
 - **Maritime EEZ Layer:** Visualizes 12 EEZ zones in the region.
 - **Anomaly Detection:** Monitors alert spikes, flight concentrations, and price surges.
@@ -58,7 +58,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Sound Improvements:** Distinct synthesized tones per threat type (rockets=rapid beep, missiles=sustained low sweep, UAV=3-pulse mid-tone, hostile aircraft=descending siren). Volume slider (0-100%), silent mode toggle. Settings stored in localStorage.
 - **Alert History Timeline:** 24h scrollable timeline in Alert History overlay. 96 x 15-min buckets with stacked bars colored by threat type. Visual clustering (5+ alerts = highlight). Escalation detection (3+ increasing consecutive buckets). Click bucket to view details.
 - **Browser Push Notifications:** Service Worker (`client/public/sw.js`) enables persistent notifications when tab is backgrounded. Uses `postMessage` to SW which calls `showNotification`. Click notification focuses/opens dashboard tab. Notification level setting: All/Critical Only/None.
-- **X / Twitter Feed Panel:** Live X/Twitter OSINT feed panel scraping 13 accounts (FirstSquawk, AvichayAdraee, IntelCrab, sentdefender, IsraelRadar_, AuroraIntel, Faytuks, Conflicts, BNONews, igaboriau, NotWoofers, ELINTNews, charles_lister). Backend: `fetchXFeeds()` with 2-min cache, per-account rate limiting (5-min backoff on 429), `/api/x-feed` REST endpoint, `x-feed` SSE event at 5s intervals. Frontend: `XFeedPanel` component with account filter tabs, verified badge, category badges (breaking/military/diplomatic/humanitarian/economic/nuclear), relative timestamps, external links. Panel ID: `xfeed`, visible by default in Default layout preset. Note: Twitter syndication endpoint may block cloud server IPs — X feed works best from non-cloud IPs.
+- **X / Twitter & OSINT Feed Panel:** Dual-source OSINT feed. Primary: Twitter syndication scraping 13 accounts (2-min cache, per-account rate limiting). Fallback: OSINT RSS feeds (Long War Journal, Breaking Defense, Times of Israel, Al Arabiya EN, Defense One, Critical Threats, ISW, LiveUAMap) auto-activate when Twitter syndication is blocked (429). `fetchOSINTRSSFeeds()` with 60s cache. Panel shows source filter tabs, category badges, relative timestamps. Twitter syndication blocked from cloud IPs — OSINT RSS fallback ensures continuous intel flow.
 - **Flight Click-to-Pan:** Clicking a flight row or "Locate on Map" button in FlightRadarPanel/AdsbPanel pans the conflict map to that flight's coordinates (zoom 9). Uses `mapFocusLocation` state in Dashboard → `focusLocation` prop on MapSection → ConflictMap. ConflictMap uses `useEffect` with `prevFocusRef` dedup to avoid redundant pans.
 
 **SSE Intervals:** commodities 5s, ADS-B 2s, red-alerts 8s, GDELT 10s, news 10s, telegram 10s, AI brief 10s, X feed 5s, earthquakes 10s, thermal 10s, cyber 10s, classified 10s, analytics 10s.
@@ -70,7 +70,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Red Alert Data:** `api.tzevaadom.co.il/notifications` and `api.tzevaadom.co.il/alerts-history`, with `oref.org.il` as a tertiary fallback.
 - **Earthquake Data:** USGS
 - **Satellite Thermal Data:** NASA FIRMS (`firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv`) — real-time VIIRS fire/thermal detection data, filtered to MENA region (lat 12-42, lng 24-63)
-- **X/Twitter News Feeds:** `syndication.twitter.com/srv/timeline-profile/screen-name/{handle}` — scrapes public X/Twitter profiles (@FirstSquawk, @AvichayAdraee) for real-time news headlines. Labeled as "First Squawk" and "IDF Spokesperson" sources. 2-min cache TTL, auto-categorized (breaking/military/diplomatic/economic), merged with static news and sorted by timestamp. Arabic tweets get `titleAr` populated automatically.
+- **X/Twitter News Feeds:** Primary: `syndication.twitter.com` scraping 13 OSINT accounts. Fallback: OSINT RSS feeds (Long War Journal, Breaking Defense, Times of Israel, Al Arabiya EN, Defense One, ISW, Critical Threats, LiveUAMap, Janes Defense) — auto-activated when Twitter is blocked. 2-min/60s cache respectively.
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui

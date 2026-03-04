@@ -12,7 +12,8 @@
       "WebFetch(domain:fomnybox.com)",
       "WebFetch(domain:www.youtube.com)",
       "Bash(netstat:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(python3:*)"
     ]
   }
 }

@@ -55,14 +55,20 @@ export default function AlertMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new MapLibreMap({
-      container: containerRef.current,
-      style: MAP_STYLE,
-      center: [35.2, 31.5],
-      zoom: 7,
-      attributionControl: true,
-      customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    });
+    let map: MapLibreMap;
+    try {
+      map = new MapLibreMap({
+        container: containerRef.current,
+        style: MAP_STYLE,
+        center: [35.2, 31.5],
+        zoom: 7,
+        attributionControl: true,
+        customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      });
+    } catch (err) {
+      console.warn('[AlertMap] WebGL init failed:', err);
+      return;
+    }
 
     mapRef.current = map;
 

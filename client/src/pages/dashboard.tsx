@@ -2276,9 +2276,11 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
 }
 
 const LIVE_CHANNELS = [
-  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', videoId: 'gCNeDWCI0vo' },
-  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  videoId: 'bNyUyrR0PHo' },
-  { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', videoId: 'U--OjmpjF5o' },
+  { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: '' },
+  { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: '' },
+  { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: '' },
+  { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: '' },
+  { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: '' },
 ] as const;
 
 function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
@@ -2286,8 +2288,12 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
   const [customUrl, setCustomUrl] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [customVideoId, setCustomVideoId] = useState<string | null>(null);
+  const [iframeError, setIframeError] = useState(false);
 
-  const currentVideoId = customVideoId ?? LIVE_CHANNELS.find(c => c.id === activeChannel)!.videoId;
+  const currentChannel = LIVE_CHANNELS.find(c => c.id === activeChannel)!;
+  const embedSrc = customVideoId
+    ? `https://www.youtube.com/embed/${customVideoId}?autoplay=1&mute=0&rel=0&modestbranding=1`
+    : `https://www.youtube.com/embed/live_stream?channel=${currentChannel.channelId}&autoplay=1&mute=0&rel=0&modestbranding=1`;
 
   const handleSetUrl = useCallback(() => {
     const match = customUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|live\/|embed\/))([a-zA-Z0-9_-]{11})/);
@@ -2295,12 +2301,14 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
       setCustomVideoId(match[1]);
       setShowUrlInput(false);
       setCustomUrl('');
+      setIframeError(false);
     }
   }, [customUrl]);
 
   const handleSelectChannel = (id: typeof LIVE_CHANNELS[number]['id']) => {
     setActiveChannel(id);
     setCustomVideoId(null);
+    setIframeError(false);
   };
 
   return (
@@ -2328,14 +2336,13 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
           </div>
         }
       />
-      {/* Channel selector */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04] bg-card/30 flex items-center gap-1 shrink-0">
+      <div className="px-2 py-1.5 border-b border-white/[0.04] bg-card/30 flex items-center gap-1 shrink-0 overflow-x-auto">
         {LIVE_CHANNELS.map(ch => (
           <button
             key={ch.id}
             onClick={() => handleSelectChannel(ch.id)}
             data-testid={`button-channel-${ch.id}`}
-            className={`flex-1 py-1 rounded text-[9px] font-mono font-bold transition-colors border ${
+            className={`flex-1 py-1 rounded text-[9px] font-mono font-bold transition-colors border whitespace-nowrap min-w-0 ${
               activeChannel === ch.id && !customVideoId
                 ? 'bg-red-500/15 text-red-400 border-red-500/30'
                 : 'text-foreground/35 hover:text-foreground/70 border-transparent hover:border-white/[0.08]'
@@ -2367,14 +2374,28 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
       )}
       <div className="flex-1 min-h-0 bg-black relative">
         <iframe
-          key={currentVideoId}
-          src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0&rel=0&modestbranding=1`}
+          key={customVideoId || currentChannel.channelId}
+          src={embedSrc}
           className="absolute inset-0 w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           title="Live Feed"
           data-testid="livefeed-iframe"
+          onError={() => setIframeError(true)}
         />
+        {iframeError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
+            <Video className="w-8 h-8 text-foreground/20 mb-2" />
+            <p className="text-[11px] text-foreground/40 font-mono mb-2">{language === 'en' ? 'Stream unavailable' : '\u0627\u0644\u0628\u062B \u063A\u064A\u0631 \u0645\u062A\u0627\u062D'}</p>
+            <button
+              onClick={() => { setIframeError(false); handleSelectChannel(activeChannel); }}
+              className="px-3 py-1 rounded text-[9px] font-bold bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+              data-testid="button-retry-stream"
+            >
+              RETRY
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

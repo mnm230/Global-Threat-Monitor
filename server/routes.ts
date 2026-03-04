@@ -250,9 +250,9 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
 
     return allFlights;
   } catch (err) {
-    console.error('[ADSB] API fetch failed, using fallback:', (err as Error).message);
+    console.error('[ADSB] API fetch failed:', (err as Error).message);
     if (cachedLiveFlights.length > 0) return cachedLiveFlights;
-    return generateAdsbFlights();
+    return [];
   }
 }
 
@@ -524,6 +524,65 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
   return items;
 }
 
+const OSINT_RSS_FEEDS = [
+  { url: 'https://liveuamap.com/rss/mideast', source: 'LiveUAMap ME', icon: 'map' },
+  { url: 'https://www.janes.com/feeds/news', source: 'Janes Defense', icon: 'shield' },
+  { url: 'https://www.longwarjournal.org/feed', source: 'Long War Journal', icon: 'target' },
+  { url: 'https://www.criticalthreats.org/feed', source: 'Critical Threats', icon: 'alert' },
+  { url: 'https://www.understandingwar.org/feed', source: 'ISW', icon: 'chart' },
+  { url: 'https://feeds.feedburner.com/defenseone/all', source: 'Defense One', icon: 'shield' },
+  { url: 'https://breakingdefense.com/feed/', source: 'Breaking Defense', icon: 'alert' },
+  { url: 'https://www.timesofisrael.com/feed/', source: 'Times of Israel', icon: 'news' },
+  { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya EN', icon: 'news' },
+];
+let osintFeedCache: { data: NewsItem[]; fetchedAt: number } | null = null;
+const OSINT_FEED_CACHE_TTL = 60_000;
+
+async function fetchOSINTRSSFeeds(): Promise<NewsItem[]> {
+  if (osintFeedCache && Date.now() - osintFeedCache.fetchedAt < OSINT_FEED_CACHE_TTL) {
+    return osintFeedCache.data;
+  }
+  const results: NewsItem[] = [];
+  await Promise.allSettled(OSINT_RSS_FEEDS.map(async (feed) => {
+    try {
+      const res = await fetch(feed.url, {
+        signal: AbortSignal.timeout(8000),
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WARROOM/2.0)' },
+      });
+      if (!res.ok) return;
+      const xml = await res.text();
+      const items = xml.split(/<item[\s>]/i).slice(1, 15);
+      for (const item of items) {
+        const cdataTitle = item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i)?.[1];
+        const plainTitle = item.match(/<title>([\s\S]*?)<\/title>/i)?.[1];
+        let text = (cdataTitle || plainTitle || '').replace(/<[^>]+>/g, '').trim();
+        if (!text || text.length < 10) continue;
+        text = sanitizeText(text);
+        if (text.length > 300) text = text.substring(0, 297) + '...';
+        const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1];
+        const link = item.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.replace(/<[^>]+>/g, '').trim();
+        let timestamp = new Date().toISOString();
+        if (pubDate) { try { timestamp = new Date(pubDate).toISOString(); } catch {} }
+        const titleAr = /[\u0600-\u06FF]/.test(text) ? text : undefined;
+        results.push({
+          id: `osint_${feed.source.replace(/\s/g, '_')}_${results.length}_${Date.now()}`,
+          title: text,
+          ...(titleAr ? { titleAr } : {}),
+          source: feed.source,
+          category: classifyTitle(text),
+          timestamp,
+          url: link || undefined,
+        });
+      }
+    } catch {}
+  }));
+  if (results.length > 0) {
+    console.log(`[X-FEED] OSINT RSS: Fetched ${results.length} items from ${OSINT_RSS_FEEDS.length} feeds`);
+  }
+  osintFeedCache = { data: results, fetchedAt: Date.now() };
+  return results;
+}
+
 async function fetchXFeeds(): Promise<NewsItem[]> {
   const batchSize = 3;
   const results: NewsItem[][] = [];
@@ -531,147 +590,27 @@ async function fetchXFeeds(): Promise<NewsItem[]> {
     const batch = X_FEED_ACCOUNTS.slice(i, i + batchSize);
     const batchResults = await Promise.allSettled(batch.map(a => scrapeXAccount(a)));
     for (const r of batchResults) {
-      if (r.status === 'fulfilled') results.push(r.value);
+      if (r.status === 'fulfilled' && r.value.length > 0) results.push(r.value);
     }
     if (i + batchSize < X_FEED_ACCOUNTS.length) {
       await new Promise(r => setTimeout(r, 2000));
     }
   }
-  const all = results.flat();
-  all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return all;
+  const xPosts = results.flat();
+
+  if (xPosts.length < 5) {
+    const osintPosts = await fetchOSINTRSSFeeds();
+    xPosts.push(...osintPosts);
+  }
+
+  xPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return xPosts;
 }
 
 function randomPick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateStaticNews(): NewsItem[] {
-  const now = Date.now();
-  const items: NewsItem[] = [
-    {
-      id: '1',
-      title: 'IDF confirms interception of ballistic missile over northern Israel',
-      titleAr: '\u0627\u0644\u062C\u064A\u0634 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A \u064A\u0624\u0643\u062F \u0627\u0639\u062A\u0631\u0627\u0636 \u0635\u0627\u0631\u0648\u062E \u0628\u0627\u0644\u064A\u0633\u062A\u064A \u0641\u0648\u0642 \u0634\u0645\u0627\u0644 \u0625\u0633\u0631\u0627\u0626\u064A\u0644',
-      source: 'Reuters',
-      category: 'breaking',
-      timestamp: new Date(now - 2 * 60000).toISOString(),
-    },
-    {
-      id: '2',
-      title: 'IRGC deploys additional naval assets to Strait of Hormuz',
-      titleAr: '\u0627\u0644\u062D\u0631\u0633 \u0627\u0644\u062B\u0648\u0631\u064A \u064A\u0646\u0634\u0631 \u0623\u0635\u0648\u0644\u0627\u064B \u0628\u062D\u0631\u064A\u0629 \u0625\u0636\u0627\u0641\u064A\u0629 \u0641\u064A \u0645\u0636\u064A\u0642 \u0647\u0631\u0645\u0632',
-      source: 'Al Jazeera',
-      category: 'military',
-      timestamp: new Date(now - 5 * 60000).toISOString(),
-    },
-    {
-      id: '3',
-      title: 'Hezbollah launches barrage of rockets toward Haifa Bay area',
-      titleAr: '\u062D\u0632\u0628 \u0627\u0644\u0644\u0647 \u064A\u0637\u0644\u0642 \u0648\u0627\u0628\u0644\u0627\u064B \u0645\u0646 \u0627\u0644\u0635\u0648\u0627\u0631\u064A\u062E \u0628\u0627\u062A\u062C\u0627\u0647 \u0645\u0646\u0637\u0642\u0629 \u062E\u0644\u064A\u062C \u062D\u064A\u0641\u0627',
-      source: 'BBC News',
-      category: 'breaking',
-      timestamp: new Date(now - 8 * 60000).toISOString(),
-    },
-    {
-      id: '4',
-      title: 'US carrier strike group USS Eisenhower repositions in Persian Gulf',
-      titleAr: '\u0645\u062C\u0645\u0648\u0639\u0629 \u062D\u0627\u0645\u0644\u0629 \u0627\u0644\u0637\u0627\u0626\u0631\u0627\u062A \u0623\u064A\u0632\u0646\u0647\u0627\u0648\u0631 \u062A\u0639\u064A\u062F \u062A\u0645\u0648\u0636\u0639\u0647\u0627 \u0641\u064A \u0627\u0644\u062E\u0644\u064A\u062C \u0627\u0644\u0641\u0627\u0631\u0633\u064A',
-      source: 'CNN',
-      category: 'military',
-      timestamp: new Date(now - 12 * 60000).toISOString(),
-    },
-    {
-      id: '5',
-      title: 'Lebanon calls for emergency UN Security Council session on escalation',
-      titleAr: '\u0644\u0628\u0646\u0627\u0646 \u064A\u062F\u0639\u0648 \u0644\u062C\u0644\u0633\u0629 \u0637\u0627\u0631\u0626\u0629 \u0644\u0645\u062C\u0644\u0633 \u0627\u0644\u0623\u0645\u0646 \u0627\u0644\u062F\u0648\u0644\u064A \u0628\u0634\u0623\u0646 \u0627\u0644\u062A\u0635\u0639\u064A\u062F',
-      source: 'Al Arabiya',
-      category: 'diplomatic',
-      timestamp: new Date(now - 18 * 60000).toISOString(),
-    },
-    {
-      id: '6',
-      title: 'Iran warns of "devastating response" if nuclear facilities targeted',
-      titleAr: '\u0625\u064A\u0631\u0627\u0646 \u062A\u062D\u0630\u0631 \u0645\u0646 "\u0631\u062F \u0645\u062F\u0645\u0631" \u0625\u0630\u0627 \u0627\u0633\u062A\u064F\u0647\u062F\u0641\u062A \u0645\u0646\u0634\u0622\u062A\u0647\u0627 \u0627\u0644\u0646\u0648\u0648\u064A\u0629',
-      source: 'IRNA',
-      category: 'breaking',
-      timestamp: new Date(now - 22 * 60000).toISOString(),
-    },
-    {
-      id: '7',
-      title: 'Brent crude surges past $85 as Hormuz shipping risks intensify',
-      titleAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A \u064A\u0642\u0641\u0632 \u0641\u0648\u0642 85 \u062F\u0648\u0644\u0627\u0631\u0627\u064B \u0645\u0639 \u062A\u0635\u0627\u0639\u062F \u0645\u062E\u0627\u0637\u0631 \u0627\u0644\u0634\u062D\u0646 \u0641\u064A \u0647\u0631\u0645\u0632',
-      source: 'Bloomberg',
-      category: 'economic',
-      timestamp: new Date(now - 28 * 60000).toISOString(),
-    },
-    {
-      id: '8',
-      title: 'Saudi Arabia restricts airspace over eastern provinces amid tensions',
-      titleAr: '\u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629 \u062A\u0642\u064A\u062F \u0627\u0644\u0645\u062C\u0627\u0644 \u0627\u0644\u062C\u0648\u064A \u0641\u0648\u0642 \u0627\u0644\u0645\u0646\u0627\u0637\u0642 \u0627\u0644\u0634\u0631\u0642\u064A\u0629 \u0648\u0633\u0637 \u0627\u0644\u062A\u0648\u062A\u0631\u0627\u062A',
-      source: 'Reuters',
-      category: 'military',
-      timestamp: new Date(now - 35 * 60000).toISOString(),
-    },
-    {
-      id: '9',
-      title: 'IDF ground operations intensify in southern Lebanon border zone',
-      titleAr: '\u0627\u0644\u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u0628\u0631\u064A\u0629 \u0644\u0644\u062C\u064A\u0634 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A \u062A\u062A\u0635\u0627\u0639\u062F \u0641\u064A \u0645\u0646\u0637\u0642\u0629 \u062C\u0646\u0648\u0628 \u0644\u0628\u0646\u0627\u0646 \u0627\u0644\u062D\u062F\u0648\u062F\u064A\u0629',
-      source: 'Times of Israel',
-      category: 'military',
-      timestamp: new Date(now - 42 * 60000).toISOString(),
-    },
-    {
-      id: '10',
-      title: 'Russia and China call for immediate ceasefire in joint statement',
-      titleAr: '\u0631\u0648\u0633\u064A\u0627 \u0648\u0627\u0644\u0635\u064A\u0646 \u062A\u062F\u0639\u0648\u0627\u0646 \u0644\u0648\u0642\u0641 \u0625\u0637\u0644\u0627\u0642 \u0627\u0644\u0646\u0627\u0631 \u0641\u0648\u0631\u0627\u064B \u0641\u064A \u0628\u064A\u0627\u0646 \u0645\u0634\u062A\u0631\u0643',
-      source: 'TASS',
-      category: 'diplomatic',
-      timestamp: new Date(now - 50 * 60000).toISOString(),
-    },
-    {
-      id: '11',
-      title: 'Gold reaches $2,080 as investors seek safe-haven assets',
-      titleAr: '\u0627\u0644\u0630\u0647\u0628 \u064A\u0635\u0644 \u0625\u0644\u0649 2080 \u062F\u0648\u0644\u0627\u0631\u0627\u064B \u0645\u0639 \u0644\u062C\u0648\u0621 \u0627\u0644\u0645\u0633\u062A\u062B\u0645\u0631\u064A\u0646 \u0644\u0644\u0645\u0644\u0627\u0630\u0627\u062A \u0627\u0644\u0622\u0645\u0646\u0629',
-      source: 'Financial Times',
-      category: 'economic',
-      timestamp: new Date(now - 58 * 60000).toISOString(),
-    },
-    {
-      id: '12',
-      title: 'Iron Dome intercepts multiple projectiles over Tel Aviv metropolitan',
-      titleAr: '\u0627\u0644\u0642\u0628\u0629 \u0627\u0644\u062D\u062F\u064A\u062F\u064A\u0629 \u062A\u0639\u062A\u0631\u0636 \u0639\u062F\u0629 \u0645\u0642\u0630\u0648\u0641\u0627\u062A \u0641\u0648\u0642 \u0645\u0646\u0637\u0642\u0629 \u062A\u0644 \u0623\u0628\u064A\u0628 \u0627\u0644\u0643\u0628\u0631\u0649',
-      source: 'Haaretz',
-      category: 'breaking',
-      timestamp: new Date(now - 65 * 60000).toISOString(),
-    },
-    {
-      id: '13',
-      title: 'CENTCOM confirms additional F-35 squadron deployment to region',
-      titleAr: '\u0627\u0644\u0642\u064A\u0627\u062F\u0629 \u0627\u0644\u0645\u0631\u0643\u0632\u064A\u0629 \u062A\u0624\u0643\u062F \u0646\u0634\u0631 \u0633\u0631\u0628 \u0625\u0636\u0627\u0641\u064A \u0645\u0646 \u0637\u0627\u0626\u0631\u0627\u062A F-35 \u0641\u064A \u0627\u0644\u0645\u0646\u0637\u0642\u0629',
-      source: 'Pentagon',
-      category: 'military',
-      timestamp: new Date(now - 72 * 60000).toISOString(),
-    },
-    {
-      id: '14',
-      title: 'Turkey closes Incirlik airbase to offensive operations in the conflict',
-      titleAr: '\u062A\u0631\u0643\u064A\u0627 \u062A\u063A\u0644\u0642 \u0642\u0627\u0639\u062F\u0629 \u0625\u0646\u062C\u0631\u0644\u064A\u0643 \u0627\u0644\u062C\u0648\u064A\u0629 \u0623\u0645\u0627\u0645 \u0627\u0644\u0639\u0645\u0644\u064A\u0627\u062A \u0627\u0644\u0647\u062C\u0648\u0645\u064A\u0629',
-      source: 'Anadolu Agency',
-      category: 'diplomatic',
-      timestamp: new Date(now - 80 * 60000).toISOString(),
-    },
-    {
-      id: '15',
-      title: 'Qatar mediators arrive in Tehran for emergency de-escalation talks',
-      titleAr: '\u0648\u0633\u0637\u0627\u0621 \u0642\u0637\u0631\u064A\u0648\u0646 \u064A\u0635\u0644\u0648\u0646 \u0637\u0647\u0631\u0627\u0646 \u0644\u0625\u062C\u0631\u0627\u0621 \u0645\u062D\u0627\u062F\u062B\u0627\u062A \u0637\u0627\u0631\u0626\u0629 \u0644\u062E\u0641\u0636 \u0627\u0644\u062A\u0635\u0639\u064A\u062F',
-      source: 'Al Jazeera',
-      category: 'diplomatic',
-      timestamp: new Date(now - 90 * 60000).toISOString(),
-    },
-  ];
-  return items;
-}
 
 const FREE_NEWS_RSS_FEEDS = [
   { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
@@ -834,46 +773,45 @@ let commodityPriceState: Record<string, { price: number; prevPrice: number }> = 
 
 function generateCommodities(): CommodityData[] {
   const fxRates = liveFxRates;
-  const hasFx = Object.keys(fxRates).length > 0;
+  const results: CommodityData[] = [];
 
-  return COMMODITY_META.map((item) => {
+  for (const item of COMMODITY_META) {
     const meta = item as typeof item & { fxKey?: string; invert?: boolean; yahooSymbol?: string };
-    let basePrice = item.fallback;
+    let basePrice: number | null = null;
     let liveChange = 0;
     let liveChangePercent = 0;
-    let hasLiveData = false;
 
-    // Use live Yahoo Finance price for commodities
     if (meta.yahooSymbol && liveCommodityPrices[meta.yahooSymbol]) {
       const live = liveCommodityPrices[meta.yahooSymbol];
       basePrice = live.price;
       liveChange = live.change;
       liveChangePercent = live.changePercent;
-      hasLiveData = true;
-    } else if (hasFx && meta.fxKey && fxRates[meta.fxKey]) {
+    } else if (meta.fxKey && fxRates[meta.fxKey]) {
       const rate = fxRates[meta.fxKey];
       basePrice = meta.invert ? rate : (1 / rate);
     }
+
+    // Skip items with no live data — no fake fallback prices
+    if (basePrice === null) continue;
 
     const prev = commodityPriceState[item.symbol];
     const currentPrice = basePrice;
     const prevPrice = prev ? prev.price : basePrice;
     commodityPriceState[item.symbol] = { price: currentPrice, prevPrice };
 
-    const change = hasLiveData ? liveChange : (currentPrice - prevPrice);
-    const changePercent = hasLiveData ? liveChangePercent : (prevPrice !== 0 ? (change / prevPrice) * 100 : 0);
-
-    return {
+    results.push({
       symbol: item.symbol,
       name: item.name,
       nameAr: item.nameAr,
       price: Number(currentPrice.toFixed(currentPrice < 10 ? 4 : 2)),
-      change: Number(change.toFixed(currentPrice < 10 ? 4 : 2)),
-      changePercent: Number(changePercent.toFixed(2)),
+      change: Number(liveChange.toFixed(currentPrice < 10 ? 4 : 2)),
+      changePercent: Number(liveChangePercent.toFixed(2)),
       currency: item.currency,
       category: item.category,
-    };
-  });
+    });
+  }
+
+  return results;
 }
 
 fetchLiveFxRates();
@@ -1045,8 +983,8 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
           events.push({
             id: `gdelt_${i}`,
             type,
-            lat: coords.lat + (Math.random() - 0.5) * 0.05,
-            lng: coords.lng + (Math.random() - 0.5) * 0.05,
+            lat: coords.lat,
+            lng: coords.lng,
             title: article.title.length > 80 ? article.title.substring(0, 77) + '...' : article.title,
             description: `Source: ${article.domain} | ${article.sourcecountry || 'International'}`,
             timestamp: ts,
@@ -1074,201 +1012,6 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   return deduped;
 }
 
-function generateFlights(): FlightData[] {
-  return [
-    { id: 'f1', callsign: 'IAF001', type: 'military', lat: jitter(32.5, 0.5), lng: jitter(35.2, 0.5), altitude: 35000, heading: 45, speed: 520 },
-    { id: 'f2', callsign: 'IAF002', type: 'military', lat: jitter(33.1, 0.3), lng: jitter(35.8, 0.3), altitude: 28000, heading: 15, speed: 480 },
-    { id: 'f3', callsign: 'FORTE12', type: 'surveillance', lat: jitter(30.5, 0.5), lng: jitter(50.0, 1.0), altitude: 55000, heading: 180, speed: 340 },
-    { id: 'f4', callsign: 'DUKE01', type: 'surveillance', lat: jitter(28.0, 0.5), lng: jitter(52.0, 0.5), altitude: 42000, heading: 270, speed: 380 },
-    { id: 'f5', callsign: 'QR810', type: 'commercial', lat: jitter(29.5, 0.3), lng: jitter(48.0, 0.5), altitude: 38000, heading: 310, speed: 460 },
-    { id: 'f6', callsign: 'EK422', type: 'commercial', lat: jitter(26.0, 0.3), lng: jitter(55.0, 0.3), altitude: 36000, heading: 350, speed: 475 },
-    { id: 'f7', callsign: 'USN-P8A', type: 'surveillance', lat: jitter(26.8, 0.3), lng: jitter(56.0, 0.5), altitude: 25000, heading: 90, speed: 320 },
-    { id: 'f8', callsign: 'IRGC-F14', type: 'military', lat: jitter(27.5, 0.3), lng: jitter(56.5, 0.3), altitude: 20000, heading: 200, speed: 420 },
-    { id: 'f9', callsign: 'SV302', type: 'commercial', lat: jitter(25.5, 0.3), lng: jitter(46.0, 0.5), altitude: 39000, heading: 60, speed: 450 },
-    { id: 'f10', callsign: 'USAF-KC', type: 'military', lat: jitter(31.0, 0.5), lng: jitter(47.0, 0.5), altitude: 30000, heading: 120, speed: 400 },
-    { id: 'f11', callsign: 'TK1872', type: 'commercial', lat: jitter(37.0, 0.3), lng: jitter(40.0, 0.5), altitude: 37000, heading: 135, speed: 465 },
-    { id: 'f12', callsign: 'RAF-RC', type: 'surveillance', lat: jitter(33.0, 0.5), lng: jitter(42.0, 0.5), altitude: 40000, heading: 90, speed: 350 },
-  ];
-}
-
-function generateAdsbFlights(): AdsbFlight[] {
-  const now = Date.now();
-  return [
-    { id: 'ab1', hex: '738066', callsign: 'IAF685', type: 'military', aircraft: 'F-35I Adir', registration: '685', origin: 'LLNV', destination: 'PATROL', lat: jitter(31.8, 0.4), lng: jitter(34.9, 0.4), altitude: 32000, groundSpeed: 540, verticalRate: 0, heading: jitter(45, 10), squawk: '6712', rssi: -12.4, seen: 2, country: 'Israel', flagged: true },
-    { id: 'ab2', hex: '738091', callsign: 'IAF902', type: 'military', aircraft: 'F-16I Sufa', registration: '902', origin: 'LLRD', destination: 'PATROL', lat: jitter(33.0, 0.3), lng: jitter(35.5, 0.3), altitude: 28000, groundSpeed: 490, verticalRate: -500, heading: jitter(350, 10), squawk: '6714', rssi: -8.1, seen: 1, country: 'Israel', flagged: true },
-    { id: 'ab3', hex: 'AE5420', callsign: 'FORTE12', type: 'surveillance', aircraft: 'RQ-4B Global Hawk', registration: '11-2048', origin: 'OAIX', destination: 'ORBIT', lat: jitter(27.2, 0.8), lng: jitter(51.5, 1.0), altitude: 55200, groundSpeed: 340, verticalRate: 0, heading: jitter(180, 20), squawk: '4572', rssi: -22.5, seen: 4, country: 'USA', flagged: true },
-    { id: 'ab4', hex: 'AE6801', callsign: 'DUKE01', type: 'surveillance', aircraft: 'RC-135V Rivet Joint', registration: '64-14841', origin: 'OKAS', destination: 'ORBIT', lat: jitter(28.5, 0.5), lng: jitter(52.5, 0.8), altitude: 42000, groundSpeed: 380, verticalRate: 0, heading: jitter(270, 15), squawk: '4612', rssi: -18.3, seen: 3, country: 'USA', flagged: true },
-    { id: 'ab5', hex: 'AE1D8F', callsign: 'HOMER31', type: 'surveillance', aircraft: 'P-8A Poseidon', registration: '169333', origin: 'OBBI', destination: 'PATROL', lat: jitter(26.3, 0.3), lng: jitter(55.8, 0.5), altitude: 25000, groundSpeed: 310, verticalRate: 200, heading: jitter(90, 10), squawk: '4532', rssi: -14.7, seen: 2, country: 'USA', flagged: true },
-    { id: 'ab6', hex: '06A1C4', callsign: 'IRGC41', type: 'military', aircraft: 'F-14A Tomcat', registration: '3-6052', origin: 'OISS', destination: 'PATROL', lat: jitter(27.8, 0.4), lng: jitter(56.2, 0.3), altitude: 20000, groundSpeed: 420, verticalRate: 1000, heading: jitter(200, 10), squawk: '2341', rssi: -19.8, seen: 5, country: 'Iran', flagged: true },
-    { id: 'ab7', hex: '06A2F1', callsign: 'IRI732', type: 'commercial', aircraft: 'A320-214', registration: 'EP-IEE', origin: 'OIIE', destination: 'OBBI', lat: jitter(29.1, 0.3), lng: jitter(52.0, 0.5), altitude: 36000, groundSpeed: 460, verticalRate: 0, heading: jitter(210, 5), squawk: '1234', rssi: -16.2, seen: 1, country: 'Iran', flagged: false },
-    { id: 'ab8', hex: 'A4C2E1', callsign: 'QTR810', type: 'commercial', aircraft: 'B777-3DZ(ER)', registration: 'A7-BAO', origin: 'OTHH', destination: 'EGLL', lat: jitter(30.0, 0.5), lng: jitter(48.0, 0.8), altitude: 39000, groundSpeed: 470, verticalRate: 0, heading: jitter(315, 5), squawk: '7421', rssi: -11.3, seen: 1, country: 'Qatar', flagged: false },
-    { id: 'ab9', hex: 'A68C71', callsign: 'UAE422', type: 'commercial', aircraft: 'A380-861', registration: 'A6-EVK', origin: 'OMDB', destination: 'KJFK', lat: jitter(25.8, 0.3), lng: jitter(55.2, 0.3), altitude: 37000, groundSpeed: 475, verticalRate: 0, heading: jitter(340, 5), squawk: '2517', rssi: -9.8, seen: 1, country: 'UAE', flagged: false },
-    { id: 'ab10', hex: '4B1A3E', callsign: 'SVA302', type: 'commercial', aircraft: 'B787-9', registration: 'HZ-AR24', origin: 'OEJN', destination: 'OERK', lat: jitter(24.5, 0.5), lng: jitter(44.0, 0.5), altitude: 32000, groundSpeed: 440, verticalRate: -800, heading: jitter(60, 5), squawk: '3561', rssi: -13.5, seen: 2, country: 'Saudi Arabia', flagged: false },
-    { id: 'ab11', hex: 'AE07C3', callsign: 'RCH416', type: 'cargo', aircraft: 'C-17A Globemaster III', registration: '07-7178', origin: 'EDDF', destination: 'OKAS', lat: jitter(33.5, 0.5), lng: jitter(42.0, 1.0), altitude: 31000, groundSpeed: 410, verticalRate: 0, heading: jitter(120, 8), squawk: '4617', rssi: -20.1, seen: 3, country: 'USA', flagged: true },
-    { id: 'ab12', hex: '43C5E2', callsign: 'THY1872', type: 'commercial', aircraft: 'B737-9 MAX', registration: 'TC-LYA', origin: 'LTFM', destination: 'OEJN', lat: jitter(37.2, 0.3), lng: jitter(39.5, 0.5), altitude: 38000, groundSpeed: 465, verticalRate: 0, heading: jitter(135, 5), squawk: '1647', rssi: -15.4, seen: 1, country: 'Turkey', flagged: false },
-    { id: 'ab13', hex: '43D101', callsign: 'RFF02', type: 'surveillance', aircraft: 'RC-135W Airseeker', registration: 'ZZ664', origin: 'OKAS', destination: 'ORBIT', lat: jitter(32.0, 0.5), lng: jitter(44.0, 0.8), altitude: 41000, groundSpeed: 350, verticalRate: 0, heading: jitter(90, 15), squawk: '7612', rssi: -17.9, seen: 2, country: 'UK', flagged: true },
-    { id: 'ab14', hex: '3C6512', callsign: 'GAF689', type: 'government', aircraft: 'A319-133(CJ)', registration: '15+02', origin: 'EDDB', destination: 'LLBG', lat: jitter(34.0, 0.3), lng: jitter(36.0, 0.5), altitude: 39000, groundSpeed: 430, verticalRate: 0, heading: jitter(150, 5), squawk: '5411', rssi: -14.1, seen: 2, country: 'Germany', flagged: true },
-    { id: 'ab15', hex: 'AE4B21', callsign: 'EVAC01', type: 'military', aircraft: 'C-130J Super Hercules', registration: '08-8604', origin: 'OKBK', destination: 'LLAR', lat: jitter(30.0, 0.5), lng: jitter(38.0, 0.5), altitude: 24000, groundSpeed: 310, verticalRate: -400, heading: jitter(240, 8), squawk: '4621', rssi: -16.8, seen: 3, country: 'USA', flagged: true },
-    { id: 'ab16', hex: '06A0E2', callsign: 'IRIAF5', type: 'military', aircraft: 'Su-35S', registration: '3-7364', origin: 'OIFM', destination: 'PATROL', lat: jitter(34.5, 0.3), lng: jitter(47.5, 0.3), altitude: 18000, groundSpeed: 550, verticalRate: 2000, heading: jitter(270, 10), squawk: '2204', rssi: -21.3, seen: 6, country: 'Iran', flagged: true },
-    { id: 'ab17', hex: 'A81234', callsign: 'FDX6023', type: 'cargo', aircraft: 'B767-3S2F(ER)', registration: 'N129FE', origin: 'OMDB', destination: 'EDDM', lat: jitter(28.5, 0.4), lng: jitter(50.0, 0.5), altitude: 35000, groundSpeed: 445, verticalRate: 0, heading: jitter(320, 5), squawk: '2341', rssi: -12.9, seen: 1, country: 'USA', flagged: false },
-    { id: 'ab18', hex: '710501', callsign: 'MEA315', type: 'commercial', aircraft: 'A321-271NX', registration: 'OD-MRT', origin: 'OLBA', destination: 'LFPG', lat: jitter(35.2, 0.3), lng: jitter(34.8, 0.3), altitude: 34000, groundSpeed: 450, verticalRate: 500, heading: jitter(300, 5), squawk: '6102', rssi: -10.5, seen: 1, country: 'Lebanon', flagged: false },
-    { id: 'ab19', hex: '738044', callsign: 'IAF550', type: 'surveillance', aircraft: 'G550 CAEW Eitam', registration: '550', origin: 'LLNV', destination: 'ORBIT', lat: jitter(31.5, 0.5), lng: jitter(34.5, 0.5), altitude: 40000, groundSpeed: 370, verticalRate: 0, heading: jitter(180, 15), squawk: '6720', rssi: -11.8, seen: 2, country: 'Israel', flagged: true },
-    { id: 'ab20', hex: 'AE5C01', callsign: 'NCHO11', type: 'surveillance', aircraft: 'E-3G Sentry AWACS', registration: '75-0557', origin: 'OKAS', destination: 'ORBIT', lat: jitter(29.5, 0.5), lng: jitter(47.5, 0.8), altitude: 33000, groundSpeed: 340, verticalRate: 0, heading: jitter(90, 20), squawk: '4560', rssi: -19.2, seen: 3, country: 'USA', flagged: true },
-    { id: 'ab21', hex: 'A9F201', callsign: 'N/A', type: 'private', aircraft: 'G650ER', registration: 'VP-CGG', origin: 'OEJN', destination: 'OMDB', lat: jitter(25.0, 0.5), lng: jitter(48.0, 0.5), altitude: 43000, groundSpeed: 480, verticalRate: 0, heading: jitter(90, 5), squawk: '1000', rssi: -15.0, seen: 2, country: 'Cayman Is.', flagged: false },
-    { id: 'ab22', hex: '4BA912', callsign: 'RJA182', type: 'commercial', aircraft: 'A321neo', registration: 'JY-AYP', origin: 'OJAI', destination: 'OERK', lat: jitter(28.0, 0.3), lng: jitter(39.0, 0.5), altitude: 37000, groundSpeed: 455, verticalRate: 0, heading: jitter(150, 5), squawk: '3210', rssi: -13.7, seen: 1, country: 'Jordan', flagged: false },
-    { id: 'ab23', hex: '06A3B1', callsign: 'QSM412', type: 'cargo', aircraft: 'B747-281F', registration: 'EP-FAB', origin: 'OIIE', destination: 'OISS', lat: jitter(33.0, 0.3), lng: jitter(52.0, 0.5), altitude: 29000, groundSpeed: 400, verticalRate: -600, heading: jitter(180, 5), squawk: '2413', rssi: -18.5, seen: 4, country: 'Iran', flagged: true },
-    { id: 'ab24', hex: 'AE68F2', callsign: 'JAKE11', type: 'military', aircraft: 'KC-135R Stratotanker', registration: '62-3534', origin: 'OKAS', destination: 'ORBIT', lat: jitter(31.5, 0.5), lng: jitter(46.0, 0.8), altitude: 28000, groundSpeed: 390, verticalRate: 0, heading: jitter(120, 10), squawk: '4632', rssi: -16.1, seen: 2, country: 'USA', flagged: true },
-    { id: 'ab25', hex: '4008F1', callsign: 'BAW115', type: 'commercial', aircraft: 'B787-9', registration: 'G-ZBKR', origin: 'EGLL', destination: 'OMDB', lat: jitter(34.5, 0.5), lng: jitter(38.0, 0.8), altitude: 40000, groundSpeed: 480, verticalRate: 0, heading: jitter(120, 5), squawk: '5231', rssi: -11.8, seen: 1, country: 'UK', flagged: false },
-    { id: 'ab26', hex: '3C6742', callsign: 'DLH634', type: 'commercial', aircraft: 'A350-941', registration: 'D-AIXI', origin: 'EDDF', destination: 'VABB', lat: jitter(32.0, 0.4), lng: jitter(44.0, 0.6), altitude: 41000, groundSpeed: 475, verticalRate: 0, heading: jitter(130, 5), squawk: '2714', rssi: -13.2, seen: 1, country: 'Germany', flagged: false },
-    { id: 'ab27', hex: '471F52', callsign: 'AFR662', type: 'commercial', aircraft: 'A330-203', registration: 'F-GZCH', origin: 'LFPG', destination: 'OTHH', lat: jitter(36.0, 0.4), lng: jitter(36.5, 0.5), altitude: 38000, groundSpeed: 465, verticalRate: 0, heading: jitter(125, 5), squawk: '3452', rssi: -14.1, seen: 1, country: 'France', flagged: false },
-    { id: 'ab28', hex: 'A1B2C3', callsign: 'AAL72', type: 'commercial', aircraft: 'B777-323(ER)', registration: 'N720AN', origin: 'KJFK', destination: 'OTHH', lat: jitter(35.0, 0.5), lng: jitter(33.0, 0.8), altitude: 39000, groundSpeed: 470, verticalRate: 0, heading: jitter(110, 5), squawk: '1423', rssi: -12.5, seen: 1, country: 'USA', flagged: false },
-    { id: 'ab29', hex: '896201', callsign: 'KAL618', type: 'commercial', aircraft: 'B777-3B5(ER)', registration: 'HL8210', origin: 'RKSI', destination: 'OEJN', lat: jitter(30.0, 0.6), lng: jitter(55.0, 0.8), altitude: 37000, groundSpeed: 468, verticalRate: -200, heading: jitter(240, 5), squawk: '4312', rssi: -15.7, seen: 1, country: 'South Korea', flagged: false },
-    { id: 'ab30', hex: '780A12', callsign: 'CCA934', type: 'commercial', aircraft: 'A350-941', registration: 'B-1085', origin: 'ZBAA', destination: 'OEJN', lat: jitter(28.5, 0.5), lng: jitter(52.0, 0.7), altitude: 40000, groundSpeed: 472, verticalRate: 0, heading: jitter(230, 5), squawk: '5102', rssi: -16.3, seen: 2, country: 'China', flagged: false },
-    { id: 'ab31', hex: '800B41', callsign: 'SIA478', type: 'commercial', aircraft: 'A380-841', registration: '9V-SKT', origin: 'WSSS', destination: 'EGLL', lat: jitter(26.0, 0.4), lng: jitter(57.0, 0.5), altitude: 42000, groundSpeed: 485, verticalRate: 0, heading: jitter(310, 5), squawk: '2631', rssi: -10.9, seen: 1, country: 'Singapore', flagged: false },
-    { id: 'ab32', hex: '4CA2E1', callsign: 'ETH712', type: 'commercial', aircraft: 'B787-9', registration: 'ET-AUQ', origin: 'HAAB', destination: 'OMDB', lat: jitter(23.5, 0.5), lng: jitter(48.0, 0.6), altitude: 36000, groundSpeed: 455, verticalRate: 200, heading: jitter(50, 5), squawk: '3741', rssi: -14.8, seen: 1, country: 'Ethiopia', flagged: false },
-    { id: 'ab33', hex: '06A5C1', callsign: 'IRM741', type: 'commercial', aircraft: 'A310-304', registration: 'EP-IBL', origin: 'OIIE', destination: 'OIAW', lat: jitter(33.5, 0.2), lng: jitter(50.0, 0.3), altitude: 28000, groundSpeed: 420, verticalRate: -600, heading: jitter(200, 5), squawk: '1312', rssi: -17.1, seen: 2, country: 'Iran', flagged: false },
-    { id: 'ab34', hex: 'AA0441', callsign: 'UAL164', type: 'commercial', aircraft: 'B777-222(ER)', registration: 'N226UA', origin: 'KORD', destination: 'LLBG', lat: jitter(35.5, 0.4), lng: jitter(35.0, 0.6), altitude: 37000, groundSpeed: 462, verticalRate: 0, heading: jitter(115, 5), squawk: '4501', rssi: -13.0, seen: 1, country: 'USA', flagged: false },
-    { id: 'ab35', hex: 'C07A91', callsign: 'ACA856', type: 'commercial', aircraft: 'B787-9', registration: 'C-FRSE', origin: 'CYYZ', destination: 'OTHH', lat: jitter(37.0, 0.5), lng: jitter(41.0, 0.7), altitude: 39000, groundSpeed: 470, verticalRate: 0, heading: jitter(120, 5), squawk: '1562', rssi: -14.5, seen: 1, country: 'Canada', flagged: false },
-    { id: 'ab36', hex: '4001E3', callsign: 'VIR11F', type: 'commercial', aircraft: 'A350-1041', registration: 'G-VPOP', origin: 'EGLL', destination: 'LLBG', lat: jitter(34.0, 0.3), lng: jitter(33.5, 0.4), altitude: 36000, groundSpeed: 458, verticalRate: -400, heading: jitter(110, 5), squawk: '6321', rssi: -11.2, seen: 1, country: 'UK', flagged: false },
-    { id: 'ab37', hex: '50101A', callsign: 'QFA9', type: 'commercial', aircraft: 'A380-842', registration: 'VH-OQK', origin: 'YSSY', destination: 'EGLL', lat: jitter(25.5, 0.5), lng: jitter(56.5, 0.5), altitude: 41000, groundSpeed: 490, verticalRate: 0, heading: jitter(320, 5), squawk: '7104', rssi: -12.1, seen: 1, country: 'Australia', flagged: false },
-    { id: 'ab38', hex: '86C1F2', callsign: 'JAL742', type: 'commercial', aircraft: 'B787-8', registration: 'JA838J', origin: 'RJTT', destination: 'OTHH', lat: jitter(29.0, 0.5), lng: jitter(54.0, 0.6), altitude: 38000, groundSpeed: 475, verticalRate: 0, heading: jitter(250, 5), squawk: '2215', rssi: -15.3, seen: 1, country: 'Japan', flagged: false },
-    { id: 'ab39', hex: '4B1B21', callsign: 'GFA215', type: 'commercial', aircraft: 'A321-253NX', registration: 'A9C-NB', origin: 'OBBI', destination: 'OEJN', lat: jitter(24.0, 0.3), lng: jitter(46.5, 0.4), altitude: 34000, groundSpeed: 440, verticalRate: 0, heading: jitter(250, 5), squawk: '3102', rssi: -12.8, seen: 1, country: 'Bahrain', flagged: false },
-    { id: 'ab40', hex: 'A6E101', callsign: 'ETD53', type: 'commercial', aircraft: 'B787-10', registration: 'A6-BMH', origin: 'OMAA', destination: 'EGLL', lat: jitter(33.0, 0.5), lng: jitter(40.0, 0.6), altitude: 40000, groundSpeed: 478, verticalRate: 0, heading: jitter(315, 5), squawk: '5421', rssi: -11.5, seen: 1, country: 'UAE', flagged: false },
-  ];
-}
-
-function generateShips(): ShipData[] {
-  return [
-    { id: 's1', name: 'MT Stena Impero', type: 'tanker', lat: jitter(26.4, 0.15), lng: jitter(56.15, 0.15), heading: 45, speed: 12, flag: 'UK' },
-    { id: 's2', name: 'MT Pacific Voyager', type: 'tanker', lat: jitter(26.6, 0.1), lng: jitter(56.35, 0.1), heading: 220, speed: 10, flag: 'Panama' },
-    { id: 's3', name: 'USS Eisenhower', type: 'military', lat: jitter(25.8, 0.2), lng: jitter(55.5, 0.3), heading: 30, speed: 18, flag: 'USA' },
-    { id: 's4', name: 'IRIN Alvand', type: 'military', lat: jitter(26.8, 0.1), lng: jitter(56.6, 0.1), heading: 180, speed: 15, flag: 'Iran' },
-    { id: 's5', name: 'MSC Flaminia', type: 'cargo', lat: jitter(26.2, 0.15), lng: jitter(56.0, 0.15), heading: 60, speed: 14, flag: 'Germany' },
-    { id: 's6', name: 'Al Dafna', type: 'tanker', lat: jitter(26.3, 0.1), lng: jitter(56.25, 0.1), heading: 40, speed: 11, flag: 'Qatar' },
-    { id: 's7', name: 'IRGC Patrol 7', type: 'patrol', lat: jitter(26.55, 0.05), lng: jitter(56.3, 0.05), heading: 270, speed: 22, flag: 'Iran' },
-    { id: 's8', name: 'MT Nissos Rhenia', type: 'tanker', lat: jitter(26.7, 0.12), lng: jitter(56.45, 0.12), heading: 35, speed: 13, flag: 'Greece' },
-    { id: 's9', name: 'HMS Diamond', type: 'military', lat: jitter(26.1, 0.15), lng: jitter(55.8, 0.2), heading: 50, speed: 16, flag: 'UK' },
-    { id: 's10', name: 'IRGC Patrol 3', type: 'patrol', lat: jitter(26.45, 0.05), lng: jitter(56.2, 0.05), heading: 90, speed: 25, flag: 'Iran' },
-  ];
-}
-
-function generateTelegram(): TelegramMessage[] {
-  const now = Date.now();
-  return [
-    {
-      id: 't1', channel: '@CIG_telegram',
-      text: 'ALERT: Multiple launches detected from western Iran. Tracking in progress. Air defense systems activated across Israel.',
-      textAr: '\u062A\u0646\u0628\u064A\u0647: \u0631\u0635\u062F \u0639\u0645\u0644\u064A\u0627\u062A \u0625\u0637\u0644\u0627\u0642 \u0645\u062A\u0639\u062F\u062F\u0629 \u0645\u0646 \u063A\u0631\u0628 \u0625\u064A\u0631\u0627\u0646. \u062A\u062A\u0628\u0639 \u062C\u0627\u0631\u064D. \u062A\u0641\u0639\u064A\u0644 \u0623\u0646\u0638\u0645\u0629 \u0627\u0644\u062F\u0641\u0627\u0639 \u0627\u0644\u062C\u0648\u064A.',
-      timestamp: new Date(now - 3 * 60000).toISOString(),
-    },
-    {
-      id: 't2', channel: '@IntelCrab',
-      text: 'USS Eisenhower CSG moving to patrol station Bravo. Additional Aegis destroyers joining formation.',
-      textAr: '\u0645\u062C\u0645\u0648\u0639\u0629 \u0623\u064A\u0632\u0646\u0647\u0627\u0648\u0631 \u062A\u062A\u062D\u0631\u0643 \u0625\u0644\u0649 \u0645\u0648\u0642\u0639 \u0627\u0644\u062F\u0648\u0631\u064A\u0629 \u0628\u0631\u0627\u0641\u0648.',
-      timestamp: new Date(now - 8 * 60000).toISOString(),
-    },
-    {
-      id: 't3', channel: '@sentaborim',
-      text: 'Breaking: Explosions reported in Isfahan province. Iranian state media confirms "loud sounds" heard near military sites.',
-      textAr: '\u0639\u0627\u062C\u0644: \u0627\u0646\u0641\u062C\u0627\u0631\u0627\u062A \u0641\u064A \u0645\u062D\u0627\u0641\u0638\u0629 \u0623\u0635\u0641\u0647\u0627\u0646. \u0648\u0633\u0627\u0626\u0644 \u0625\u0639\u0644\u0627\u0645 \u0625\u064A\u0631\u0627\u0646\u064A\u0629 \u062A\u0624\u0643\u062F "\u0623\u0635\u0648\u0627\u062A \u0639\u0627\u0644\u064A\u0629".',
-      timestamp: new Date(now - 15 * 60000).toISOString(),
-    },
-    {
-      id: 't4', channel: '@ShipTracker',
-      text: 'Strait of Hormuz: 3 VLCC tankers diverted from normal shipping lane due to IRGC patrol activity. Traffic backing up.',
-      textAr: '\u0645\u0636\u064A\u0642 \u0647\u0631\u0645\u0632: \u062A\u062D\u0648\u064A\u0644 3 \u0646\u0627\u0642\u0644\u0627\u062A \u0646\u0641\u0637 \u0639\u0645\u0644\u0627\u0642\u0629 \u0628\u0633\u0628\u0628 \u0646\u0634\u0627\u0637 \u0627\u0644\u062D\u0631\u0633 \u0627\u0644\u062B\u0648\u0631\u064A.',
-      timestamp: new Date(now - 22 * 60000).toISOString(),
-    },
-    {
-      id: 't5', channel: '@AviationIntel',
-      text: 'FORTE12 (RQ-4 Global Hawk) orbiting over Persian Gulf at FL550. USN P-8A Poseidon conducting ASW patrol near Hormuz.',
-      textAr: 'FORTE12 (\u0637\u0627\u0626\u0631\u0629 \u0628\u062F\u0648\u0646 \u0637\u064A\u0627\u0631 RQ-4) \u062A\u062D\u0644\u0642 \u0641\u0648\u0642 \u0627\u0644\u062E\u0644\u064A\u062C \u0627\u0644\u0641\u0627\u0631\u0633\u064A.',
-      timestamp: new Date(now - 30 * 60000).toISOString(),
-    },
-    {
-      id: 't6', channel: '@CIG_telegram',
-      text: 'UPDATE: Sirens sounding in Haifa, Tiberias and upper Galilee. Residents ordered to shelters immediately.',
-      textAr: '\u062A\u062D\u062F\u064A\u062B: \u0635\u0641\u0627\u0631\u0627\u062A \u0625\u0646\u0630\u0627\u0631 \u0641\u064A \u062D\u064A\u0641\u0627 \u0648\u0637\u0628\u0631\u064A\u0627 \u0648\u0627\u0644\u062C\u0644\u064A\u0644 \u0627\u0644\u0623\u0639\u0644\u0649. \u0627\u0644\u0633\u0643\u0627\u0646 \u0645\u0637\u0627\u0644\u0628\u0648\u0646 \u0628\u0627\u0644\u062A\u0648\u062C\u0647 \u0644\u0644\u0645\u0644\u0627\u062C\u0626.',
-      timestamp: new Date(now - 1 * 60000).toISOString(),
-    },
-    {
-      id: 't7', channel: '@OilMarkets',
-      text: 'Brent crude bid $85.40 - highest since October. Options market pricing 15% chance of $100+ oil within 30 days.',
-      textAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A \u064A\u0631\u062A\u0641\u0639 \u0625\u0644\u0649 85.40 \u062F\u0648\u0644\u0627\u0631\u0627\u064B - \u0627\u0644\u0623\u0639\u0644\u0649 \u0645\u0646\u0630 \u0623\u0643\u062A\u0648\u0628\u0631.',
-      timestamp: new Date(now - 12 * 60000).toISOString(),
-    },
-    {
-      id: 't8', channel: '@sentaborim',
-      text: 'Iranian FM: "Any attack on our sovereign territory will be met with overwhelming force. All options on the table."',
-      textAr: '\u0648\u0632\u064A\u0631 \u0627\u0644\u062E\u0627\u0631\u062C\u064A\u0629 \u0627\u0644\u0625\u064A\u0631\u0627\u0646\u064A: "\u0623\u064A \u0647\u062C\u0648\u0645 \u0639\u0644\u0649 \u0623\u0631\u0627\u0636\u064A\u0646\u0627 \u0633\u064A\u064F\u0642\u0627\u0628\u0644 \u0628\u0642\u0648\u0629 \u0633\u0627\u062D\u0642\u0629."',
-      timestamp: new Date(now - 40 * 60000).toISOString(),
-    },
-    {
-      id: 't9', channel: '@OSINTdefender',
-      text: 'SIGINT: Unusual radio traffic on IRGC Navy UHF bands in Strait of Hormuz. Possible coordination of fast boat swarms. Monitoring.',
-      textAr: 'إشارات: حركة راديو غير معتادة على ترددات البحرية IRGC. مراقبة مستمرة.',
-      timestamp: new Date(now - 5 * 60000).toISOString(),
-    },
-    {
-      id: 't10', channel: '@GeoConfirmed',
-      text: 'GEOLOCATED: Satellite imagery confirms 3 Shahed-136 launch positions near Tabriz. Grid refs confirmed via shadow analysis.',
-      textAr: 'تأكيد جغرافي: صور أقمار صناعية تؤكد مواقع الإطلاق قرب تبريز.',
-      timestamp: new Date(now - 18 * 60000).toISOString(),
-    },
-    {
-      id: 't11', channel: '@YemeniLeaks',
-      text: 'Houthi military spokesman: Third ballistic missile salvo fired toward Eilat. "Al-Quds-2" variant. Iron Dome and David\'s Sling both activated.',
-      textAr: 'الناطق الحوثي: إطلاق صاروخ ثالث باتجاه إيلات. نوع القدس-2.',
-      timestamp: new Date(now - 25 * 60000).toISOString(),
-    },
-    {
-      id: 't12', channel: '@Intel_Slava',
-      text: 'CONFIRMED: IDF F-35I Adir squadron departed Ramon AFB on undisclosed mission. F-15I Ra\'am tanker support noted.',
-      textAr: 'مؤكد: سرب F-35I اتجه شمالاً من قاعدة رامون الجوية.',
-      timestamp: new Date(now - 35 * 60000).toISOString(),
-    },
-    {
-      id: 't13', channel: '@MaritimeSecurity',
-      text: 'MSC ARIES: Crew update from satellite phone — still detained in Bandar Abbas. 25 crew of mixed nationality. India, Pakistan, Philippines flagged.',
-      textAr: 'طاقم MSC ARIES: لا يزال محتجزاً في بندر عباس.',
-      timestamp: new Date(now - 55 * 60000).toISOString(),
-    },
-    {
-      id: 't14', channel: '@CyberKnow20',
-      text: 'CYBER: Anonymous Sudan claims DDoS against Israeli banking infrastructure. Partial outages at Bank Hapoalim and Mizrahi-Tefahot confirmed.',
-      textAr: 'هجمات إلكترونية: اضطرابات جزئية في البنوك الإسرائيلية.',
-      timestamp: new Date(now - 48 * 60000).toISOString(),
-    },
-    {
-      id: 't15', channel: '@AviationIntel',
-      text: 'ELINT: E-8C J-STARS airborne over eastern Mediterranean. Ground surveillance mode. Tracking armored movement south Lebanon.',
-      textAr: 'E-8C في وضع المراقبة فوق المتوسط. يتتبع حركة مدرعة.',
-      timestamp: new Date(now - 62 * 60000).toISOString(),
-    },
-    {
-      id: 't16', channel: '@CENTCOM_Watch',
-      text: 'USS Gerald R. Ford (CVN-78) strike group entered eastern Mediterranean. Combined with Eisenhower — two CSGs now in theater.',
-      textAr: 'USS جيرالد فورد يدخل المتوسط. مجموعتان ضاربتان الآن في المنطقة.',
-      timestamp: new Date(now - 70 * 60000).toISOString(),
-    },
-    {
-      id: 't17', channel: '@LebanoScope',
-      text: 'South Lebanon: Hezbollah Radwan forces repositioning in Marjayoun-Khiam corridor. Unusual vehicle movements past 2 hours.',
-      textAr: 'قوات رضوان تعيد تموضعها في ممر مرجعيون-خيام.',
-      timestamp: new Date(now - 85 * 60000).toISOString(),
-    },
-    {
-      id: 't18', channel: '@OilMarkets',
-      text: 'Aramco tanker insurance surcharges +340% week-on-week. Lloyd\'s of London raising "war risk" zone to include all Persian Gulf approaches.',
-      textAr: 'ارتفاع أقساط تأمين ناقلات أرامكو 340% أسبوعياً.',
-      timestamp: new Date(now - 90 * 60000).toISOString(),
-    },
-  ];
-}
-
-function generateSirens(): SirenAlert[] {
-  return [];
-}
 
 const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
   // ISRAEL
@@ -1610,8 +1353,8 @@ function parseCityAlerts(cities: string[], threat: number, timestamp: string): R
       threatType,
       timestamp,
       active: true,
-      lat: known?.lat ?? 31.5 + Math.random() * 2,
-      lng: known?.lng ?? 34.5 + Math.random() * 1,
+      lat: known?.lat ?? 31.5,
+      lng: known?.lng ?? 35.0,
       source: 'live',
     });
   }
@@ -2434,7 +2177,16 @@ async function generateAIBriefLive(alerts: RedAlert[], messages: ClassifiedMessa
     console.error('[AI-Brief] Error:', (err as Error).message);
   }
 
-  const fallback = generateAIBriefStatic();
+  const fallback: AIBrief = {
+    id: `brief-fallback-${Date.now()}`,
+    summary: 'AI intelligence briefing temporarily unavailable. All LLM providers failed to respond.',
+    summaryAr: '\u0645\u0644\u062E\u0635 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0645\u0624\u0642\u062A\u0627\u064B',
+    keyDevelopments: [],
+    focalPoints: [],
+    riskLevel: 'HIGH',
+    generatedAt: new Date().toISOString(),
+    model: 'fallback',
+  };
   aiBriefCache = { data: fallback, fetchedAt: Date.now() };
   return fallback;
 }
@@ -2479,81 +2231,18 @@ async function generateDeductionLive(query: string, alerts: RedAlert[], messages
     console.error('[AI-Deduct] Error:', (err as Error).message);
   }
 
-  return generateDeductionStatic(query);
-}
-
-function generateAIBriefStatic(): AIBrief {
-  const now = new Date();
   return {
-    id: 'brief-' + Date.now(),
-    summary: 'The Iran-Israel-Lebanon theater remains at EXTREME risk levels. Multiple ballistic missile exchanges detected in the past 6 hours, with Israeli air defense systems reporting 94% interception rate. IRGC naval forces have increased patrols in the Strait of Hormuz, threatening commercial shipping lanes. Hezbollah has launched over 200 rockets toward northern Israel in the past 12 hours. US carrier strike group USS Eisenhower has repositioned to patrol station Bravo in the Persian Gulf. Diplomatic channels remain active with Qatar-mediated back-channel communications between Tehran and Washington.',
-    summaryAr: '\u0645\u0633\u0631\u062D \u0625\u064A\u0631\u0627\u0646-\u0625\u0633\u0631\u0627\u0626\u064A\u0644-\u0644\u0628\u0646\u0627\u0646 \u064A\u0628\u0642\u0649 \u0639\u0646\u062F \u0645\u0633\u062A\u0648\u064A\u0627\u062A \u062E\u0637\u0631 \u0642\u0635\u0648\u0649. \u062A\u0645 \u0631\u0635\u062F \u062A\u0628\u0627\u062F\u0644\u0627\u062A \u0635\u0627\u0631\u0648\u062E\u064A\u0629 \u0628\u0627\u0644\u064A\u0633\u062A\u064A\u0629 \u0645\u062A\u0639\u062F\u062F\u0629 \u062E\u0644\u0627\u0644 \u0627\u0644\u0633\u0627\u0639\u0627\u062A \u0627\u0644\u0633\u062A \u0627\u0644\u0645\u0627\u0636\u064A\u0629.',
-    keyDevelopments: [
-      {
-        text: 'IRGC confirms test-fire of Fattah-2 hypersonic missile from Kermanshah province - estimated Mach 13 velocity detected by early warning systems',
-        textAr: '\u0627\u0644\u062D\u0631\u0633 \u0627\u0644\u062B\u0648\u0631\u064A \u064A\u0624\u0643\u062F \u0625\u0637\u0644\u0627\u0642 \u0635\u0627\u0631\u0648\u062E \u0641\u062A\u0627\u062D-2 \u0641\u0631\u0637 \u0635\u0648\u062A\u064A',
-        severity: 'critical',
-        category: 'Missile Activity'
-      },
-      {
-        text: 'Iron Dome and David\'s Sling batteries depleted to 60% capacity across northern command - emergency resupply from US stockpiles initiated',
-        textAr: '\u0628\u0637\u0627\u0631\u064A\u0627\u062A \u0627\u0644\u0642\u0628\u0629 \u0627\u0644\u062D\u062F\u064A\u062F\u064A\u0629 \u0648\u0645\u0642\u0644\u0627\u0639 \u062F\u0627\u0648\u062F \u0627\u0633\u062A\u0646\u0641\u062F\u062A \u0625\u0644\u0649 60%',
-        severity: 'critical',
-        category: 'Air Defense'
-      },
-      {
-        text: 'Strait of Hormuz: 3 VLCC supertankers rerouted via Oman coast after IRGC fast-attack craft intercept - insurance premiums surge 340%',
-        textAr: '\u0645\u0636\u064A\u0642 \u0647\u0631\u0645\u0632: \u062A\u062D\u0648\u064A\u0644 3 \u0646\u0627\u0642\u0644\u0627\u062A \u0639\u0645\u0644\u0627\u0642\u0629 \u0628\u0639\u062F \u0627\u0639\u062A\u0631\u0627\u0636 \u0632\u0648\u0627\u0631\u0642 \u0627\u0644\u062D\u0631\u0633',
-        severity: 'high',
-        category: 'Maritime'
-      },
-      {
-        text: 'Hezbollah ground forces detected massing near Metula crossing - IDF 91st Division redeployed to northern border',
-        textAr: '\u0631\u0635\u062F \u062A\u062C\u0645\u0639 \u0642\u0648\u0627\u062A \u062D\u0632\u0628 \u0627\u0644\u0644\u0647 \u0627\u0644\u0628\u0631\u064A\u0629 \u0642\u0631\u0628 \u0645\u0639\u0628\u0631 \u0645\u0637\u0644\u0629',
-        severity: 'high',
-        category: 'Ground Forces'
-      },
-      {
-        text: 'IAEA emergency session called after seismic activity detected near Fordow enrichment facility - Iran denies underground test',
-        textAr: '\u062C\u0644\u0633\u0629 \u0637\u0627\u0631\u0626\u0629 \u0644\u0644\u0648\u0643\u0627\u0644\u0629 \u0627\u0644\u062F\u0648\u0644\u064A\u0629 \u0628\u0639\u062F \u0646\u0634\u0627\u0637 \u0632\u0644\u0632\u0627\u0644\u064A \u0642\u0631\u0628 \u0641\u0631\u062F\u0648',
-        severity: 'critical',
-        category: 'Nuclear'
-      },
-      {
-        text: 'Brent crude breaks $87 resistance - Goldman Sachs updates target to $95 on Hormuz disruption scenario, gold tests $2,100',
-        textAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A \u064A\u0643\u0633\u0631 \u0645\u0642\u0627\u0648\u0645\u0629 87$ - \u0627\u0644\u0630\u0647\u0628 \u064A\u062E\u062A\u0628\u0631 2100$',
-        severity: 'medium',
-        category: 'Markets'
-      },
-    ],
-    focalPoints: ['Strait of Hormuz', 'Northern Israel', 'Fordow Nuclear Facility', 'Kermanshah', 'South Lebanon'],
-    riskLevel: 'EXTREME',
-    generatedAt: now.toISOString(),
-    model: 'warroom-llm-v3.1',
-  };
-}
-
-const deductionResponses: Record<string, { response: string; responseAr: string; confidence: number; timeframe: string }> = {
-  default: {
-    response: 'Based on current trajectory analysis and multi-source intelligence correlation:\n\n1. HIGH PROBABILITY (85%): Iran will conduct additional ballistic missile launches within 24-48 hours, likely targeting Israeli military infrastructure in the Golan Heights and Negev desert.\n\n2. MODERATE PROBABILITY (65%): Hezbollah will escalate rocket fire to include precision-guided munitions targeting Haifa port facilities and northern IDF command centers.\n\n3. ELEVATED RISK (70%): IRGC Navy will attempt to detain or board a commercial vessel in the Strait of Hormuz within 72 hours as leverage.\n\n4. DIPLOMATIC (55%): Qatar-mediated back-channel will produce a 48-hour humanitarian pause proposal by end of week.\n\n5. ECONOMIC IMPACT: Brent crude projected to reach $92-95 range if Hormuz disruption materializes. Gold likely to breach $2,100 resistance.',
-    responseAr: '\u0628\u0646\u0627\u0621\u064B \u0639\u0644\u0649 \u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0645\u0633\u0627\u0631 \u0627\u0644\u062D\u0627\u0644\u064A \u0648\u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u0645\u062A\u0639\u062F\u062F\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631: \u0627\u062D\u062A\u0645\u0627\u0644 \u0645\u0631\u062A\u0641\u0639 \u0644\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E \u0625\u064A\u0631\u0627\u0646\u064A\u0629 \u0625\u0636\u0627\u0641\u064A\u0629.',
-    confidence: 0.72,
-    timeframe: '24-72 hours'
-  }
-};
-
-function generateDeductionStatic(query: string): AIDeduction {
-  const resp = deductionResponses.default;
-  return {
-    id: 'ded-' + Date.now(),
+    id: 'ded-fallback-' + Date.now(),
     query,
-    response: resp.response,
-    responseAr: resp.responseAr,
-    confidence: resp.confidence,
-    timeframe: resp.timeframe,
+    response: 'AI deduction temporarily unavailable. The intelligence analysis provider did not respond.',
+    responseAr: '\u0627\u0644\u062A\u062D\u0644\u064A\u0644 \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0645\u0624\u0642\u062A\u0627\u064B',
+    confidence: 0,
+    timeframe: 'N/A',
     timestamp: new Date().toISOString(),
   };
 }
+
+
 
 let earthquakeCache: { data: EarthquakeEvent[]; fetchedAt: number } | null = null;
 const EQ_CACHE_TTL = 10_000;
@@ -3033,7 +2722,7 @@ export async function registerRoutes(
   });
 
   app.get('/api/sirens', (_req, res) => {
-    res.json(generateSirens());
+    res.json([]);
   });
 
   app.get('/api/red-alerts', async (_req, res) => {
@@ -3047,9 +2736,13 @@ export async function registerRoutes(
 
   app.get('/api/ai-brief', async (_req, res) => {
     const alerts = await generateRedAlerts();
-    const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
-    const brief = await generateAIBriefLive(alerts, messages);
-    res.json(brief);
+    const messages = classifiedMessageCache;
+    try {
+      const brief = await generateAIBriefLive(alerts, messages);
+      res.json(brief);
+    } catch {
+      res.status(503).json({ error: 'AI brief unavailable' });
+    }
   });
 
   app.post('/api/ai-deduct', async (req, res) => {
@@ -3058,20 +2751,24 @@ export async function registerRoutes(
       return res.status(400).json({ error: 'Query string required' });
     }
     const alerts = await generateRedAlerts();
-    const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
-    const result = await generateDeductionLive(query, alerts, messages);
-    res.json(result);
+    const messages = classifiedMessageCache;
+    try {
+      const result = await generateDeductionLive(query, alerts, messages);
+      res.json(result);
+    } catch {
+      res.status(503).json({ error: 'AI deduction unavailable' });
+    }
   });
 
   app.get('/api/ai-classify', async (_req, res) => {
-    const messages = generateTelegram();
+    const messages = classifiedMessageCache;
     const classified = await classifyMessages(messages);
     res.json(classified);
   });
 
   app.get('/api/analytics', async (_req, res) => {
     const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
-    const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : generateTelegram().map(m => ({ ...m }) as ClassifiedMessage);
+    const messages = classifiedMessageCache;
     const [analytics, llmAssessments] = await Promise.all([
       Promise.resolve(generateAnalytics(alerts, messages)),
       runMultiLLMAssessment(alerts, messages),

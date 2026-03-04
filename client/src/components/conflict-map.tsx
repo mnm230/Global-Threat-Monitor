@@ -2344,16 +2344,22 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     canvas.style.zIndex = '1';
     containerRef.current.appendChild(canvas);
 
-    const deck = new Deck({
-      canvas,
-      initialViewState: viewState,
-      controller: true,
-      layers: [],
-      onHover: handleHover as any,
-      onClick: handleMapClick as any,
-      onViewStateChange: onViewStateChange as any,
-      getTooltip: () => null,
-    });
+    let deck: Deck;
+    try {
+      deck = new Deck({
+        canvas,
+        initialViewState: viewState,
+        controller: true,
+        layers: [],
+        onHover: handleHover as any,
+        onClick: handleMapClick as any,
+        onViewStateChange: onViewStateChange as any,
+        getTooltip: () => null,
+      });
+    } catch (err) {
+      console.warn('[ConflictMap] Deck.gl WebGL init failed:', err);
+      return;
+    }
 
     deckRef.current = deck;
 
