@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
+import WebSocket from 'ws';
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 
@@ -835,6 +836,8 @@ async function fetchLiveCommodityPrices(): Promise<void> {
     console.log('[YAHOO-FINANCE] Error:', err instanceof Error ? err.message : err);
   }
 }
+
+
 
 let commodityPriceState: Record<string, { price: number; prevPrice: number }> = {};
 
