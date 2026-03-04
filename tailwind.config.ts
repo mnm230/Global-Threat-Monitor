@@ -127,7 +127,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "ticker-scroll": "ticker-scroll 90s linear infinite",
+        "ticker-scroll": "ticker-scroll 300s linear infinite",
         "pulse-dot": "pulse-dot 1.5s ease-in-out infinite",
         "fade-in": "fade-in 0.3s ease-out",
         "slide-in-right": "slide-in-right 0.3s ease-out",

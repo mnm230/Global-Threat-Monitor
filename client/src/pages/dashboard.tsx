@@ -91,6 +91,7 @@ import {
 import { SiTelegram, SiX } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
+const GodEyeMap = lazy(() => import('@/components/godseye-map'));
 
 interface WARROOMSettings {
   criticalThreshold: number;
@@ -533,7 +534,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'seismic' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed' | 'godseye';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -550,6 +551,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
   xfeed: { icon: MessageSquare, label: 'X / Twitter', labelAr: '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631' },
+  godseye: { icon: Eye, label: "God's Eye", labelAr: '\u0639\u064A\u0646 \u0627\u0644\u0644\u0647' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -707,26 +709,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, godseye: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, godseye: 36 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, seismic: false, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false, godseye: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, godseye: 36 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, seismic: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false, godseye: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, godseye: 36 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, seismic: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false, godseye: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, seismic: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100, godseye: 100 },
     rowSplit: 50,
   },
 ];
@@ -748,6 +750,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'alertmap', x: 0,  y: 10, w: 6, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 6, y: 10, w: 6, h: 4, minW: 2, minH: 2 },
   { i: 'xfeed',     x: 0, y: 14, w: 3, h: 4, minW: 1, minH: 1 },
+  { i: 'godseye',   x: 3, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
 ];
 
 interface Correlation {
@@ -1582,7 +1585,7 @@ function headingToCompass(deg: number): string {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized, onLocateFlight }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onLocateFlight?: (lat: number, lng: number) => void }) {
   const [selectedFlight, setSelectedFlight] = useState<FlightData | null>(null);
   const sorted = [...flights].sort((a, b) => {
     const order = { military: 0, surveillance: 1, commercial: 2 };
@@ -1625,17 +1628,14 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
             <div className="col-span-2" data-testid="text-flight-position"><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedFlight.lat.toFixed(4)}, {selectedFlight.lng.toFixed(4)}</span></div>
           </div>
           <div className="flex gap-2 mt-2 pt-1.5 border-t border-primary/15">
-            <a
-              href={`https://www.google.com/maps?q=${selectedFlight.lat},${selectedFlight.lng}&z=10&t=k`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-primary/10 hover:bg-primary/20 border border-primary/20 text-[10px] font-mono font-bold text-primary/80 transition-colors"
-              data-testid={`flight-gmap-${selectedFlight.id}`}
-              onClick={(e) => e.stopPropagation()}
+              data-testid={`flight-locate-${selectedFlight.id}`}
+              onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng); }}
             >
-              <MapPin className="w-3 h-3" />
-              Google Maps
-            </a>
+              <Target className="w-3 h-3" />
+              Locate on Map
+            </button>
             <a
               href={`https://www.flightradar24.com/${selectedFlight.callsign}`}
               target="_blank"
@@ -1676,17 +1676,14 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized 
                 <span><span className="text-foreground/50">ALT</span> {(f.altitude / 1000).toFixed(0)}k</span>
                 <span><span className="text-foreground/50">SPD</span> {f.speed}</span>
                 <span><span className="text-foreground/50">HDG</span> {headingToCompass(f.heading)}</span>
-                <a
-                  href={`https://www.google.com/maps?q=${f.lat},${f.lng}&z=10&t=k`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
                   className="ml-auto w-5 h-5 flex items-center justify-center rounded hover:bg-primary/15 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                  title="Open in Google Maps"
-                  data-testid={`flight-gmap-row-${f.id}`}
+                  onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng); }}
+                  title="Locate on map"
+                  data-testid={`flight-locate-row-${f.id}`}
                 >
-                  <MapPin className="w-3 h-3 text-primary/40 hover:text-primary/80" />
-                </a>
+                  <Target className="w-3 h-3 text-primary/40 hover:text-primary/80" />
+                </button>
               </div>
             </div>
           );
@@ -1705,7 +1702,7 @@ const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; label: strin
   government:   { color: 'text-blue-400',   bg: 'bg-blue-950/40 border-blue-500/30',  label: 'GOV' },
 };
 
-function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [] }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[] }) {
+function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number) => void }) {
   const [filter, setFilter] = useState<string>('all');
   const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
   const isLoading = adsbFlights.length === 0;
@@ -1823,17 +1820,14 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
               <div><span className="text-foreground/30">SEEN</span> <span className="text-foreground/70">{selectedFlight.seen}s ago</span></div>
             </div>
             <div className="flex gap-2 mt-2 pt-1.5 border-t border-cyan-500/15">
-              <a
-                href={`https://www.google.com/maps?q=${selectedFlight.lat},${selectedFlight.lng}&z=10&t=k`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
                 className="flex items-center gap-1.5 px-2 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[10px] font-mono font-bold text-cyan-300 transition-colors"
-                data-testid={`adsb-gmap-${selectedFlight.id}`}
-                onClick={(e) => e.stopPropagation()}
+                data-testid={`adsb-locate-${selectedFlight.id}`}
+                onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng); }}
               >
-                <MapPin className="w-3 h-3" />
-                Google Maps
-              </a>
+                <Target className="w-3 h-3" />
+                Locate on Map
+              </button>
               <a
                 href={`https://globe.adsbexchange.com/?icao=${selectedFlight.hex.toLowerCase()}`}
                 target="_blank"
@@ -1880,17 +1874,14 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
                   <span>{f.origin} {'\u2192'} {f.destination}</span>
                   <span className="ml-auto flex items-center gap-1.5">
                     <span>{(f.altitude / 1000).toFixed(0)}k/{f.groundSpeed}kts</span>
-                    <a
-                      href={`https://www.google.com/maps?q=${f.lat},${f.lng}&z=10&t=k`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
                       className="w-5 h-5 flex items-center justify-center rounded hover:bg-cyan-500/15 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                      title="Open in Google Maps"
-                      data-testid={`adsb-gmap-row-${f.id}`}
+                      onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng); }}
+                      title="Locate on map"
+                      data-testid={`adsb-locate-row-${f.id}`}
                     >
-                      <MapPin className="w-3 h-3 text-cyan-400/40 hover:text-cyan-400/80" />
-                    </a>
+                      <Target className="w-3 h-3 text-cyan-400/40 hover:text-cyan-400/80" />
+                    </button>
                   </span>
                 </div>
               </div>
@@ -3436,6 +3427,7 @@ function MapSection({
   onClose,
   onMaximize,
   isMaximized,
+  focusLocation,
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
@@ -3447,6 +3439,7 @@ function MapSection({
   onClose?: () => void;
   onMaximize?: () => void;
   isMaximized?: boolean;
+  focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }) {
   const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
   const [mapStyleId, setMapStyleId] = useState<'dark' | 'light' | 'street'>('dark');
@@ -3529,6 +3522,7 @@ function MapSection({
                 activeView={activeView}
                 language={language}
                 mapStyle={mapStyleUrl}
+                focusLocation={focusLocation}
               />
             </Suspense>
           </MapErrorBoundary>
@@ -4009,6 +4003,123 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
   );
 }
 
+function GodEyeReplayPanel({ language, onClose, onMaximize, isMaximized }: {
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  const SEVEN_DAYS_AGO = Date.now() - 7 * 24 * 3600 * 1000;
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  const [replayData, setReplayData] = useState<{ events: ConflictEvent[]; alerts: RedAlert[] } | null>(null);
+  const [replayTime, setReplayTime] = useState(SEVEN_DAYS_AGO);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(300);
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/replay-data')
+      .then(r => r.json())
+      .then(data => {
+        setReplayData(data);
+        if (data.events.length > 0) {
+          setReplayTime(new Date(data.events[0].timestamp).getTime());
+        }
+      })
+      .catch(() => setReplayData({ events: [], alerts: [] }));
+  }, []);
+
+  useEffect(() => {
+    if (!playing) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    intervalRef.current = window.setInterval(() => {
+      setReplayTime(prev => {
+        const next = prev + speed * 1000;
+        if (next >= Date.now()) { setPlaying(false); return Date.now(); }
+        return next;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [playing, speed]);
+
+  const eventCountAtTime = replayData
+    ? replayData.events.filter(e => new Date(e.timestamp).getTime() <= replayTime).length
+    : 0;
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="panel-godseye">
+      <div className="panel-drag-handle h-8 px-3 border-b border-white/[0.04] flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(225 25% 6%) 0%, hsl(225 28% 4.5%) 100%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
+        <Eye className="w-3 h-3 text-primary/60 shrink-0" />
+        <span className="text-[10px] font-mono font-bold text-foreground/80 tracking-widest uppercase">{t("God's Eye", 'عين الله')}</span>
+        <span className="text-[8px] text-primary/40 font-mono">REPLAY</span>
+        <div className="flex-1" />
+        <span className="text-[9px] font-mono text-foreground/40">{eventCountAtTime} {t('events', 'أحداث')}</span>
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+
+      <div className="flex-1 relative min-h-0">
+        <Suspense fallback={<div className="flex items-center justify-center h-full text-foreground/30 text-[10px] font-mono">LOADING MAP...</div>}>
+          <GodEyeMap
+            events={replayData?.events ?? []}
+            alerts={replayData?.alerts ?? []}
+            replayTime={replayTime}
+            playing={playing}
+          />
+        </Suspense>
+        <div className="absolute top-2 left-2 z-[1000] bg-black/80 rounded px-2 py-1 pointer-events-none">
+          <span className="text-[10px] font-mono text-primary">{new Date(replayTime).toUTCString()}</span>
+        </div>
+      </div>
+
+      <div className="shrink-0 px-3 py-2 border-t border-white/[0.04] space-y-1.5" style={{background:'hsl(225 30% 3%)'}}>
+        <input
+          type="range"
+          min={SEVEN_DAYS_AGO}
+          max={Date.now()}
+          value={replayTime}
+          onChange={e => { setPlaying(false); setReplayTime(Number(e.target.value)); }}
+          className="w-full h-1 accent-primary"
+          style={{cursor:'pointer'}}
+        />
+        <div className="flex justify-between text-[8px] text-foreground/25 font-mono">
+          <span>7D AGO</span>
+          <span>NOW</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setPlaying(false); setReplayTime(SEVEN_DAYS_AGO); }}
+            className="text-[10px] text-foreground/40 hover:text-foreground/70 px-1"
+            title="Rewind"
+          >⏮</button>
+          <button
+            onClick={() => setPlaying(p => !p)}
+            className="px-3 py-1 rounded bg-primary/20 hover:bg-primary/30 text-primary text-[10px] font-bold transition-colors"
+          >
+            {playing ? '⏸ PAUSE' : '▶ PLAY'}
+          </button>
+          <div className="flex gap-0.5 ml-auto">
+            {([60, 300, 900, 3600] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s)}
+                className={`text-[8px] px-1.5 py-0.5 rounded font-mono transition-colors ${speed === s ? 'bg-primary/20 text-primary' : 'text-foreground/30 hover:text-foreground/60'}`}
+              >
+                {s === 60 ? '1×' : s === 300 ? '5×' : s === 900 ? '15×' : '60×'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { language, setLanguage } = useLanguage();
   const [settings, setSettings] = useState<WARROOMSettings>(loadSettings);
@@ -4034,7 +4145,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, seismic: false, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, godseye: false };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -4078,6 +4189,8 @@ export default function Dashboard() {
 
   const sse = useSSE();
   const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, earthquakes, cyberEvents, thermalHotspots, xPosts, connected } = sse;
+
+  const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
 
@@ -4155,7 +4268,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'seismic', 'cyber', 'alertmap', 'analytics', 'xfeed', 'godseye'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -4165,7 +4278,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16,
+    seismic: 22, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, godseye: 36,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -4277,14 +4390,14 @@ export default function Dashboard() {
         case 'intel':
           return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
         case 'map':
-          return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+          return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'radar':
           return (
             <>
               <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
+                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng) => setMapFocusLocation({ lat, lng, zoom: 9 })} />
               </div>
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <MaritimePanel ships={ships} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
@@ -4292,7 +4405,7 @@ export default function Dashboard() {
             </>
           );
         case 'adsb':
-          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} />;
+          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng) => setMapFocusLocation({ lat, lng, zoom: 9 })} />;
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':
@@ -4311,6 +4424,8 @@ export default function Dashboard() {
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'xfeed':
           return <XFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'godseye':
+          return <GodEyeReplayPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;

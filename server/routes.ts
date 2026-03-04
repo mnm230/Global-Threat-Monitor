@@ -629,17 +629,65 @@ function generateStaticNews(): NewsItem[] {
   return items;
 }
 
+const FREE_NEWS_RSS_FEEDS = [
+  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
+  { url: 'https://feeds.reuters.com/reuters/worldnews', source: 'Reuters' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
+];
+
+let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
+const FREE_RSS_TTL = 5 * 60 * 1000;
+
+async function fetchFreeNewsRSS(): Promise<NewsItem[]> {
+  if (freeRssCache && Date.now() - freeRssCache.fetchedAt < FREE_RSS_TTL) return freeRssCache.data;
+  const items: NewsItem[] = [];
+  await Promise.allSettled(FREE_NEWS_RSS_FEEDS.map(async ({ url, source }) => {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml, application/xml, text/xml' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return;
+      const xml = await res.text();
+      const entries = xml.split(/<item[\s>]/i).slice(1);
+      for (const entry of entries.slice(0, 15)) {
+        const cdataTitle = entry.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i)?.[1];
+        const plainTitle = entry.match(/<title>([\s\S]*?)<\/title>/i)?.[1];
+        const title = (cdataTitle || plainTitle || '').replace(/<[^>]+>/g, '').trim();
+        if (!title || title.length < 10) continue;
+        const pubDate = entry.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1]?.trim() ||
+                        entry.match(/<dc:date>([\s\S]*?)<\/dc:date>/i)?.[1]?.trim() || '';
+        const link = entry.match(/<link>([\s\S]*?)<\/link>/i)?.[1]?.trim() || '';
+        const timestamp = pubDate ? new Date(pubDate).toISOString() : new Date().toISOString();
+        items.push({
+          id: `rss_${source.replace(/\s/g, '_')}_${Date.now()}_${items.length}`,
+          title,
+          source,
+          category: classifyTitle(title),
+          timestamp,
+          url: link || undefined,
+        });
+      }
+    } catch {}
+  }));
+  console.log(`[FREE-RSS] Fetched ${items.length} articles from free feeds`);
+  freeRssCache = { data: items, fetchedAt: Date.now() };
+  return items;
+}
+
 async function generateNews(): Promise<NewsItem[]> {
   const staticNews = generateStaticNews();
   try {
-    const [xNews, newsApiItems, gnewsItems, mediastackItems] = await Promise.all([
+    const [xNews, newsApiItems, gnewsItems, mediastackItems, rssItems] = await Promise.all([
       fetchXFeeds().catch(() => [] as NewsItem[]),
       fetchNewsAPI(),
       fetchGNews(),
       fetchMediastack(),
+      fetchFreeNewsRSS().catch(() => [] as NewsItem[]),
     ]);
 
-    const liveItems = [...xNews, ...newsApiItems, ...gnewsItems, ...mediastackItems];
+    const liveItems = [...xNews, ...newsApiItems, ...gnewsItems, ...mediastackItems, ...rssItems];
 
     if (liveItems.length > 0) {
       const seen = new Set<string>();
@@ -650,20 +698,20 @@ async function generateNews(): Promise<NewsItem[]> {
         return true;
       });
       deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      return [...deduped.slice(0, 50), ...staticNews];
+      return deduped.slice(0, 60);
     }
   } catch {}
   return staticNews;
 }
 
 const COMMODITY_META = [
-  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 84.72, currency: 'USD', category: 'commodity' as const },
-  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 80.35, currency: 'USD', category: 'commodity' as const },
-  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 2068.40, currency: 'USD', category: 'commodity' as const },
-  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 23.85, currency: 'USD', category: 'commodity' as const },
-  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.42, currency: 'USD', category: 'commodity' as const },
-  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 612.50, currency: 'USD', category: 'commodity' as const },
-  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 8542.00, currency: 'USD', category: 'commodity' as const },
+  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 84.72, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'BZ=F' },
+  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 80.35, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'CL=F' },
+  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 2068.40, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'GC=F' },
+  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 23.85, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'SI=F' },
+  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.42, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'NG=F' },
+  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 612.50, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'ZW=F' },
+  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 8542.00, currency: 'USD', category: 'commodity' as const, yahooSymbol: 'HG=F' },
   { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.0862, currency: '', category: 'fx-major' as const, fxKey: 'EUR' },
   { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.2674, currency: '', category: 'fx-major' as const, fxKey: 'GBP' },
   { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 149.82, currency: '', category: 'fx-major' as const, fxKey: 'JPY', invert: true },
@@ -700,6 +748,46 @@ async function fetchLiveFxRates(): Promise<Record<string, number>> {
   return liveFxRates;
 }
 
+// Live commodity prices from Yahoo Finance (free, no API key required)
+let liveCommodityPrices: Record<string, { price: number; change: number; changePercent: number }> = {};
+let liveCommodityFetchedAt = 0;
+const COMMODITY_PRICE_TTL = 3 * 60 * 1000;
+
+async function fetchLiveCommodityPrices(): Promise<void> {
+  if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
+  const symbols = COMMODITY_META
+    .filter(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol)
+    .map(m => (m as typeof m & { yahooSymbol?: string }).yahooSymbol!)
+    .join(',');
+  try {
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Referer': 'https://finance.yahoo.com',
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) throw new Error(`Yahoo Finance HTTP ${resp.status}`);
+    const data = await resp.json() as { quoteResponse?: { result?: Array<{ symbol: string; regularMarketPrice?: number; regularMarketChange?: number; regularMarketChangePercent?: number }> } };
+    const results = data?.quoteResponse?.result || [];
+    for (const q of results) {
+      if (q.regularMarketPrice != null) {
+        liveCommodityPrices[q.symbol] = {
+          price: q.regularMarketPrice,
+          change: q.regularMarketChange ?? 0,
+          changePercent: q.regularMarketChangePercent ?? 0,
+        };
+      }
+    }
+    liveCommodityFetchedAt = Date.now();
+    console.log(`[YAHOO-FINANCE] Fetched ${results.length} commodity prices`);
+  } catch (err) {
+    console.log('[YAHOO-FINANCE] Error:', err instanceof Error ? err.message : err);
+  }
+}
+
 let commodityPriceState: Record<string, { price: number; prevPrice: number }> = {};
 
 function generateCommodities(): CommodityData[] {
@@ -707,10 +795,20 @@ function generateCommodities(): CommodityData[] {
   const hasFx = Object.keys(fxRates).length > 0;
 
   return COMMODITY_META.map((item) => {
+    const meta = item as typeof item & { fxKey?: string; invert?: boolean; yahooSymbol?: string };
     let basePrice = item.fallback;
-    const meta = item as typeof item & { fxKey?: string; invert?: boolean };
+    let liveChange = 0;
+    let liveChangePercent = 0;
+    let hasLiveData = false;
 
-    if (hasFx && meta.fxKey && fxRates[meta.fxKey]) {
+    // Use live Yahoo Finance price for commodities
+    if (meta.yahooSymbol && liveCommodityPrices[meta.yahooSymbol]) {
+      const live = liveCommodityPrices[meta.yahooSymbol];
+      basePrice = live.price;
+      liveChange = live.change;
+      liveChangePercent = live.changePercent;
+      hasLiveData = true;
+    } else if (hasFx && meta.fxKey && fxRates[meta.fxKey]) {
       const rate = fxRates[meta.fxKey];
       basePrice = meta.invert ? rate : (1 / rate);
     }
@@ -718,11 +816,10 @@ function generateCommodities(): CommodityData[] {
     const prev = commodityPriceState[item.symbol];
     const currentPrice = basePrice;
     const prevPrice = prev ? prev.price : basePrice;
-
     commodityPriceState[item.symbol] = { price: currentPrice, prevPrice };
 
-    const change = currentPrice - prevPrice;
-    const changePercent = prevPrice !== 0 ? (change / prevPrice) * 100 : 0;
+    const change = hasLiveData ? liveChange : (currentPrice - prevPrice);
+    const changePercent = hasLiveData ? liveChangePercent : (prevPrice !== 0 ? (change / prevPrice) * 100 : 0);
 
     return {
       symbol: item.symbol,
@@ -738,7 +835,9 @@ function generateCommodities(): CommodityData[] {
 }
 
 fetchLiveFxRates();
+fetchLiveCommodityPrices();
 setInterval(() => fetchLiveFxRates(), FX_CACHE_TTL);
+setInterval(() => fetchLiveCommodityPrices(), COMMODITY_PRICE_TTL);
 
 const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
   'tel aviv': { lat: 32.085, lng: 34.782 }, 'jerusalem': { lat: 31.769, lng: 35.216 },
@@ -804,6 +903,24 @@ function geocodeFromTitle(title: string): { lat: number; lng: number } | null {
 
 let gdeltCache: { data: ConflictEvent[]; fetchedAt: number } | null = null;
 const GDELT_CACHE_TTL = 5 * 60 * 1000;
+
+// Rolling 7-day historical event buffer
+const HISTORY_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const historicalEvents: ConflictEvent[] = [];
+const historicalEventIds = new Set<string>();
+
+function mergeIntoHistory(events: ConflictEvent[]) {
+  const cutoff = Date.now() - HISTORY_MAX_AGE;
+  const pruneIdx = historicalEvents.findIndex(e => new Date(e.timestamp).getTime() > cutoff);
+  if (pruneIdx > 0) historicalEvents.splice(0, pruneIdx);
+  for (const e of events) {
+    if (!historicalEventIds.has(e.id)) {
+      historicalEventIds.add(e.id);
+      historicalEvents.push(e);
+    }
+  }
+  historicalEvents.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+}
 
 async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   if (gdeltCache && Date.now() - gdeltCache.fetchedAt < GDELT_CACHE_TTL) {
@@ -910,6 +1027,7 @@ async function fetchGDELTConflictEvents(): Promise<ConflictEvent[]> {
   });
 
   gdeltCache = { data: deduped, fetchedAt: Date.now() };
+  mergeIntoHistory(deduped);
   console.log(`[EVENTS] ${deduped.length} real conflict events (alerts: ${events.filter(e => e.id.startsWith('alert_')).length}, thermal: ${events.filter(e => e.id.startsWith('thermal_')).length}, seismic: ${events.filter(e => e.id.startsWith('eq_')).length}, gdelt: ${events.filter(e => e.id.startsWith('gdelt_')).length})`);
   return deduped;
 }
@@ -2753,7 +2871,7 @@ export async function registerRoutes(
     });
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 5000));
-    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 6000));
+    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 2000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
@@ -2771,7 +2889,7 @@ export async function registerRoutes(
       const brief = await generateAIBriefLive(alerts, messages);
       send('ai-brief', brief);
     }, 60000));
-    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 30000));
+    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => send('x-feed', xPosts)), 5000));
     intervals.push(setInterval(() => fetchEarthquakes().then(eqs => send('earthquakes', eqs)), 5 * 60000));
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 15 * 60000));
     intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 15 * 60000));
@@ -2828,6 +2946,13 @@ export async function registerRoutes(
     });
     history.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     res.json(history.slice(0, 500));
+  });
+
+  app.get('/api/replay-data', (_req, res) => {
+    res.json({
+      events: historicalEvents,
+      alerts: alertHistory.slice(0, 500),
+    });
   });
 
   return httpServer;

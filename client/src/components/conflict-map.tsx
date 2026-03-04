@@ -788,9 +788,10 @@ interface ConflictMapProps {
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
   mapStyle?: string;
+  focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }
 
-export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE }: ConflictMapProps) {
+export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE, focusLocation }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const deckRef = useRef<Deck | null>(null);
@@ -818,6 +819,17 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
   const [measureCursor, setMeasureCursor] = useState<MeasurePoint | null>(null);
   const [arcTime, setArcTime] = useState(0);
   const arcAnimRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (focusLocation) {
+      setViewState(prev => ({
+        ...prev,
+        latitude: focusLocation.lat,
+        longitude: focusLocation.lng,
+        zoom: focusLocation.zoom ?? 8,
+      }));
+    }
+  }, [focusLocation]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
