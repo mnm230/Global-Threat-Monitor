@@ -265,3 +265,70 @@ export interface ThermalHotspot {
   acqTime: string;
   dayNight: 'D' | 'N';
 }
+
+export interface RedditPost {
+  id: string;
+  subreddit: string;
+  title: string;
+  selftext: string;
+  author: string;
+  score: number;
+  numComments: number;
+  url: string;
+  permalink: string;
+  timestamp: string;
+  flair?: string;
+  thumbnail?: string;
+}
+
+export interface SanctionMatch {
+  entityName: string;
+  matchedAgainst: string;
+  matchType: 'vessel' | 'aircraft' | 'entity';
+  listSource: 'OFAC_SDN' | 'EU_SANCTIONS' | 'UN_SANCTIONS';
+  confidence: number;
+  details: string;
+  sanctionId: string;
+  country?: string;
+  matchField: string;
+  timestamp: string;
+}
+
+export interface WeatherData {
+  id: string;
+  location: string;
+  lat: number;
+  lng: number;
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  windDirection: number;
+  windGust?: number;
+  visibility: number;
+  pressure: number;
+  cloudCover: number;
+  description: string;
+  icon: string;
+  condition: 'clear' | 'clouds' | 'rain' | 'storm' | 'snow' | 'fog' | 'dust' | 'haze';
+  operationalImpact: 'none' | 'low' | 'moderate' | 'high' | 'severe';
+  impactDetails: string;
+  timestamp: string;
+}
+
+export interface SatelliteImage {
+  id: string;
+  location: string;
+  lat: number;
+  lng: number;
+  source: 'sentinel2' | 'landsat' | 'modis' | 'viirs';
+  date: string;
+  resolution: string;
+  cloudCover: number;
+  thumbnailUrl: string;
+  fullUrl: string;
+  bands: string;
+  description: string;
+  changeDetected?: boolean;
+  changeType?: 'construction' | 'destruction' | 'military_activity' | 'fire' | 'flooding' | 'none';
+}

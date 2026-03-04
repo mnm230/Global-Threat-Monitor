@@ -12,7 +12,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, EarthquakeEvent, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -542,10 +542,6 @@ async function fetchXFeeds(): Promise<NewsItem[]> {
   return all;
 }
 
-function jitter(base: number, range: number): number {
-  return base + (Math.random() - 0.5) * range;
-}
-
 function randomPick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -725,7 +721,6 @@ async function fetchFreeNewsRSS(): Promise<NewsItem[]> {
 }
 
 async function generateNews(): Promise<NewsItem[]> {
-  const staticNews = generateStaticNews();
   try {
     const [xNews, newsApiItems, gnewsItems, mediastackItems, rssItems] = await Promise.all([
       fetchXFeeds().catch(() => [] as NewsItem[]),
@@ -737,19 +732,18 @@ async function generateNews(): Promise<NewsItem[]> {
 
     const liveItems = [...xNews, ...newsApiItems, ...gnewsItems, ...mediastackItems, ...rssItems];
 
-    if (liveItems.length > 0) {
-      const seen = new Set<string>();
-      const deduped = liveItems.filter(item => {
-        const key = item.title.toLowerCase().substring(0, 60);
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      return deduped.slice(0, 60);
-    }
-  } catch {}
-  return staticNews;
+    const seen = new Set<string>();
+    const deduped = liveItems.filter(item => {
+      const key = item.title.toLowerCase().substring(0, 60);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return deduped.slice(0, 60);
+  } catch {
+    return [];
+  }
 }
 
 const COMMODITY_META = [
