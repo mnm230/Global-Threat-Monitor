@@ -24,9 +24,7 @@ self.addEventListener('message', (event) => {
   }
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
-});
+self.addEventListener('fetch', () => {});
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
