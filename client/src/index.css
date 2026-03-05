@@ -193,23 +193,55 @@
 
 @layer utilities {
   .warroom-panel-surface {
-    background: hsl(225 20% 10%);
-    border: 1px solid hsl(225 16% 17% / 0.9);
-    box-shadow: inset 0 1px 0 hsl(225 30% 100% / 0.03), 0 0 0 0 transparent;
-    transition: box-shadow 0.2s ease;
+    background: hsl(225 18% 10% / 0.55);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    border: 1px solid hsl(225 20% 100% / 0.06);
+    box-shadow:
+      inset 0 1px 0 hsl(225 30% 100% / 0.04),
+      inset 0 0 0 0.5px hsl(225 20% 100% / 0.02),
+      0 2px 8px hsl(225 40% 4% / 0.3);
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
   }
 
   .warroom-panel-surface:focus-within {
-    box-shadow: inset 0 1px 0 hsl(225 30% 100% / 0.03), 0 0 0 1px hsl(36 100% 50% / 0.1);
+    border-color: hsl(36 100% 50% / 0.12);
+    box-shadow:
+      inset 0 1px 0 hsl(225 30% 100% / 0.04),
+      inset 0 0 0 0.5px hsl(225 20% 100% / 0.02),
+      0 2px 8px hsl(225 40% 4% / 0.3),
+      0 0 12px hsl(36 100% 50% / 0.06);
   }
 
   .warroom-grid-gap {
-    gap: 3px;
-    background: hsl(225 22% 5%);
+    gap: 1px;
+    background: hsl(225 20% 100% / 0.03);
   }
 
   .dark [data-testid="resizable-panels"] {
-    background: hsl(225 22% 6%);
+    background: hsl(225 22% 5% / 0.6);
+  }
+
+  .warroom-glass-panel {
+    background: hsl(225 18% 11% / 0.5);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid hsl(225 20% 100% / 0.06);
+    box-shadow:
+      inset 0 1px 0 hsl(225 30% 100% / 0.05),
+      0 4px 16px hsl(225 40% 4% / 0.4);
+  }
+
+  .warroom-glow-amber {
+    box-shadow: 0 0 20px hsl(36 100% 50% / 0.06), 0 0 4px hsl(36 100% 50% / 0.04);
+  }
+
+  .warroom-glow-cyan {
+    box-shadow: 0 0 20px hsl(190 100% 50% / 0.06), 0 0 4px hsl(190 100% 50% / 0.04);
+  }
+
+  .warroom-glow-red {
+    box-shadow: 0 0 20px hsl(0 80% 55% / 0.08), 0 0 4px hsl(0 80% 55% / 0.06);
   }
 
   /* Military aircraft row highlight */
@@ -410,8 +442,10 @@
 
   .warroom-mobile-tabs {
     display: flex;
-    background: hsl(225 22% 6%);
-    border-top: 1px solid hsl(225 16% 12%);
+    background: hsl(225 20% 7% / 0.8);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid hsl(225 20% 100% / 0.05);
     min-height: 56px;
   }
 
@@ -445,8 +479,10 @@
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
     padding: 3px 8px;
-    background: hsl(225 22% 6%);
-    border-bottom: 1px solid hsl(225 16% 12%);
+    background: hsl(225 18% 8% / 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsl(225 20% 100% / 0.04);
     min-height: 24px;
   }
 
@@ -460,7 +496,7 @@
     justify-content: center;
     gap: 5px;
     padding: 3px 0 1px;
-    background: hsl(225 22% 6%);
+    background: hsl(225 20% 7% / 0.6);
   }
 
   .warroom-mobile-swipe-dots .dot {
@@ -515,19 +551,22 @@
 
 /* react-grid-layout overrides */
 .react-grid-item.react-draggable-dragging {
-  opacity: 0.9;
+  opacity: 0.95;
   z-index: 100;
   box-shadow:
-    0 20px 60px rgba(0,0,0,0.8),
-    0 0 0 1px hsl(36 100% 50% / 0.3),
-    0 0 40px hsl(36 100% 50% / 0.08);
+    0 20px 60px rgba(0,0,0,0.6),
+    0 0 0 1px hsl(36 100% 50% / 0.2),
+    0 0 40px hsl(36 100% 50% / 0.06),
+    inset 0 1px 0 hsl(225 30% 100% / 0.06);
   cursor: grabbing !important;
+  border-radius: 4px;
 }
 .react-grid-item.react-grid-placeholder {
-  background: hsl(36 100% 50% / 0.06) !important;
-  border: 1px dashed hsl(36 100% 50% / 0.35) !important;
-  border-radius: 6px !important;
+  background: hsl(36 100% 50% / 0.04) !important;
+  border: 1px dashed hsl(36 100% 50% / 0.25) !important;
+  border-radius: 4px !important;
   opacity: 1 !important;
+  box-shadow: inset 0 0 20px hsl(36 100% 50% / 0.03) !important;
 }
 .react-resizable-handle {
   opacity: 0;
@@ -573,13 +612,15 @@
 }
 
 .warroom-bottom-sheet {
-  background: hsl(225 20% 11%);
-  border-top: 1px solid hsl(225 16% 16%);
+  background: hsl(225 18% 10% / 0.85);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-top: 1px solid hsl(225 20% 100% / 0.08);
   border-radius: 20px 20px 0 0;
   transform: translateY(100%);
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 hsl(225 30% 100% / 0.06);
 }
 
 .warroom-bottom-sheet--open {

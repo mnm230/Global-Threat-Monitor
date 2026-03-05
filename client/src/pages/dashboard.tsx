@@ -1072,7 +1072,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-5 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(225 22% 7%)'}}>
+    <div className="h-5 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(225 18% 8% / 0.6)'}}>
       <span className="text-[7px] text-foreground/15 font-mono uppercase tracking-[0.25em] mr-3 shrink-0 font-bold">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
@@ -1238,7 +1238,7 @@ function LiveClock() {
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-[8px] text-foreground/20 font-mono hidden md:inline tracking-wider font-medium">{dateStr}</span>
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(225 20% 11%)', border:'1px solid hsl(225 16% 15%)'}}>
+      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(225 18% 10% / 0.5)', border:'1px solid hsl(225 20% 100% / 0.06)', boxShadow:'0 0 8px hsl(36 100% 50% / 0.04)'}}>
         <span className="text-[11px] text-primary/80 font-mono font-bold tabular-nums tracking-[0.1em]">{formatted}</span>
         <span className="text-[7px] text-primary/30 font-mono font-bold tracking-[0.2em]">UTC</span>
       </div>
@@ -1253,15 +1253,15 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-white/[0.03]" style={{background:'hsl(225 20% 9.5%)'}} />;
+  if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(225 18% 8% / 0.5)'}} />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'linear-gradient(90deg, hsl(225 20% 9%) 0%, hsl(225 20% 9.5%) 50%, hsl(225 20% 9%) 100%)'}}>
-      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 20% 9%) 70%, transparent)'}}>
+    <div className="h-7 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(225 18% 8% / 0.65)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
+      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 18% 8% / 0.95) 60%, transparent)'}}>
         <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 20% 9%) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 18% 8% / 0.95) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((c, i) => (
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
@@ -1473,20 +1473,20 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/55 shrink-0">{icon}</span>
+    <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
+      <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(36 100% 50% / 0.2) 20%, hsl(36 100% 50% / 0.3) 50%, hsl(36 100% 50% / 0.2) 80%, transparent)'}} />
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 3px hsl(36 100% 50% / 0.2))'}}>{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] font-mono text-foreground/30 tabular-nums leading-none bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">
+        <span className="text-[9px] font-mono text-foreground/35 tabular-nums leading-none bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-emerald-500/[0.06] border border-emerald-500/[0.12]" style={{boxShadow:'0 0 8px hsl(152 80% 45% / 0.08)'}}>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 6px hsl(152 80% 45% / 0.5)'}} />
           <span className="text-[8px] uppercase tracking-widest text-emerald-400/60 font-mono font-bold">LIVE</span>
         </div>
       )}
@@ -1698,7 +1698,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
         </div>
       )}
       {selectedFlight && (
-        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 20% 11%))'}} data-testid="flight-detail-card">
+        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 18% 10% / 0.5))'}} data-testid="flight-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
             <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
@@ -2138,7 +2138,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
         <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
@@ -2445,8 +2445,8 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
         isMaximized={isMaximized}
       />
       {/* AI Natural Language Filter */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(225 20% 8%)'}}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 20% 10%)', border:'1px solid hsl(225 16% 14%)'}}>
+      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(225 18% 9% / 0.6)'}}>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 18% 9% / 0.5)', border:'1px solid hsl(225 20% 100% / 0.06)'}}>
           <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
           <input
             type="text"
@@ -2546,7 +2546,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
       )}
 
       {selectedShip && (
-        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(225 20% 11%))'}} data-testid="ship-detail-card">
+        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(225 18% 10% / 0.5))'}} data-testid="ship-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-blue-300" data-testid="text-ship-name">{selectedShip.name}</span>
             <button onClick={() => setSelectedShip(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="ship-close-detail">
@@ -3006,7 +3006,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       {hasActiveAlerts && (
         <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
           <div className="px-2 py-1.5">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 20% 10%)', border:'1px solid hsl(225 16% 14%)'}}>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 18% 9% / 0.5)', border:'1px solid hsl(225 20% 100% / 0.06)'}}>
               <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
               <input
                 type="text"
@@ -3755,7 +3755,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="panel-drag-handle h-7 px-2.5 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-7 px-2.5 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
         <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
@@ -3931,7 +3931,7 @@ function AlertMapPanel({
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <MapPin className="w-3 h-3 text-red-400/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -4017,7 +4017,7 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <Target className="w-3 h-3 text-primary/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -4117,11 +4117,11 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-5 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(225 22% 7%)'}}>
-      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(225 22% 7%) 60%, transparent)'}}>
+    <div className="h-5 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(225 18% 8% / 0.6)'}}>
+      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(225 18% 8% / 0.95) 50%, transparent)'}}>
         <span className="text-[7px] font-black tracking-[0.35em] text-primary/30 font-mono">NEWS</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(225 22% 7%) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(225 18% 8% / 0.95) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
@@ -4255,7 +4255,7 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
       {/* Panel header */}
-      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/50 font-mono">{t('X / OSINT FEED', 'مصادر استخباراتية')}</span>
@@ -4272,10 +4272,10 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
       </div>
 
       {/* Account selector rail */}
-      <div className="shrink-0 border-b border-white/[0.05] relative" style={{background:'hsl(225 22% 7%)'}}>
+      <div className="shrink-0 border-b border-white/[0.05] relative" style={{background:'hsl(225 18% 8% / 0.6)'}}>
         {/* Left fade + arrow */}
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to right, hsl(225 22% 7%) 60%, transparent)'}}>
+          <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to right, hsl(225 18% 8% / 0.8) 60%, transparent)'}}>
             <button
               className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
               onClick={() => scrollSelector('left')}
@@ -4330,7 +4330,7 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
         </div>
         {/* Right fade + arrow */}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to left, hsl(225 22% 7%) 60%, transparent)'}}>
+          <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to left, hsl(225 18% 8% / 0.8) 60%, transparent)'}}>
             <button
               className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
               onClick={() => scrollSelector('right')}
@@ -4431,7 +4431,7 @@ function AvichayFeedPanel({ posts, language, onClose, onMaximize, isMaximized }:
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-avichay">
-      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
         <div className="flex flex-col min-w-0">
@@ -4559,7 +4559,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
+      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
@@ -4969,7 +4969,7 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 200, background: 'hsl(225 22% 6%)' }}
+      style={{ width: 200, background: 'hsl(225 20% 7% / 0.7)', backdropFilter: 'blur(20px) saturate(1.3)', WebkitBackdropFilter: 'blur(20px) saturate(1.3)' }}
     >
       {/* PANELS section */}
       <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
@@ -5523,9 +5523,10 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 22% 6%)'}}>
+      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.05] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 20% 7% / 0.8)', backdropFilter:'blur(24px) saturate(1.5)', WebkitBackdropFilter:'blur(24px) saturate(1.5)'}}>
+        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(36 100% 50% / 0.1) 30%, hsl(36 100% 50% / 0.15) 50%, hsl(36 100% 50% / 0.1) 70%, transparent)'}} />
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} font-black tracking-[0.28em] text-primary font-mono select-none whitespace-nowrap`}>◈ WARROOM</span>
+          <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} font-black tracking-[0.28em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 6px hsl(36 100% 50% / 0.25))'}}>◈ WARROOM</span>
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
@@ -5752,7 +5753,7 @@ export default function Dashboard() {
                 />
               ))}
             </div>
-            <div className="shrink-0 border-t border-white/[0.07] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 22% 6%)' }} data-testid="mobile-tab-bar">
+            <div className="shrink-0 border-t border-white/[0.05] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} data-testid="mobile-tab-bar">
               {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -5828,12 +5829,12 @@ export default function Dashboard() {
             </div>
           </div>
         ) : isTablet ? (
-          <div className="grid grid-cols-2 gap-0.5 p-0.5 h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)' }}>
+          <div className="grid grid-cols-2 gap-px p-px h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)', background: 'hsl(225 20% 100% / 0.03)' }}>
             {allPanels.filter(id => visiblePanels[id]).map(id => (
               <div
                 key={id}
-                className={`border border-white/[0.04] bg-background overflow-hidden ${id === 'map' || id === 'alertmap' ? 'col-span-2' : ''}`}
-                style={{ minHeight: id === 'map' ? '280px' : '180px' }}
+                className={`overflow-hidden ${id === 'map' || id === 'alertmap' ? 'col-span-2' : ''}`}
+                style={{ minHeight: id === 'map' ? '280px' : '180px', background: 'hsl(225 18% 10% / 0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
               >
                 {renderPanel(id)}
               </div>
@@ -5858,8 +5859,8 @@ export default function Dashboard() {
             rowHeight={120}
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[2, 2]}
-            containerPadding={[2, 2]}
+            margin={[1, 1]}
+            containerPadding={[1, 1]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ minHeight: 400 }}
           >
@@ -5868,12 +5869,15 @@ export default function Dashboard() {
               return (
                 <div
                   key={id}
-                  className={`flex flex-col overflow-hidden border border-white/[0.08] cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-1 ring-red-500/40' : ''}`}
+                  className={`flex flex-col overflow-hidden cursor-grab active:cursor-grabbing rounded-[3px] ${hasAlertGlow ? '' : ''}`}
                   style={{
-                    background: 'hsl(225 20% 10%)',
+                    background: 'hsl(225 18% 10% / 0.55)',
+                    backdropFilter: 'blur(20px) saturate(1.4)',
+                    WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+                    border: '1px solid hsl(225 20% 100% / 0.06)',
                     boxShadow: hasAlertGlow
-                      ? '0 0 20px rgb(239 68 68 / 0.12), 0 0 0 1px hsl(225 16% 14%)'
-                      : '0 0 0 1px hsl(225 18% 9% / 0.5)',
+                      ? 'inset 0 1px 0 hsl(225 30% 100% / 0.04), 0 0 24px rgb(239 68 68 / 0.1), 0 0 0 1px hsl(0 80% 50% / 0.15)'
+                      : 'inset 0 1px 0 hsl(225 30% 100% / 0.04), 0 2px 12px hsl(225 40% 4% / 0.35)',
                   }}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
                 >
@@ -5892,7 +5896,8 @@ export default function Dashboard() {
       {!isMobile && <NewsTicker news={news} language={language} />}
 
       {!isMobile && (
-        <div className="h-7 border-t border-white/[0.04] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'linear-gradient(180deg, hsl(225 20% 9%) 0%, hsl(225 22% 7%) 100%)'}}>
+        <div className="h-7 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(225 20% 7% / 0.75)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)'}}>
+          <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(225 20% 100% / 0.04) 30%, hsl(225 20% 100% / 0.06) 50%, hsl(225 20% 100% / 0.04) 70%, transparent)'}} />
           <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
             <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
             <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
