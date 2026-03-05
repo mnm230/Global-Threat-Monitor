@@ -1476,6 +1476,30 @@ const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
   { id: 'ra56', city: 'Manama', cityHe: 'מנאמה', cityAr: 'المنامة', region: 'Capital Governorate', regionHe: 'מחוז הבירה', regionAr: 'محافظة العاصمة', country: 'Bahrain', countryCode: 'BH', countdown: 90, threatType: 'missiles', lat: 26.223, lng: 50.587 },
   // QATAR
   { id: 'ra57', city: 'Doha', cityHe: 'דוחא', cityAr: 'الدوحة', region: 'Ad Dawhah', regionHe: 'אד-דוחה', regionAr: 'الدوحة', country: 'Qatar', countryCode: 'QA', countdown: 120, threatType: 'missiles', lat: 25.286, lng: 51.534 },
+  // GAZA / PALESTINE
+  { id: 'ra58', city: 'Gaza', cityHe: 'עזה', cityAr: 'غزة', region: 'Gaza Strip', regionHe: 'רצועת עזה', regionAr: 'قطاع غزة', country: 'Palestine', countryCode: 'PS', countdown: 0, threatType: 'missiles', lat: 31.502, lng: 34.467 },
+  { id: 'ra59', city: 'Rafah', cityHe: 'רפיח', cityAr: 'رفح', region: 'Gaza Strip', regionHe: 'רצועת עזה', regionAr: 'قطاع غزة', country: 'Palestine', countryCode: 'PS', countdown: 0, threatType: 'missiles', lat: 31.297, lng: 34.255 },
+  { id: 'ra60', city: 'Khan Younis', cityHe: 'חאן יונס', cityAr: 'خان يونس', region: 'Gaza Strip', regionHe: 'רצועת עזה', regionAr: 'قطاع غزة', country: 'Palestine', countryCode: 'PS', countdown: 0, threatType: 'missiles', lat: 31.346, lng: 34.306 },
+  { id: 'ra61', city: 'Jabalia', cityHe: "ג'באליה", cityAr: 'جباليا', region: 'Gaza Strip', regionHe: 'רצועת עזה', regionAr: 'قطاع غزة', country: 'Palestine', countryCode: 'PS', countdown: 0, threatType: 'missiles', lat: 31.528, lng: 34.483 },
+  { id: 'ra62', city: 'Deir al-Balah', cityHe: 'דיר אל-בלח', cityAr: 'دير البلح', region: 'Gaza Strip', regionHe: 'רצועת עזה', regionAr: 'قطاع غزة', country: 'Palestine', countryCode: 'PS', countdown: 0, threatType: 'missiles', lat: 31.418, lng: 34.350 },
+  // YEMEN (expanded)
+  { id: 'ra63', city: 'Hodeidah', cityHe: 'חודיידה', cityAr: 'الحديدة', region: 'Hodeidah Governorate', regionHe: 'מחוז חודיידה', regionAr: 'محافظة الحديدة', country: 'Yemen', countryCode: 'YE', countdown: 30, threatType: 'missiles', lat: 14.798, lng: 42.954 },
+  { id: 'ra64', city: 'Taiz', cityHe: 'תעיז', cityAr: 'تعز', region: 'Taiz Governorate', regionHe: 'מחוז תעיז', regionAr: 'محافظة تعز', country: 'Yemen', countryCode: 'YE', countdown: 30, threatType: 'rockets', lat: 13.578, lng: 44.022 },
+  // IRAQ (expanded)
+  { id: 'ra65', city: 'Mosul', cityHe: 'מוסול', cityAr: 'الموصل', region: 'Nineveh', regionHe: 'נינוה', regionAr: 'نينوى', country: 'Iraq', countryCode: 'IQ', countdown: 60, threatType: 'rockets', lat: 36.340, lng: 43.130 },
+  { id: 'ra66', city: 'Kirkuk', cityHe: 'כרכוכ', cityAr: 'كركوك', region: 'Kirkuk', regionHe: 'כרכוכ', regionAr: 'كركوك', country: 'Iraq', countryCode: 'IQ', countdown: 45, threatType: 'rockets', lat: 35.468, lng: 44.392 },
+  { id: 'ra67', city: 'Fallujah', cityHe: 'פלוג\'ה', cityAr: 'الفلوجة', region: 'Anbar', regionHe: 'אנבר', regionAr: 'الأنبار', country: 'Iraq', countryCode: 'IQ', countdown: 30, threatType: 'rockets', lat: 33.353, lng: 43.784 },
+  // SYRIA (expanded)
+  { id: 'ra68', city: 'Idlib', cityHe: 'אידליב', cityAr: 'إدلب', region: 'Idlib Governorate', regionHe: 'מחוז אידליב', regionAr: 'محافظة إدلب', country: 'Syria', countryCode: 'SY', countdown: 30, threatType: 'missiles', lat: 35.931, lng: 36.634 },
+  { id: 'ra69', city: 'Raqqa', cityHe: 'רקה', cityAr: 'الرقة', region: 'Raqqa Governorate', regionHe: 'מחוז רקה', regionAr: 'محافظة الرقة', country: 'Syria', countryCode: 'SY', countdown: 30, threatType: 'uav_intrusion', lat: 35.952, lng: 39.013 },
+  { id: 'ra70', city: 'Daraa', cityHe: 'דרעא', cityAr: 'درعا', region: 'Daraa Governorate', regionHe: 'מחוז דרעא', regionAr: 'محافظة درعا', country: 'Syria', countryCode: 'SY', countdown: 30, threatType: 'rockets', lat: 32.625, lng: 36.106 },
+  // IRAN (expanded)
+  { id: 'ra71', city: 'Natanz', cityHe: 'נתנז', cityAr: 'نطنز', region: 'Isfahan Province', regionHe: 'מחוז אספהאן', regionAr: 'محافظة أصفهان', country: 'Iran', countryCode: 'IR', countdown: 120, threatType: 'missiles', lat: 33.513, lng: 51.916 },
+  { id: 'ra72', city: 'Parchin', cityHe: 'פרצ\'ין', cityAr: 'بارچين', region: 'Tehran Province', regionHe: 'מחוז טהרן', regionAr: 'محافظة طهران', country: 'Iran', countryCode: 'IR', countdown: 120, threatType: 'missiles', lat: 35.522, lng: 51.773 },
+  // SOUTH LEBANON (expanded villages)
+  { id: 'ra73', city: 'Dahiyeh', cityHe: 'דאחייה', cityAr: 'الضاحية', region: 'Beirut Southern Suburbs', regionHe: 'פרברי ביירות', regionAr: 'الضاحية الجنوبية', country: 'Lebanon', countryCode: 'LB', countdown: 15, threatType: 'missiles', lat: 33.852, lng: 35.492 },
+  { id: 'ra74', city: 'Maroun al-Ras', cityHe: 'מארון אל-ראס', cityAr: 'مارون الراس', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.103, lng: 35.460 },
+  { id: 'ra75', city: 'Aitaroun', cityHe: 'עיתרון', cityAr: 'عيترون', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.103, lng: 35.425 },
 ];
 
 const TZEVAADOM_API_URL = 'https://api.tzevaadom.co.il/notifications';
@@ -1957,6 +1981,22 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
     { pattern: /(?:تسلل|اختراق)\s*(?:طائر|مسيّر).*(?:في|إلى|على|ب)\s*(.+?)(?:\n|$)/i, threatType: 'uav' as const },
     { pattern: /Launches detected towards\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
     { pattern: /خشية تسلل\s*(?:طائرات? مسيّرة)/i, threatType: 'uav' as const },
+    { pattern: /(?:airstrike|air\s*strike)[s]?\s+(?:on|in|at|hit|target(?:s|ed|ing)?)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:struck|bombed|bombarded|shelled|targeted)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /explosion[s]?\s+(?:reported\s+)?(?:in|at|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:Houthi|Ansar\s*Allah)\s+(?:attack|strike|launch|fire)[s]?\s+(?:on|at|towards|targeting)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:missile|rocket|drone)\s+(?:strike|attack|hit|impact|intercept(?:ed|ion)?)\s+(?:in|on|at|near|over)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:IDF|Israeli?\s+(?:forces?|military|air\s*force))\s+(?:strike[s]?|attack[s]?|hit[s]?|bomb(?:s|ed)?|target(?:s|ed)?)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /غارة\s+(?:جوية\s+)?(?:إسرائيلية\s+)?(?:على|في|ب)\s*(.+?)(?:\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /قصف\s+(?:مدفعي|صاروخي|جوي)?\s*(?:على|في|ب|يستهدف)\s*(.+?)(?:\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /استهداف\s+(?:موقع|منطقة|مدينة|بلدة)?\s*(.+?)(?:\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /انفجار(?:ات)?\s+(?:في|ب)\s*(.+?)(?:\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:BREAKING|URGENT)\s*[:\|]?\s*(?:Strike|Attack|Explosion|Missile|Rocket|Drone|Airstrike)\s+(?:on|in|at|hits?|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:militia|PMF|IRGC|proxy)\s+(?:attack|strike|launch|fire)[s]?\s+(?:on|at|towards)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:car\s*bomb|VBIED|IED|suicide\s*(?:bomb|attack))\s+(?:in|at|near|detonated)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:mortar|artillery)\s+(?:fire|shelling|barrage|attack)\s+(?:on|in|at|hits?|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /intercept(?:ed|ion)\s+(?:over|above|near|in)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:US|American|coalition)\s+(?:strike[s]?|raid[s]?|attack[s]?|bomb(?:s|ed|ing)?)\s+(?:on|in|at|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
   ];
 
   const alerts: RedAlert[] = [];
@@ -2014,6 +2054,22 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
             'معالوت ترشيحا': "Ma'alot-Tarshiha",
             'جديدة المكر': 'Judeida-Makr', 'أبو سنان': 'Abu Snan',
             'دير الأسد': 'Deir al-Asad', 'كفر مندا': 'Kafr Manda',
+            'غزة': 'Gaza', 'رفح': 'Rafah', 'خان يونس': 'Khan Younis',
+            'جباليا': 'Jabalia', 'دير البلح': 'Deir al-Balah', 'بيت لاهيا': 'Beit Lahia',
+            'الضاحية': 'Dahiyeh', 'الضاحية الجنوبية': 'Southern Suburbs',
+            'مارون الراس': 'Maroun al-Ras', 'عيترون': 'Aitaroun', 'عيتا الشعب': 'Aita al-Shaab',
+            'كفركلا': 'Kafr Kila', 'بليدا': 'Blida', 'ميس الجبل': 'Mais al-Jabal',
+            'الموصل': 'Mosul', 'كركوك': 'Kirkuk', 'تكريت': 'Tikrit',
+            'الأنبار': 'Anbar', 'الرمادي': 'Ramadi', 'الفلوجة': 'Fallujah',
+            'اللاذقية': 'Latakia', 'حمص': 'Homs', 'ادلب': 'Idlib', 'إدلب': 'Idlib',
+            'دير الزور': 'Deir ez-Zor', 'الرقة': 'Raqqa', 'القامشلي': 'Qamishli',
+            'الحسكة': 'Al-Hasakah', 'درعا': 'Daraa', 'السويداء': 'Al-Suwayda',
+            'مأرب': 'Marib', 'الحديدة': 'Hodeidah', 'تعز': 'Taiz',
+            'عدن': 'Aden', 'صنعاء': 'Sanaa', 'المخا': 'Mocha',
+            'أصفهان': 'Isfahan', 'شيراز': 'Shiraz', 'كرمانشاه': 'Kermanshah',
+            'تبريز': 'Tabriz', 'بوشهر': 'Bushehr', 'بندر عباس': 'Bandar Abbas',
+            'أبو ظبي': 'Abu Dhabi', 'دبي': 'Dubai', 'عمان': 'Amman',
+            'العقبة': 'Aqaba', 'إربد': 'Irbid',
           };
 
           const arKey = location.trim();
@@ -3254,12 +3310,24 @@ export async function registerRoutes(
     // --- South Lebanon village-level coverage ---
     'southlebanon',      // South Lebanon ground reports (AR)
     'nabatiehnews',      // Nabatieh governorate — IDF ground axis (AR)
+    // --- Yemen / Houthi / Red Sea ---
     'Yemen_Press',       // Regional conflict updates (AR)
+    'YemenUpdate',       // Yemen live updates (EN/AR)
+    'AlMasiraaTV',       // Al-Masirah TV — Houthi-aligned, Red Sea attacks (AR)
+    // --- Gaza / Palestine ---
+    'GazaNewsPlus',      // Gaza frontline reports (AR/EN)
+    'PalestineChron',    // Palestine Chronicle — conflict updates (EN)
+    // --- Iraq / Syria / Iran ---
+    'SyrianObservatry',  // Syrian Observatory for Human Rights (EN/AR)
+    'IraqLiveUpdate',    // Iraq live conflict reports (AR/EN)
+    // --- Broader ME OSINT ---
+    'SouthFrontEng',     // South Front — military analysis ME/global (EN)
+    'MilitaryOSINT',     // Military OSINT aggregator (EN)
     // --- Priority fast-update channels (also in PRIORITY_TELEGRAM_CHANNELS below) ---
     'wfwitness',         // War footage witness — live ground video/reports (EN)
   ];
 
-  // Channels polled on the fast 2-second cycle — highest update frequency
+  // Channels polled on the fast 500ms cycle — highest update frequency
   const PRIORITY_TELEGRAM_CHANNELS = [
     'wfwitness',         // fastest live updates
     'lebaborim',         // Lebanon war room
@@ -3271,6 +3339,10 @@ export async function registerRoutes(
     'ELINTNews',         // ELINT / air+ground activity
     'OSINTdefender',     // fast OSINT
     'clashreport',       // clash reports
+    'QudsN',             // Palestine / Lebanon fast
+    'AlMasiraaTV',       // Houthi attacks / Red Sea
+    'CIG_telegram',      // Conflict Intel Group
+    'Middle_East_Spectator', // ME conflict fast
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
@@ -3905,7 +3977,7 @@ export async function registerRoutes(
       });
     }, 8000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
-    // Priority fast-lane: refresh hot channels every 2s and push to client immediately
+    // Priority fast-lane: refresh hot channels every 500ms and push to client immediately
     intervals.push(setInterval(() => {
       fetchPriorityTelegram().then(tgMsgs => {
         latestTgMsgs = tgMsgs;
@@ -3913,7 +3985,7 @@ export async function registerRoutes(
         const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
         send('breaking-news', breaking);
       }).catch(() => {});
-    }, 2000));
+    }, 500));
     intervals.push(setInterval(() => {
       fetchLiveTelegram().then(tgMsgs => {
         latestTgMsgs = tgMsgs;

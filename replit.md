@@ -23,7 +23,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Data Handling:** Shared TypeScript types (`shared/schema.ts`) for consistency.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts with visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data from `adsb.lol` with auto-classification and detailed flight info. Route lookup via `api.adsbdb.com/v0/callsign/{callsign}` (primary) and `hexdb.io/api/v1/route/iata/{callsign}` (fallback), both free/no-key. Server-side cache with 10-minute TTL. Shows origin→destination airports + airline name in flight detail cards.
-- **Telegram OSINT:** Scrapes public Telegram channels with server-side caching and filtering.
+- **Telegram OSINT:** Scrapes 40+ public Telegram channels with server-side caching and filtering. Priority channels (14) polled every 500ms for near-real-time updates. Full channel list polled every 15s. Covers Israel, Lebanon (ground ops, Hezbollah), Yemen/Houthi/Red Sea, Gaza/Palestine, Iraq, Syria, Iran, and global OSINT trackers.
 - **AI Intelligence:** AI world brief panel with risk assessment, key developments, and forecasting.
 - **Multi-LLM Intelligence Engine:** Runs OpenAI GPT-4.1, Anthropic Claude Sonnet 4-6, Google Gemini 2.5 Flash, and xAI Grok-3 in parallel via OpenRouter for threat assessments, providing independent and consensus risk levels. Anthropic Claude is the primary model for conflict-content AI tasks (batch classification, AI briefs, deductions, cyber extraction) to avoid Azure OpenAI content filtering on military/conflict topics. OpenAI is still used for the multi-LLM parallel assessment where Anthropic/Gemini/Grok provide fallback coverage.
 - **Persistence:** User settings, panel visibility, and layout presets stored in `localStorage`.
@@ -39,7 +39,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Interactive Elements:** Radar Panel Click-to-Detail (flights/ships), Flight Click-to-Pan.
 - **Sound Improvements:** Distinct synthesized tones per threat type with volume control.
 
-**SSE Intervals:** commodities 15s, ADS-B 10s, red-alerts 3s, GDELT 15s, news 15s, telegram 15s, AI brief 10s, X feed 60s, thermal 10s, cyber 10s, classified 10s, analytics 10s.
+**SSE Intervals:** commodities 15s, ADS-B 10s, red-alerts 3s, GDELT 15s, news 15s, priority telegram 500ms, full telegram 15s, AI brief 10s, X feed 60s, thermal 10s, cyber 10s, classified 10s, analytics 10s.
 **Cache TTLs:** All caches ≤10s with specific longer TTLs for X (120s) and OSINT_RSS (60s). Global cache flush every 15 minutes.
 
 ## External Dependencies
@@ -51,5 +51,5 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Mapping:** CARTO (basemap), deck.gl, MapLibre GL
 - **Icons:** react-icons
 - **UI Components:** shadcn/ui, radix-ui
-- **Telegram:** `t.me/s/` (for public channel scraping) — 15 channels: CIG_telegram, IntelCrab, GeoConfirmed, sentaborim, OSINTdefender, AviationIntel, rnintel, ELINTNews, BNONewsRoom, FirstSquawk, Middle_East_Spectator, interbellumnews, WarMonitor3, claboriau, lebaborim, lebanonnews2
+- **Telegram:** `t.me/s/` (for public channel scraping) — 38 channels across all ME theaters. Priority fast-lane (14 channels at 500ms): wfwitness, lebaborim, bintjbeilnews, almanarnews, AlAhedNews, BNONewsRoom, GeoConfirmed, ELINTNews, OSINTdefender, clashreport, QudsN, AlMasiraaTV, CIG_telegram, Middle_East_Spectator. Full list (38 channels at 15s) adds: Yemen_Press, YemenUpdate, GazaNewsPlus, PalestineChron, SyrianObservatry, IraqLiveUpdate, SouthFrontEng, MilitaryOSINT, and more.
 - **YouTube:** YouTube API (for embedding live streams)
