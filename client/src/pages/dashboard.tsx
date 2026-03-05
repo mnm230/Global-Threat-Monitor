@@ -3,6 +3,7 @@ import GridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 import type { LayoutItem as GridItemLayout, Layout as GridLayout2 } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1768,24 +1769,211 @@ const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; dot: string;
   government:   { color: 'text-sky-300',     bg: 'bg-sky-950/50 border-sky-400/40',       dot: 'bg-sky-400',     label: 'GOV' },
 };
 
-// --- ADS-B Radar helpers ---
-const RADAR_BOUNDS = { minLat: 24, maxLat: 38, minLng: 25, maxLng: 62 };
-const RADAR_VB_W = 740;
-const RADAR_VB_H = 280;
-const RADAR_CITIES = [
-  { name: 'TLV', lat: 32.0, lng: 34.8 }, { name: 'BEY', lat: 33.9, lng: 35.5 },
-  { name: 'AMM', lat: 31.9, lng: 35.9 }, { name: 'DAM', lat: 33.5, lng: 36.3 },
-  { name: 'BGW', lat: 33.3, lng: 44.4 }, { name: 'THR', lat: 35.7, lng: 51.4 },
-  { name: 'RUH', lat: 24.7, lng: 46.7 }, { name: 'DXB', lat: 25.3, lng: 55.4 },
-  { name: 'CAI', lat: 30.1, lng: 31.4 }, { name: 'GAZ', lat: 31.5, lng: 34.5 },
-  { name: 'KWI', lat: 29.2, lng: 47.9 }, { name: 'MCT', lat: 23.6, lng: 58.6 },
-];
-const RADAR_PLANE_COLORS: Record<string, string> = {
+
+const ADSB_PLANE_COLORS: Record<string, string> = {
   military: '#f87171', surveillance: '#22d3ee', government: '#38bdf8',
   commercial: '#4ade80', cargo: '#fbbf24', private: '#c4b5fd',
 };
-function radarX(lng: number) { return ((lng - RADAR_BOUNDS.minLng) / (RADAR_BOUNDS.maxLng - RADAR_BOUNDS.minLng)) * RADAR_VB_W; }
-function radarY(lat: number) { return ((RADAR_BOUNDS.maxLat - lat) / (RADAR_BOUNDS.maxLat - RADAR_BOUNDS.minLat)) * RADAR_VB_H; }
+
+function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, onHover }: {
+  flights: AdsbFlight[];
+  interpPos: Map<string, { lat: number; lng: number }>;
+  selectedFlight: AdsbFlight | null;
+  hoveredId: string | null;
+  onSelect: (f: AdsbFlight | null) => void;
+  onHover: (id: string | null) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mapRef = useRef<any>(null);
+  const animRef = useRef<number>(0);
+  const flightsRef = useRef(flights);
+  const interpPosRef = useRef(interpPos);
+  const selectedRef = useRef(selectedFlight);
+  const hoveredRef = useRef(hoveredId);
+
+  useEffect(() => { flightsRef.current = flights; }, [flights]);
+  useEffect(() => { interpPosRef.current = interpPos; }, [interpPos]);
+  useEffect(() => { selectedRef.current = selectedFlight; }, [selectedFlight]);
+  useEffect(() => { hoveredRef.current = hoveredId; }, [hoveredId]);
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+    let map: any;
+    import('maplibre-gl').then(({ Map: MLMap }) => {
+      if (!containerRef.current) return;
+      map = new MLMap({
+        container: containerRef.current,
+        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        center: [44, 30],
+        zoom: 4,
+        minZoom: 2,
+        maxZoom: 14,
+        attributionControl: false,
+        pitchWithRotate: false,
+      });
+      mapRef.current = map;
+
+      const startDraw = () => {
+        const draw = () => {
+          const canvas = canvasRef.current;
+          if (!canvas || !mapRef.current) return;
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+          }
+          const ctx = canvas.getContext('2d')!;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, rect.width, rect.height);
+
+          const fls = flightsRef.current;
+          const ipos = interpPosRef.current;
+          const sel = selectedRef.current;
+          const hov = hoveredRef.current;
+
+          for (const f of fls) {
+            const pos = ipos.get(f.id) || { lat: f.lat, lng: f.lng };
+            if (!pos.lat || !pos.lng) continue;
+            const pt = mapRef.current.project([pos.lng, pos.lat]);
+            const x = pt.x; const y = pt.y;
+            if (x < -30 || x > rect.width + 30 || y < -30 || y > rect.height + 30) continue;
+
+            const color = ADSB_PLANE_COLORS[f.type] || '#9ca3af';
+            const isSel = sel?.id === f.id;
+            const isHov = hov === f.id;
+            const isAlert = f.flagged && (f.squawk === '7700' || f.squawk === '7500');
+            const headingRad = (f.heading * Math.PI) / 180;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(headingRad);
+
+            // Pulse ring for military/surveillance
+            if (f.type === 'military' || f.type === 'surveillance' || f.flagged) {
+              ctx.beginPath();
+              ctx.arc(0, 0, 14, 0, Math.PI * 2);
+              ctx.strokeStyle = isAlert ? '#ef4444' : color;
+              ctx.lineWidth = 0.8;
+              ctx.globalAlpha = 0.3;
+              ctx.stroke();
+              ctx.globalAlpha = 1;
+            }
+
+            // Selection/hover ring
+            if (isSel || isHov) {
+              ctx.beginPath();
+              ctx.arc(0, 0, 18, 0, Math.PI * 2);
+              ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+            }
+
+            // Plane body
+            ctx.beginPath();
+            ctx.moveTo(0, -10);      // nose
+            ctx.lineTo(6, 7);        // right rear
+            ctx.lineTo(0, 2.5);      // tail notch
+            ctx.lineTo(-6, 7);       // left rear
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.globalAlpha = isSel || isHov ? 1 : 0.9;
+            ctx.fill();
+            if (isAlert) {
+              ctx.strokeStyle = '#ef4444';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // Labels (drawn in screen space)
+            ctx.globalAlpha = 1;
+            if (isSel || isHov || f.type === 'military' || f.type === 'surveillance') {
+              ctx.font = 'bold 10px "JetBrains Mono", monospace';
+              ctx.fillStyle = color;
+              ctx.shadowColor = 'rgba(0,0,0,0.8)';
+              ctx.shadowBlur = 3;
+              ctx.fillText(f.callsign, x + 13, y - 4);
+            }
+            if (isSel || isHov) {
+              ctx.font = '9px "JetBrains Mono", monospace';
+              ctx.fillStyle = 'rgba(255,255,255,0.65)';
+              const alt = f.altitude > 0 ? `${Math.round(f.altitude / 100) * 100}ft` : 'GND';
+              ctx.fillText(`${alt}  ${f.groundSpeed}kt`, x + 13, y + 9);
+            }
+            ctx.shadowBlur = 0;
+          }
+          animRef.current = requestAnimationFrame(draw);
+        };
+        animRef.current = requestAnimationFrame(draw);
+      };
+
+      // Trigger canvas draw when map is ready or moves
+      map.on('load', startDraw);
+      map.on('move', () => {}); // ensures map stays interactive
+    });
+
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      if (map) { map.remove(); mapRef.current = null; }
+    };
+  }, []);
+
+  const getFlightAtPoint = (clientX: number, clientY: number, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+    if (!mapRef.current) return null;
+    let closest: AdsbFlight | null = null;
+    let minDist = 18;
+    for (const f of flightsRef.current) {
+      const pos = interpPosRef.current.get(f.id) || { lat: f.lat, lng: f.lng };
+      if (!pos.lat || !pos.lng) continue;
+      const pt = mapRef.current.project([pos.lng, pos.lat]);
+      const d = Math.hypot(pt.x - mx, pt.y - my);
+      if (d < minDist) { minDist = d; closest = f; }
+    }
+    return closest;
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const f = getFlightAtPoint(e.clientX, e.clientY, e.currentTarget);
+    onSelect(f?.id === selectedRef.current?.id ? null : f);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const f = getFlightAtPoint(e.clientX, e.clientY, e.currentTarget);
+    onHover(f?.id ?? null);
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="absolute inset-0" />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'all', cursor: 'crosshair' }}
+        onClick={handleClick}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => onHover(null)}
+      />
+      {/* Legend overlay */}
+      <div className="absolute bottom-2 left-2 flex gap-2 pointer-events-none">
+        {(['military','surveillance','commercial','cargo'] as const).map(t => (
+          <div key={t} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold" style={{ background: 'rgba(0,0,0,0.55)', color: ADSB_PLANE_COLORS[t] }}>
+            <span style={{ width: 6, height: 6, display: 'inline-block', borderRadius: 1, background: ADSB_PLANE_COLORS[t], opacity: 0.8 }} />
+            {t === 'military' ? 'MIL' : t === 'surveillance' ? 'ISR' : t === 'commercial' ? 'CIV' : 'CGO'}
+          </div>
+        ))}
+      </div>
+      <div className="absolute top-2 left-2 text-[8px] font-mono text-white/25 pointer-events-none" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+        ME AIRSPACE · adsb.lol
+      </div>
+    </div>
+  );
+}
 
 function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
   const [filter, setFilter] = useState<string>('all');
@@ -1805,7 +1993,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
     if (view !== 'radar') return;
     const animate = () => {
       const { flights, time } = lastDataRef.current;
-      const deltaT = Math.min((Date.now() - time) / 1000, 20);
+      const deltaT = Math.min((Date.now() - time) / 1000, 30);
       const next = new Map<string, { lat: number; lng: number }>();
       for (const f of flights) {
         if (f.groundSpeed > 10 && f.lat !== 0 && f.lng !== 0) {
@@ -1815,7 +2003,8 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
           const dLat = (speedMs * deltaT * Math.cos(hRad)) / R * (180 / Math.PI);
           const dLng = (speedMs * deltaT * Math.sin(hRad)) / (R * Math.cos(f.lat * Math.PI / 180)) * (180 / Math.PI);
           const pLat = f.lat + dLat; const pLng = f.lng + dLng;
-          next.set(f.id, (pLat >= RADAR_BOUNDS.minLat && pLat <= RADAR_BOUNDS.maxLat && pLng >= RADAR_BOUNDS.minLng && pLng <= RADAR_BOUNDS.maxLng)
+          // Keep within reasonable world bounds
+          next.set(f.id, (pLat > -80 && pLat < 80 && pLng > -180 && pLng < 180)
             ? { lat: pLat, lng: pLng } : { lat: f.lat, lng: f.lng });
         } else {
           next.set(f.id, { lat: f.lat, lng: f.lng });
@@ -1863,7 +2052,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
         <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">{adsbFlights.length}</span>
         {/* View toggle */}
         <div className="flex items-center gap-0.5 ml-1 bg-white/[0.04] rounded border border-white/[0.07] p-0.5">
-          <button onClick={() => setView('radar')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'radar' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>RADAR</button>
+          <button onClick={() => setView('radar')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'radar' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>MAP</button>
           <button onClick={() => setView('list')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'list' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>LIST</button>
         </div>
         <div className="flex-1" />
@@ -1901,7 +2090,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
 
       {/* ── RADAR VIEW ── */}
       {view === 'radar' && (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -1910,66 +2099,16 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
               </div>
             </div>
           ) : (
-            <svg viewBox={`0 0 ${RADAR_VB_W} ${RADAR_VB_H}`} className="w-full flex-1" style={{background:'hsl(215 40% 3.5%)'}} preserveAspectRatio="xMidYMid meet">
-              {/* Grid lines */}
-              {[25,30,35].map(lat => <line key={`lat${lat}`} x1={0} y1={radarY(lat)} x2={RADAR_VB_W} y2={radarY(lat)} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>)}
-              {[30,35,40,45,50,55,60].map(lng => <line key={`lng${lng}`} x1={radarX(lng)} y1={0} x2={radarX(lng)} y2={RADAR_VB_H} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>)}
-              {/* City markers */}
-              {RADAR_CITIES.map(c => (
-                <g key={c.name}>
-                  <circle cx={radarX(c.lng)} cy={radarY(c.lat)} r="1.5" fill="rgba(255,255,255,0.18)" />
-                  <text x={radarX(c.lng)+3} y={radarY(c.lat)-2} fontSize="7" fill="rgba(255,255,255,0.22)" fontFamily="monospace">{c.name}</text>
-                </g>
-              ))}
-              {/* Aircraft */}
-              {sorted.map(f => {
-                const pos = interpPos.get(f.id) || { lat: f.lat, lng: f.lng };
-                const x = radarX(pos.lng); const y = radarY(pos.lat);
-                if (x < 0 || x > RADAR_VB_W || y < 0 || y > RADAR_VB_H) return null;
-                const color = RADAR_PLANE_COLORS[f.type] || '#9ca3af';
-                const isSel = selectedFlight?.id === f.id;
-                const isHov = hoveredId === f.id;
-                return (
-                  <g key={f.id} style={{cursor:'pointer'}}
-                    onClick={() => setSelectedFlight(isSel ? null : f)}
-                    onMouseEnter={() => setHoveredId(f.id)}
-                    onMouseLeave={() => setHoveredId(null)}>
-                    {/* Pulse ring for military/flagged */}
-                    {(f.type === 'military' || f.type === 'surveillance' || f.flagged) && (
-                      <circle cx={x} cy={y} r="9" fill="none" stroke={f.flagged && (f.squawk==='7700'||f.squawk==='7500') ? '#ef4444' : color} strokeWidth="0.6" opacity="0.35"/>
-                    )}
-                    {(isSel || isHov) && <circle cx={x} cy={y} r="10" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.7"/>}
-                    {/* Plane icon: arrow shape rotated to heading */}
-                    <polygon
-                      points={`${x},${y-6} ${x+3.5},${y+4} ${x},${y+1.5} ${x-3.5},${y+4}`}
-                      fill={color}
-                      opacity={isSel || isHov ? 1 : 0.85}
-                      transform={`rotate(${f.heading},${x},${y})`}
-                    />
-                    {/* Callsign label — always show for mil/isr, hover for others */}
-                    {(isSel || isHov || f.type === 'military' || f.type === 'surveillance') && (
-                      <text x={x+8} y={y-3} fontSize="8" fill={color} fontFamily="monospace" fontWeight="bold" opacity="0.9">{f.callsign}</text>
-                    )}
-                    {/* Alt/speed on select or hover */}
-                    {(isSel || isHov) && (
-                      <text x={x+8} y={y+6} fontSize="7" fill="rgba(255,255,255,0.5)" fontFamily="monospace">
-                        {f.altitude > 0 ? `${Math.round(f.altitude/100)*100}ft` : 'GND'} {f.groundSpeed}kt
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
-              {/* Legend */}
-              <text x="4" y="10" fontSize="7" fill="rgba(255,255,255,0.25)" fontFamily="monospace">ME AIRSPACE · adsb.lol</text>
-              {(['military','surveillance','commercial','cargo'] as const).map((t, i) => (
-                <g key={t} transform={`translate(${RADAR_VB_W-240+i*60},6)`}>
-                  <rect width="52" height="10" rx="1.5" fill={RADAR_PLANE_COLORS[t]} opacity="0.12"/>
-                  <text x="4" y="7.5" fontSize="6.5" fill={RADAR_PLANE_COLORS[t]} fontFamily="monospace" fontWeight="bold">
-                    {t === 'military' ? 'MIL' : t === 'surveillance' ? 'ISR' : t === 'commercial' ? 'CIV' : 'CGO'}
-                  </text>
-                </g>
-              ))}
-            </svg>
+            <div className="flex-1 min-h-0 relative">
+              <AdsbMapView
+                flights={sorted}
+                interpPos={interpPos}
+                selectedFlight={selectedFlight}
+                hoveredId={hoveredId}
+                onSelect={setSelectedFlight}
+                onHover={setHoveredId}
+              />
+            </div>
           )}
           {/* Selected flight detail strip */}
           {selectedFlight && (
@@ -4949,11 +5088,17 @@ export default function Dashboard() {
       const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v2') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
-        return saved.map((item: GridItemLayout) => {
+        const merged = saved.map((item: GridItemLayout) => {
           const def = defaults.get(item.i);
           if (def) return { ...item, minW: def.minW, minH: def.minH };
           return item;
         });
+        // Add any new panels from DEFAULT_GRID_LAYOUT not present in saved layout
+        const savedIds = new Set(saved.map((item: GridItemLayout) => item.i));
+        for (const def of DEFAULT_GRID_LAYOUT) {
+          if (!savedIds.has(def.i)) merged.push(def);
+        }
+        return merged;
       }
     } catch {}
     return DEFAULT_GRID_LAYOUT;

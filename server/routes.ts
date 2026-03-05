@@ -1790,10 +1790,15 @@ const TZEVAADOM_HISTORY_URL = 'https://api.tzevaadom.co.il/alerts-history';
 
 async function fetchFromTzevaadom(): Promise<RedAlert[]> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4000);
+  const timeout = setTimeout(() => controller.abort(), 5000);
   const resp = await fetch(TZEVAADOM_API_URL, {
     signal: controller.signal,
-    headers: { 'Accept': 'application/json' },
+    headers: {
+      'Accept': 'application/json',
+      'Referer': 'https://www.tzevaadom.co.il/',
+      'Origin': 'https://www.tzevaadom.co.il',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    },
   });
   clearTimeout(timeout);
   if (!resp.ok) return [];
@@ -1830,11 +1835,12 @@ async function fetchTzevaadomHistory(): Promise<RedAlert[]> {
   if (!Array.isArray(raw) || raw.length === 0) return [];
   const alerts: RedAlert[] = [];
   const now = Date.now();
+  const SIX_HOURS = 6 * 3600000;
   const recentGroups = raw.filter((g: any) => {
     if (!g.alerts || g.alerts.length === 0) return false;
     const groupTime = g.alerts[0].time * 1000;
-    return (now - groupTime) < 3600000;
-  }).slice(0, 10);
+    return (now - groupTime) < SIX_HOURS;
+  }).slice(0, 30);
   for (const group of recentGroups) {
     for (const item of group.alerts) {
       if (item.isDrill) continue;
@@ -1860,26 +1866,41 @@ async function fetchFromOrefDirect(): Promise<RedAlert[]> {
   const resp = await fetch(OREF_API_URL, {
     signal: controller.signal,
     headers: {
-      'Referer': 'https://www.oref.org.il/11226-he/pakar.aspx',
+      'Referer': 'https://www.oref.org.il/',
       'X-Requested-With': 'XMLHttpRequest',
       'Accept': 'application/json, text/plain, */*',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       'Pragma': 'no-cache',
-      'Cache-Control': 'max-age=0',
+      'Cache-Control': 'no-cache',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'same-origin',
     },
   });
   clearTimeout(timeout);
   if (!resp.ok) return [];
   const text = await resp.text();
-  if (!text || text.trim() === '' || text.trim() === '[]') return [];
-  const raw = JSON.parse(text);
-  if (!Array.isArray(raw)) return [];
+  const trimmed = text.trim();
+  // OREF returns empty/whitespace/\r\n when no active alerts
+  if (!trimmed || trimmed === '' || trimmed === '\r\n' || trimmed === '[]') return [];
+  let raw: any;
+  try { raw = JSON.parse(trimmed); } catch { return []; }
+  if (!raw || typeof raw !== 'object') return [];
+  // OREF live API returns a single alert object {id, cat, title, data: string[], desc}
+  // (NOT an array). Normalise to array for uniform processing.
+  const items: any[] = Array.isArray(raw) ? raw : [raw];
   const alerts: RedAlert[] = [];
-  for (const item of raw) {
-    const cityHe = (item.data || item.title || '').trim();
-    const cat = item.cat || 1;
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue;
+    // 'data' is an array of Hebrew city names in the live API
+    const cities: string[] = Array.isArray(item.data) ? item.data
+      : typeof item.data === 'string' && item.data ? [item.data]
+      : typeof item.title === 'string' && item.title ? [item.title]
+      : [];
+    const cat = parseInt(String(item.cat ?? item.category ?? 1)) || 1;
     const ts = item.date ? new Date(item.date).toISOString() : new Date().toISOString();
-    alerts.push(...parseCityAlerts([cityHe], cat, ts));
+    alerts.push(...parseCityAlerts(cities, cat, ts));
   }
   return alerts;
 }
@@ -2055,59 +2076,64 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
     return orefCache.data;
   }
 
-  let alerts: RedAlert[] = [];
+  let liveAlerts: RedAlert[] = [];
+  let historyAlerts: RedAlert[] = [];
 
+  // 1. Try Tzevaadom live notifications (active sirens right now)
   try {
-    alerts = await fetchFromTzevaadom();
-    if (alerts.length > 0) console.log(`[RED-ALERTS] Tzevaadom: ${alerts.length} alerts`);
+    liveAlerts = await fetchFromTzevaadom();
+    if (liveAlerts.length > 0) console.log(`[RED-ALERTS] Tzevaadom live: ${liveAlerts.length} active alerts`);
   } catch (err) {
-    console.log(`[RED-ALERTS] Tzevaadom failed: ${(err as Error).message}`);
+    console.log(`[RED-ALERTS] Tzevaadom live failed: ${(err as Error).message}`);
   }
 
-  if (alerts.length === 0) {
-    try {
-      alerts = await fetchFromOrefDirect();
-      if (alerts.length > 0) console.log(`[RED-ALERTS] OREF direct: ${alerts.length} alerts`);
-    } catch (err) {
-      console.log(`[RED-ALERTS] OREF failed: ${(err as Error).message}`);
+  // 2. Always fetch Tzevaadom history (recent 6h) for context
+  try {
+    historyAlerts = await fetchTzevaadomHistory();
+    if (historyAlerts.length > 0) {
+      historyAlerts.forEach(a => { a.active = false; a.countdown = 0; });
+      console.log(`[RED-ALERTS] Tzevaadom history: ${historyAlerts.length} alerts (last 6h)`);
+    }
+  } catch (err) {
+    console.log(`[RED-ALERTS] Tzevaadom history failed: ${(err as Error).message}`);
+  }
+
+  // 3. Merge WebSocket push alerts (real-time, highest priority)
+  const wsAlerts = tzevaadomWsAlerts.filter(a => {
+    const alertTime = new Date(a.timestamp).getTime();
+    return (now - alertTime) < 3600000;
+  });
+
+  // 4. Telegram extraction as supplementary source
+  let tgAlerts: RedAlert[] = [];
+  if (latestTgMsgs.length > 0) {
+    tgAlerts = extractAlertsFromTelegram(latestTgMsgs);
+  }
+
+  // 5. Combine all sources, deduplicate by id
+  const allAlerts = [...wsAlerts, ...liveAlerts, ...historyAlerts, ...tgAlerts];
+  const seen = new Set<string>();
+  const deduped: RedAlert[] = [];
+  for (const a of allAlerts) {
+    if (!seen.has(a.id)) {
+      seen.add(a.id);
+      deduped.push(a);
     }
   }
 
-  if (alerts.length === 0) {
-    try {
-      alerts = await fetchFromOrefHistory();
-      if (alerts.length > 0) {
-        alerts.forEach(a => { a.active = false; a.countdown = 0; });
-        console.log(`[RED-ALERTS] OREF history: ${alerts.length} alerts`);
-      }
-    } catch (err) {
-      console.log(`[RED-ALERTS] OREF history failed: ${(err as Error).message}`);
-    }
+  // Sort newest first
+  deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  const sources: string[] = [];
+  if (wsAlerts.length > 0) sources.push(`WS:${wsAlerts.length}`);
+  if (liveAlerts.length > 0) sources.push(`Live:${liveAlerts.length}`);
+  if (historyAlerts.length > 0) sources.push(`Hist:${historyAlerts.length}`);
+  if (tgAlerts.length > 0) sources.push(`TG:${tgAlerts.length}`);
+  if (deduped.length > 0) {
+    console.log(`[RED-ALERTS] Total: ${deduped.length} alerts (${sources.join(', ')})`);
   }
 
-  if (alerts.length === 0) {
-    try {
-      alerts = await fetchTzevaadomHistory();
-      if (alerts.length > 0) {
-        alerts.forEach(a => { a.active = false; a.countdown = 0; });
-        console.log(`[RED-ALERTS] Tzevaadom history: ${alerts.length} alerts`);
-      }
-    } catch (err) {
-      console.log(`[RED-ALERTS] History failed: ${(err as Error).message}`);
-    }
-  }
-
-  if (alerts.length === 0 && latestTgMsgs.length > 0) {
-    alerts = extractAlertsFromTelegram(latestTgMsgs);
-    if (alerts.length > 0) console.log(`[RED-ALERTS] Telegram extraction: ${alerts.length} alerts`);
-  }
-
-  if (alerts.length > 0) {
-    orefCache = { data: alerts, timestamp: now };
-  } else {
-    orefCache = { data: [], timestamp: now };
-  }
-
+  orefCache = { data: deduped, timestamp: now };
   return orefCache.data;
 }
 
@@ -3137,6 +3163,14 @@ function connectTzevaadomWebSocket(onAlert: (alerts: RedAlert[]) => void) {
     ws.on('open', () => {
       tzevaadomWsConnected = true;
       console.log('[TZEVAADOM-WS] Connected — real-time push active');
+      // Send periodic pings to keep the connection alive
+      const ping = setInterval(() => {
+        if (ws.readyState === ws.OPEN) {
+          try { ws.ping(); } catch {}
+        } else {
+          clearInterval(ping);
+        }
+      }, 25000);
     });
 
     ws.on('message', (raw: Buffer) => {
