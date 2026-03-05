@@ -4141,6 +4141,13 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
 const AlertMapComponent = lazy(() => import('@/components/alert-map'));
 
+const ALERT_THREAT_META: Record<string, { label: string; icon: string; dotColor: string; textColor: string; bgColor: string; borderColor: string }> = {
+  rockets:                    { label: 'Rockets',  icon: '🚀', dotColor: '#ef4444', textColor: 'text-red-300',    bgColor: 'bg-red-500/15',    borderColor: 'border-red-500/30' },
+  missiles:                   { label: 'Missiles', icon: '🎯', dotColor: '#f97316', textColor: 'text-orange-300', bgColor: 'bg-orange-500/15', borderColor: 'border-orange-500/30' },
+  hostile_aircraft_intrusion: { label: 'Aircraft', icon: '✈',  dotColor: '#a855f7', textColor: 'text-purple-300', bgColor: 'bg-purple-500/15', borderColor: 'border-purple-500/30' },
+  uav_intrusion:              { label: 'UAV',      icon: '🔺', dotColor: '#22d3ee', textColor: 'text-cyan-300',   bgColor: 'bg-cyan-500/15',   borderColor: 'border-cyan-500/30' },
+};
+
 function AlertMapPanel({
   alerts,
   language,
@@ -4154,34 +4161,74 @@ function AlertMapPanel({
   onMaximize?: () => void;
   isMaximized?: boolean;
 }) {
+  const now = Date.now();
   const activeAlerts = alerts.filter(a => {
-    const elapsed = (Date.now() - new Date(a.timestamp).getTime()) / 1000;
+    const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
     return elapsed < a.countdown || a.countdown === 0;
   });
 
+  const recentAlerts = [...alerts]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 5);
+
+  const byThreat = alerts.reduce<Record<string, number>>((acc, a) => {
+    acc[a.threatType] = (acc[a.threatType] || 0) + 1;
+    return acc;
+  }, {});
+
+  const countriesAffected = new Set(alerts.map(a => a.country)).size;
+
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
+      {/* Header */}
       <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <MapPin className="w-3 h-3 text-red-400/50 shrink-0" />
-        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
+        <MapPin className="w-3.5 h-3.5 text-red-400/70 shrink-0" />
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/60 font-mono">
           {language === 'en' ? 'Alert Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}
         </span>
         {activeAlerts.length > 0 && (
           <span className="text-[10px] px-1.5 py-0.5 font-mono font-black bg-red-500/20 text-red-300 rounded-full border border-red-500/30 animate-pulse">
-            {activeAlerts.length}
+            {activeAlerts.length} ACTIVE
           </span>
         )}
         <div className="flex-1" />
-        <div className="flex items-center gap-1">
-          <div className={`w-1.5 h-1.5 rounded-full ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse-dot' : 'bg-emerald-500'}`} />
-          <span className={`text-xs uppercase tracking-[0.15em] font-bold ${activeAlerts.length > 0 ? 'text-red-500/60' : 'text-emerald-500/60'}`}>
-            {activeAlerts.length > 0 ? 'ACTIVE' : 'CLEAR'}
+        <div className="flex items-center gap-1.5">
+          <div className={`w-2 h-2 rounded-full ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+          <span className={`text-[10px] uppercase tracking-[0.15em] font-black ${activeAlerts.length > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+            {activeAlerts.length > 0 ? 'UNDER FIRE' : 'CLEAR'}
           </span>
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
+
+      {/* Stats bar */}
+      <div className="shrink-0 px-2 py-1.5 flex items-center gap-2 flex-wrap" style={{background:'hsl(220 40% 7%)', borderBottom:'1px solid hsl(185 30% 18% / 0.4)'}}>
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 border border-red-500/25">
+          <span className="text-[11px] font-black text-red-300 font-mono">{alerts.length}</span>
+          <span className="text-[9px] uppercase text-red-400/70 font-bold tracking-wide">Total</span>
+        </div>
+        {Object.entries(ALERT_THREAT_META).map(([key, meta]) => {
+          const count = byThreat[key] || 0;
+          if (count === 0) return null;
+          return (
+            <div key={key} className={`flex items-center gap-1 px-2 py-0.5 rounded ${meta.bgColor} border ${meta.borderColor}`}>
+              <span className="text-[11px]">{meta.icon}</span>
+              <span className={`text-[11px] font-black ${meta.textColor} font-mono`}>{count}</span>
+              <span className={`text-[9px] uppercase font-bold ${meta.textColor} opacity-70 tracking-wide`}>{meta.label}</span>
+            </div>
+          );
+        })}
+        {countriesAffected > 0 && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/25 ml-auto">
+            <span className="text-[11px] font-black text-cyan-300 font-mono">{countriesAffected}</span>
+            <span className="text-[9px] uppercase text-cyan-400/70 font-bold tracking-wide">Countries</span>
+          </div>
+        )}
+      </div>
+
+      {/* Map area */}
       <div className="flex-1 relative min-h-0">
         <div className="absolute inset-0">
           <MapErrorBoundary>
@@ -4199,7 +4246,57 @@ function AlertMapPanel({
             </Suspense>
           </MapErrorBoundary>
         </div>
+        {/* Legend overlay */}
+        <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+          <div className="flex flex-col gap-1 p-1.5 rounded" style={{background:'rgba(5,8,20,0.82)', border:'1px solid rgba(0,200,255,0.12)'}}>
+            {Object.entries(ALERT_THREAT_META).map(([key, meta]) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full shrink-0" style={{background: meta.dotColor}} />
+                <span className="text-[9px] text-white/70 font-mono uppercase tracking-wide">{meta.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* Recent alerts strip */}
+      {recentAlerts.length > 0 && (
+        <div className="shrink-0 flex flex-col" style={{background:'hsl(220 40% 6%)', borderTop:'1px solid hsl(185 30% 18% / 0.4)'}}>
+          <div className="px-2 pt-1 pb-0.5 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-foreground/30" />
+            <span className="text-[9px] uppercase tracking-[0.15em] text-foreground/30 font-bold font-mono">Recent Alerts</span>
+          </div>
+          <div className="flex flex-col divide-y divide-white/[0.04]">
+            {recentAlerts.map(alert => {
+              const meta = ALERT_THREAT_META[alert.threatType] || ALERT_THREAT_META.rockets;
+              const elapsed = Math.floor((now - new Date(alert.timestamp).getTime()) / 1000);
+              const remaining = Math.max(0, alert.countdown - elapsed);
+              const mins = Math.floor(remaining / 60);
+              const secs = remaining % 60;
+              const isActive = elapsed < alert.countdown || alert.countdown === 0;
+              const city = language === 'ar' ? alert.cityAr : alert.city;
+              return (
+                <div key={alert.id} className="px-2 py-1 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{background: meta.dotColor, boxShadow: isActive ? `0 0 6px ${meta.dotColor}` : undefined}} />
+                  <span className="text-[11px] font-bold text-foreground/90 font-mono truncate flex-1 min-w-0">{city}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={`text-[9px] font-black uppercase px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor}`}>{meta.icon} {meta.label}</span>
+                    {alert.source === 'live' && (
+                      <span className="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">API</span>
+                    )}
+                  </div>
+                  <span className="text-[9px] font-mono shrink-0">
+                    {isActive && remaining > 0
+                      ? <span className="text-red-400 font-bold">{mins > 0 ? `${mins}m ${secs}s` : `${secs}s`} left</span>
+                      : <span className="text-foreground/40">{timeAgo(alert.timestamp)}</span>
+                    }
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4834,7 +4931,7 @@ function PanelSidebar({
   aiBrief: import('@shared/schema').AIBrief | null;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'osint'];
 
   const AI_MODELS = [
     { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
@@ -5161,6 +5258,10 @@ export default function Dashboard() {
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' } | null>(null);
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
+  const [escalationDismissed, setEscalationDismissed] = useState(false);
+  const escalation = useEscalation(redAlerts, soundEnabled, notificationsEnabled);
+  // Auto-reset dismissed state when escalation level rises
+  useEffect(() => { setEscalationDismissed(false); }, [escalation.level]);
 
   const panelPersistTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -5275,7 +5376,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'osint'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -5418,6 +5519,8 @@ export default function Dashboard() {
           return <AlertMapPanel alerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'analytics':
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'osint':
+          return <OsintTimelinePanel alerts={redAlerts} messages={telegramMessages} events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -5536,6 +5639,7 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+      {!escalationDismissed && <EscalationBanner state={escalation} onDismiss={() => setEscalationDismissed(true)} />}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {!isMobile && !isTablet && (
