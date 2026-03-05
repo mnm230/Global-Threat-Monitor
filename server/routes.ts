@@ -698,8 +698,15 @@ async function _scrapeXAccountInner(screenName: string): Promise<NewsItem[]> {
     const sourceLabel = ACCOUNT_LABELS[screenName] || `@${screenName}`;
     const items: NewsItem[] = [];
 
-    for (const entry of entries) {
-      if (items.length >= 20) break;
+    // Sort entries by created_at descending so we always get the most recent tweets first
+    const sortedEntries = [...entries].sort((a, b) => {
+      const ta = a?.content?.tweet?.created_at ? new Date(a.content.tweet.created_at).getTime() : 0;
+      const tb = b?.content?.tweet?.created_at ? new Date(b.content.tweet.created_at).getTime() : 0;
+      return tb - ta;
+    });
+
+    for (const entry of sortedEntries) {
+      if (items.length >= 30) break;
       const tweet = entry?.content?.tweet;
       if (!tweet) continue;
 
@@ -3435,7 +3442,7 @@ export async function registerRoutes(
     );
     const allMessages = results.flat();
     allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return allMessages.slice(0, 50);
+    return allMessages.slice(0, 300);
   }
 
   // Fetches only the priority fast-lane channels and merges with cached full results
@@ -3455,7 +3462,7 @@ export async function registerRoutes(
 
     const all = [...freshMsgs, ...otherMsgs];
     all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return all.slice(0, 80);
+    return all.slice(0, 200);
   }
 
   app.get('/api/telegram', async (_req, res) => {
@@ -3840,13 +3847,12 @@ export async function registerRoutes(
         send('breaking-news', breaking);
       }).catch(() => {});
     }, 2000));
-    // Full sweep of all channels every 30s to keep non-priority caches warm
     intervals.push(setInterval(() => {
       fetchLiveTelegram().then(tgMsgs => {
         latestTgMsgs = tgMsgs;
         send('telegram', tgMsgs);
       }).catch(() => {});
-    }, 30000));
+    }, 15000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
       const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];

@@ -3092,29 +3092,26 @@ function TelegramPanel({
   const [newChannel, setNewChannel] = useState('');
   const [showManager, setShowManager] = useState(false);
   const [expandedMsgId, setExpandedMsgId] = useState<string | null>(null);
-  const [liveError, setLiveError] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [newMsgIds, setNewMsgIds] = useState<Set<string>>(new Set());
+  const prevMsgIdsRef = useRef<Set<string>>(new Set());
+  const topRef = useRef<HTMLDivElement>(null);
 
   const allChannels = useMemo(() => [...DEFAULT_CHANNELS, ...customChannels], [customChannels]);
 
-  const channelsQueryParam = useMemo(() => allChannels.map(c => c.replace('@', '')).join(','), [allChannels]);
+  const customOnly = useMemo(() => customChannels.filter(c => !DEFAULT_CHANNELS.includes(c)), [customChannels]);
+  const customQueryParam = useMemo(() => customOnly.map(c => c.replace('@', '')).join(','), [customOnly]);
 
-  const { data: liveMessages = [], isLoading: liveLoading } = useQuery<TelegramMessage[]>({
-    queryKey: ['/api/telegram/live', channelsQueryParam],
+  const { data: customMessages = [] } = useQuery<TelegramMessage[]>({
+    queryKey: ['/api/telegram/live', customQueryParam],
     queryFn: async () => {
-      try {
-        setLiveError(null);
-        const resp = await fetch(`/api/telegram/live?channels=${encodeURIComponent(channelsQueryParam)}`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        return await resp.json();
-      } catch (err: any) {
-        setLiveError(err.message || 'Failed to fetch live feeds');
-        return [];
-      }
+      const resp = await fetch(`/api/telegram/live?channels=${encodeURIComponent(customQueryParam)}`);
+      if (!resp.ok) return [];
+      return await resp.json();
     },
-    refetchInterval: 5000,
+    refetchInterval: 10000,
     staleTime: 0,
-    enabled: allChannels.length > 0,
+    enabled: customOnly.length > 0,
   });
 
   const addChannel = useCallback(() => {
@@ -3135,17 +3132,32 @@ function TelegramPanel({
   }, [customChannels]);
 
   const filteredMessages = useMemo(() => {
-    if (liveMessages.length > 0) {
-      const liveChannelSet = new Set(liveMessages.map(m => m.channel));
-      const fallbackForMissingChannels = messages.filter(
-        m => allChannels.includes(m.channel) && !liveChannelSet.has(m.channel)
-      );
-      const merged = [...liveMessages, ...fallbackForMissingChannels];
-      merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      return merged;
+    const merged = customOnly.length > 0 ? [...messages, ...customMessages] : [...messages];
+    const seen = new Set<string>();
+    const deduped = merged.filter(m => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
+    deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return deduped;
+  }, [messages, customMessages, customOnly]);
+
+  useEffect(() => {
+    const currentIds = new Set(filteredMessages.map(m => m.id));
+    if (prevMsgIdsRef.current.size > 0) {
+      const fresh = new Set<string>();
+      for (const id of currentIds) {
+        if (!prevMsgIdsRef.current.has(id)) fresh.add(id);
+      }
+      if (fresh.size > 0) {
+        setNewMsgIds(fresh);
+        setTimeout(() => setNewMsgIds(new Set()), 4000);
+        topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
-    return messages.filter(m => allChannels.includes(m.channel));
-  }, [messages, liveMessages, allChannels]);
+    prevMsgIdsRef.current = currentIds;
+  }, [filteredMessages]);
 
   const [channelFilter, setChannelFilter] = useState<string | null>(null);
 
@@ -3166,14 +3178,9 @@ function TelegramPanel({
         isMaximized={isMaximized}
         extra={
           <div className="flex items-center gap-1">
-            {liveLoading && (
-              <span className="text-[9px] font-mono text-sky-400/60 animate-pulse" data-testid="text-live-loading">
-                SYNC
-              </span>
-            )}
-            {liveError && (
-              <span className="text-[9px] font-mono text-red-400/70 px-1" data-testid="text-live-error" title={liveError}>
-                ERR
+            {newMsgIds.size > 0 && (
+              <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1.5 rounded animate-pulse" data-testid="text-new-count">
+                +{newMsgIds.size} NEW
               </span>
             )}
             <button
@@ -3302,32 +3309,34 @@ function TelegramPanel({
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1.5">
+          <div ref={topRef} />
           {displayMessages.length === 0 && (
             <div className="px-3 py-8 text-center">
               <SiTelegram className="w-6 h-6 text-sky-400/20 mx-auto mb-3" />
               <p className="text-xs text-muted-foreground/60">
-                {liveLoading
-                  ? (language === 'ar' ? '\u062C\u0627\u0631\u064A \u062C\u0644\u0628 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A...' : 'Fetching live feeds...')
-                  : liveError
-                    ? (language === 'ar' ? '\u062E\u0637\u0623 \u0641\u064A \u0627\u0644\u0627\u062A\u0635\u0627\u0644' : 'Connection error')
-                    : channelFilter
-                      ? (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages from this channel')
-                      : (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages yet')}
+                {messages.length === 0
+                  ? (language === 'ar' ? '\u062C\u0627\u0631\u064A \u062C\u0644\u0628 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A...' : 'Connecting to live feeds...')
+                  : channelFilter
+                    ? (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages from this channel')
+                    : (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages yet')}
               </p>
             </div>
           )}
           {displayMessages.map((msg) => {
             const isExpanded = expandedMsgId === msg.id;
             const isLive = msg.id.startsWith('live_');
+            const isNew = newMsgIds.has(msg.id);
             const text = language === 'ar' && msg.textAr ? msg.textAr : msg.text;
             const channelName = msg.channel.replace('@', '');
             return (
               <div
                 key={msg.id}
                 className={`rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
-                  isExpanded
-                    ? 'bg-sky-950/30 ring-1 ring-sky-500/15'
-                    : 'bg-muted/20 hover:bg-sky-950/15'
+                  isNew
+                    ? 'bg-emerald-950/30 ring-1 ring-emerald-500/30 animate-pulse'
+                    : isExpanded
+                      ? 'bg-sky-950/30 ring-1 ring-sky-500/15'
+                      : 'bg-muted/20 hover:bg-sky-950/15'
                 }`}
                 onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
                 data-testid={`telegram-msg-${msg.id}`}
@@ -3349,7 +3358,8 @@ function TelegramPanel({
                     <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5 pointer-events-none">
                       <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
                       <span className="text-[10px] text-white font-bold truncate">{channelName}</span>
-                      {isLive && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
+                      {isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/40 px-1 rounded shrink-0 animate-pulse">NEW</span>}
+                      {isLive && !isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
                       <span className="text-[9px] text-white/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
                     </div>
                   </div>
@@ -3362,7 +3372,10 @@ function TelegramPanel({
                         <SiTelegram className="w-3 h-3 text-sky-400/90" />
                       </div>
                       <span className="text-xs text-sky-400 font-bold truncate">{channelName}</span>
-                      {isLive && (
+                      {isNew && (
+                        <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1 rounded border border-emerald-500/30 shrink-0 animate-pulse">NEW</span>
+                      )}
+                      {isLive && !isNew && (
                         <span className="text-[7px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
                       )}
                       <span className="text-[10px] text-muted-foreground/50 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
