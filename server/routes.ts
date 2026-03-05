@@ -3121,6 +3121,54 @@ Return ONLY a valid JSON array. No markdown, no explanation.`;
   }
 }
 
+// --- Tzevaadom WebSocket client for real-time push alerts ---
+let tzevaadomWsAlerts: RedAlert[] = [];
+let tzevaadomWsConnected = false;
+
+function connectTzevaadomWebSocket(onAlert: (alerts: RedAlert[]) => void) {
+  try {
+    const ws = new WebSocket('wss://ws.tzevaadom.co.il/socket?platform=WEB', {
+      headers: {
+        'Origin': 'https://www.tzevaadom.co.il',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    });
+
+    ws.on('open', () => {
+      tzevaadomWsConnected = true;
+      console.log('[TZEVAADOM-WS] Connected — real-time push active');
+    });
+
+    ws.on('message', (raw: Buffer) => {
+      try {
+        const msg = JSON.parse(raw.toString());
+        const notif = msg.notification || msg.data || msg;
+        if (notif && !notif.isDrill) {
+          const cities: string[] = Array.isArray(notif.cities) ? notif.cities : [];
+          const threat = typeof notif.threat === 'number' ? notif.threat : 1;
+          const ts = typeof notif.time === 'number' ? new Date(notif.time * 1000).toISOString() : new Date().toISOString();
+          const newAlerts = parseCityAlerts(cities, threat, ts);
+          if (newAlerts.length > 0) {
+            tzevaadomWsAlerts = [...newAlerts, ...tzevaadomWsAlerts].slice(0, 200);
+            console.log(`[TZEVAADOM-WS] Push alert: ${newAlerts.map(a => a.city).join(', ')}`);
+            onAlert(tzevaadomWsAlerts);
+          }
+        }
+      } catch {}
+    });
+
+    ws.on('close', () => {
+      tzevaadomWsConnected = false;
+      console.log('[TZEVAADOM-WS] Disconnected — reconnecting in 8s');
+      setTimeout(() => connectTzevaadomWebSocket(onAlert), 8000);
+    });
+
+    ws.on('error', () => { ws.terminate(); });
+  } catch {
+    setTimeout(() => connectTzevaadomWebSocket(onAlert), 15000);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -3650,6 +3698,22 @@ export async function registerRoutes(
       }));
   }
 
+  // Global SSE broadcaster — used by tzevaadom WebSocket push
+  const sseBroadcasters = new Set<(event: string, data: unknown) => void>();
+  function broadcastSse(event: string, data: unknown) {
+    for (const fn of sseBroadcasters) { try { fn(event, data); } catch {} }
+  }
+
+  // Start tzevaadom real-time WebSocket push
+  connectTzevaadomWebSocket((alerts) => {
+    latestAlerts = alerts;
+    recordAlertHistory(alerts);
+    broadcastSse('red-alerts', alerts);
+    broadcastSse('sirens', mapAlertsToSirens(alerts));
+    const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
+    broadcastSse('breaking-news', breaking);
+  });
+
   app.get('/api/stream', (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -3666,6 +3730,9 @@ export async function registerRoutes(
         res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
       } catch {}
     };
+
+    sseBroadcasters.add(send);
+    req.on('close', () => sseBroadcasters.delete(send));
 
     latestXPosts = [];
     latestAlerts = [];
@@ -3715,7 +3782,7 @@ export async function registerRoutes(
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
-    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 10000));
+    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 5000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       latestAlerts = alerts;
       recordAlertHistory(alerts);

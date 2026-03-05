@@ -707,26 +707,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, avichay: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, avichay: 16 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false, avichay: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, avichay: 16 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false, avichay: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, avichay: 16 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false, avichay: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100, avichay: 100 },
     rowSplit: 50,
   },
 ];
@@ -1768,10 +1768,65 @@ const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; dot: string;
   government:   { color: 'text-sky-300',     bg: 'bg-sky-950/50 border-sky-400/40',       dot: 'bg-sky-400',     label: 'GOV' },
 };
 
+// --- ADS-B Radar helpers ---
+const RADAR_BOUNDS = { minLat: 24, maxLat: 38, minLng: 25, maxLng: 62 };
+const RADAR_VB_W = 740;
+const RADAR_VB_H = 280;
+const RADAR_CITIES = [
+  { name: 'TLV', lat: 32.0, lng: 34.8 }, { name: 'BEY', lat: 33.9, lng: 35.5 },
+  { name: 'AMM', lat: 31.9, lng: 35.9 }, { name: 'DAM', lat: 33.5, lng: 36.3 },
+  { name: 'BGW', lat: 33.3, lng: 44.4 }, { name: 'THR', lat: 35.7, lng: 51.4 },
+  { name: 'RUH', lat: 24.7, lng: 46.7 }, { name: 'DXB', lat: 25.3, lng: 55.4 },
+  { name: 'CAI', lat: 30.1, lng: 31.4 }, { name: 'GAZ', lat: 31.5, lng: 34.5 },
+  { name: 'KWI', lat: 29.2, lng: 47.9 }, { name: 'MCT', lat: 23.6, lng: 58.6 },
+];
+const RADAR_PLANE_COLORS: Record<string, string> = {
+  military: '#f87171', surveillance: '#22d3ee', government: '#38bdf8',
+  commercial: '#4ade80', cargo: '#fbbf24', private: '#c4b5fd',
+};
+function radarX(lng: number) { return ((lng - RADAR_BOUNDS.minLng) / (RADAR_BOUNDS.maxLng - RADAR_BOUNDS.minLng)) * RADAR_VB_W; }
+function radarY(lat: number) { return ((RADAR_BOUNDS.maxLat - lat) / (RADAR_BOUNDS.maxLat - RADAR_BOUNDS.minLat)) * RADAR_VB_H; }
+
 function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
   const [filter, setFilter] = useState<string>('all');
+  const [view, setView] = useState<'radar' | 'list'>('radar');
   const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [interpPos, setInterpPos] = useState<Map<string, { lat: number; lng: number }>>(new Map());
+  const lastDataRef = useRef<{ flights: AdsbFlight[]; time: number }>({ flights: [], time: Date.now() });
+  const animFrameRef = useRef<number>(0);
   const isLoading = adsbFlights.length === 0;
+
+  useEffect(() => {
+    lastDataRef.current = { flights: adsbFlights, time: Date.now() };
+  }, [adsbFlights]);
+
+  useEffect(() => {
+    if (view !== 'radar') return;
+    const animate = () => {
+      const { flights, time } = lastDataRef.current;
+      const deltaT = Math.min((Date.now() - time) / 1000, 20);
+      const next = new Map<string, { lat: number; lng: number }>();
+      for (const f of flights) {
+        if (f.groundSpeed > 10 && f.lat !== 0 && f.lng !== 0) {
+          const speedMs = f.groundSpeed * 0.514444;
+          const hRad = (f.heading * Math.PI) / 180;
+          const R = 6371000;
+          const dLat = (speedMs * deltaT * Math.cos(hRad)) / R * (180 / Math.PI);
+          const dLng = (speedMs * deltaT * Math.sin(hRad)) / (R * Math.cos(f.lat * Math.PI / 180)) * (180 / Math.PI);
+          const pLat = f.lat + dLat; const pLng = f.lng + dLng;
+          next.set(f.id, (pLat >= RADAR_BOUNDS.minLat && pLat <= RADAR_BOUNDS.maxLat && pLng >= RADAR_BOUNDS.minLng && pLng <= RADAR_BOUNDS.maxLng)
+            ? { lat: pLat, lng: pLng } : { lat: f.lat, lng: f.lng });
+        } else {
+          next.set(f.id, { lat: f.lat, lng: f.lng });
+        }
+      }
+      setInterpPos(next);
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [view]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return adsbFlights;
@@ -1799,14 +1854,18 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
+      {/* Header */}
       <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
         <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">ADS-B</span>
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">
-          {adsbFlights.length}
-        </span>
+        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">{adsbFlights.length}</span>
+        {/* View toggle */}
+        <div className="flex items-center gap-0.5 ml-1 bg-white/[0.04] rounded border border-white/[0.07] p-0.5">
+          <button onClick={() => setView('radar')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'radar' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>RADAR</button>
+          <button onClick={() => setView('list')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'list' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>LIST</button>
+        </div>
         <div className="flex-1" />
         {(() => {
           const isLive = adsbFlights.length > 0 && adsbFlights[0]?.id?.startsWith('live-');
@@ -1821,33 +1880,127 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
+      {/* Filter bar */}
       <div className="px-2 py-1.5 border-b border-white/[0.04] flex gap-1 flex-wrap shrink-0 bg-black/10">
         {[
-          { key: 'all',        label: 'All',     activeClass: 'bg-white/[0.08] border-white/20 text-white/80' },
-          { key: 'flagged',    label: '⚑ Alert', activeClass: 'bg-amber-950/60 border-amber-400/40 text-amber-300' },
-          { key: 'military',   label: 'MIL',     activeClass: 'bg-red-950/60 border-red-400/50 text-red-300' },
-          { key: 'surveillance',label: 'ISR',    activeClass: 'bg-cyan-950/60 border-cyan-400/50 text-cyan-300' },
-          { key: 'commercial', label: 'CIV',     activeClass: 'bg-emerald-950/50 border-emerald-500/35 text-emerald-300' },
-          { key: 'cargo',      label: 'CGO',     activeClass: 'bg-amber-950/50 border-amber-400/35 text-amber-300' },
-          { key: 'government', label: 'GOV',     activeClass: 'bg-sky-950/50 border-sky-400/35 text-sky-300' },
-          { key: 'private',    label: 'PVT',     activeClass: 'bg-violet-950/50 border-violet-400/35 text-violet-300' },
+          { key: 'all',         label: 'All',     activeClass: 'bg-white/[0.08] border-white/20 text-white/80' },
+          { key: 'flagged',     label: '⚑ Alert', activeClass: 'bg-amber-950/60 border-amber-400/40 text-amber-300' },
+          { key: 'military',    label: 'MIL',     activeClass: 'bg-red-950/60 border-red-400/50 text-red-300' },
+          { key: 'surveillance',label: 'ISR',     activeClass: 'bg-cyan-950/60 border-cyan-400/50 text-cyan-300' },
+          { key: 'commercial',  label: 'CIV',     activeClass: 'bg-emerald-950/50 border-emerald-500/35 text-emerald-300' },
+          { key: 'cargo',       label: 'CGO',     activeClass: 'bg-amber-950/50 border-amber-400/35 text-amber-300' },
+          { key: 'government',  label: 'GOV',     activeClass: 'bg-sky-950/50 border-sky-400/35 text-sky-300' },
+          { key: 'private',     label: 'PVT',     activeClass: 'bg-violet-950/50 border-violet-400/35 text-violet-300' },
         ].map(({ key, label, activeClass }) => (
-          <button
-            key={key}
-            data-testid={`adsb-filter-${key}`}
-            onClick={() => setFilter(key)}
-            className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-mono border transition-all ${
-              filter === key
-                ? activeClass
-                : 'bg-white/[0.02] border-white/[0.06] text-foreground/35 hover:text-foreground/55 hover:bg-white/[0.04]'
-            }`}
-          >
+          <button key={key} data-testid={`adsb-filter-${key}`} onClick={() => setFilter(key)}
+            className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-mono border transition-all ${filter === key ? activeClass : 'bg-white/[0.02] border-white/[0.06] text-foreground/35 hover:text-foreground/55 hover:bg-white/[0.04]'}`}>
             {label}{counts[key] ? ` ${counts[key]}` : ''}
           </button>
         ))}
       </div>
 
-      <ScrollArea className="flex-1">
+      {/* ── RADAR VIEW ── */}
+      {view === 'radar' && (
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <Radar className="w-8 h-8 text-cyan-400/30 mx-auto mb-2 animate-pulse" />
+                <p className="text-[10px] text-foreground/20 font-mono">Scanning ADS-B feeds…</p>
+              </div>
+            </div>
+          ) : (
+            <svg viewBox={`0 0 ${RADAR_VB_W} ${RADAR_VB_H}`} className="w-full flex-1" style={{background:'hsl(215 40% 3.5%)'}} preserveAspectRatio="xMidYMid meet">
+              {/* Grid lines */}
+              {[25,30,35].map(lat => <line key={`lat${lat}`} x1={0} y1={radarY(lat)} x2={RADAR_VB_W} y2={radarY(lat)} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>)}
+              {[30,35,40,45,50,55,60].map(lng => <line key={`lng${lng}`} x1={radarX(lng)} y1={0} x2={radarX(lng)} y2={RADAR_VB_H} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>)}
+              {/* City markers */}
+              {RADAR_CITIES.map(c => (
+                <g key={c.name}>
+                  <circle cx={radarX(c.lng)} cy={radarY(c.lat)} r="1.5" fill="rgba(255,255,255,0.18)" />
+                  <text x={radarX(c.lng)+3} y={radarY(c.lat)-2} fontSize="7" fill="rgba(255,255,255,0.22)" fontFamily="monospace">{c.name}</text>
+                </g>
+              ))}
+              {/* Aircraft */}
+              {sorted.map(f => {
+                const pos = interpPos.get(f.id) || { lat: f.lat, lng: f.lng };
+                const x = radarX(pos.lng); const y = radarY(pos.lat);
+                if (x < 0 || x > RADAR_VB_W || y < 0 || y > RADAR_VB_H) return null;
+                const color = RADAR_PLANE_COLORS[f.type] || '#9ca3af';
+                const isSel = selectedFlight?.id === f.id;
+                const isHov = hoveredId === f.id;
+                return (
+                  <g key={f.id} style={{cursor:'pointer'}}
+                    onClick={() => setSelectedFlight(isSel ? null : f)}
+                    onMouseEnter={() => setHoveredId(f.id)}
+                    onMouseLeave={() => setHoveredId(null)}>
+                    {/* Pulse ring for military/flagged */}
+                    {(f.type === 'military' || f.type === 'surveillance' || f.flagged) && (
+                      <circle cx={x} cy={y} r="9" fill="none" stroke={f.flagged && (f.squawk==='7700'||f.squawk==='7500') ? '#ef4444' : color} strokeWidth="0.6" opacity="0.35"/>
+                    )}
+                    {(isSel || isHov) && <circle cx={x} cy={y} r="10" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.7"/>}
+                    {/* Plane icon: arrow shape rotated to heading */}
+                    <polygon
+                      points={`${x},${y-6} ${x+3.5},${y+4} ${x},${y+1.5} ${x-3.5},${y+4}`}
+                      fill={color}
+                      opacity={isSel || isHov ? 1 : 0.85}
+                      transform={`rotate(${f.heading},${x},${y})`}
+                    />
+                    {/* Callsign label — always show for mil/isr, hover for others */}
+                    {(isSel || isHov || f.type === 'military' || f.type === 'surveillance') && (
+                      <text x={x+8} y={y-3} fontSize="8" fill={color} fontFamily="monospace" fontWeight="bold" opacity="0.9">{f.callsign}</text>
+                    )}
+                    {/* Alt/speed on select or hover */}
+                    {(isSel || isHov) && (
+                      <text x={x+8} y={y+6} fontSize="7" fill="rgba(255,255,255,0.5)" fontFamily="monospace">
+                        {f.altitude > 0 ? `${Math.round(f.altitude/100)*100}ft` : 'GND'} {f.groundSpeed}kt
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              {/* Legend */}
+              <text x="4" y="10" fontSize="7" fill="rgba(255,255,255,0.25)" fontFamily="monospace">ME AIRSPACE · adsb.lol</text>
+              {(['military','surveillance','commercial','cargo'] as const).map((t, i) => (
+                <g key={t} transform={`translate(${RADAR_VB_W-240+i*60},6)`}>
+                  <rect width="52" height="10" rx="1.5" fill={RADAR_PLANE_COLORS[t]} opacity="0.12"/>
+                  <text x="4" y="7.5" fontSize="6.5" fill={RADAR_PLANE_COLORS[t]} fontFamily="monospace" fontWeight="bold">
+                    {t === 'military' ? 'MIL' : t === 'surveillance' ? 'ISR' : t === 'commercial' ? 'CIV' : 'CGO'}
+                  </text>
+                </g>
+              ))}
+            </svg>
+          )}
+          {/* Selected flight detail strip */}
+          {selectedFlight && (
+            <div className="shrink-0 px-3 py-2 border-t border-cyan-500/15 bg-cyan-950/10">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign} · {selectedFlight.aircraft}</span>
+                <div className="flex gap-1.5">
+                  <button onClick={() => onLocateFlight?.(selectedFlight.lat, selectedFlight.lng, selectedFlight.callsign, selectedFlight.heading, selectedFlight.altitude, selectedFlight.groundSpeed, selectedFlight.type)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[9px] font-mono text-cyan-300">
+                    <Target className="w-2.5 h-2.5"/>Map
+                  </button>
+                  <button onClick={() => setSelectedFlight(null)} className="text-foreground/30 hover:text-foreground/60"><X className="w-3 h-3"/></button>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-[9px] font-mono">
+                <span><span className="text-foreground/30">ALT </span><span className="text-foreground/70">{selectedFlight.altitude > 0 ? `${Math.round(selectedFlight.altitude/100)*100}ft` : 'GND'}</span></span>
+                <span><span className="text-foreground/30">GS </span><span className="text-foreground/70">{selectedFlight.groundSpeed}kt</span></span>
+                <span><span className="text-foreground/30">HDG </span><span className="text-foreground/70">{Math.round(selectedFlight.heading)}°</span></span>
+                <span><span className="text-foreground/30">SQK </span><span className={selectedFlight.squawk==='7700'||selectedFlight.squawk==='7500'||selectedFlight.squawk==='7600' ? 'text-red-400 font-bold' : 'text-foreground/70'}>{selectedFlight.squawk}</span></span>
+                <span><span className="text-foreground/30">HEX </span><span className="text-foreground/70">{selectedFlight.hex}</span></span>
+                <span><span className="text-foreground/30">REG </span><span className="text-foreground/70">{selectedFlight.registration||'—'}</span></span>
+                <span><span className="text-foreground/30">CTRY </span><span className="text-foreground/70">{selectedFlight.country}</span></span>
+                <span><span className="text-foreground/30">VR </span><span className={selectedFlight.verticalRate>0?'text-green-400':selectedFlight.verticalRate<0?'text-red-400':'text-foreground/70'}>{selectedFlight.verticalRate>0?'+':''}{selectedFlight.verticalRate}fpm</span></span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── LIST VIEW ── */}
+      {view === 'list' && <ScrollArea className="flex-1">
         {isLoading && (
           <div className="px-3 py-8 text-center">
             <Radar className="w-6 h-6 text-cyan-400/40 mx-auto mb-2 animate-pulse" />
@@ -1963,7 +2116,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
             );
           })}
         </div>
-      </ScrollArea>
+      </ScrollArea>}
     </div>
   );
 }
@@ -3981,7 +4134,7 @@ function AvichayFeedPanel({ posts, language, onClose, onMaximize, isMaximized }:
   isMaximized?: boolean;
 }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const filtered = posts.filter(p => p.source === 'AvichayAdraee');
+  const filtered = posts.filter(p => p.source === 'IDF Arabic Spokesperson' || p.source === 'AvichayAdraee');
 
   const timeAgo = (ts: string) => {
     const diff = Date.now() - new Date(ts).getTime();
@@ -4925,7 +5078,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed', 'avichay'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -4935,7 +5088,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    cyber: 22, alertmap: 28, analytics: 28, xfeed: 16,
+    cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, avichay: 16,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -5220,7 +5373,7 @@ export default function Dashboard() {
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
               xfeed: xPosts.length > 0 ? `${xPosts.length}` : '',
-              avichay: xPosts.filter(p => p.source === 'AvichayAdraee').length > 0 ? `${xPosts.filter(p => p.source === 'AvichayAdraee').length}` : '',
+              avichay: xPosts.filter(p => p.source === 'IDF Arabic Spokesperson' || p.source === 'AvichayAdraee').length > 0 ? `${xPosts.filter(p => p.source === 'IDF Arabic Spokesperson' || p.source === 'AvichayAdraee').length}` : '',
             }}
           />
         )}
