@@ -1969,7 +1969,7 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
         ))}
       </div>
       <div className="absolute top-2 left-2 text-[8px] font-mono text-white/25 pointer-events-none" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-        ME AIRSPACE · adsb.lol
+        ME AIRSPACE · airplanes.live
       </div>
     </div>
   );

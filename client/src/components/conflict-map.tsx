@@ -22,24 +22,24 @@ const PLANE_ICON_ATLAS = (() => {
   const s = PLANE_ICON_SIZE / 64;
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.moveTo(cx, cy - 28 * s);
-  ctx.lineTo(cx + 4 * s, cy - 18 * s);
-  ctx.lineTo(cx + 4 * s, cy - 6 * s);
-  ctx.lineTo(cx + 24 * s, cy + 6 * s);
-  ctx.lineTo(cx + 24 * s, cy + 12 * s);
-  ctx.lineTo(cx + 4 * s, cy + 4 * s);
-  ctx.lineTo(cx + 4 * s, cy + 14 * s);
-  ctx.lineTo(cx + 10 * s, cy + 20 * s);
-  ctx.lineTo(cx + 10 * s, cy + 24 * s);
-  ctx.lineTo(cx, cy + 20 * s);
-  ctx.lineTo(cx - 10 * s, cy + 24 * s);
-  ctx.lineTo(cx - 10 * s, cy + 20 * s);
-  ctx.lineTo(cx - 4 * s, cy + 14 * s);
-  ctx.lineTo(cx - 4 * s, cy + 4 * s);
-  ctx.lineTo(cx - 24 * s, cy + 12 * s);
-  ctx.lineTo(cx - 24 * s, cy + 6 * s);
-  ctx.lineTo(cx - 4 * s, cy - 6 * s);
-  ctx.lineTo(cx - 4 * s, cy - 18 * s);
+  ctx.moveTo(cx, cy - 30 * s);
+  ctx.lineTo(cx + 3 * s, cy - 24 * s);
+  ctx.lineTo(cx + 3.5 * s, cy - 8 * s);
+  ctx.lineTo(cx + 26 * s, cy + 4 * s);
+  ctx.lineTo(cx + 26 * s, cy + 9 * s);
+  ctx.lineTo(cx + 3.5 * s, cy + 3 * s);
+  ctx.lineTo(cx + 3 * s, cy + 14 * s);
+  ctx.lineTo(cx + 11 * s, cy + 21 * s);
+  ctx.lineTo(cx + 11 * s, cy + 25 * s);
+  ctx.lineTo(cx, cy + 21 * s);
+  ctx.lineTo(cx - 11 * s, cy + 25 * s);
+  ctx.lineTo(cx - 11 * s, cy + 21 * s);
+  ctx.lineTo(cx - 3 * s, cy + 14 * s);
+  ctx.lineTo(cx - 3.5 * s, cy + 3 * s);
+  ctx.lineTo(cx - 26 * s, cy + 9 * s);
+  ctx.lineTo(cx - 26 * s, cy + 4 * s);
+  ctx.lineTo(cx - 3.5 * s, cy - 8 * s);
+  ctx.lineTo(cx - 3 * s, cy - 24 * s);
   ctx.closePath();
   ctx.fill();
   return c.toDataURL();
@@ -1611,9 +1611,9 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     const ADSB_COLORS: Record<string, [number, number, number]> = {
       military:    [255,  60,  60],   // vivid red
       surveillance:[0,   220, 255],   // bright cyan
-      commercial:  [50,  220, 120],   // green
+      commercial:  [245, 195,  15],   // FR24 golden yellow
       cargo:       [255, 165,  30],   // amber-orange
-      private:     [190, 100, 255],   // purple
+      private:     [220, 200,  40],   // warm yellow
       government:  [80,  160, 255],   // blue
     };
 
@@ -1669,11 +1669,11 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
           getIcon: () => 'plane',
           iconAtlas: PLANE_ICON_ATLAS,
           iconMapping: PLANE_ICON_MAPPING,
-          getSize: (d: AdsbFlight) => d.flagged ? 28 : 20,
+          getSize: (d: AdsbFlight) => d.flagged ? 32 : 22,
           getAngle: (d: AdsbFlight) => 360 - (d.heading || 0),
-          getColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 240 : 180] as [number, number, number, number],
-          sizeMinPixels: 12,
-          sizeMaxPixels: 36,
+          getColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 255 : 220] as [number, number, number, number],
+          sizeMinPixels: 14,
+          sizeMaxPixels: 40,
           billboard: false,
           pickable: true,
         })

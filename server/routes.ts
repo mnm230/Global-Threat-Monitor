@@ -38,7 +38,7 @@ const grok = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL,
 });
 
-const ADSB_API_BASE = 'https://api.adsb.lol/v2';
+const ADSB_API_BASE = 'https://api.airplanes.live/v2';
 
 const ADSB_QUERY_POINTS = [
   { lat: 32.0, lon: 35.0, dist: 250 },  // Israel / Palestine / West Bank
@@ -47,6 +47,9 @@ const ADSB_QUERY_POINTS = [
   { lat: 25.5, lon: 55.0, dist: 200 },  // UAE / Gulf of Oman / Hormuz
   { lat: 33.5, lon: 44.0, dist: 200 },  // Iraq / Syria border
   { lat: 27.0, lon: 34.0, dist: 200 },  // Red Sea / Yemen approaches
+  { lat: 38.0, lon: 32.0, dist: 250 },  // Turkey
+  { lat: 28.0, lon: 31.0, dist: 250 },  // Egypt / Sinai / Nile Delta
+  { lat: 35.5, lon: 52.0, dist: 200 },  // Tehran / Northern Iran
 ];
 
 const MILITARY_HEX_PREFIXES = [
@@ -215,7 +218,7 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
     const allFlights: AdsbFlight[] = [];
 
     const geoQueries = ADSB_QUERY_POINTS.map(async (pt) => {
-      const url = `${ADSB_API_BASE}/lat/${pt.lat}/lon/${pt.lon}/dist/${pt.dist}`;
+      const url = `${ADSB_API_BASE}/point/${pt.lat}/${pt.lon}/${pt.dist}`;
       const resp = await fetch(url, {
         headers: { 'Accept': 'application/json' },
         signal: AbortSignal.timeout(8000),
@@ -264,7 +267,7 @@ async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
       });
       cachedLiveFlights = allFlights;
       lastFetchTime = now;
-      console.log(`[ADSB] Fetched ${allFlights.length} live aircraft from adsb.lol`);
+      console.log(`[ADSB] Fetched ${allFlights.length} live aircraft from airplanes.live`);
     } else if (cachedLiveFlights.length > 0) {
       return cachedLiveFlights;
     } else {
@@ -3552,17 +3555,6 @@ export async function registerRoutes(
     res.json({ ...analytics, llmAssessments, consensusRisk, modelAgreement });
   });
 
-  app.get('/api/patterns', async (_req, res) => {
-    const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
-    const patterns = detectAlertPatterns(alerts);
-    res.json(patterns);
-  });
-
-  app.get('/api/false-alarms', async (_req, res) => {
-    const alerts = await generateRedAlerts();
-    const scores = scoreFalseAlarms(alerts);
-    res.json(scores);
-  });
 
   const BREAKING_KEYWORDS_CRITICAL = /\b(BREAKING|URGENT|JUST IN|BREAKING NEWS)\b/i;
   const BREAKING_PATTERNS_CRITICAL = /\b(nuclear\s+(strike|attack|weapon|detonation)|chemical\s+(attack|weapon)|mass\s+casualt|invaded?|declaration\s+of\s+war|ceasefire\s+(declared|announced|agreement)|capital\s+(hit|struck|attacked|bombed)|strait\s+of\s+hormuz\s+(closed|blocked|mined)|aircraft\s+carrier\s+(hit|sunk|struck)|oil\s+facility\s+(hit|struck|attacked)|blackout\s+hit|total\s+blackout|power\s+grid|all\s+provinces)\b/i;

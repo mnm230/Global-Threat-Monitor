@@ -16,7 +16,8 @@
       "Bash(python3:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:www.oref.org.il)"
+      "WebFetch(domain:www.oref.org.il)",
+      "Bash(echo Bearer: ${BEARER:0:40}...:*)"
     ]
   }
 }
