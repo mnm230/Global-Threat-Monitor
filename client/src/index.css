@@ -145,11 +145,23 @@
 
   html {
     font-size: 15px;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-weight: 500;
+  }
+
+  /* Smooth scrolling for all scrollable containers */
+  * {
+    scroll-behavior: smooth;
+  }
+
+  /* Momentum scrolling for touch + desktop overflow containers */
+  [class*="overflow-y-"], [class*="overflow-x-"], [style*="overflow"] {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 
   /* Scale up tiny hardcoded pixel font sizes used throughout the dashboard */

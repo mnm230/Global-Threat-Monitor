@@ -860,6 +860,8 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
   const [measureCursor, setMeasureCursor] = useState<MeasurePoint | null>(null);
   const [arcTime, setArcTime] = useState(0);
   const arcAnimRef = useRef<number>(0);
+  const [pulseTime, setPulseTime] = useState(0);
+  const pulseAnimRef = useRef<number>(0);
 
   useEffect(() => {
     if (focusLocation) {
@@ -966,6 +968,21 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
       cancelAnimationFrame(arcAnimRef.current);
     };
   }, [layerVisibility.animatedArcs]);
+
+  // Always-running pulse for red alerts and event markers
+  useEffect(() => {
+    let running = true;
+    const animate = () => {
+      if (!running) return;
+      setPulseTime(t => (t + 0.004) % 1);
+      pulseAnimRef.current = requestAnimationFrame(animate);
+    };
+    pulseAnimRef.current = requestAnimationFrame(animate);
+    return () => {
+      running = false;
+      cancelAnimationFrame(pulseAnimRef.current);
+    };
+  }, []);
 
   const measureDistance = useMemo(() => {
     if (!measureCenter || !measureCursor) return null;
@@ -1351,49 +1368,80 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
     const result: any[] = [];
 
     if (layerVisibility.events) {
+      const evtPulse = (Math.sin(pulseTime * Math.PI * 2) + 1) / 2;
+      const evtPulseAlpha = Math.round(30 + evtPulse * 50);
+      // Large outer glow
       result.push(
         new ScatterplotLayer({
           id: 'events-glow-layer',
           data: events,
           getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 2200,
-          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 25] as [number, number, number, number],
+          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 3000,
+          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), evtPulseAlpha] as [number, number, number, number],
           stroked: false,
-          radiusMinPixels: 12,
-          radiusMaxPixels: 50,
+          radiusMinPixels: 16,
+          radiusMaxPixels: 70,
           pickable: false,
         })
       );
+      // Pulsing outer ring
       result.push(
         new ScatterplotLayer({
           id: 'events-ring-layer',
           data: events,
           getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 1400,
+          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 2000,
           getFillColor: [0, 0, 0, 0],
-          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 60] as [number, number, number, number],
+          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), Math.round(50 + evtPulse * 80)] as [number, number, number, number],
           stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 8,
-          radiusMaxPixels: 35,
+          lineWidthMinPixels: 1.5,
+          radiusMinPixels: 10,
+          radiusMaxPixels: 50,
           pickable: false,
         })
       );
+      // Core dot
       result.push(
         new ScatterplotLayer({
           id: 'events-layer',
           data: events,
           getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 600,
-          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 200] as [number, number, number, number],
+          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 900,
+          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 220] as [number, number, number, number],
           getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 255] as [number, number, number, number],
           stroked: true,
-          lineWidthMinPixels: 1.5,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
+          lineWidthMinPixels: 2,
+          radiusMinPixels: 6,
+          radiusMaxPixels: 20,
           pickable: true,
         })
       );
+      // Event type labels for critical/high severity
+      const labeledEvents = events.filter(e => e.severity === 'critical' || e.severity === 'high');
+      if (labeledEvents.length > 0) {
+        result.push(
+          new TextLayer({
+            id: 'events-label-layer',
+            data: labeledEvents,
+            getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+            getText: (d: ConflictEvent) => d.type.toUpperCase(),
+            getSize: 13,
+            getColor: (d: ConflictEvent) => {
+              const c = EVENT_COLORS[d.type] || [239, 68, 68];
+              return [c[0], c[1], c[2], 220] as [number, number, number, number];
+            },
+            getPixelOffset: [0, -22],
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            getTextAnchor: 'middle',
+            getAlignmentBaseline: 'bottom',
+            pickable: false,
+            outlineWidth: 3,
+            outlineColor: [0, 0, 0, 200],
+            fontSettings: { sdf: true },
+          })
+        );
+      }
     }
 
     if (layerVisibility.missileLines) {
@@ -2384,9 +2432,9 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
 
     // ── Red Alert live pulsing markers ──
     if (redAlerts.length > 0) {
-      const pulse = (Math.sin(arcTime * 0.06) + 1) / 2; // 0..1 oscillation
-      const outerAlpha = Math.round(15 + pulse * 40);
-      const ringAlpha  = Math.round(60 + pulse * 120);
+      const pulse = (Math.sin(pulseTime * Math.PI * 2) + 1) / 2; // 0..1 oscillation
+      const outerAlpha = Math.round(20 + pulse * 60);
+      const ringAlpha  = Math.round(80 + pulse * 160);
 
       // Threat → color map
       const ALERT_COLORS: Record<string, [number, number, number]> = {
@@ -2396,31 +2444,46 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
         uav_intrusion:              [200, 100, 255],
       };
 
-      // Outer glow
+      // Outer glow (large, soft)
       result.push(new ScatterplotLayer({
         id: 'red-alert-glow',
         data: redAlerts,
         getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 18000,
+        getRadius: 26000 + pulse * 6000,
         getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), outerAlpha] as [number,number,number,number],
         stroked: false,
-        radiusMinPixels: 20,
-        radiusMaxPixels: 60,
+        radiusMinPixels: 28,
+        radiusMaxPixels: 80,
         pickable: false,
       }));
 
-      // Pulsing ring
+      // Pulsing outer ring
       result.push(new ScatterplotLayer({
         id: 'red-alert-ring',
         data: redAlerts,
         getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 10000,
+        getRadius: 16000 + pulse * 4000,
         getFillColor: [0,0,0,0],
         getLineColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), ringAlpha] as [number,number,number,number],
         stroked: true,
-        lineWidthMinPixels: 2,
-        radiusMinPixels: 10,
-        radiusMaxPixels: 35,
+        lineWidthMinPixels: 2.5,
+        radiusMinPixels: 14,
+        radiusMaxPixels: 50,
+        pickable: false,
+      }));
+
+      // Inner ring
+      result.push(new ScatterplotLayer({
+        id: 'red-alert-inner-ring',
+        data: redAlerts,
+        getPosition: (d: RedAlert) => [d.lng, d.lat],
+        getRadius: 8000,
+        getFillColor: [0,0,0,0],
+        getLineColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), Math.round(ringAlpha * 0.6)] as [number,number,number,number],
+        stroked: true,
+        lineWidthMinPixels: 1.5,
+        radiusMinPixels: 8,
+        radiusMaxPixels: 24,
         pickable: false,
       }));
 
@@ -2429,13 +2492,13 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
         id: 'red-alert-dot',
         data: redAlerts,
         getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 3000,
+        getRadius: 4500,
         getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 255] as [number,number,number,number],
-        getLineColor: [255, 255, 255, 200],
+        getLineColor: [255, 255, 255, 240],
         stroked: true,
-        lineWidthMinPixels: 1,
-        radiusMinPixels: 4,
-        radiusMaxPixels: 10,
+        lineWidthMinPixels: 2,
+        radiusMinPixels: 6,
+        radiusMaxPixels: 14,
         pickable: true,
       }));
 
@@ -2445,14 +2508,20 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
         data: redAlerts,
         getPosition: (d: RedAlert) => [d.lng, d.lat],
         getText: (d: RedAlert) => `⚠ ${d.city}`,
-        getSize: 11,
-        getColor: [255, 80, 80, 220],
-        getPixelOffset: [0, -16],
+        getSize: 15,
+        getColor: (d: RedAlert) => {
+          const c = ALERT_COLORS[d.threatType] || [255,30,30];
+          return [c[0], c[1], c[2], 240] as [number,number,number,number];
+        },
+        getPixelOffset: [0, -20],
         fontFamily: 'monospace',
         fontWeight: 'bold',
         getTextAnchor: 'middle',
         getAlignmentBaseline: 'bottom',
         pickable: false,
+        outlineWidth: 3,
+        outlineColor: [0, 0, 0, 200],
+        fontSettings: { sdf: true },
       }));
     }
 
@@ -2465,27 +2534,30 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
           data: labelFlights,
           getPosition: (d: AdsbFlight) => [d.lng, d.lat],
           getText: (d: AdsbFlight) => d.callsign,
-          getSize: 10,
+          getSize: 14,
           getColor: (d: AdsbFlight) => {
             const C: Record<string, [number,number,number,number]> = {
-              military:    [255,  80,  80, 210],
-              surveillance:[0,   210, 255, 210],
-              government:  [80,  160, 255, 190],
+              military:    [255,  90,  90, 240],
+              surveillance:[0,   220, 255, 240],
+              government:  [80,  170, 255, 220],
             };
-            return C[d.type] || [255, 255, 255, 160];
+            return C[d.type] || [255, 255, 255, 200];
           },
-          getPixelOffset: [0, -14],
+          getPixelOffset: [0, -18],
           fontFamily: 'monospace',
           fontWeight: 'bold',
           getTextAnchor: 'middle',
           getAlignmentBaseline: 'bottom',
           pickable: false,
+          outlineWidth: 3,
+          outlineColor: [0, 0, 0, 180],
+          fontSettings: { sdf: true },
         }));
       }
     }
 
     return result;
-  }, [events, flights, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+  }, [events, flights, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, pulseTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!deckContainerRef.current) return;
@@ -2538,8 +2610,46 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', fontFamily: "'JetBrains Mono', monospace" }}>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.4)} }
+        @keyframes scanline { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+        @keyframes cornerBlink { 0%,100%{opacity:0.7} 50%{opacity:0.25} }
+        @keyframes radarSweep { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes dataScroll { 0%{opacity:0;transform:translateY(-4px)} 10%{opacity:1;transform:translateY(0)} 85%{opacity:1} 100%{opacity:0} }
+        .conflict-corner-tl::before, .conflict-corner-br::after {
+          content: '';
+          position: absolute;
+          width: 16px; height: 16px;
+          border-color: rgba(239,68,68,0.4);
+          border-style: solid;
+          animation: cornerBlink 2.5s ease-in-out infinite;
+        }
+        .conflict-corner-tl::before { top:8px;left:8px;border-width:2px 0 0 2px; }
+        .conflict-corner-br::after  { bottom:8px;right:8px;border-width:0 2px 2px 0; }
+      `}</style>
       <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }} />
       <div ref={deckContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1, pointerEvents: 'auto' }} />
+
+      {/* Scanline overlay */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', left: 0, right: 0, height: '3px',
+          background: 'linear-gradient(180deg, transparent, rgba(0,220,180,0.06), transparent)',
+          animation: 'scanline 8s linear infinite',
+        }} />
+      </div>
+      {/* Corner brackets */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
+        {/* TL */}
+        <div style={{ position:'absolute',top:6,left:6,width:22,height:22,borderTop:'2px solid rgba(239,68,68,0.45)',borderLeft:'2px solid rgba(239,68,68,0.45)',animation:'cornerBlink 2.5s ease-in-out infinite' }} />
+        {/* TR */}
+        <div style={{ position:'absolute',top:6,right:6,width:22,height:22,borderTop:'2px solid rgba(239,68,68,0.45)',borderRight:'2px solid rgba(239,68,68,0.45)',animation:'cornerBlink 2.5s ease-in-out infinite 0.6s' }} />
+        {/* BL */}
+        <div style={{ position:'absolute',bottom:6,left:6,width:22,height:22,borderBottom:'2px solid rgba(239,68,68,0.45)',borderLeft:'2px solid rgba(239,68,68,0.45)',animation:'cornerBlink 2.5s ease-in-out infinite 1.2s' }} />
+        {/* BR */}
+        <div style={{ position:'absolute',bottom:6,right:6,width:22,height:22,borderBottom:'2px solid rgba(239,68,68,0.45)',borderRight:'2px solid rgba(239,68,68,0.45)',animation:'cornerBlink 2.5s ease-in-out infinite 1.8s' }} />
+      </div>
 
       {/* ── TOP HUD BAR ── */}
       <div style={{
@@ -2550,24 +2660,24 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
         pointerEvents: 'none',
       }}>
         {/* LIVE badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px', background: 'rgba(255,30,30,0.12)', border: '1px solid rgba(255,30,30,0.35)', borderRadius: 4, marginRight: 12 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff1e1e', boxShadow: '0 0 6px #ff1e1e', animation: 'pulse 1.5s ease-in-out infinite' }} />
-          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.2em', color: '#ff6060' }}>LIVE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: 'rgba(255,30,30,0.15)', border: '1px solid rgba(255,30,30,0.45)', borderRadius: 5, marginRight: 14, boxShadow: '0 0 12px rgba(255,30,30,0.2)' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff1e1e', boxShadow: '0 0 10px #ff1e1e, 0 0 20px rgba(255,30,30,0.5)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+          <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: '0.22em', color: '#ff6060' }}>LIVE</span>
         </div>
         {/* Stats chips */}
         {[
-          { label: '✈ MIL/ISR', value: milCount, color: '#ff4444', bg: 'rgba(255,40,40,0.10)', border: 'rgba(255,60,60,0.3)' },
-          { label: '✈ CIV',     value: civCount, color: '#32dc78', bg: 'rgba(50,220,120,0.08)', border: 'rgba(50,220,120,0.25)' },
-          { label: '⚠ ALERTS',  value: alertCount, color: alertCount > 0 ? '#ff4444' : '#555', bg: alertCount > 0 ? 'rgba(255,30,30,0.12)' : 'rgba(255,255,255,0.03)', border: alertCount > 0 ? 'rgba(255,50,50,0.4)' : 'rgba(255,255,255,0.06)' },
-          { label: '💥 EVENTS', value: eventCount, color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.25)' },
-          { label: '🔴 CRITICAL', value: criticalEvents, color: '#f43f5e', bg: 'rgba(244,63,94,0.10)', border: 'rgba(244,63,94,0.3)' },
+          { label: '✈ MIL/ISR', value: milCount, color: '#ff4444', bg: 'rgba(255,40,40,0.12)', border: 'rgba(255,60,60,0.35)' },
+          { label: '✈ CIV',     value: civCount, color: '#32dc78', bg: 'rgba(50,220,120,0.10)', border: 'rgba(50,220,120,0.3)' },
+          { label: '⚠ ALERTS',  value: alertCount, color: alertCount > 0 ? '#ff4444' : '#666', bg: alertCount > 0 ? 'rgba(255,30,30,0.14)' : 'rgba(255,255,255,0.04)', border: alertCount > 0 ? 'rgba(255,50,50,0.45)' : 'rgba(255,255,255,0.08)' },
+          { label: '💥 EVENTS', value: eventCount, color: '#f97316', bg: 'rgba(249,115,22,0.10)', border: 'rgba(249,115,22,0.3)' },
+          { label: '🔴 CRITICAL', value: criticalEvents, color: '#f43f5e', bg: 'rgba(244,63,94,0.12)', border: 'rgba(244,63,94,0.35)' },
         ].map(({ label, value, color, bg, border }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', background: bg, border: `1px solid ${border}`, borderRadius: 4, marginRight: 6 }}>
-            <span style={{ fontSize: 8, color: '#555', letterSpacing: '0.1em' }}>{label}</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color, lineHeight: 1, minWidth: 20 }}>{value}</span>
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px', background: bg, border: `1px solid ${border}`, borderRadius: 5, marginRight: 7 }}>
+            <span style={{ fontSize: 11, color: '#666', letterSpacing: '0.08em' }}>{label}</span>
+            <span style={{ fontSize: 17, fontWeight: 900, color, lineHeight: 1, minWidth: 24 }}>{value}</span>
           </div>
         ))}
-        <div style={{ marginLeft: 'auto', fontSize: 8, color: '#333', letterSpacing: '0.1em' }}>
+        <div style={{ marginLeft: 'auto', fontSize: 11, color: '#3a4050', letterSpacing: '0.12em', fontWeight: 600 }}>
           {new Date().toUTCString().slice(17, 25)} UTC
         </div>
       </div>
@@ -2606,10 +2716,10 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
               {language === 'ar' ? 'أدوات' : 'TOOLS'}
             </span>
-            <span style={{ fontSize: 7, color: '#3d4555', marginLeft: 'auto' }}>{mapToolsOpen ? '▲' : '▼'}</span>
+            <span style={{ fontSize: 9, color: '#3d4555', marginLeft: 'auto' }}>{mapToolsOpen ? '▲' : '▼'}</span>
           </button>
 
           {mapToolsOpen && (
@@ -2735,16 +2845,16 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
                   placeholder={language === 'ar' ? 'بحث...' : 'Search...'}
                   style={{
                     width: '100%',
-                    padding: '5px 24px 5px 24px',
-                    fontSize: 10,
+                    padding: '6px 26px 6px 26px',
+                    fontSize: 12,
                     fontWeight: 500,
                     borderRadius: 4,
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    background: 'rgba(255,255,255,0.02)',
-                    color: '#aaa',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.03)',
+                    color: '#bbb',
                     backdropFilter: 'blur(8px)',
                     outline: 'none',
-                    minHeight: 26,
+                    minHeight: 30,
                     fontFamily: 'monospace',
                     boxSizing: 'border-box',
                   }}
@@ -2822,10 +2932,10 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
                             <path d={iconPath} />
                           </svg>
                           <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{ color: '#ccc', fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ color: '#ddd', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.name}
                             </div>
-                            <div style={{ color: '#444', fontSize: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ color: '#555', fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.category} · {item.detail}
                             </div>
                           </div>
@@ -2930,8 +3040,8 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
             border: '1px solid rgba(255,255,255,0.05)',
             borderRadius: 8,
             boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-            minWidth: panelOpen ? 190 : 'auto',
-            maxWidth: 210,
+            minWidth: panelOpen ? 220 : 'auto',
+            maxWidth: 240,
           }}
         >
           <button
@@ -2941,12 +3051,12 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
             style={{ borderBottom: panelOpen ? '1px solid rgba(255,255,255,0.04)' : 'none', minHeight: IS_TOUCH ? 44 : 30 }}
           >
             <div className="flex items-center gap-2">
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#8892a4', boxShadow: '0 0 4px #8892a455' }} />
-              <span style={{ color: '#8892a4', fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8892a4', boxShadow: '0 0 6px #8892a477' }} />
+              <span style={{ color: '#8892a4', fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', fontFamily: 'monospace', textTransform: 'uppercase' }}>
                 LAYERS
               </span>
             </div>
-            <span style={{ color: '#3d4555', fontSize: 8, fontFamily: 'monospace', fontWeight: 600 }}>
+            <span style={{ color: '#3d4555', fontSize: 10, fontFamily: 'monospace', fontWeight: 700 }}>
               {activeLayerCount}{panelOpen ? ' ▲' : ' ▼'}
             </span>
           </button>
@@ -2966,11 +3076,11 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
                         className="flex items-center gap-1.5 flex-1 text-left"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: IS_TOUCH ? '6px 0' : '2px 0', minHeight: IS_TOUCH ? 36 : 24 }}
                       >
-                        <span style={{ color: group.color, fontSize: 6, opacity: 0.6 }}>{isExpanded ? '▼' : '▶'}</span>
-                        <span style={{ color: group.color, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', fontFamily: 'monospace', textTransform: 'uppercase', opacity: 0.8 }}>
+                        <span style={{ color: group.color, fontSize: 8, opacity: 0.7 }}>{isExpanded ? '▼' : '▶'}</span>
+                        <span style={{ color: group.color, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', fontFamily: 'monospace', textTransform: 'uppercase', opacity: 0.9 }}>
                           {group.label}
                         </span>
-                        <span style={{ color: '#2a3040', fontSize: 7, fontFamily: 'monospace', marginLeft: 2 }}>
+                        <span style={{ color: '#2a3040', fontSize: 9, fontFamily: 'monospace', marginLeft: 2 }}>
                           {activeInGroup}/{groupLayers.length}
                         </span>
                       </button>
@@ -2983,12 +3093,12 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
                           borderRadius: 3,
                           color: activeInGroup > 0 ? '#5a6577' : '#2a3040',
                           cursor: 'pointer',
-                          fontSize: IS_TOUCH ? 9 : 7,
+                          fontSize: IS_TOUCH ? 11 : 9,
                           fontFamily: 'monospace',
                           fontWeight: 700,
-                          padding: IS_TOUCH ? '4px 8px' : '1px 4px',
+                          padding: IS_TOUCH ? '4px 8px' : '2px 5px',
                           letterSpacing: '0.05em',
-                          minHeight: IS_TOUCH ? 30 : 18,
+                          minHeight: IS_TOUCH ? 30 : 20,
                         }}
                       >
                         {activeInGroup === groupLayers.length ? 'OFF' : 'ALL'}
@@ -3015,14 +3125,14 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
                               style={{ display: 'none' }}
                             />
                             <span style={{
-                              width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
                               background: layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.08)',
-                              boxShadow: layerVisibility[cfg.key] ? `0 0 5px ${cfg.color}66` : 'none',
+                              boxShadow: layerVisibility[cfg.key] ? `0 0 7px ${cfg.color}88` : 'none',
                               transition: 'all 0.15s',
                             }} />
                             <span style={{
-                              fontSize: 9,
-                              color: layerVisibility[cfg.key] ? '#9aa3b4' : '#2d3545',
+                              fontSize: 11,
+                              color: layerVisibility[cfg.key] ? '#b0bac8' : '#2d3545',
                               fontFamily: 'monospace',
                               lineHeight: 1.2,
                               transition: 'color 0.15s',
@@ -3076,44 +3186,44 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               {tooltip.category && (
                 <span style={{
-                  fontSize: 8, fontWeight: 800, fontFamily: 'monospace',
+                  fontSize: 10, fontWeight: 900, fontFamily: 'monospace',
                   textTransform: 'uppercase', letterSpacing: '0.15em',
                   color: tooltip.accentColor || '#ef4444',
-                  background: `${tooltip.accentColor || '#ef4444'}18`,
-                  border: `1px solid ${tooltip.accentColor || '#ef4444'}30`,
-                  padding: '2px 7px', borderRadius: 4,
+                  background: `${tooltip.accentColor || '#ef4444'}20`,
+                  border: `1px solid ${tooltip.accentColor || '#ef4444'}40`,
+                  padding: '2px 8px', borderRadius: 4,
                 }}>
                   {tooltip.category}
                 </span>
               )}
               {tooltip.timestamp && (
-                <span style={{ fontSize: 9, color: '#444', fontFamily: 'monospace', marginLeft: 'auto', letterSpacing: '0.05em' }}>
+                <span style={{ fontSize: 11, color: '#555', fontFamily: 'monospace', marginLeft: 'auto', letterSpacing: '0.05em' }}>
                   {new Date(tooltip.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               )}
-              <button onClick={(e) => { e.stopPropagation(); setTooltip(null); }} style={{ background: 'none', border: 'none', color: '#333', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0 }}>✕</button>
+              <button onClick={(e) => { e.stopPropagation(); setTooltip(null); }} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
             </div>
             {/* title */}
-            <div style={{ color: '#f0f0f0', fontSize: 13, fontWeight: 700, lineHeight: 1.35, marginBottom: 6, wordBreak: 'break-word', letterSpacing: '0.02em' }}>
+            <div style={{ color: '#f4f4f4', fontSize: 15, fontWeight: 700, lineHeight: 1.35, marginBottom: 8, wordBreak: 'break-word', letterSpacing: '0.02em' }}>
               {tooltip.text}
             </div>
             {/* detail — supports newlines */}
             {tooltip.detail && tooltip.detail.split('\n').map((line, i) => (
-              <div key={i} style={{ color: '#5a6577', fontSize: 10, fontFamily: 'monospace', lineHeight: 1.6, letterSpacing: '0.03em' }}>
+              <div key={i} style={{ color: '#6a7585', fontSize: 12, fontFamily: 'monospace', lineHeight: 1.6, letterSpacing: '0.03em' }}>
                 {line}
               </div>
             ))}
             {/* coords + map link */}
             {tooltip.coords && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ fontSize: 9, color: '#383f4d', fontFamily: 'monospace' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 7, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <span style={{ fontSize: 11, color: '#404855', fontFamily: 'monospace' }}>
                   {tooltip.coords.lat.toFixed(4)}°N {tooltip.coords.lng.toFixed(4)}°E
                 </span>
                 <a
                   href={`https://www.google.com/maps?q=${tooltip.coords.lat},${tooltip.coords.lng}&z=12&t=k`}
                   target="_blank" rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ fontSize: 8, color: '#4a90d9', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 700, marginLeft: 'auto', letterSpacing: '0.1em' }}
+                  style={{ fontSize: 10, color: '#4a90d9', textDecoration: 'none', fontFamily: 'monospace', fontWeight: 800, marginLeft: 'auto', letterSpacing: '0.1em' }}
                 >
                   SATELLITE ↗
                 </a>
@@ -3140,23 +3250,23 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
             boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
           }}
         >
-          <div style={{ color: '#b8a44e', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4, fontFamily: 'monospace' }}>
+          <div style={{ color: '#b8a44e', fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5, fontFamily: 'monospace' }}>
             {language === 'ar' ? 'اداة القياس' : 'Distance'}
           </div>
           {measureCenter && measureDistance !== null ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ color: '#ddd', fontSize: 13, fontWeight: 600, fontFamily: 'monospace' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <div style={{ color: '#eee', fontSize: 16, fontWeight: 700, fontFamily: 'monospace' }}>
                 {measureDistance < 1 ? `${(measureDistance * 1000).toFixed(0)} m` : `${measureDistance.toFixed(1)} km`}
               </div>
-              <div style={{ color: '#5a6577', fontSize: 9, fontFamily: 'monospace' }}>
+              <div style={{ color: '#5a6577', fontSize: 11, fontFamily: 'monospace' }}>
                 {(measureDistance * 0.539957).toFixed(1)} nm · {(measureDistance * 0.621371).toFixed(1)} mi
               </div>
-              <div style={{ color: '#3d4555', fontSize: 8, marginTop: 2 }}>
+              <div style={{ color: '#3d4555', fontSize: 10, marginTop: 2 }}>
                 {language === 'ar' ? 'انقر لمسح' : 'Click to clear'}
               </div>
             </div>
           ) : (
-            <div style={{ color: '#5a6577', fontSize: 10 }}>
+            <div style={{ color: '#5a6577', fontSize: 12 }}>
               {language === 'ar' ? 'انقر على الخريطة لتعيين نقطة المركز' : 'Click map to set center'}
             </div>
           )}

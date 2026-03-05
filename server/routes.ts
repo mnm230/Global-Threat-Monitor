@@ -772,6 +772,10 @@ const OSINT_RSS_FEEDS = [
   { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
+  { url: 'https://www.dailystar.com.lb/RSS.aspx', source: 'Daily Star Lebanon' },
+  { url: 'https://english.alaraby.co.uk/rss', source: 'The New Arab' },
+  { url: 'https://www.lorientlejour.com/rss', source: "L'Orient Le Jour" },
+  { url: 'https://today.lorientlejour.com/rss', source: "L'Orient Today (EN)" },
 ];
 let osintFeedCache: { data: NewsItem[]; fetchedAt: number } | null = null;
 const OSINT_FEED_CACHE_TTL = 60_000;
@@ -856,6 +860,7 @@ const FREE_NEWS_RSS_FEEDS = [
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
   { url: 'https://news.google.com/rss/search?q=iran+israel+war&hl=en-US&gl=US&ceid=US:en', source: 'Google News War' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
+  { url: 'https://news.google.com/rss/search?q=lebanon+war+hezbollah&hl=en-US&gl=US&ceid=US:en', source: 'Google News Lebanon' },
 ];
 
 let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
@@ -1193,6 +1198,44 @@ const SOUTH_LEBANON_VILLAGES: Record<string, { lat: number; lng: number; label: 
   'southern lebanon': { lat: 33.200, lng: 35.450, label: 'Southern Lebanon' },
   'south lebanon': { lat: 33.200, lng: 35.450, label: 'Southern Lebanon' },
   'litani': { lat: 33.280, lng: 35.480, label: 'Litani River' },
+  'tyre': { lat: 33.273, lng: 35.194, label: 'Tyre' },
+  'sur': { lat: 33.273, lng: 35.194, label: 'Tyre (Sur)' },
+  'sidon': { lat: 33.563, lng: 35.376, label: 'Sidon' },
+  'saida': { lat: 33.563, lng: 35.376, label: 'Sidon (Saida)' },
+  'baalbek': { lat: 34.006, lng: 36.218, label: 'Baalbek' },
+  'hermel': { lat: 34.394, lng: 36.385, label: 'Hermel' },
+  'tripoli': { lat: 34.437, lng: 35.850, label: 'Tripoli' },
+  'dahiyeh': { lat: 33.852, lng: 35.492, label: 'Dahiyeh' },
+  'dahieh': { lat: 33.852, lng: 35.492, label: 'Dahiyeh' },
+  'southern suburbs': { lat: 33.852, lng: 35.492, label: 'Dahiyeh (Southern Suburbs)' },
+  'jounieh': { lat: 33.981, lng: 35.618, label: 'Jounieh' },
+  'zahle': { lat: 33.846, lng: 35.902, label: 'Zahle' },
+  'rashaya': { lat: 33.497, lng: 35.843, label: 'Rashaya' },
+  'bent jbeil': { lat: 33.117, lng: 35.432, label: 'Bint Jbeil' },
+  'aita al-shaab': { lat: 33.078, lng: 35.384, label: 'Aita al-Shaab' },
+  'aita el shaab': { lat: 33.078, lng: 35.384, label: 'Aita al-Shaab' },
+  'blida': { lat: 33.110, lng: 35.475, label: 'Blida' },
+  'mais al-jabal': { lat: 33.106, lng: 35.399, label: 'Mais al-Jabal' },
+  'mays al-jabal': { lat: 33.106, lng: 35.399, label: 'Mais al-Jabal' },
+  'aynata': { lat: 33.193, lng: 35.527, label: 'Aynata' },
+  'naqoura': { lat: 33.117, lng: 35.140, label: 'Naqoura' },
+  'ras al-ain': { lat: 33.230, lng: 35.540, label: 'Ras al-Ain' },
+  'tebnine': { lat: 33.199, lng: 35.407, label: 'Tebnine' },
+  'tibnin': { lat: 33.199, lng: 35.407, label: 'Tebnine' },
+  'deir mimas': { lat: 33.334, lng: 35.552, label: 'Deir Mimas' },
+  'khirbet selm': { lat: 33.185, lng: 35.463, label: 'Khirbet Selm' },
+  'jezzine': { lat: 33.545, lng: 35.590, label: 'Jezzine' },
+  'chouf': { lat: 33.700, lng: 35.580, label: 'Chouf' },
+  'aley': { lat: 33.810, lng: 35.600, label: 'Aley' },
+  'bekaa': { lat: 33.850, lng: 36.000, label: 'Bekaa Valley' },
+  'bekaa valley': { lat: 33.850, lng: 36.000, label: 'Bekaa Valley' },
+  'qana': { lat: 33.209, lng: 35.298, label: 'Qana' },
+  'kunin': { lat: 33.159, lng: 35.472, label: 'Kunin' },
+  'chihine': { lat: 33.092, lng: 35.419, label: 'Chihine' },
+  'deir siriane': { lat: 33.130, lng: 35.430, label: 'Deir Siriane' },
+  'kafr hamam': { lat: 33.123, lng: 35.451, label: 'Kafr Hamam' },
+  'hanine': { lat: 33.168, lng: 35.407, label: 'Hanine' },
+  'rachaf': { lat: 33.148, lng: 35.486, label: 'Rachaf' },
 };
 
 const GROUND_INVASION_PATTERNS = [
@@ -1220,7 +1263,7 @@ function extractLebanonGroundEvents(tgMsgs: TelegramMessage[]): ConflictEvent[] 
     if (!text || text.length < 10) continue;
 
     // Quick pre-filter: must mention Lebanon/Hezbollah/southern/invasion keywords
-    const hasLebanonContext = /lebanon|hezbollah|south lebanon|litani|idf ground|ground operation|بنت جبيل|الخيام|مارون|لبنان|جنوب لبنان|حزب الله/i.test(text);
+    const hasLebanonContext = /lebanon|hezbollah|south lebanon|litani|idf ground|ground operation|nabatieh|tyre|sidon|baalbek|dahiy[ae]h|bekaa|marjayoun|naqoura|unifil|بنت جبيل|الخيام|مارون|لبنان|جنوب لبنان|حزب الله|النبطية|صيدا|صور|بيروت|بعلبك|الضاحية|البقاع|مرجعيون|الناقورة|المقاومة اللبنانية|جنوبي لبنان/i.test(text);
     if (!hasLebanonContext) continue;
 
     let matchedVillage: { lat: number; lng: number; label: string } | null = null;
@@ -1500,6 +1543,22 @@ const RED_ALERT_POOL: Omit<RedAlert, 'timestamp' | 'active'>[] = [
   { id: 'ra73', city: 'Dahiyeh', cityHe: 'דאחייה', cityAr: 'الضاحية', region: 'Beirut Southern Suburbs', regionHe: 'פרברי ביירות', regionAr: 'الضاحية الجنوبية', country: 'Lebanon', countryCode: 'LB', countdown: 15, threatType: 'missiles', lat: 33.852, lng: 35.492 },
   { id: 'ra74', city: 'Maroun al-Ras', cityHe: 'מארון אל-ראס', cityAr: 'مارون الراس', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.103, lng: 35.460 },
   { id: 'ra75', city: 'Aitaroun', cityHe: 'עיתרון', cityAr: 'عيترون', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.103, lng: 35.425 },
+  // LEBANON (expanded — cities, villages, strategic sites)
+  { id: 'ra76', city: 'Hermel', cityHe: 'הרמל', cityAr: 'الهرمل', region: 'Baalbek-Hermel', regionHe: 'בעלבכ-הרמל', regionAr: 'بعلبك الهرمل', country: 'Lebanon', countryCode: 'LB', countdown: 30, threatType: 'missiles', lat: 34.394, lng: 36.385 },
+  { id: 'ra77', city: 'Jounieh', cityHe: "ג'וניה", cityAr: 'جونيه', region: 'Mount Lebanon', regionHe: 'הר לבנון', regionAr: 'جبل لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 60, threatType: 'missiles', lat: 33.981, lng: 35.618 },
+  { id: 'ra78', city: 'Zahle', cityHe: 'זחלה', cityAr: 'زحلة', region: 'Bekaa Valley', regionHe: 'בקעת הבקאע', regionAr: 'وادي البقاع', country: 'Lebanon', countryCode: 'LB', countdown: 30, threatType: 'missiles', lat: 33.846, lng: 35.902 },
+  { id: 'ra79', city: 'Bint Jbeil', cityHe: 'בינת ג\'ביל', cityAr: 'بنت جبيل', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.117, lng: 35.432 },
+  { id: 'ra80', city: 'Al-Khiam', cityHe: 'אל-חיאם', cityAr: 'الخيام', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.359, lng: 35.611 },
+  { id: 'ra81', city: 'Marjayoun', cityHe: 'מרג\'עיון', cityAr: 'مرجعيون', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.359, lng: 35.593 },
+  { id: 'ra82', city: 'Naqoura', cityHe: 'נקורה', cityAr: 'الناقورة', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.117, lng: 35.140 },
+  { id: 'ra83', city: 'Jezzine', cityHe: "ג'זין", cityAr: 'جزين', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 15, threatType: 'missiles', lat: 33.545, lng: 35.590 },
+  { id: 'ra84', city: 'Qana', cityHe: 'קאנא', cityAr: 'قانا', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.209, lng: 35.298 },
+  { id: 'ra85', city: 'Tebnine', cityHe: 'טיבנין', cityAr: 'تبنين', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.199, lng: 35.407 },
+  { id: 'ra86', city: 'Aita al-Shaab', cityHe: 'עייתא א-שעב', cityAr: 'عيتا الشعب', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.078, lng: 35.384 },
+  { id: 'ra87', city: 'Mais al-Jabal', cityHe: 'מייס אל-ג\'בל', cityAr: 'ميس الجبل', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.106, lng: 35.399 },
+  { id: 'ra88', city: 'Blida', cityHe: 'בלידא', cityAr: 'بليدا', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.110, lng: 35.475 },
+  { id: 'ra89', city: 'Hasbaya', cityHe: 'חסביה', cityAr: 'حاصبيا', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 15, threatType: 'rockets', lat: 33.397, lng: 35.690 },
+  { id: 'ra90', city: 'Kafr Shuba', cityHe: 'כפר שובא', cityAr: 'كفرشوبا', region: 'South Lebanon', regionHe: 'דרום לבנון', regionAr: 'جنوب لبنان', country: 'Lebanon', countryCode: 'LB', countdown: 0, threatType: 'rockets', lat: 33.418, lng: 35.689 },
 ];
 
 const TZEVAADOM_API_URL = 'https://api.tzevaadom.co.il/notifications';
@@ -1997,6 +2056,16 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
     { pattern: /(?:mortar|artillery)\s+(?:fire|shelling|barrage|attack)\s+(?:on|in|at|hits?|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
     { pattern: /intercept(?:ed|ion)\s+(?:over|above|near|in)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
     { pattern: /(?:US|American|coalition)\s+(?:strike[s]?|raid[s]?|attack[s]?|bomb(?:s|ed|ing)?)\s+(?:on|in|at|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:Hezbollah|resistance)\s+(?:launches?|fires?|targets?|attacks?|strikes?)\s+(?:at|on|towards|into)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:Hezbollah|resistance)\s+(?:rockets?|missiles?|drones?|UAVs?)\s+(?:hit|strike|land|impact|towards)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /حزب الله\s+(?:يستهدف|يطلق|يقصف|يهاجم)\s+(.+?)(?:\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /المقاومة\s+(?:تستهدف|تطلق|تقصف|تهاجم)\s+(.+?)(?:\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:Israeli?\s+)?(?:warplanes?|jets?|F-?(?:15|16|35))\s+(?:over|above|in|strike|bomb|target)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /طيران\s+(?:حربي|إسرائيلي|معادي)\s+(?:يحلق|فوق|في|يقصف|يستهدف)\s*(.+?)(?:\n|$)/i, threatType: 'missiles' as const },
+    { pattern: /(?:UNIFIL|peacekeep(?:ers?|ing))\s+(?:under\s+(?:fire|attack)|targeted|hit)\s+(?:in|at|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:ceasefire\s+violation|violation\s+(?:of|in))\s+(?:south(?:ern)?\s+)?(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
+    { pattern: /(?:infiltration|incursion|crossing)\s+(?:attempt\s+)?(?:into|in|at|near)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'uav' as const },
+    { pattern: /(?:tunnel[s]?\s+(?:discovered|found|destroyed|detonated))\s+(?:in|near|at)\s+(.+?)(?:\.|,|\n|$)/i, threatType: 'rockets' as const },
   ];
 
   const alerts: RedAlert[] = [];
@@ -2041,6 +2110,16 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
             'المطلة': 'Metula', 'الخيام': 'Al-Khiam', 'لدة الخيام': 'Al-Khiam',
             'بنت جبيل': 'Bint Jbeil', 'النبطية': 'Nabatieh', 'صيدا': 'Sidon',
             'صور': 'Tyre', 'بيروت': 'Beirut', 'بعلبك': 'Baalbek',
+            'الهرمل': 'Hermel', 'جونيه': 'Jounieh', 'زحلة': 'Zahle',
+            'الخيام': 'Al-Khiam', 'مرجعيون': 'Marjayoun', 'الناقورة': 'Naqoura',
+            'جزين': 'Jezzine', 'قانا': 'Qana', 'تبنين': 'Tebnine',
+            'حاصبيا': 'Hasbaya', 'كفرشوبا': 'Kafr Shuba',
+            'عيتا الشعب': 'Aita al-Shaab', 'ميس الجبل': 'Mais al-Jabal',
+            'بليدا': 'Blida', 'عيناتا': 'Aynata', 'يارون': 'Yaroun',
+            'اللبونة': 'Labbouneh', 'علما الشعب': 'Alma ash-Shab',
+            'رميش': 'Rmeish', 'عديسة': 'Adaisseh', 'مركبا': 'Markaba',
+            'وادي البقاع': 'Bekaa Valley', 'البقاع': 'Bekaa',
+            'الشوف': 'Chouf', 'عاليه': 'Aley', 'جبل لبنان': 'Mount Lebanon',
             'طرابلس': 'Tripoli', 'دمشق': 'Damascus', 'حلب': 'Aleppo',
             'بغداد': 'Baghdad', 'أربيل': 'Erbil', 'طهران': 'Tehran',
             'الرياض': 'Riyadh', 'صنعاء': 'Sanaa', 'عدن': 'Aden',
@@ -3302,14 +3381,26 @@ export async function registerRoutes(
     'bintjbeilnews',     // Bint Jbeil — key southern Lebanon battle zone (AR)
     'lebanonnews2',      // Lebanon news aggregator (AR/EN)
     'QudsN',             // Jerusalem / Palestine / Lebanon network (AR)
+    'mtaborim',          // Lebanese military updates (AR)
+    'ResistanceLB',      // Lebanese resistance news (AR/EN)
+    'LebUpdate',         // Lebanon live updates (AR/EN)
+    'LebanonTimes',      // Lebanon Times — political + conflict (EN)
+    'HezbollahWO',       // Hezbollah War Operations updates (AR)
     // --- Lebanon ground invasion — English OSINT ---
     'NaharnetEnglish',   // Naharnet Lebanese news (EN)
     'L24English',        // Lebanon 24 English (EN)
     'LBCINews',          // LBCI Lebanese broadcaster (AR/EN)
     'NOWLebanon',        // NOW Lebanon — English political/conflict coverage (EN)
+    'MTVLebanonNews',    // MTV Lebanon (EN/AR)
+    'OTVLebanon',        // OTV Lebanon — Aoun-linked (AR/EN)
+    'AlJadeedNews',      // Al Jadeed TV — Lebanese broadcaster (AR)
     // --- South Lebanon village-level coverage ---
     'southlebanon',      // South Lebanon ground reports (AR)
     'nabatiehnews',      // Nabatieh governorate — IDF ground axis (AR)
+    'TyreCityNews',      // Tyre / Sur city updates (AR)
+    'SidonOnline',       // Sidon / Saida region updates (AR)
+    'BaalbekNews',       // Baalbek-Hermel region (AR)
+    'BekaaNow',          // Bekaa Valley live updates (AR)
     // --- Yemen / Houthi / Red Sea ---
     'Yemen_Press',       // Regional conflict updates (AR)
     'YemenUpdate',       // Yemen live updates (EN/AR)
@@ -3334,6 +3425,9 @@ export async function registerRoutes(
     'bintjbeilnews',     // Bint Jbeil front line
     'almanarnews',       // Al-Manar (Hezbollah) — real-time
     'AlAhedNews',        // Al-Ahed ground reports
+    'HezbollahWO',       // Hezbollah ops updates
+    'ResistanceLB',      // Lebanese resistance — fast
+    'southlebanon',      // South Lebanon ground reports
     'BNONewsRoom',       // BNO breaking news
     'GeoConfirmed',      // geo-confirmed events
     'ELINTNews',         // ELINT / air+ground activity
