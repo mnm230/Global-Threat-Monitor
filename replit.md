@@ -12,8 +12,8 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 **UI/UX Decisions:**
 - **Theme:** Bloomberg Terminal-inspired dark aesthetic with a warm amber primary accent (`hsl(36 90% 52%)`) and a blue-tinted near-black background (`hsl(228 28% 4%)`).
 - **Typography:** JetBrains Mono for data, Inter for UI text. Compact font sizes (9-10px) for high information density.
-- **Responsiveness:** Adaptive layout for mobile, tablet, and desktop, with specific UI adjustments for each breakpoint and comprehensive touch screen support.
-- **Panel System:** Features 13 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`) in a customizable, resizable grid. Seismic and God's Eye panels were removed.
+- **Responsiveness:** Adaptive layout for mobile (<768px), tablet (768-1199px), and desktop (1200+), with specific UI adjustments for each breakpoint. Mobile: single-panel view with bottom tab bar (6 primary tabs + "More" bottom sheet), swipe navigation between panels with dot indicators, compact mini commodity ticker, dropdown hamburger menu with status info (SRC/EVT/ADS counts + clock), panel slide transitions, 100dvh viewport, safe-area-inset support, touch-action manipulation, and hidden close/maximize buttons. Touch targets: 52px min tab buttons, 18px icons.
+- **Panel System:** Features 14 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`, `avichay`) in a customizable, resizable grid (react-grid-layout, 12-col, 120px row height). Mobile uses single-panel view, tablet uses 2-column CSS grid.
 
 **Technical Implementations:**
 - **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI.

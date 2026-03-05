@@ -5390,9 +5390,9 @@ export default function Dashboard() {
   }, []);
 
   const renderPanel = (id: PanelId) => {
-    const close = () => closePanel(id);
-    const maximize = () => toggleMaximize(id);
-    const isMax = maximizedPanel === id;
+    const close = isMobile ? undefined : () => closePanel(id);
+    const maximize = isMobile ? undefined : () => toggleMaximize(id);
+    const isMax = isMobile ? false : maximizedPanel === id;
     const panel = (() => {
       switch (id) {
         case 'intel':
@@ -5438,7 +5438,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col bg-background text-foreground h-screen overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
+    <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
       <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2%)'}}>
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} font-black tracking-[0.28em] text-primary font-mono select-none whitespace-nowrap`}>◈ WARROOM</span>
@@ -5463,14 +5463,16 @@ export default function Dashboard() {
           <div className="hidden md:flex items-center"><LiveClock /></div>
           <div className="w-px h-5 bg-border/30 hidden md:block" />
           {isMobile || isTablet ? (
-            <button
-              onClick={() => setShowMobileMenu(p => !p)}
-              className="w-11 h-11 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 transition-colors"
-              aria-label="Open menu"
-              data-testid="button-mobile-menu"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
+            <div className="warroom-mobile-menu-anchor">
+              <button
+                onClick={() => setShowMobileMenu(p => !p)}
+                className="w-11 h-11 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground active:bg-white/[0.06] transition-colors"
+                aria-label="Open menu"
+                data-testid="button-mobile-menu"
+              >
+                {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           ) : (
             <div className="flex items-center gap-0.5">
               <Button
@@ -5578,18 +5580,68 @@ export default function Dashboard() {
         <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
 
       {showMobileMenu && (isMobile || isTablet) && (
-        <div className="border-b border-border/40 bg-card/95 backdrop-blur-md px-3 py-2 flex flex-wrap gap-1.5 shrink-0 z-50" data-testid="mobile-menu">
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { toggleNotifications(); setShowMobileMenu(false); }} aria-label="Notifications"><Bell className="w-4 h-4 mr-1" />Notif</Button>
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setSoundEnabled(p => !p); setShowMobileMenu(false); }} aria-label="Sound"><Volume2 className="w-4 h-4 mr-1" />Sound</Button>
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowNotes(true); setShowMobileMenu(false); }} aria-label="Notes"><StickyNote className="w-4 h-4 mr-1" />Notes</Button>
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowWatchlist(true); setShowMobileMenu(false); }} aria-label="Watchlist"><Eye className="w-4 h-4 mr-1" />Watch</Button>
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { handleExport(); setShowMobileMenu(false); }} aria-label="Export"><FileDown className="w-4 h-4 mr-1" />Export</Button>
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setShowSettings(true); setShowMobileMenu(false); }} aria-label="Settings"><Settings className="w-4 h-4 mr-1" />Settings</Button>
-          <Button size="sm" variant="ghost" className="h-10 px-3 text-xs" onClick={() => { setLanguage(language === 'en' ? 'ar' : 'en'); setShowMobileMenu(false); }} aria-label="Language"><Languages className="w-4 h-4 mr-1" />{language === 'en' ? 'AR' : 'EN'}</Button>
-        </div>
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowMobileMenu(false)} />
+          <div className="absolute right-2 top-full z-50 mt-1 rounded-xl border border-white/[0.08] bg-[hsl(225_28%_5%)] backdrop-blur-xl shadow-2xl min-w-[180px]" data-testid="mobile-menu">
+            <div className="p-1.5 flex flex-col gap-0.5">
+              {[
+                { id: 'notif', icon: Bell, label: notificationsEnabled ? 'Notif ON' : 'Notif OFF', action: () => { toggleNotifications(); setShowMobileMenu(false); }, active: notificationsEnabled },
+                { id: 'sound', icon: soundEnabled ? Volume2 : VolumeX, label: soundEnabled ? 'Sound ON' : 'Sound OFF', action: () => { setSoundEnabled((p: boolean) => !p); setShowMobileMenu(false); }, active: soundEnabled },
+                { id: 'notes', icon: StickyNote, label: language === 'ar' ? 'ملاحظات' : 'Notes', action: () => { setShowNotes(true); setShowMobileMenu(false); } },
+                { id: 'watchlist', icon: Eye, label: language === 'ar' ? 'مراقبة' : 'Watchlist', action: () => { setShowWatchlist(true); setShowMobileMenu(false); } },
+                { id: 'export', icon: FileDown, label: language === 'ar' ? 'تصدير' : 'Export', action: () => { handleExport(); setShowMobileMenu(false); } },
+                { id: 'settings', icon: Settings, label: language === 'ar' ? 'إعدادات' : 'Settings', action: () => { setShowSettings(true); setShowMobileMenu(false); } },
+                { id: 'language', icon: Languages, label: language === 'en' ? 'عربي' : 'English', action: () => { setLanguage(language === 'en' ? 'ar' : 'en'); setShowMobileMenu(false); } },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={item.action}
+                    data-testid={`mobile-menu-${item.id}`}
+                    className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[11px] font-medium transition-colors active:bg-white/[0.06] ${item.active ? 'text-primary' : 'text-foreground/60 hover:text-foreground/80'}`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="border-t border-white/[0.05] px-3 py-2">
+              <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
+                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, xPosts.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
+                <span>·</span>
+                <span>EVT {events.length}</span>
+                <span>·</span>
+                <span>ADS {adsbFlights.length}</span>
+                <span className="ml-auto"><LiveClock /></span>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {!isMobile && <TickerBar commodities={commodities} />}
+
+      {isMobile && commodities.length > 0 && (
+        <div className="warroom-mobile-mini-ticker shrink-0" data-testid="mobile-mini-ticker">
+          {commodities.filter(c => c.category === 'commodity').slice(0, 5).map(c => (
+            <div key={c.symbol} className="flex items-center gap-1 whitespace-nowrap">
+              <span className="text-[8px] font-mono font-bold text-foreground/30">{c.symbol}</span>
+              <span className="text-[8px] font-mono text-foreground/50">${c.price.toFixed(c.price > 100 ? 0 : 2)}</span>
+              <span className={`text-[7px] font-mono font-bold ${c.changePercent >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                {c.changePercent >= 0 ? '+' : ''}{c.changePercent.toFixed(1)}%
+              </span>
+            </div>
+          ))}
+          {redAlerts.length > 0 && (
+            <div className="flex items-center gap-1 whitespace-nowrap ml-auto">
+              <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[8px] font-mono font-bold text-red-400/70">{redAlerts.length} ALERTS</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <SirenBanner sirens={sirens} breakingNews={breakingNews} language={language} hidden={!!maximizedPanel} />
 
@@ -5598,39 +5650,53 @@ export default function Dashboard() {
           <div className="flex flex-col h-full min-h-0">
             <div
               ref={panelWrapperRef}
-              className="flex-1 min-h-0 overflow-hidden"
+              key={mobileActivePanel}
+              className="flex-1 min-h-0 overflow-hidden warroom-mobile-panel-transition"
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
               {renderPanel(mobileActivePanel)}
             </div>
-            <div className="shrink-0 border-t border-white/[0.07] flex items-center overflow-x-auto warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 30% 2.5%)' }} data-testid="mobile-tab-bar">
+            <div className="warroom-mobile-swipe-dots shrink-0" data-testid="mobile-swipe-dots">
+              {SWIPE_TABS.map(id => (
+                <button
+                  key={id}
+                  className={`dot ${mobileActivePanel === id ? 'active' : ''}`}
+                  onClick={() => setMobileActivePanel(id)}
+                  aria-label={`Switch to ${PANEL_CONFIG[id]?.label || id}`}
+                  data-testid={`swipe-dot-${id}`}
+                />
+              ))}
+            </div>
+            <div className="shrink-0 border-t border-white/[0.07] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 30% 2.5%)' }} data-testid="mobile-tab-bar">
               {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
                 const isActive = mobileActivePanel === id;
                 const hasAlert = id === 'alerts' && redAlerts.length > 0;
+                const hasTelegram = id === 'telegram' && telegramMessages.length > 0;
                 return (
                   <button
                     key={id}
                     onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                    className={`flex-1 min-w-[48px] py-2 flex flex-col items-center gap-0.5 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/35 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
+                    className={`flex-1 min-w-[52px] min-h-[52px] py-2.5 flex flex-col items-center gap-1 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/30 active:text-foreground/50'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
                     data-testid={`mobile-tab-${id}`}
                   >
-                    {isActive && <div className="absolute top-0 left-3 right-3 h-[2px] bg-primary rounded-b" />}
-                    <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/35'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
-                    {hasAlert && <div className="absolute top-1.5 right-3 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
+                    {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" style={{ boxShadow: '0 2px 8px hsl(36 100% 50% / 0.3)' }} />}
+                    <Icon className={`w-[18px] h-[18px] transition-transform ${isActive ? 'scale-110' : ''}`} />
+                    <span className={`text-[8px] font-mono font-bold uppercase tracking-wider transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/25'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.6)' }} />}
+                    {hasTelegram && !isActive && <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />}
                   </button>
                 );
               })}
               <button
                 onClick={() => setShowMobilePanelPicker(p => !p)}
-                className={`min-w-[48px] py-2 flex flex-col items-center gap-0.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/35'}`}
+                className={`min-w-[52px] min-h-[52px] py-2.5 flex flex-col items-center gap-1 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/30'}`}
                 data-testid="mobile-tab-more"
               >
-                <MoreHorizontal className="w-4 h-4" />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wide">{language === 'ar' ? 'المزيد' : 'More'}</span>
+                <MoreHorizontal className="w-[18px] h-[18px]" />
+                <span className="text-[8px] font-mono font-bold uppercase tracking-wider">{language === 'ar' ? 'المزيد' : 'More'}</span>
               </button>
             </div>
             {/* Bottom Sheet Backdrop */}
@@ -5640,33 +5706,37 @@ export default function Dashboard() {
                 onClick={() => setShowMobilePanelPicker(false)}
               />
             )}
-            {/* Bottom Sheet */}
             <div
               className={`fixed left-0 right-0 bottom-0 z-50 warroom-bottom-sheet ${showMobilePanelPicker ? 'warroom-bottom-sheet--open' : ''}`}
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 60px)' }}
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}
               data-testid="mobile-panel-picker"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+              <div className="flex justify-center pt-2 pb-1">
+                <div className="w-8 h-1 rounded-full bg-white/[0.12]" />
+              </div>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-foreground/40">
-                  {language === 'ar' ? 'لوحات' : 'Panels'}
+                  {language === 'ar' ? 'لوحات إضافية' : 'More Panels'}
                 </span>
-                <button onClick={() => setShowMobilePanelPicker(false)} className="w-6 h-6 flex items-center justify-center text-foreground/30 hover:text-foreground/60">
-                  <X className="w-3.5 h-3.5" />
+                <button onClick={() => setShowMobilePanelPicker(false)} className="w-8 h-8 flex items-center justify-center text-foreground/30 hover:text-foreground/60 rounded-lg active:bg-white/5">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2 p-3">
+              <div className="grid grid-cols-4 gap-2.5 p-3">
                 {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
+                  const count = id === 'adsb' ? adsbFlights.length : id === 'cyber' ? cyberEvents.length : id === 'xfeed' ? xPosts.length : id === 'radar' ? flights.length : 0;
                   return (
                     <button
                       key={id}
                       onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors ${mobileActivePanel === id ? 'bg-primary/15 text-primary' : 'text-foreground/40 bg-white/[0.03] active:bg-white/[0.07]'}`}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors min-h-[64px] ${mobileActivePanel === id ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'text-foreground/40 bg-white/[0.03] active:bg-white/[0.08]'}`}
                       data-testid={`mobile-picker-${id}`}
                     >
                       <Icon className="w-5 h-5" />
-                      <span className="text-[9px] font-mono font-bold leading-tight text-center">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                      <span className="text-[8px] font-mono font-bold leading-tight text-center">{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                      {count > 0 && <span className="text-[7px] font-mono text-foreground/25">{count}</span>}
                     </button>
                   );
                 })}
