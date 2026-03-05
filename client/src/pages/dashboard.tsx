@@ -5734,7 +5734,7 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} breakingNews={breakingNews} language={language} hidden={!!maximizedPanel} />
 
-      <div className="flex-1 min-h-0 overflow-auto" data-testid="resizable-panels">
+      <div className="flex-1 min-h-0 overflow-auto scroll-smooth" data-testid="resizable-panels" style={{ scrollbarGutter: 'stable' }}>
         {isMobile ? (
           <div className="flex flex-col h-full min-h-0">
             <div
@@ -5867,7 +5867,7 @@ export default function Dashboard() {
             margin={[1, 1]}
             containerPadding={[1, 1]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
-            style={{ minHeight: 400 }}
+            style={{ minHeight: 400, paddingBottom: 60 }}
           >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
               const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;

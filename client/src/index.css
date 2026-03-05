@@ -153,15 +153,18 @@
     font-weight: 500;
   }
 
-  /* Smooth scrolling for all scrollable containers */
+  /* Firefox scrollbar styling */
   * {
-    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(185 30% 28% / 0.6) transparent;
   }
 
   /* Momentum scrolling for touch + desktop overflow containers */
-  [class*="overflow-y-"], [class*="overflow-x-"], [style*="overflow"] {
+  [class*="overflow-y-"], [class*="overflow-x-"], [style*="overflow"],
+  [class*="overflow-auto"] {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+    overscroll-behavior: contain;
   }
 
   /* Scale up tiny hardcoded pixel font sizes used throughout the dashboard */
@@ -181,18 +184,23 @@
   }
 
   ::-webkit-scrollbar {
-    width: 3px;
-    height: 3px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: hsl(220 30% 8% / 0.3);
+    border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(185 30% 22%);
-    border-radius: 2px;
+    background: hsl(185 30% 28% / 0.6);
+    border-radius: 3px;
+    transition: background 0.2s ease;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(185 50% 32%);
+    background: hsl(185 50% 38% / 0.8);
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background: hsl(185 60% 45% / 0.9);
   }
 
   /* Dot-grid overlay */
@@ -258,6 +266,15 @@
 
   .dark [data-testid="resizable-panels"] {
     background: hsl(220 40% 6% / 0.7);
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .dark [data-testid="resizable-panels"] .overflow-y-auto {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   .warroom-glass-panel {
@@ -427,12 +444,13 @@
   }
 
   ::-webkit-scrollbar {
-    width: 6px !important;
-    height: 6px !important;
+    width: 8px !important;
+    height: 8px !important;
   }
 
   ::-webkit-scrollbar-thumb {
-    min-height: 40px;
+    min-height: 44px;
+    border-radius: 4px;
   }
 
   .warroom-panel-close,
