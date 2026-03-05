@@ -533,7 +533,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed' | 'avichay';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -549,6 +549,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
   xfeed: { icon: MessageSquare, label: 'X / Twitter', labelAr: '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631' },
+  avichay: { icon: Zap, label: '@AvichayAdraee', labelAr: '\u0623\u0641\u064A\u062E\u0627\u064A \u0623\u062F\u0631\u0627\u0639\u064A' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -746,6 +747,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'alertmap',  x: 0,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 4,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'xfeed',     x: 8,  y: 12, w: 2, h: 4, minW: 1, minH: 2 },
+  { i: 'avichay',   x: 10, y: 12, w: 2, h: 4, minW: 1, minH: 2 },
 ];
 
 interface Correlation {
@@ -3971,6 +3973,106 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
   );
 }
 
+function AvichayFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
+  posts: NewsItem[];
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const filtered = posts.filter(p => p.source === 'AvichayAdraee');
+
+  const timeAgo = (ts: string) => {
+    const diff = Date.now() - new Date(ts).getTime();
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  };
+
+  const categoryColors: Record<string, string> = {
+    breaking: 'bg-red-500/20 text-red-400 border-red-500/30',
+    military: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+    diplomatic: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    humanitarian: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    economic: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
+    nuclear: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  };
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="panel-avichay">
+      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
+        <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono leading-none">@AvichayAdraee</span>
+          <span className="text-[8px] font-mono text-foreground/25 leading-none mt-0.5">{t('IDF Arabic Spokesperson', 'المتحدث العربي للجيش الإسرائيلي')}</span>
+        </div>
+        {filtered.length > 0 && (
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.06] border border-emerald-500/[0.15]">
+            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
+            <span className="text-[8px] font-bold font-mono text-emerald-400/80 tracking-wider">LIVE</span>
+          </div>
+        )}
+        <span className="text-[9px] font-mono text-foreground/25 tabular-nums">{filtered.length} posts</span>
+        <div className="flex-1" />
+        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-avichay">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center">
+            <Loader2 className="w-6 h-6 text-foreground/15 animate-spin mx-auto mb-3" />
+            <p className="text-[11px] text-foreground/30 font-mono font-bold">{t('Fetching @AvichayAdraee…', 'جاري التحميل…')}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.04]">
+            {filtered.map(post => (
+              <div key={post.id} className="px-3 py-3.5 hover:bg-white/[0.025] transition-colors group">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 mt-0.5">
+                    <SiX className="w-3.5 h-3.5 text-foreground/40" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-[11px] font-black text-primary/80 font-mono">@AvichayAdraee</span>
+                      <svg className="w-3.5 h-3.5 text-blue-400/80 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.27 4.8-5.23 1.47 1.36-6.2 6.76z"/></svg>
+                      <span className="text-[10px] text-foreground/30 font-mono tabular-nums ml-auto shrink-0">{timeAgo(post.timestamp)}</span>
+                    </div>
+                    <p className="text-[13px] font-bold text-foreground/80 leading-snug mb-2.5">
+                      {language === 'ar' && (post as { titleAr?: string }).titleAr ? (post as { titleAr?: string }).titleAr : post.title}
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {post.category && (
+                        <span className={`text-[9px] font-black font-mono uppercase px-2 py-0.5 rounded-full border ${categoryColors[post.category] || 'bg-white/5 text-foreground/40 border-white/10'}`}>
+                          {post.category}
+                        </span>
+                      )}
+                      {post.url && (
+                        <a
+                          href={post.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-blue-400/50 hover:text-blue-400 font-mono font-bold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Open on X
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LLMDivergenceAlert({ assessments, language }: { assessments: LLMAssessmentData[]; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   const successful = assessments.filter(a => a.status === 'success');
@@ -4395,7 +4497,7 @@ function PanelSidebar({
   aiBrief: import('@shared/schema').AIBrief | null;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed', 'avichay'];
 
   const AI_MODELS = [
     { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
@@ -4662,7 +4764,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, avichay: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -4977,6 +5079,8 @@ export default function Dashboard() {
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'xfeed':
           return <XFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'avichay':
+          return <AvichayFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -5116,6 +5220,7 @@ export default function Dashboard() {
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
               xfeed: xPosts.length > 0 ? `${xPosts.length}` : '',
+              avichay: xPosts.filter(p => p.source === 'AvichayAdraee').length > 0 ? `${xPosts.filter(p => p.source === 'AvichayAdraee').length}` : '',
             }}
           />
         )}

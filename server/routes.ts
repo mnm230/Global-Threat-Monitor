@@ -1474,6 +1474,7 @@ const TZEVAADOM_API_URL = 'https://api.tzevaadom.co.il/notifications';
 const OREF_API_URL = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
 
 const OREF_THREAT_MAP: Record<number, RedAlert['threatType']> = {
+  0: 'rockets',
   1: 'rockets',
   2: 'missiles',
   3: 'hostile_aircraft_intrusion',

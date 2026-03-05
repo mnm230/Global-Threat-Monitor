@@ -9,6 +9,44 @@ import { PathStyleExtension } from '@deck.gl/extensions';
 import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+
+const PLANE_ICON_SIZE = 64;
+const PLANE_ICON_ATLAS = (() => {
+  if (typeof document === 'undefined') return '';
+  const c = document.createElement('canvas');
+  c.width = PLANE_ICON_SIZE;
+  c.height = PLANE_ICON_SIZE;
+  const ctx = c.getContext('2d')!;
+  const cx = PLANE_ICON_SIZE / 2;
+  const cy = PLANE_ICON_SIZE / 2;
+  const s = PLANE_ICON_SIZE / 64;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 28 * s);
+  ctx.lineTo(cx + 4 * s, cy - 18 * s);
+  ctx.lineTo(cx + 4 * s, cy - 6 * s);
+  ctx.lineTo(cx + 24 * s, cy + 6 * s);
+  ctx.lineTo(cx + 24 * s, cy + 12 * s);
+  ctx.lineTo(cx + 4 * s, cy + 4 * s);
+  ctx.lineTo(cx + 4 * s, cy + 14 * s);
+  ctx.lineTo(cx + 10 * s, cy + 20 * s);
+  ctx.lineTo(cx + 10 * s, cy + 24 * s);
+  ctx.lineTo(cx, cy + 20 * s);
+  ctx.lineTo(cx - 10 * s, cy + 24 * s);
+  ctx.lineTo(cx - 10 * s, cy + 20 * s);
+  ctx.lineTo(cx - 4 * s, cy + 14 * s);
+  ctx.lineTo(cx - 4 * s, cy + 4 * s);
+  ctx.lineTo(cx - 24 * s, cy + 12 * s);
+  ctx.lineTo(cx - 24 * s, cy + 6 * s);
+  ctx.lineTo(cx - 4 * s, cy - 6 * s);
+  ctx.lineTo(cx - 4 * s, cy - 18 * s);
+  ctx.closePath();
+  ctx.fill();
+  return c.toDataURL();
+})();
+const PLANE_ICON_MAPPING = {
+  plane: { x: 0, y: 0, width: PLANE_ICON_SIZE, height: PLANE_ICON_SIZE, mask: true }
+} as const;
 const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 interface ViewState {
@@ -1622,19 +1660,21 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         );
       }
 
-      // -- main dot layer --
+      // -- main plane icon layer --
       result.push(
-        new ScatterplotLayer({
+        new IconLayer({
           id: 'adsb-layer',
           data: adsbFlights,
           getPosition: (d: AdsbFlight) => [d.lng, d.lat],
-          getRadius: (d: AdsbFlight) => d.flagged ? 6000 : 4000,
-          getFillColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 230 : 150] as [number, number, number, number],
-          getLineColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), 255] as [number, number, number, number],
-          stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 3,
-          radiusMaxPixels: 14,
+          getIcon: () => 'plane',
+          iconAtlas: PLANE_ICON_ATLAS,
+          iconMapping: PLANE_ICON_MAPPING,
+          getSize: (d: AdsbFlight) => d.flagged ? 28 : 20,
+          getAngle: (d: AdsbFlight) => 360 - (d.heading || 0),
+          getColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 240 : 180] as [number, number, number, number],
+          sizeMinPixels: 12,
+          sizeMaxPixels: 36,
+          billboard: false,
           pickable: true,
         })
       );
