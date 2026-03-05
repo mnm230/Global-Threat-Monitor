@@ -62,8 +62,7 @@ export default function AlertMap({
         style: MAP_STYLE,
         center: [35.2, 31.5],
         zoom: 7,
-        attributionControl: true,
-        customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attributionControl: { compact: true, customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
       });
     } catch (err) {
       console.warn('[AlertMap] WebGL init failed:', err);

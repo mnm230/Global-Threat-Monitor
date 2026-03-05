@@ -243,6 +243,7 @@ interface SSEData {
   telegramMessages: TelegramMessage[];
   cyberEvents: CyberEvent[];
   thermalHotspots: ThermalHotspot[];
+  breakingNews: BreakingNewsItem[];
   connected: boolean;
 }
 
@@ -795,14 +796,14 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="osint-timeline-panel">
-      <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2 shrink-0" style={{background:'hsl(220 35% 9% / 0.9)'}}>
+      <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2 shrink-0" style={{background:'hsl(220 28% 13% / 0.92)'}}>
         <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/90">OSINT TIMELINE</span>
         <div className="flex-1" />
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-      <div className="px-2 py-1 border-b border-white/[0.03] flex gap-1 shrink-0 flex-wrap" style={{background:'hsl(220 35% 7% / 0.6)'}}>
+      <div className="px-2 py-1 border-b border-white/[0.03] flex gap-1 shrink-0 flex-wrap" style={{background:'hsl(220 28% 11% / 0.6)'}}>
         {filterBtns.map(({ key, label }) => (
           <button
             key={key}
@@ -937,26 +938,75 @@ function useEscalation(
 function EscalationBanner({ state, onDismiss }: { state: EscalationState; onDismiss: () => void }) {
   if (!state.level) return null;
   const cfg = {
-    CRITICAL: { bg: 'hsl(0 80% 12% / 0.98)',  border: 'hsl(0 80% 50% / 0.5)',  dot: 'bg-red-500',    text: 'text-red-300',    label: 'CRITICAL ESCALATION' },
-    WARNING:  { bg: 'hsl(28 80% 10% / 0.98)',  border: 'hsl(28 80% 50% / 0.4)', dot: 'bg-orange-500', text: 'text-orange-300', label: 'WARNING — HIGH ALERT RATE' },
-    WATCH:    { bg: 'hsl(48 60% 9% / 0.98)',   border: 'hsl(48 80% 50% / 0.3)', dot: 'bg-yellow-500', text: 'text-yellow-300', label: 'WATCH — ACTIVITY SURGE' },
+    CRITICAL: {
+      shimmerFrom: 'rgba(200,20,20,0.0)',
+      shimmerMid: 'rgba(220,30,30,0.15)',
+      bg: 'hsl(0 85% 10% / 0.97)',
+      border: 'hsl(0 85% 50% / 0.7)',
+      topBorder: 'hsl(0 85% 55% / 0.9)',
+      dot: 'bg-red-400',
+      text: 'text-red-200',
+      sub: 'text-red-400/70',
+      label: '⚠ CRITICAL ESCALATION',
+      badge: 'bg-red-500/20 border-red-500/40 text-red-300',
+    },
+    WARNING: {
+      shimmerFrom: 'rgba(180,80,0,0.0)',
+      shimmerMid: 'rgba(200,90,0,0.12)',
+      bg: 'hsl(28 85% 9% / 0.97)',
+      border: 'hsl(28 85% 48% / 0.55)',
+      topBorder: 'hsl(28 85% 52% / 0.8)',
+      dot: 'bg-orange-400',
+      text: 'text-orange-200',
+      sub: 'text-orange-400/70',
+      label: '▲ WARNING — HIGH ALERT RATE',
+      badge: 'bg-orange-500/20 border-orange-500/40 text-orange-300',
+    },
+    WATCH: {
+      shimmerFrom: 'rgba(150,120,0,0.0)',
+      shimmerMid: 'rgba(160,130,0,0.10)',
+      bg: 'hsl(48 65% 8% / 0.97)',
+      border: 'hsl(48 85% 48% / 0.4)',
+      topBorder: 'hsl(48 85% 52% / 0.65)',
+      dot: 'bg-yellow-400',
+      text: 'text-yellow-200',
+      sub: 'text-yellow-400/70',
+      label: '● WATCH — ACTIVITY SURGE',
+      badge: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300',
+    },
   }[state.level];
   return (
     <div
-      className="flex items-center gap-3 px-4 py-1.5 shrink-0 z-40"
-      style={{ background: cfg.bg, borderBottom: `1px solid ${cfg.border}` }}
+      className="flex items-center gap-3 px-4 py-2 shrink-0 z-40 relative overflow-hidden"
+      style={{
+        background: cfg.bg,
+        borderBottom: `1px solid ${cfg.border}`,
+        borderTop: `2px solid ${cfg.topBorder}`,
+      }}
       role="alert"
       data-testid="escalation-banner"
     >
-      <div className={`w-2 h-2 rounded-full animate-pulse ${cfg.dot}`} />
-      <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${cfg.text}`}>{cfg.label}</span>
-      <span className="text-[10px] text-muted-foreground/50 font-mono">{state.count} alerts/min</span>
-      <div className="flex-1" />
-      <button
-        onClick={onDismiss}
-        className="text-[9px] uppercase tracking-wider text-muted-foreground/35 hover:text-muted-foreground/60 transition-colors"
-        data-testid="button-dismiss-escalation"
-      >DISMISS</button>
+      {/* shimmer sweep */}
+      <div
+        className="absolute inset-0 pointer-events-none escalation-shimmer"
+        style={{ background: `linear-gradient(90deg, ${cfg.shimmerFrom} 0%, ${cfg.shimmerMid} 50%, ${cfg.shimmerFrom} 100%)` }}
+      />
+      <div className="relative flex items-center gap-3 w-full">
+        <div className="relative shrink-0">
+          <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} style={{ boxShadow: `0 0 8px currentColor` }} />
+          <div className={`absolute inset-0 rounded-full ${cfg.dot} alert-dot-ping`} />
+        </div>
+        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${cfg.text}`}>{cfg.label}</span>
+        <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-bold ${cfg.badge}`}>
+          {state.count}/min
+        </span>
+        <div className="flex-1" />
+        <button
+          onClick={onDismiss}
+          className={`text-[9px] uppercase tracking-wider font-bold px-2.5 py-1 rounded border transition-all ${cfg.badge} hover:opacity-80`}
+          data-testid="button-dismiss-escalation"
+        >✕ DISMISS</button>
+      </div>
     </div>
   );
 }
@@ -980,26 +1030,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: true },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: true, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false, osint: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100, osint: 100 },
     rowSplit: 50,
   },
 ];
@@ -1343,7 +1393,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-6 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(220 35% 9% / 0.8)'}}>
+    <div className="h-6 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(220 28% 13% / 0.83)'}}>
       <span className="text-[7px] text-foreground/15 font-mono uppercase tracking-[0.25em] mr-3 shrink-0 font-bold">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
@@ -1509,7 +1559,7 @@ const LiveClock = memo(function LiveClock() {
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-[8px] text-foreground/20 font-mono hidden md:inline tracking-wider font-medium">{dateStr}</span>
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(220 35% 9% / 0.75)', border:'1px solid hsl(185 80% 50% / 0.1)', boxShadow:'0 0 8px hsl(185 100% 42% / 0.04)'}}>
+      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(220 28% 13% / 0.8)', border:'1px solid hsl(185 80% 50% / 0.1)', boxShadow:'0 0 8px hsl(185 100% 42% / 0.04)'}}>
         <span className="text-[11px] text-primary/80 font-mono font-bold tabular-nums tracking-[0.1em]">{formatted}</span>
         <span className="text-[7px] text-primary/30 font-mono font-bold tracking-[0.2em]">UTC</span>
       </div>
@@ -1524,15 +1574,15 @@ function formatPrice(c: CommodityData): string {
 }
 
 const TickerBar = memo(function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(220 35% 9% / 0.7)'}} />;
+  if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(220 28% 13% / 0.75)'}} />;
   const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
-    <div className="h-8 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(220 35% 9% / 0.85)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
-      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(220 35% 9% / 0.95) 60%, transparent)'}}>
+    <div className="h-8 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(220 28% 13% / 0.88)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
+      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(220 28% 13% / 0.95) 60%, transparent)'}}>
         <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(220 35% 9% / 0.95) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(220 28% 13% / 0.95) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((c, i) => (
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
@@ -1744,7 +1794,7 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
       <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.2) 20%, hsl(185 100% 42% / 0.3) 50%, hsl(185 100% 42% / 0.2) 80%, transparent)'}} />
       <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 3px hsl(185 100% 42% / 0.2))'}}>{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
@@ -1969,7 +2019,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
         </div>
       )}
       {selectedFlight && (
-        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(185 100% 42% / 0.06), hsl(220 35% 9% / 0.75))'}} data-testid="flight-detail-card">
+        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(185 100% 42% / 0.06), hsl(220 28% 13% / 0.8))'}} data-testid="flight-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
             <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
@@ -2408,7 +2458,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
         <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
@@ -2715,8 +2765,8 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
         isMaximized={isMaximized}
       />
       {/* AI Natural Language Filter */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(220 35% 9% / 0.82)'}}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(220 35% 9% / 0.75)', border:'1px solid hsl(185 80% 50% / 0.1)'}}>
+      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(220 28% 13% / 0.85)'}}>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(220 28% 13% / 0.8)', border:'1px solid hsl(185 80% 50% / 0.1)'}}>
           <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
           <input
             type="text"
@@ -2816,7 +2866,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
       )}
 
       {selectedShip && (
-        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(220 35% 9% / 0.75))'}} data-testid="ship-detail-card">
+        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(220 28% 13% / 0.8))'}} data-testid="ship-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-blue-300" data-testid="text-ship-name">{selectedShip.name}</span>
             <button onClick={() => setSelectedShip(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="ship-close-detail">
@@ -2974,28 +3024,52 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   const isImmediate = alert.countdown === 0;
   const tier = getAlertUrgencyTier(remaining, alert.countdown);
 
-  const tierBg: Record<string, string> = {
-    critical: 'bg-red-600/30 border-red-500/60 text-white',
-    urgent: 'bg-red-700/25 border-red-500/40 text-red-200',
-    warning: 'bg-amber-700/20 border-amber-500/30 text-amber-200',
-    standard: 'bg-red-900/20 border-red-700/30 text-white/80',
-    expired: 'bg-transparent border-red-900/15 text-red-900/40',
+  const tierStyles: Record<string, React.CSSProperties> = {
+    critical: {
+      background: 'linear-gradient(135deg, rgba(220,20,20,0.45) 0%, rgba(180,10,10,0.35) 100%)',
+      border: '1.5px solid rgba(239,68,68,0.85)',
+      color: '#fff',
+      boxShadow: '0 0 18px rgba(239,68,68,0.5), inset 0 1px 0 rgba(255,120,120,0.15)',
+    },
+    urgent: {
+      background: 'linear-gradient(135deg, rgba(200,40,20,0.32) 0%, rgba(160,20,10,0.24) 100%)',
+      border: '1.5px solid rgba(239,68,68,0.55)',
+      color: '#fca5a5',
+      boxShadow: '0 0 10px rgba(239,68,68,0.25)',
+    },
+    warning: {
+      background: 'linear-gradient(135deg, rgba(140,70,0,0.28) 0%, rgba(100,50,0,0.20) 100%)',
+      border: '1.5px solid rgba(245,158,11,0.45)',
+      color: '#fcd34d',
+      boxShadow: '0 0 8px rgba(245,158,11,0.2)',
+    },
+    standard: {
+      background: 'rgba(100,10,10,0.18)',
+      border: '1px solid rgba(239,68,68,0.22)',
+      color: 'rgba(255,255,255,0.75)',
+    },
+    expired: {
+      background: 'transparent',
+      border: '1px solid rgba(239,68,68,0.08)',
+      color: 'rgba(239,68,68,0.22)',
+    },
   };
+
+  const isCritical = tier === 'critical';
+  const isUrgent = tier === 'urgent';
+  const numSize = isCritical ? 24 : isUrgent ? 21 : 19;
 
   return (
     <div
-      className={`text-center shrink-0 min-w-[48px] rounded-md border px-2 py-1.5 ${tierBg[tier]} ${tier === 'critical' || tier === 'urgent' ? 'animate-pulse' : ''}`}
-      style={tier === 'critical' ? {boxShadow:'0 0 12px rgb(239 68 68 / 0.3)'} : undefined}
+      className={isCritical ? 'alert-critical-glow alert-countdown-flash' : ''}
+      style={{ ...tierStyles[tier], minWidth: 56, borderRadius: 9, padding: '7px 10px', textAlign: 'center', flexShrink: 0, transition: 'all 0.3s ease' }}
+      data-testid={`red-alert-countdown-${alert.id}`}
     >
-      <div
-        className="text-[18px] font-black tabular-nums leading-none tracking-tight"
-        style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"}}
-        data-testid={`red-alert-countdown-${alert.id}`}
-      >
-        {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
+      <div style={{ fontSize: numSize, fontWeight: 900, lineHeight: 1, fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif", letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+        {isImmediate ? '⚡' : remaining > 0 ? `${remaining}` : '—'}
       </div>
-      <div className={`text-[7px] mt-1 uppercase tracking-[0.15em] font-semibold ${tier === 'critical' ? 'text-red-300/70' : 'text-red-400/40'}`}>
-        {isImmediate ? 'IMMEDIATE' : remaining > 0 ? 'SEC' : ''}
+      <div style={{ fontSize: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, opacity: isCritical ? 0.85 : 0.5 }}>
+        {isImmediate ? 'NOW' : remaining > 0 ? 'SEC' : 'EXP'}
       </div>
     </div>
   );
@@ -3214,127 +3288,169 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   const hasActiveAlerts = alerts.length > 0;
 
+  const FLAG_MAP: Record<string, string> = { Israel: '🇮🇱', Lebanon: '🇱🇧', Iran: '🇮🇷', Syria: '🇸🇾', Iraq: '🇮🇶', 'Saudi Arabia': '🇸🇦', Yemen: '🇾🇪', UAE: '🇦🇪', Jordan: '🇯🇴', Kuwait: '🇰🇼', Bahrain: '🇧🇭', Qatar: '🇶🇦' };
+  const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
+
   return (
-    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel">
-      <div className="px-3 py-2 border-b border-red-900/40 flex items-center gap-2 shrink-0" style={hasActiveAlerts ? {background:'hsl(0 70% 12% / 0.95)', borderLeft:'3px solid #ef4444'} : {background:'hsl(0 50% 8% / 0.6)'}}>
-        <AlertOctagon className={`w-4 h-4 shrink-0 ${hasActiveAlerts ? 'text-red-400 animate-pulse' : 'text-red-600/40'}`} />
-        <div className="flex flex-col leading-none gap-0.5 min-w-0">
-          <span className="text-[12px] font-black uppercase tracking-[0.15em] text-red-100">
-            {language === 'ar' ? 'الإنذار الأحمر' : 'RED ALERT'}
-          </span>
-          <span className="text-[9px] text-red-400/50 tracking-wide">Oref · Home Front Command</span>
-        </div>
-        {hasActiveAlerts && (
-          <div className="flex items-center gap-1.5 ml-1">
-            <span className="text-[13px] font-black text-red-300 tabular-nums">{alerts.length}</span>
+    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel" style={{ fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif" }}>
+
+      {/* ── HEADER ── */}
+      <div
+        className={hasActiveAlerts ? 'alert-critical-glow' : ''}
+        style={{
+          padding: '10px 14px 10px 12px',
+          borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.35)' : 'rgba(239,68,68,0.12)'}`,
+          background: hasActiveAlerts
+            ? 'linear-gradient(90deg, rgba(140,0,0,0.6) 0%, rgba(60,0,0,0.45) 60%, rgba(10,0,0,0.35) 100%)'
+            : 'rgba(20,5,5,0.5)',
+          borderLeft: hasActiveAlerts ? '4px solid #ef4444' : '4px solid rgba(239,68,68,0.15)',
+          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+          transition: 'background 0.4s ease, border-color 0.3s ease',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertOctagon
+              className={hasActiveAlerts ? 'animate-pulse' : ''}
+              style={{ width: 17, height: 17, color: hasActiveAlerts ? '#f87171' : 'rgba(239,68,68,0.3)', flexShrink: 0, filter: hasActiveAlerts ? 'drop-shadow(0 0 5px rgba(239,68,68,0.6))' : 'none' }}
+            />
+            <span style={{ fontSize: 14, fontWeight: 900, letterSpacing: '0.18em', color: hasActiveAlerts ? '#fecaca' : 'rgba(239,68,68,0.4)', textTransform: 'uppercase' }}>
+              {language === 'ar' ? 'الإنذار الأحمر' : 'RED ALERT'}
+            </span>
+            {hasActiveAlerts && (
+              <span style={{
+                fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                padding: '1px 8px', borderRadius: 6,
+                background: 'rgba(239,68,68,0.35)',
+                border: '1.5px solid rgba(239,68,68,0.7)',
+                boxShadow: '0 0 10px rgba(239,68,68,0.4)',
+              }}>{alerts.length}</span>
+            )}
             {liveCount > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 font-bold bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/25">LIVE</span>
+              <span style={{ fontSize: 9, padding: '2px 7px', fontWeight: 800, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderRadius: 4, border: '1px solid rgba(16,185,129,0.35)', letterSpacing: '0.12em' }}>● LIVE</span>
             )}
           </div>
-        )}
-        <div className="flex-1" />
-        {onShowHistory && (
-          <button onClick={onShowHistory} className="w-6 h-6 rounded flex items-center justify-center text-red-400/40 hover:text-red-300 hover:bg-red-900/30 transition-colors" title="Alert History" data-testid="button-alert-history">
-            <History className="w-3 h-3" />
-          </button>
-        )}
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+          <span style={{ fontSize: 9, color: 'rgba(239,68,68,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Oref · Home Front Command</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {onShowHistory && (
+            <button onClick={onShowHistory} style={{ width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.5)', cursor: 'pointer' }} title="Alert History" data-testid="button-alert-history">
+              <History style={{ width: 13, height: 13 }} />
+            </button>
+          )}
+          {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+        </div>
       </div>
+
+      {/* ── FILTERS (only when alerts exist) ── */}
       {hasActiveAlerts && (
-        <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
-          <div className="px-2 py-1.5">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(220 35% 9% / 0.75)', border:'1px solid hsl(185 80% 50% / 0.1)'}}>
-              <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'ar' ? 'ابحث عن مدينة...' : "AI▸ filter: 'rockets near Tel Aviv', 'critical'..."}
-                className="flex-1 bg-transparent text-[10px] font-mono text-red-100/90 placeholder:text-red-400/30 focus:outline-none h-5"
-                data-testid="input-red-alert-search"
-              />
-            </div>
+        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(239,68,68,0.12)', background: 'rgba(30,5,5,0.5)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search city, region…'}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '6px 10px 6px 32px',
+                fontSize: 12, fontFamily: 'inherit',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,68,68,0.18)',
+                borderRadius: 6, color: '#fca5a5', outline: 'none',
+              }}
+              data-testid="input-red-alert-search"
+            />
+            <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           </div>
-          <div className="px-1.5 pb-1.5 flex flex-wrap gap-1">
-            {[
-              { key: 'all', label: 'ALL' },
-              { key: 'rockets', label: 'ROCKETS' },
-              { key: 'missiles', label: 'MISSILES' },
-              { key: 'uav_intrusion', label: 'UAV' },
-              { key: 'hostile_aircraft_intrusion', label: 'AIRCRAFT' },
-            ].map(({ key, label }) => (
+          {/* Threat type pills */}
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {([['all','ALL'],['rockets','ROCKETS'],['missiles','MISSILES'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','AIRCRAFT']] as [string,string][]).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setThreatFilter(key)}
-                className={`text-[10px] px-2.5 py-1 rounded-sm font-bold tracking-wider transition-colors ${
-                  threatFilter === key ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
-                }`}
-                style={{fontFamily:"'Inter', system-ui, sans-serif"}}
+                style={{
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5, letterSpacing: '0.08em',
+                  cursor: 'pointer', transition: 'all 0.15s', border: '1px solid',
+                  background: threatFilter === key ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.06)',
+                  borderColor: threatFilter === key ? 'rgba(239,68,68,0.6)' : 'rgba(239,68,68,0.12)',
+                  color: threatFilter === key ? '#fecaca' : 'rgba(239,68,68,0.45)',
+                }}
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
             ))}
           </div>
+          {/* Country pills (only when multiple countries) */}
           {activeCountries.length > 1 && (
-            <div className="px-1.5 pb-2 flex flex-wrap gap-1">
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               <button
                 onClick={() => setCountryFilter('ALL')}
-                className={`text-[10px] px-2.5 py-1 rounded-sm font-bold tracking-wider transition-colors ${
-                  countryFilter === 'ALL' ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
-                }`}
-                style={{fontFamily:"'Inter', system-ui, sans-serif"}}
+                style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5, cursor: 'pointer', border: '1px solid', background: countryFilter === 'ALL' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.04)', borderColor: countryFilter === 'ALL' ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.08)', color: countryFilter === 'ALL' ? '#fecaca' : 'rgba(255,255,255,0.3)' }}
                 data-testid="button-country-filter-all"
               >ALL ({alerts.length})</button>
-              {activeCountries.map(c => {
-                const FLAG_MAP: Record<string, string> = { Israel: 'IL', Lebanon: 'LB', Iran: 'IR', Syria: 'SY', Iraq: 'IQ', 'Saudi Arabia': 'SA', Yemen: 'YE', UAE: 'AE', Jordan: 'JO', Kuwait: 'KW', Bahrain: 'BH', Qatar: 'QA' };
-                const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
-                const label = SHORT_NAMES[c] || c;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setCountryFilter(c)}
-                    className={`text-[10px] px-2.5 py-1 rounded-sm font-bold tracking-wider transition-colors ${
-                      countryFilter === c ? 'bg-red-600/50 text-red-100 border border-red-500/40' : 'bg-red-950/40 text-red-400/50 border border-red-900/20 hover:bg-red-900/30'
-                    }`}
-                    style={{fontFamily:"'Inter', system-ui, sans-serif"}}
-                    data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
-                  >{label} ({countryCounts[c]})</button>
-                );
-              })}
+              {activeCountries.map(c => (
+                <button key={c} onClick={() => setCountryFilter(c)}
+                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5, cursor: 'pointer', border: '1px solid', background: countryFilter === c ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.03)', borderColor: countryFilter === c ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.07)', color: countryFilter === c ? '#fecaca' : 'rgba(255,255,255,0.35)' }}
+                  data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
+                >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
+              ))}
             </div>
           )}
         </div>
       )}
+
+      {/* ── EMPTY STATE ── */}
       {!hasActiveAlerts && (
-        <div className="px-3 py-8 text-center flex-1 flex flex-col items-center justify-center">
-          <Shield className="w-8 h-8 text-emerald-500/40 mb-3" />
-          <p className="text-[13px] text-emerald-400/80 font-semibold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'No Active Alerts'}</p>
-          <p className="text-[10px] text-foreground/20 mt-1" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>All areas safe</p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
+          <div style={{ position: 'relative', marginBottom: 16 }}>
+            <Shield style={{ width: 40, height: 40, color: 'rgba(16,185,129,0.45)', filter: 'drop-shadow(0 0 8px rgba(16,185,129,0.3))' }} />
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 800, color: 'rgba(52,211,153,0.8)', marginBottom: 5, letterSpacing: '0.05em' }}>
+            {language === 'ar' ? 'لا تنبيهات نشطة' : 'No Active Alerts'}
+          </p>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>All monitored areas clear</p>
+          <div style={{ marginTop: 16, padding: '4px 14px', borderRadius: 20, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)', fontSize: 10, color: 'rgba(52,211,153,0.5)', letterSpacing: '0.1em' }}>
+            ● MONITORING
+          </div>
         </div>
       )}
+
+      {/* ── ALERT LIST ── */}
       <ScrollArea className="flex-1">
         <div>
           {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
             const regionName = compositeKey.split('::')[1];
             const prevCountry = idx > 0 ? sortedRegions[idx - 1][1].country : null;
             const showCountryHeader = country !== prevCountry;
-            const COUNTRY_COLORS: Record<string, string> = { Israel: 'bg-blue-900/30 text-blue-300/90 border-blue-800/30', Lebanon: 'bg-emerald-900/30 text-emerald-300/90 border-emerald-800/30', Iran: 'bg-purple-900/30 text-purple-300/90 border-purple-800/30', Syria: 'bg-yellow-900/30 text-yellow-300/90 border-yellow-800/30', Iraq: 'bg-orange-900/30 text-orange-300/90 border-orange-800/30', 'Saudi Arabia': 'bg-green-900/30 text-green-300/90 border-green-800/30', Yemen: 'bg-rose-900/30 text-rose-300/90 border-rose-800/30', UAE: 'bg-sky-900/30 text-sky-300/90 border-sky-800/30', Jordan: 'bg-amber-900/30 text-amber-300/90 border-amber-800/30', Kuwait: 'bg-teal-900/30 text-teal-300/90 border-teal-800/30', Bahrain: 'bg-pink-900/30 text-pink-300/90 border-pink-800/30', Qatar: 'bg-indigo-900/30 text-indigo-300/90 border-indigo-800/30' };
-            const countryColor = COUNTRY_COLORS[country] || 'bg-red-900/30 text-red-300/90 border-red-800/30';
-            const countryAlertCount = sortedRegions.filter(([_, g]) => g.country === country).reduce((sum, [_, g]) => sum + g.alerts.length, 0);
+            const countryAlertCount = sortedRegions.filter(([, g]) => g.country === country).reduce((sum, [, g]) => sum + g.alerts.length, 0);
+
+            const COUNTRY_BG: Record<string, string> = { Israel: 'rgba(59,130,246,0.15)', Lebanon: 'rgba(16,185,129,0.12)', Iran: 'rgba(168,85,247,0.13)', Syria: 'rgba(234,179,8,0.12)', Iraq: 'rgba(249,115,22,0.12)', 'Saudi Arabia': 'rgba(34,197,94,0.12)', Yemen: 'rgba(244,63,94,0.12)', UAE: 'rgba(14,165,233,0.12)', Jordan: 'rgba(245,158,11,0.12)', Kuwait: 'rgba(20,184,166,0.12)', Bahrain: 'rgba(236,72,153,0.12)', Qatar: 'rgba(99,102,241,0.12)' };
+            const COUNTRY_BORDER: Record<string, string> = { Israel: 'rgba(59,130,246,0.35)', Lebanon: 'rgba(16,185,129,0.3)', Iran: 'rgba(168,85,247,0.3)', Syria: 'rgba(234,179,8,0.3)', Iraq: 'rgba(249,115,22,0.3)', 'Saudi Arabia': 'rgba(34,197,94,0.3)', Yemen: 'rgba(244,63,94,0.3)', UAE: 'rgba(14,165,233,0.3)', Jordan: 'rgba(245,158,11,0.3)', Kuwait: 'rgba(20,184,166,0.3)', Bahrain: 'rgba(236,72,153,0.3)', Qatar: 'rgba(99,102,241,0.3)' };
+            const COUNTRY_TEXT: Record<string, string> = { Israel: '#93c5fd', Lebanon: '#6ee7b7', Iran: '#d8b4fe', Syria: '#fde68a', Iraq: '#fdba74', 'Saudi Arabia': '#86efac', Yemen: '#fda4af', UAE: '#7dd3fc', Jordan: '#fcd34d', Kuwait: '#5eead4', Bahrain: '#f9a8d4', Qatar: '#a5b4fc' };
+
             return (
               <div key={compositeKey}>
+                {/* Country header */}
                 {showCountryHeader && (
-                  <div className={`px-3 py-2 ${countryColor} border-b border-t sticky top-0 z-[110] flex items-center gap-2`}>
-                    <span className="text-[12px] font-black uppercase tracking-[0.15em]" style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, sans-serif"}}>{country}</span>
-                    <span className="text-[11px] opacity-50 tabular-nums" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>({countryAlertCount})</span>
+                  <div style={{
+                    padding: '8px 14px', position: 'sticky', top: 0, zIndex: 110,
+                    background: COUNTRY_BG[country] || 'rgba(239,68,68,0.1)',
+                    borderBottom: `1px solid ${COUNTRY_BORDER[country] || 'rgba(239,68,68,0.2)'}`,
+                    borderTop: idx > 0 ? `1px solid ${COUNTRY_BORDER[country] || 'rgba(239,68,68,0.15)'}` : 'none',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                  }}>
+                    <span style={{ fontSize: 16 }}>{FLAG_MAP[country] || '🌍'}</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: COUNTRY_TEXT[country] || '#fca5a5' }}>{country}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.55, color: COUNTRY_TEXT[country] || '#fca5a5', fontVariantNumeric: 'tabular-nums' }}>({countryAlertCount})</span>
                   </div>
                 )}
-                <div className="px-3 py-1.5 bg-red-950/40 border-b border-red-900/25 border-t border-t-red-900/15 sticky top-[33px] z-[100]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-[0.12em] text-red-400/90 font-bold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{regionName}</span>
-                    <span className="text-[11px] text-red-400/40 tabular-nums" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{regionAlerts.length}</span>
-                  </div>
+                {/* Region sub-header */}
+                <div style={{ padding: '5px 14px', background: 'rgba(239,68,68,0.05)', borderBottom: '1px solid rgba(239,68,68,0.1)', position: 'sticky', top: showCountryHeader ? 37 : 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(252,165,165,0.7)' }}>{regionName}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(239,68,68,0.35)', fontVariantNumeric: 'tabular-nums' }}>{regionAlerts.length}</span>
                 </div>
+                {/* Alert items */}
                 {regionAlerts.map((alert) => {
                   const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
                   const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
@@ -3344,44 +3460,76 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
                   const tier = getAlertUrgencyTier(remaining, alert.countdown);
                   const isLive = alert.source === 'live';
 
-                  const tierBg: Record<string, string> = {
-                    critical: 'bg-red-900/50 border-l-red-400',
-                    urgent: 'bg-red-950/40 border-l-amber-500',
-                    warning: 'bg-red-950/30 border-l-red-500',
-                    standard: 'bg-red-950/20 border-l-red-600/60',
-                    expired: 'bg-transparent border-l-red-900/20',
+                  const cardBg: Record<string, string> = {
+                    critical: 'rgba(120,0,0,0.35)',
+                    urgent:   'rgba(80,0,0,0.25)',
+                    warning:  'rgba(60,20,0,0.2)',
+                    standard: 'rgba(40,0,0,0.15)',
+                    expired:  'transparent',
+                  };
+                  const accentBorder: Record<string, string> = {
+                    critical: '#f87171',
+                    urgent:   '#fb923c',
+                    warning:  '#fbbf24',
+                    standard: 'rgba(239,68,68,0.4)',
+                    expired:  'rgba(239,68,68,0.1)',
                   };
 
                   return (
                     <div
                       key={alert.id}
-                      className={`px-3 py-3 flex items-center gap-3 border-b border-red-900/15 transition-all cursor-pointer border-l-[3px] hover:bg-red-950/50 ${tierBg[tier]} ${tier === 'critical' ? 'animate-pulse' : ''}`}
                       data-testid={`red-alert-${alert.id}`}
-                      style={tier === 'critical' ? {boxShadow:'inset 0 0 24px rgb(239 68 68 / 0.12)'} : undefined}
+                      className={`alert-slide-in${tier === 'critical' ? ' alert-critical-glow' : ''}`}
+                      style={{
+                        padding: '10px 14px',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        borderBottom: '1px solid rgba(239,68,68,0.08)',
+                        borderLeft: `3px solid ${accentBorder[tier]}`,
+                        background: cardBg[tier],
+                        cursor: 'pointer',
+                        transition: 'background 0.2s ease',
+                      }}
                     >
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? 'bg-red-500 animate-pulse-dot' : 'bg-red-900/30'}`} style={isActive ? {boxShadow:'0 0 10px rgb(239 68 68 / 0.7)'} : undefined} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className={`text-[13px] font-bold truncate leading-tight ${isActive ? 'text-red-50' : 'text-red-300/50'}`} style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"}}>
+                      {/* Status dot with ripple */}
+                      <div style={{ position: 'relative', width: 12, height: 12, flexShrink: 0 }}>
+                        <div style={{
+                          width: 10, height: 10, borderRadius: '50%', position: 'absolute', top: 1, left: 1,
+                          background: isActive ? (tier === 'critical' ? '#f87171' : '#ef4444') : 'rgba(239,68,68,0.2)',
+                          boxShadow: isActive ? `0 0 ${tier === 'critical' ? 12 : 7}px rgba(239,68,68,${tier === 'critical' ? 0.9 : 0.6})` : 'none',
+                        }} />
+                        {isActive && (
+                          <div style={{
+                            width: 12, height: 12, borderRadius: '50%', position: 'absolute', top: 0, left: 0,
+                            background: '#ef4444',
+                          }} className="alert-dot-ping" />
+                        )}
+                      </div>
+
+                      {/* Main content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* City name row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: isActive ? '#fff' : 'rgba(252,165,165,0.4)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {language === 'ar' ? alert.cityAr : alert.city}
                           </span>
                           {isLive ? (
-                            <span className="text-[7px] px-1.5 py-px font-bold bg-emerald-500/20 text-emerald-300 rounded-sm border border-emerald-400/25 shrink-0 uppercase tracking-wider" style={{fontFamily:"'Inter', system-ui, sans-serif"}} data-testid={`source-badge-${alert.id}`}>Live</span>
+                            <span style={{ fontSize: 9, padding: '2px 6px', fontWeight: 800, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderRadius: 4, border: '1px solid rgba(16,185,129,0.3)', letterSpacing: '0.1em', flexShrink: 0, textTransform: 'uppercase' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
                           ) : (
-                            <span className="text-[7px] px-1.5 py-px font-semibold bg-white/[0.05] text-white/30 rounded-sm border border-white/[0.08] shrink-0 uppercase tracking-wider" style={{fontFamily:"'Inter', system-ui, sans-serif"}} data-testid={`source-badge-${alert.id}`}>Sim</span>
+                            <span style={{ fontSize: 9, padding: '2px 6px', fontWeight: 700, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.25)', borderRadius: 4, border: '1px solid rgba(255,255,255,0.08)', letterSpacing: '0.1em', flexShrink: 0, textTransform: 'uppercase' }} data-testid={`source-badge-${alert.id}`}>SIM</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wide uppercase border ${
-                            isActive ? `text-white ${threatColor}` : 'text-red-400/30 bg-red-950/30 border-red-900/20'
-                          }`} style={{fontFamily:"'Inter', system-ui, sans-serif", ...(isActive ? {boxShadow:'0 0 8px rgb(239 68 68 / 0.2)'} : {})}}>
+                        {/* Threat + time row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span className={isActive ? threatColor : ''} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, border: '1px solid', letterSpacing: '0.06em', textTransform: 'uppercase', ...(isActive ? { boxShadow: '0 0 6px rgba(239,68,68,0.2)' } : { color: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.1)', background: 'transparent' }) }}>
                             {language === 'ar' ? threat.ar : threat.en}
                           </span>
-                          <span className={`text-[9px] tabular-nums ${isActive ? 'text-red-400/50' : 'text-red-400/20'}`} style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
+                          <span style={{ fontSize: 11, color: isActive ? 'rgba(252,165,165,0.5)' : 'rgba(239,68,68,0.2)', fontVariantNumeric: 'tabular-nums' }}>
                             {timeAgo(alert.timestamp)}
                           </span>
                         </div>
                       </div>
+
+                      {/* Countdown */}
                       <RedAlertCountdown alert={alert} />
                     </div>
                   );
@@ -3391,48 +3539,50 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
           })}
         </div>
       </ScrollArea>
+
+      {/* ── SIRENS ── */}
       {sirens.length > 0 && (
-        <div className="border-t border-amber-900/30 shrink-0">
-          <div className="px-3 py-1.5 bg-amber-950/20 flex items-center gap-2">
-            <Siren className="w-3 h-3 text-amber-400/60" />
-            <span className="text-[11px] uppercase tracking-[0.12em] text-amber-400/70 font-bold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
-              {language === 'ar' ? '\u0635\u0641\u0627\u0631\u0627\u062A' : 'Sirens'}
+        <div style={{ flexShrink: 0, borderTop: '1px solid rgba(245,158,11,0.2)', background: 'rgba(40,20,0,0.4)' }}>
+          <div style={{ padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Siren style={{ width: 14, height: 14, color: 'rgba(245,158,11,0.7)' }} />
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(253,211,77,0.8)' }}>
+              {language === 'ar' ? 'صفارات' : 'SIRENS'}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 text-amber-400/50 bg-amber-950/30 rounded-sm border border-amber-500/15 tabular-nums font-semibold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
-              {sirens.length}
-            </span>
-            <div className="flex-1" />
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(245 158 11 / 0.5)'}} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(245,158,11,0.55)', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 4, padding: '1px 7px', fontVariantNumeric: 'tabular-nums' }}>{sirens.length}</span>
+            <div style={{ flex: 1 }} />
+            <div className="animate-pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px rgba(245,158,11,0.6)' }} />
           </div>
-          <div className="max-h-[120px] overflow-y-auto">
+          <div style={{ maxHeight: 120, overflowY: 'auto' }}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
-                <div key={s.id} className="px-3 py-1.5 flex items-center gap-2 border-t border-amber-900/10" data-testid={`siren-panel-${s.id}`}>
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse-dot shrink-0" style={{boxShadow:'0 0 4px rgb(245 158 11 / 0.5)'}} />
-                  <span className="text-[12px] text-amber-300/80 font-semibold truncate flex-1" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
+                <div key={s.id} style={{ padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 10, borderTop: '1px solid rgba(245,158,11,0.08)' }} data-testid={`siren-panel-${s.id}`}>
+                  <div className="animate-pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.5)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(253,211,77,0.8)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span className="text-[9px] text-amber-400/40 tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(245,158,11,0.4)', letterSpacing: '0.05em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
           </div>
         </div>
       )}
-      <div className="px-3 py-1.5 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
-        <span className="text-[9px] text-red-400/35 tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>tzevaadom.co.il</span>
-        <span className="text-[9px] text-red-400/35 tabular-nums tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
-          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'} • 3s refresh
+
+      {/* ── FOOTER ── */}
+      <div style={{ flexShrink: 0, padding: '6px 14px', borderTop: '1px solid rgba(239,68,68,0.12)', background: 'rgba(10,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 10, color: 'rgba(239,68,68,0.3)', letterSpacing: '0.05em' }}>tzevaadom.co.il · Oref</span>
+        <span style={{ fontSize: 10, color: 'rgba(239,68,68,0.3)', fontVariantNumeric: 'tabular-nums' }}>
+          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length} / ${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'} · 3s
         </span>
       </div>
     </div>
   );
 }
 
-const DEFAULT_CHANNELS = ['@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@ShipTracker', '@OilMarkets', '@wfwitness', '@rnintel', '@lebanonnews2', '@bintjbeilnews', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews'];
+const DEFAULT_CHANNELS = ['@bintjbeilnews', '@wfwitness', '@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@rnintel', '@lebaborim', '@almanarnews', '@AlAhedNews', '@lebanonnews2', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews'];
 
-function TelegramPanel({
+const TelegramPanel = memo(function TelegramPanel({
   messages,
   language,
   onClose,
@@ -3471,8 +3621,8 @@ function TelegramPanel({
       if (!resp.ok) return [];
       return await resp.json();
     },
-    refetchInterval: 10000,
-    staleTime: 0,
+    refetchInterval: 30000,
+    staleTime: 25000,
     enabled: customOnly.length > 0,
   });
 
@@ -3493,6 +3643,7 @@ function TelegramPanel({
     localStorage.setItem('warroom_tg_channels', JSON.stringify(updated));
   }, [customChannels]);
 
+  const stableOrderRef = useRef<string[]>([]);
   const filteredMessages = useMemo(() => {
     const merged = customOnly.length > 0 ? [...messages, ...customMessages] : [...messages];
     const seen = new Set<string>();
@@ -3501,21 +3652,27 @@ function TelegramPanel({
       seen.add(m.id);
       return true;
     });
-    deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return deduped;
+    const msgMap = new Map(deduped.map(m => [m.id, m]));
+    // Keep existing order stable, prepend new ids at top
+    const newIds = deduped.filter(m => !stableOrderRef.current.includes(m.id)).map(m => m.id);
+    newIds.sort((a, b) => new Date(msgMap.get(b)!.timestamp).getTime() - new Date(msgMap.get(a)!.timestamp).getTime());
+    const kept = stableOrderRef.current.filter(id => msgMap.has(id));
+    stableOrderRef.current = [...newIds, ...kept];
+    return stableOrderRef.current.map(id => msgMap.get(id)!);
   }, [messages, customMessages, customOnly]);
 
+  const clearNewMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const currentIds = new Set(filteredMessages.map(m => m.id));
     if (prevMsgIdsRef.current.size > 0) {
-      const fresh = new Set<string>();
-      for (const id of currentIds) {
-        if (!prevMsgIdsRef.current.has(id)) fresh.add(id);
-      }
-      if (fresh.size > 0) {
-        setNewMsgIds(fresh);
-        setTimeout(() => setNewMsgIds(new Set()), 4000);
-        topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const freshIds: string[] = [];
+      currentIds.forEach(id => {
+        if (!prevMsgIdsRef.current.has(id)) freshIds.push(id);
+      });
+      if (freshIds.length > 0) {
+        if (clearNewMsgTimerRef.current) clearTimeout(clearNewMsgTimerRef.current);
+        setNewMsgIds(prev => new Set([...Array.from(prev), ...freshIds]));
+        clearNewMsgTimerRef.current = setTimeout(() => setNewMsgIds(new Set()), 6000);
       }
     }
     prevMsgIdsRef.current = currentIds;
@@ -3541,7 +3698,7 @@ function TelegramPanel({
         extra={
           <div className="flex items-center gap-1">
             {newMsgIds.size > 0 && (
-              <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1.5 rounded animate-pulse" data-testid="text-new-count">
+              <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1.5 rounded" data-testid="text-new-count">
                 +{newMsgIds.size} NEW
               </span>
             )}
@@ -3568,7 +3725,7 @@ function TelegramPanel({
         >
           ALL ({filteredMessages.length})
         </button>
-        {allChannels.slice(0, 6).map(ch => {
+        {allChannels.slice(0, 10).map(ch => {
           const count = filteredMessages.filter(m => m.channel === ch).length;
           if (count === 0) return null;
           const shortName = ch.replace('@', '').slice(0, 10);
@@ -3695,7 +3852,7 @@ function TelegramPanel({
                 key={msg.id}
                 className={`rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
                   isNew
-                    ? 'bg-emerald-950/30 ring-1 ring-emerald-500/30 animate-pulse'
+                    ? 'bg-emerald-950/30 ring-1 ring-emerald-500/30'
                     : isExpanded
                       ? 'bg-sky-950/30 ring-1 ring-sky-500/15'
                       : 'bg-muted/20 hover:bg-sky-950/15'
@@ -3720,7 +3877,7 @@ function TelegramPanel({
                     <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5 pointer-events-none">
                       <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
                       <span className="text-[10px] text-white font-bold truncate">{channelName}</span>
-                      {isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/40 px-1 rounded shrink-0 animate-pulse">NEW</span>}
+                      {isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/40 px-1 rounded shrink-0">NEW</span>}
                       {isLive && !isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
                       <span className="text-[9px] text-white/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
                     </div>
@@ -3735,7 +3892,7 @@ function TelegramPanel({
                       </div>
                       <span className="text-xs text-sky-400 font-bold truncate">{channelName}</span>
                       {isNew && (
-                        <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1 rounded border border-emerald-500/30 shrink-0 animate-pulse">NEW</span>
+                        <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1 rounded border border-emerald-500/30 shrink-0">NEW</span>
                       )}
                       {isLive && !isNew && (
                         <span className="text-[7px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
@@ -3787,7 +3944,7 @@ function TelegramPanel({
       </ScrollArea>
     </div>
   );
-}
+});
 
 function MapLegend({ activeView, language }: { activeView: string; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
@@ -3985,7 +4142,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="panel-drag-handle h-9 px-3 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
         <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
@@ -4181,7 +4338,7 @@ function AlertMapPanel({
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <MapPin className="w-3.5 h-3.5 text-red-400/70 shrink-0" />
         <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/60 font-mono">
@@ -4204,7 +4361,7 @@ function AlertMapPanel({
       </div>
 
       {/* Stats bar */}
-      <div className="shrink-0 px-2 py-1.5 flex items-center gap-2 flex-wrap" style={{background:'hsl(220 40% 7%)', borderBottom:'1px solid hsl(185 30% 18% / 0.4)'}}>
+      <div className="shrink-0 px-2 py-1.5 flex items-center gap-2 flex-wrap" style={{background:'hsl(220 28% 11%)', borderBottom:'1px solid hsl(185 28% 22% / 0.4)'}}>
         <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 border border-red-500/25">
           <span className="text-[11px] font-black text-red-300 font-mono">{alerts.length}</span>
           <span className="text-[9px] uppercase text-red-400/70 font-bold tracking-wide">Total</span>
@@ -4248,7 +4405,7 @@ function AlertMapPanel({
         </div>
         {/* Legend overlay */}
         <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-          <div className="flex flex-col gap-1 p-1.5 rounded" style={{background:'rgba(5,8,20,0.82)', border:'1px solid rgba(0,200,255,0.12)'}}>
+          <div className="flex flex-col gap-1 p-1.5 rounded" style={{background:'rgba(20,26,38,0.85)', border:'1px solid rgba(0,200,255,0.12)'}}>
             {Object.entries(ALERT_THREAT_META).map(([key, meta]) => (
               <div key={key} className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full shrink-0" style={{background: meta.dotColor}} />
@@ -4261,7 +4418,7 @@ function AlertMapPanel({
 
       {/* Recent alerts strip */}
       {recentAlerts.length > 0 && (
-        <div className="shrink-0 flex flex-col" style={{background:'hsl(220 40% 6%)', borderTop:'1px solid hsl(185 30% 18% / 0.4)'}}>
+        <div className="shrink-0 flex flex-col" style={{background:'hsl(220 28% 10%)', borderTop:'1px solid hsl(185 28% 22% / 0.4)'}}>
           <div className="px-2 pt-1 pb-0.5 flex items-center gap-1">
             <Clock className="w-3 h-3 text-foreground/30" />
             <span className="text-[9px] uppercase tracking-[0.15em] text-foreground/30 font-bold font-mono">Recent Alerts</span>
@@ -4341,7 +4498,7 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <Target className="w-3 h-3 text-primary/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -4439,11 +4596,11 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-6 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(220 35% 9% / 0.8)'}}>
-      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(220 35% 9% / 0.95) 50%, transparent)'}}>
+    <div className="h-6 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(220 28% 13% / 0.83)'}}>
+      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(220 28% 13% / 0.95) 50%, transparent)'}}>
         <span className="text-[7px] font-black tracking-[0.35em] text-primary/30 font-mono">NEWS</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(220 35% 9% / 0.95) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(220 28% 13% / 0.95) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
@@ -4563,7 +4720,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
@@ -4974,7 +5131,7 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 220, background: 'hsl(220 35% 9% / 0.9)', borderRight: '1px solid hsl(185 60% 20% / 0.18)' }}
+      style={{ width: 220, background: 'hsl(220 28% 13% / 0.92)', borderRight: '1px solid hsl(185 50% 24% / 0.22)' }}
     >
       {/* PANELS section */}
       <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
@@ -5180,6 +5337,9 @@ export default function Dashboard() {
   const [showMobilePanelPicker, setShowMobilePanelPicker] = useState(false);
   const swipeRef = useRef<{ x: number; y: number; locked: boolean } | null>(null);
   const panelWrapperRef = useRef<HTMLDivElement>(null);
+  const panelsScrollRef = useRef<HTMLDivElement>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'intel', 'markets'];
 
   useEffect(() => {
@@ -5201,6 +5361,21 @@ export default function Dashboard() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
+  }, []);
+
+  // Track scroll position on panels container to show/hide scroll buttons
+  useEffect(() => {
+    const el = panelsScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 40;
+      setShowScrollDown(!atBottom && scrollHeight > clientHeight + 40);
+      setShowScrollTop(scrollTop > 80);
+    };
+    onScroll(); // run once on mount
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
   const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, osint: true };
@@ -5386,7 +5561,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    cyber: 22, alertmap: 28, analytics: 28,
+    cyber: 22, alertmap: 28, analytics: 28, osint: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -5528,7 +5703,7 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-12' : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 35% 9% / 0.92)', borderBottom:'1px solid hsl(185 80% 30% / 0.14)'}}>
+      <header className={`${isMobile ? 'h-12' : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 28% 13% / 0.92)', borderBottom:'1px solid hsl(185 60% 30% / 0.18)'}}>
         <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.12) 30%, hsl(185 100% 42% / 0.22) 50%, hsl(185 100% 42% / 0.12) 70%, transparent)'}} />
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-black tracking-[0.22em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 10px hsl(185 100% 42% / 0.5))'}}>◈ WARROOM</span>
@@ -5734,7 +5909,12 @@ export default function Dashboard() {
 
       <SirenBanner sirens={sirens} breakingNews={breakingNews} language={language} hidden={!!maximizedPanel} />
 
-      <div className="flex-1 min-h-0 overflow-auto scroll-smooth" data-testid="resizable-panels" style={{ scrollbarGutter: 'stable' }}>
+      <div
+        ref={panelsScrollRef}
+        className="flex-1 min-h-0 overflow-auto scroll-smooth"
+        data-testid="resizable-panels"
+        onWheel={e => { e.currentTarget.scrollTop += e.deltaY; }}
+      >
         {isMobile ? (
           <div className="flex flex-col h-full min-h-0">
             <div
@@ -5838,7 +6018,7 @@ export default function Dashboard() {
               <div
                 key={id}
                 className={`overflow-hidden ${id === 'map' || id === 'alertmap' ? 'col-span-2' : ''}`}
-                style={{ minHeight: id === 'map' ? '280px' : '180px', background: 'hsl(220 35% 9% / 0.78)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+                style={{ minHeight: id === 'map' ? '280px' : '180px', background: 'hsl(220 28% 13% / 0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
               >
                 {renderPanel(id)}
               </div>
@@ -5865,7 +6045,7 @@ export default function Dashboard() {
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
             margin={[1, 1]}
-            containerPadding={[1, 1]}
+            containerPadding={[0, 0]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ minHeight: 400, paddingBottom: 60 }}
           >
@@ -5876,13 +6056,13 @@ export default function Dashboard() {
                   key={id}
                   className={`flex flex-col overflow-hidden cursor-grab active:cursor-grabbing rounded-[3px] ${hasAlertGlow ? '' : ''}`}
                   style={{
-                    background: 'hsl(220 35% 9% / 0.78)',
+                    background: 'hsl(220 28% 13% / 0.82)',
                     backdropFilter: 'blur(6px)',
                     WebkitBackdropFilter: 'blur(6px)',
                     border: '1px solid hsl(185 80% 50% / 0.1)',
                     boxShadow: hasAlertGlow
                       ? 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 0 24px rgb(239 68 68 / 0.1), 0 0 0 1px hsl(0 80% 50% / 0.15)'
-                      : 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 2px 12px hsl(220 35% 5% / 0.5)',
+                      : 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 2px 12px hsl(220 28% 8% / 0.4)',
                   }}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
                 >
@@ -5896,12 +6076,55 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* ── Floating scroll buttons (desktop only) ── */}
+      {!isMobile && !maximizedPanel && (
+        <div style={{ position: 'fixed', right: 18, bottom: 90, zIndex: 200, display: 'flex', flexDirection: 'column', gap: 6, pointerEvents: 'none' }}>
+          {showScrollTop && (
+            <button
+              onClick={() => panelsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              style={{
+                pointerEvents: 'auto', width: 36, height: 36, borderRadius: '50%',
+                background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(0,220,180,0.12)',
+                backdropFilter: 'blur(8px)', transition: 'opacity 0.2s, transform 0.2s',
+              }}
+              title="Scroll to top"
+              aria-label="Scroll to top"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,220,180,0.7)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 15l-6-6-6 6"/>
+              </svg>
+            </button>
+          )}
+          {showScrollDown && (
+            <button
+              onClick={() => panelsScrollRef.current?.scrollBy({ top: 400, behavior: 'smooth' })}
+              style={{
+                pointerEvents: 'auto', width: 36, height: 36, borderRadius: '50%',
+                background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 14px rgba(0,220,180,0.15)',
+                backdropFilter: 'blur(8px)', transition: 'opacity 0.2s, transform 0.2s',
+                animation: 'pulse 2s ease-in-out infinite',
+              }}
+              title="Scroll down"
+              aria-label="Scroll down"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,220,180,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
       {!isMobile && <EventTimeline events={events} language={language} />}
 
       {!isMobile && <NewsTicker news={news} language={language} />}
 
       {!isMobile && (
-        <div className="h-8 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(220 35% 9% / 0.9)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)'}}>
+        <div className="h-8 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(220 28% 13% / 0.92)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)'}}>
           <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 60% 50% / 0.05) 30%, hsl(185 80% 50% / 0.1) 50%, hsl(185 60% 50% / 0.05) 70%, transparent)'}} />
           <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
             <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
