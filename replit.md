@@ -10,10 +10,10 @@ Not specified.
 The WARROOM dashboard is built with a modern web stack, prioritizing real-time data delivery, interactive visualization, and a dark, information-dense UI.
 
 **UI/UX Decisions:**
-- **Theme:** Glassmorphic military command-center aesthetic. Warm amber primary accent (`hsl(36 90% 52%)`), semi-transparent panel backgrounds (`hsl(225 18% 10% / 0.55)`) with `backdrop-filter: blur(20px) saturate(1.4)`. 1px thin grid lines between panels. Gradient amber accent lines on panel headers. Subtle glow effects on interactive elements (amber clock, emerald LIVE badges, cyan ADS-B, red alerts). Header/sidebar/ticker/status bar/bottom sheet all glass. React-grid-layout 1px margins.
+- **Theme:** Glassmorphic military command-center aesthetic with lightened dark theme. Background `hsl(220 40% 8%)`, card `hsl(220 35% 11%)`, borders `hsl(185 30% 18%)`. Cyan primary accent (`hsl(185 100% 42%)`), semi-transparent panel backgrounds with `backdrop-filter: blur`. 1px thin grid lines between panels. Gradient accent lines on panel headers. Subtle glow effects on interactive elements. Header/sidebar/ticker/status bar/bottom sheet all glass. React-grid-layout 1px margins. Inline panel headers use `hsl(220 35% 9% / 0.88)`.
 - **Typography:** JetBrains Mono for data, Inter for UI text. Compact font sizes (9-10px) for high information density.
 - **Responsiveness:** Adaptive layout for mobile (<768px), tablet (768-1199px), and desktop (1200+), with specific UI adjustments for each breakpoint. Mobile: single-panel view with bottom tab bar (6 primary tabs + "More" bottom sheet), swipe navigation between panels with dot indicators, compact mini commodity ticker, dropdown hamburger menu with status info (SRC/EVT/ADS counts + clock), panel slide transitions, 100dvh viewport, safe-area-inset support, touch-action manipulation, and hidden close/maximize buttons. Touch targets: 52px min tab buttons, 18px icons.
-- **Panel System:** Features 14 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`, `avichay`) in a customizable, resizable grid (react-grid-layout, 12-col, 120px row height). Mobile uses single-panel view, tablet uses 2-column CSS grid.
+- **Panel System:** Features 12 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `cyber`, `livefeed`, `alertmap`, `analytics`) in a customizable, resizable grid (react-grid-layout, 12-col, 150px row height). Mobile uses single-panel view, tablet uses 2-column CSS grid. X/Twitter and Avichay panels removed.
 
 **Technical Implementations:**
 - **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI.
@@ -32,7 +32,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Accessibility:** Implemented `aria-labels` and `role="status"`.
 
 **Feature Specifications:**
-- **Core Panels:** Breaking News Feed, Markets Panel (17 instruments), YouTube Live Feed Panel (5 channels + custom URL), Analytics Dashboard Panel, Cyber Threats Panel (ME-only intelligence), X/Twitter & OSINT Feed Panel (dual-source with fallback).
+- **Core Panels:** Breaking News Feed, Markets Panel (17 instruments), YouTube Live Feed Panel (5 channels + custom URL), Analytics Dashboard Panel, Cyber Threats Panel (ME-only intelligence).
 - **Mapping Tools:** Map Search (autocomplete), Maritime EEZ Layer, Animated Missile Arcs, Distance/Radius Tool, Threat Heat Map, Alert Density Heat Map, Satellite Thermal Hotspots (NASA FIRMS VIIRS data).
 - **Alerting & Monitoring:** Live Sirens (scrolling banner), Anomaly Detection (alert spikes, flight concentrations, price surges), Desktop Notifications, Alert Filtering & History (with a 24h scrollable timeline and escalation detection).
 - **Intelligence & Workflow:** Language Toggle (English/Arabic), Panel Maximization, Threat Level Banner, Analyst Notes, Correlation Engine, Historical Timeline, Export/Report.

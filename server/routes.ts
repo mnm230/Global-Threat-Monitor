@@ -384,9 +384,7 @@ async function fetchMediastack(): Promise<NewsItem[]> {
   }
 }
 
-const X_FEED_ACCOUNTS = [
-  'AvichayAdraee',      // IDF Arabic Spokesperson (EN+AR)
-];
+const X_FEED_ACCOUNTS: string[] = [];
 const X_CACHE_TTL = 120_000;
 const X_RATE_LIMIT_BACKOFF = 300_000;
 const xFeedCache = new Map<string, { data: NewsItem[]; fetchedAt: number }>();
@@ -3878,7 +3876,6 @@ export async function registerRoutes(
     fetchCyberEvents().then(events => send('cyber', events));
     fetchXFeeds().then(xPosts => {
       latestXPosts = xPosts;
-      send('x-feed', xPosts);
       const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
       send('breaking-news', breaking);
     });
@@ -3894,7 +3891,7 @@ export async function registerRoutes(
       send('sirens', activeSirens);
       const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
       send('breaking-news', breaking);
-    }), 5000));
+    }), 3000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(async (events) => {
         const adsbFlights = await fetchLiveAdsbFlights();
@@ -3906,7 +3903,7 @@ export async function registerRoutes(
         }));
         send('events', { events, flights, ships: [] });
       });
-    }, 15000));
+    }, 8000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
     // Priority fast-lane: refresh hot channels every 2s and push to client immediately
     intervals.push(setInterval(() => {
@@ -3931,7 +3928,6 @@ export async function registerRoutes(
     }, 10000));
     intervals.push(setInterval(() => fetchXFeeds().then(xPosts => {
       latestXPosts = xPosts;
-      send('x-feed', xPosts);
     }), 60000));
 
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));

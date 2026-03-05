@@ -6,7 +6,7 @@ import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer, TextLayer, IconLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { PathStyleExtension } from '@deck.gl/extensions';
-import type { ConflictEvent, FlightData, ShipData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
+import type { ConflictEvent, FlightData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -822,17 +822,16 @@ interface MeasurePoint {
 interface ConflictMapProps {
   events: ConflictEvent[];
   flights: FlightData[];
-  ships: ShipData[];
   adsbFlights?: AdsbFlight[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
-  activeView: 'conflict' | 'flights' | 'maritime';
+  activeView: 'conflict' | 'flights';
   language?: 'en' | 'ar';
   mapStyle?: string;
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }
 
-export default function ConflictMap({ events, flights, ships, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE, focusLocation }: ConflictMapProps) {
+export default function ConflictMap({ events, flights, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE, focusLocation }: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const deckContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -1023,14 +1022,6 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         const c = FLIGHT_COLORS[f.type] || [34, 197, 94];
         accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
         coords = { lat: f.lat, lng: f.lng };
-      } else if (layerId === 'ships-layer') {
-        const s = obj as unknown as ShipData;
-        text = s.name;
-        detail = `${s.type} · ${s.flag} · ${s.speed}kts`;
-        category = 'ship';
-        const c = SHIP_COLORS[s.type] || [59, 130, 246];
-        accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
-        coords = { lat: s.lat, lng: s.lng };
       } else if (layerId === 'red-alert-dot') {
         const a = obj as unknown as RedAlert;
         text = `🔴 ${language === 'ar' && a.cityAr ? a.cityAr : a.city}`;
@@ -1192,10 +1183,6 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
         const f = obj as unknown as FlightData;
         text = f.callsign;
         detail = `${f.type} | Alt: ${f.altitude}ft | ${f.speed}kts`;
-      } else if (layerId === 'ships-layer') {
-        const s = obj as unknown as ShipData;
-        text = s.name;
-        detail = `${s.type} | ${s.flag} | ${s.speed}kts`;
       } else if (layerId === 'military-bases-layer') {
         text = obj.name as string;
         detail = `${obj.operator} | ${obj.country}`;
@@ -1464,36 +1451,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
       );
     }
 
-    if (layerVisibility.ships) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'ships-glow-layer',
-          data: ships,
-          getPosition: (d: ShipData) => [d.lng, d.lat],
-          getRadius: 14000,
-          getFillColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 18] as [number, number, number, number],
-          stroked: false,
-          radiusMinPixels: 8,
-          radiusMaxPixels: 30,
-          pickable: false,
-        })
-      );
-      result.push(
-        new ScatterplotLayer({
-          id: 'ships-layer',
-          data: ships,
-          getPosition: (d: ShipData) => [d.lng, d.lat],
-          getRadius: 4000,
-          getFillColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 200] as [number, number, number, number],
-          getLineColor: (d: ShipData) => [...(SHIP_COLORS[d.type] || [59, 130, 246]), 255] as [number, number, number, number],
-          stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 3,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
+
 
     if (layerVisibility.hormuzStrait) {
       result.push(
@@ -2527,7 +2485,7 @@ export default function ConflictMap({ events, flights, ships, adsbFlights = [], 
     }
 
     return result;
-  }, [events, flights, ships, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+  }, [events, flights, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!deckContainerRef.current) return;

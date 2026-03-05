@@ -8,52 +8,52 @@
   --opaque-button-border-intensity: -8;
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
-  --background: 220 14% 96%;
-  --foreground: 224 12% 10%;
-  --border: 220 10% 88%;
-  --card: 220 12% 93%;
-  --card-foreground: 224 12% 12%;
-  --card-border: 220 10% 86%;
-  --sidebar: 220 12% 91%;
-  --sidebar-foreground: 224 10% 14%;
-  --sidebar-border: 220 10% 84%;
-  --sidebar-primary: 28 90% 48%;
+  --background: 210 18% 94%;
+  --foreground: 210 15% 8%;
+  --border: 210 12% 82%;
+  --card: 210 14% 90%;
+  --card-foreground: 210 12% 10%;
+  --card-border: 210 12% 80%;
+  --sidebar: 210 14% 88%;
+  --sidebar-foreground: 210 10% 12%;
+  --sidebar-border: 210 12% 78%;
+  --sidebar-primary: 185 100% 35%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 220 8% 86%;
-  --sidebar-accent-foreground: 224 10% 14%;
-  --sidebar-ring: 28 90% 48%;
-  --popover: 220 12% 90%;
-  --popover-foreground: 224 10% 16%;
-  --popover-border: 220 10% 84%;
-  --primary: 28 90% 48%;
+  --sidebar-accent: 210 10% 84%;
+  --sidebar-accent-foreground: 210 10% 12%;
+  --sidebar-ring: 185 100% 35%;
+  --popover: 210 14% 88%;
+  --popover-foreground: 210 10% 14%;
+  --popover-border: 210 12% 78%;
+  --primary: 185 100% 35%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 8% 84%;
-  --secondary-foreground: 224 10% 16%;
-  --muted: 220 10% 88%;
-  --muted-foreground: 224 8% 40%;
-  --accent: 220 12% 90%;
-  --accent-foreground: 224 10% 16%;
+  --secondary: 210 10% 82%;
+  --secondary-foreground: 210 10% 14%;
+  --muted: 210 12% 86%;
+  --muted-foreground: 210 8% 38%;
+  --accent: 210 14% 88%;
+  --accent-foreground: 210 10% 14%;
   --destructive: 0 84% 40%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 10% 76%;
-  --ring: 28 90% 48%;
-  --chart-1: 28 90% 48%;
+  --input: 210 12% 74%;
+  --ring: 185 100% 35%;
+  --chart-1: 185 100% 35%;
   --chart-2: 142 72% 40%;
   --chart-3: 0 72% 48%;
-  --chart-4: 199 89% 45%;
+  --chart-4: 270 89% 55%;
   --chart-5: 47 95% 50%;
   --font-sans: 'JetBrains Mono', 'Inter', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --radius: .5rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 50% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(220 10% 50% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(220 10% 50% / 0.00), 0px 1px 2px -1px hsl(220 10% 50% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(220 10% 50% / 0.00), 0px 1px 2px -1px hsl(220 10% 50% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(220 10% 50% / 0.00), 0px 2px 4px -1px hsl(220 10% 50% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(220 10% 50% / 0.00), 0px 4px 6px -1px hsl(220 10% 50% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(220 10% 50% / 0.00), 0px 8px 10px -1px hsl(220 10% 50% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(220 10% 50% / 0.00);
+  --radius: .25rem;
+  --shadow-2xs: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 1px 2px -1px hsl(210 10% 40% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 1px 2px -1px hsl(210 10% 40% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 2px 4px -1px hsl(210 10% 40% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 4px 6px -1px hsl(210 10% 40% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 8px 10px -1px hsl(210 10% 40% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -74,53 +74,53 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .08);
-  --badge-outline: rgba(255,255,255, .06);
+  --button-outline: rgba(0, 255, 255, .05);
+  --badge-outline: rgba(0, 255, 255, .04);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .02);
-  --elevate-2: rgba(255,255,255, .05);
-  --background: 225 22% 8%;
-  --foreground: 45 15% 92%;
-  --border: 225 16% 16%;
-  --card: 225 20% 11%;
-  --card-foreground: 45 12% 90%;
-  --card-border: 225 16% 15%;
-  --sidebar: 225 22% 7%;
-  --sidebar-foreground: 45 10% 88%;
-  --sidebar-border: 225 16% 13%;
-  --sidebar-primary: 36 100% 50%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 225 18% 12%;
-  --sidebar-accent-foreground: 45 10% 88%;
-  --sidebar-ring: 36 100% 50%;
-  --popover: 225 20% 11%;
-  --popover-foreground: 45 10% 90%;
-  --popover-border: 225 16% 16%;
-  --primary: 36 100% 50%;
-  --primary-foreground: 225 25% 6%;
-  --secondary: 225 16% 14%;
-  --secondary-foreground: 45 10% 88%;
-  --muted: 225 14% 13%;
-  --muted-foreground: 225 8% 48%;
-  --accent: 225 16% 13%;
-  --accent-foreground: 45 10% 88%;
-  --destructive: 0 80% 55%;
+  --elevate-1: rgba(0, 255, 255, .015);
+  --elevate-2: rgba(0, 255, 255, .035);
+  --background: 220 40% 8%;
+  --foreground: 185 20% 94%;
+  --border: 185 30% 18%;
+  --card: 220 35% 11%;
+  --card-foreground: 185 18% 92%;
+  --card-border: 185 25% 16%;
+  --sidebar: 220 40% 7%;
+  --sidebar-foreground: 185 18% 90%;
+  --sidebar-border: 185 25% 14%;
+  --sidebar-primary: 185 100% 42%;
+  --sidebar-primary-foreground: 220 100% 4%;
+  --sidebar-accent: 220 30% 13%;
+  --sidebar-accent-foreground: 185 18% 90%;
+  --sidebar-ring: 185 100% 42%;
+  --popover: 220 35% 11%;
+  --popover-foreground: 185 16% 90%;
+  --popover-border: 185 25% 18%;
+  --primary: 185 100% 42%;
+  --primary-foreground: 220 100% 4%;
+  --secondary: 220 30% 14%;
+  --secondary-foreground: 185 16% 90%;
+  --muted: 220 25% 14%;
+  --muted-foreground: 185 18% 60%;
+  --accent: 220 30% 13%;
+  --accent-foreground: 185 12% 86%;
+  --destructive: 0 90% 58%;
   --destructive-foreground: 0 0% 100%;
-  --input: 225 16% 16%;
-  --ring: 36 100% 50%;
-  --chart-1: 36 100% 50%;
-  --chart-2: 152 72% 38%;
-  --chart-3: 0 82% 54%;
-  --chart-4: 199 89% 48%;
-  --chart-5: 47 95% 55%;
-  --shadow-2xs: 0px 2px 0px 0px hsl(224 18% 50% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(224 18% 50% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(224 18% 50% / 0.00), 0px 1px 2px -1px hsl(224 18% 50% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(224 18% 50% / 0.00), 0px 1px 2px -1px hsl(224 18% 50% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(224 18% 50% / 0.00), 0px 2px 4px -1px hsl(224 18% 50% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(224 18% 50% / 0.00), 0px 4px 6px -1px hsl(224 18% 50% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(224 18% 50% / 0.00), 0px 8px 10px -1px hsl(224 18% 50% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(224 18% 50% / 0.00);
+  --input: 185 25% 16%;
+  --ring: 185 100% 42%;
+  --chart-1: 185 100% 42%;
+  --chart-2: 145 80% 40%;
+  --chart-3: 0 90% 58%;
+  --chart-4: 270 80% 62%;
+  --chart-5: 55 100% 52%;
+  --shadow-2xs: 0px 2px 0px 0px hsl(185 60% 20% / 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(185 60% 20% / 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 1px 2px -1px hsl(185 60% 20% / 0.00);
+  --shadow: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 1px 2px -1px hsl(185 60% 20% / 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 2px 4px -1px hsl(185 60% 20% / 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 4px 6px -1px hsl(185 60% 20% / 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 8px 10px -1px hsl(185 60% 20% / 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(185 60% 20% / 0.00);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -143,12 +143,28 @@
     @apply border-border;
   }
 
-  body {
-    @apply font-sans antialiased bg-background text-foreground;
+  html {
+    font-size: 15px;
   }
 
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-weight: 500;
+  }
+
+  /* Scale up tiny hardcoded pixel font sizes used throughout the dashboard */
+  .text-\[7px\]  { font-size: 10px !important; font-weight: 600 !important; }
+  .text-\[8px\]  { font-size: 11px !important; font-weight: 600 !important; }
+  .text-\[9px\]  { font-size: 12px !important; font-weight: 600 !important; }
+  .text-\[10px\] { font-size: 13px !important; font-weight: 600 !important; }
+  .text-\[11px\] { font-size: 14px !important; font-weight: 500 !important; }
+  .text-\[12px\] { font-size: 15px !important; }
+  .text-\[13px\] { font-size: 16px !important; }
+  .text-xs       { font-size: 13px !important; }
+  .text-sm       { font-size: 14px !important; }
+
   ::selection {
-    background: hsl(36 100% 50% / 0.15);
+    background: hsl(185 100% 42% / 0.18);
     color: hsl(var(--foreground));
   }
 
@@ -160,104 +176,111 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(225 16% 24%);
+    background: hsl(185 30% 22%);
     border-radius: 2px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(225 16% 34%);
+    background: hsl(185 50% 32%);
   }
 
-  /* Subtle scan-line overlay */
+  /* Dot-grid overlay */
   body::after {
     content: '';
     position: fixed;
     inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(0, 0, 0, 0.015) 3px,
-      rgba(0, 0, 0, 0.015) 4px
+    background-image: radial-gradient(
+      circle,
+      hsl(185 100% 42% / 0.04) 1px,
+      transparent 1px
     );
+    background-size: 28px 28px;
     pointer-events: none;
     z-index: 9998;
   }
 
+  /* Panel headers - larger & bolder */
+  .panel-drag-handle {
+    min-height: 32px !important;
+  }
+
+  /* Warroom header taller on desktop */
+  .warroom-header {
+    min-height: 36px;
+  }
+
   /* Smooth focus rings */
   :focus-visible {
-    outline: 2px solid hsl(36 100% 50% / 0.5);
+    outline: 2px solid hsl(185 100% 42% / 0.6);
     outline-offset: 2px;
-    border-radius: 3px;
+    border-radius: 2px;
   }
 }
 
 @layer utilities {
   .warroom-panel-surface {
-    background: hsl(225 18% 10% / 0.55);
-    backdrop-filter: blur(16px) saturate(1.3);
-    -webkit-backdrop-filter: blur(16px) saturate(1.3);
-    border: 1px solid hsl(225 20% 100% / 0.06);
+    background: hsl(220 35% 10% / 0.88);
+    border: 1px solid hsl(185 40% 28% / 0.2);
     box-shadow:
-      inset 0 1px 0 hsl(225 30% 100% / 0.04),
-      inset 0 0 0 0.5px hsl(225 20% 100% / 0.02),
-      0 2px 8px hsl(225 40% 4% / 0.3);
-    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+      inset 0 0 0 1px hsl(185 100% 42% / 0.04),
+      0 0 0 1px hsl(185 40% 14% / 0.5),
+      0 4px 24px hsl(220 60% 4% / 0.5),
+      0 0 16px hsl(185 100% 42% / 0.03);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
     will-change: transform;
     contain: layout style paint;
   }
 
   .warroom-panel-surface:focus-within {
-    border-color: hsl(36 100% 50% / 0.12);
+    border-color: hsl(185 100% 42% / 0.3);
     box-shadow:
-      inset 0 1px 0 hsl(225 30% 100% / 0.04),
-      inset 0 0 0 0.5px hsl(225 20% 100% / 0.02),
-      0 2px 8px hsl(225 40% 4% / 0.3),
-      0 0 12px hsl(36 100% 50% / 0.06);
+      inset 0 0 0 1px hsl(185 100% 42% / 0.06),
+      0 0 0 1px hsl(185 40% 14% / 0.5),
+      0 4px 24px hsl(220 60% 4% / 0.5),
+      0 0 24px hsl(185 100% 42% / 0.1);
   }
 
   .warroom-grid-gap {
     gap: 1px;
-    background: hsl(225 20% 100% / 0.03);
+    background: hsl(185 30% 42% / 0.05);
   }
 
   .dark [data-testid="resizable-panels"] {
-    background: hsl(225 22% 5% / 0.6);
+    background: hsl(220 40% 6% / 0.7);
   }
 
   .warroom-glass-panel {
-    background: hsl(225 18% 11% / 0.5);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid hsl(225 20% 100% / 0.06);
+    background: hsl(220 35% 10% / 0.85);
+    border: 1px solid hsl(185 40% 28% / 0.2);
     box-shadow:
-      inset 0 1px 0 hsl(225 30% 100% / 0.05),
-      0 4px 16px hsl(225 40% 4% / 0.4);
+      inset 0 1px 0 hsl(185 100% 42% / 0.06),
+      0 4px 20px hsl(220 60% 4% / 0.4),
+      0 0 12px hsl(185 100% 42% / 0.03);
     will-change: transform;
     contain: layout style paint;
   }
 
   .warroom-glow-amber {
-    box-shadow: 0 0 20px hsl(36 100% 50% / 0.06), 0 0 4px hsl(36 100% 50% / 0.04);
+    box-shadow: 0 0 20px hsl(185 100% 42% / 0.1), 0 0 4px hsl(185 100% 42% / 0.06);
   }
 
   .warroom-glow-cyan {
-    box-shadow: 0 0 20px hsl(190 100% 50% / 0.06), 0 0 4px hsl(190 100% 50% / 0.04);
+    box-shadow: 0 0 20px hsl(185 100% 42% / 0.14), 0 0 4px hsl(185 100% 42% / 0.08);
   }
 
   .warroom-glow-red {
-    box-shadow: 0 0 20px hsl(0 80% 55% / 0.08), 0 0 4px hsl(0 80% 55% / 0.06);
+    box-shadow: 0 0 20px hsl(0 90% 58% / 0.12), 0 0 4px hsl(0 90% 58% / 0.08);
   }
 
   /* Military aircraft row highlight */
   .adsb-mil-row {
-    background: linear-gradient(90deg, hsl(0 80% 20% / 0.12) 0%, transparent 60%);
+    background: linear-gradient(90deg, hsl(0 80% 20% / 0.14) 0%, transparent 60%);
   }
 
   /* Live data pulse ring for map markers */
   @keyframes radar-ping {
-    0%   { transform: scale(1);   opacity: 0.6; }
-    70%  { transform: scale(2.5); opacity: 0;   }
-    100% { transform: scale(2.5); opacity: 0;   }
+    0%   { transform: scale(1);   opacity: 0.7; }
+    70%  { transform: scale(2.8); opacity: 0;   }
+    100% { transform: scale(2.8); opacity: 0;   }
   }
   .radar-ping { animation: radar-ping 2s ease-out infinite; }
 
@@ -339,7 +362,7 @@
   }
 
   button, [role="button"], a, label[style*="cursor: pointer"] {
-    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.06);
+    -webkit-tap-highlight-color: rgba(0, 255, 255, 0.05);
   }
 
   * {
@@ -433,23 +456,21 @@
   }
 
   .warroom-panel-header {
-    padding: 4px 8px;
-    font-size: 10px;
-    min-height: 28px;
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 32px;
   }
 
   .warroom-panel-body {
-    padding: 4px 6px;
-    font-size: 11px;
+    padding: 6px 8px;
+    font-size: 13px;
     -webkit-overflow-scrolling: touch;
   }
 
   .warroom-mobile-tabs {
     display: flex;
-    background: hsl(225 20% 7% / 0.8);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border-top: 1px solid hsl(225 20% 100% / 0.05);
+    background: hsl(220 40% 8% / 0.92);
+    border-top: 1px solid hsl(185 40% 28% / 0.14);
     min-height: 56px;
   }
 
@@ -483,10 +504,8 @@
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
     padding: 3px 8px;
-    background: hsl(225 18% 8% / 0.65);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid hsl(225 20% 100% / 0.04);
+    background: hsl(220 40% 8% / 0.85);
+    border-bottom: 1px solid hsl(185 40% 28% / 0.1);
     min-height: 24px;
   }
 
@@ -500,21 +519,21 @@
     justify-content: center;
     gap: 5px;
     padding: 3px 0 1px;
-    background: hsl(225 20% 7% / 0.6);
+    background: hsl(220 40% 8% / 0.75);
   }
 
   .warroom-mobile-swipe-dots .dot {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: hsl(225 15% 26%);
+    background: hsl(185 25% 22%);
     transition: all 0.2s ease;
   }
 
   .warroom-mobile-swipe-dots .dot.active {
     width: 14px;
     border-radius: 3px;
-    background: hsl(36 100% 50%);
+    background: hsl(185 100% 42%);
   }
 
   .warroom-mobile-panel-transition {
@@ -529,12 +548,12 @@
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .warroom-panel-body {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .warroom-ticker {
-    height: 26px;
-    font-size: 11px;
+    height: 28px;
+    font-size: 12px;
   }
 }
 
@@ -562,19 +581,19 @@
   opacity: 0.95;
   z-index: 100;
   box-shadow:
-    0 20px 60px rgba(0,0,0,0.6),
-    0 0 0 1px hsl(36 100% 50% / 0.2),
-    0 0 40px hsl(36 100% 50% / 0.06),
-    inset 0 1px 0 hsl(225 30% 100% / 0.06);
+    0 20px 60px rgba(0,0,0,0.7),
+    0 0 0 1px hsl(185 100% 42% / 0.3),
+    0 0 40px hsl(185 100% 42% / 0.1),
+    inset 0 1px 0 hsl(185 100% 42% / 0.08);
   cursor: grabbing !important;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 .react-grid-item.react-grid-placeholder {
-  background: hsl(36 100% 50% / 0.04) !important;
-  border: 1px dashed hsl(36 100% 50% / 0.25) !important;
-  border-radius: 4px !important;
+  background: hsl(185 100% 42% / 0.04) !important;
+  border: 1px dashed hsl(185 100% 42% / 0.3) !important;
+  border-radius: 2px !important;
   opacity: 1 !important;
-  box-shadow: inset 0 0 20px hsl(36 100% 50% / 0.03) !important;
+  box-shadow: inset 0 0 20px hsl(185 100% 42% / 0.04) !important;
 }
 .react-resizable-handle {
   opacity: 0;
@@ -585,13 +604,13 @@
   opacity: 0.7;
 }
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(36 100% 50% / 0.5) !important;
+  border-color: hsl(185 100% 42% / 0.55) !important;
   border-width: 2px !important;
   width: 10px !important;
   height: 10px !important;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(36 100% 50% / 0.85) !important;
+  border-color: hsl(185 100% 42% / 0.9) !important;
 }
 .react-resizable-handle-se {
   bottom: 2px !important;
@@ -620,15 +639,13 @@
 }
 
 .warroom-bottom-sheet {
-  background: hsl(225 18% 10% / 0.85);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  border-top: 1px solid hsl(225 20% 100% / 0.08);
-  border-radius: 20px 20px 0 0;
+  background: hsl(220 35% 10% / 0.94);
+  border-top: 1px solid hsl(185 40% 28% / 0.18);
+  border-radius: 16px 16px 0 0;
   transform: translateY(100%);
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 hsl(225 30% 100% / 0.06);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 hsl(185 100% 42% / 0.08);
 }
 
 .warroom-bottom-sheet--open {

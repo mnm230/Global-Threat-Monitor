@@ -64,7 +64,6 @@ import {
   ChevronDown,
   ExternalLink,
   Clock,
-  MessageSquare,
   Zap,
   Loader2,
   Radar,
@@ -90,7 +89,7 @@ import {
   Video,
   MoreHorizontal,
 } from 'lucide-react';
-import { SiTelegram, SiX } from 'react-icons/si';
+import { SiTelegram } from 'react-icons/si';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
 
@@ -244,7 +243,6 @@ interface SSEData {
   telegramMessages: TelegramMessage[];
   cyberEvents: CyberEvent[];
   thermalHotspots: ThermalHotspot[];
-  xPosts: NewsItem[];
   connected: boolean;
 }
 
@@ -261,7 +259,6 @@ function useSSE(): SSEData {
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [cyberEvents, setCyberEvents] = useState<CyberEvent[]>([]);
   const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
-  const [xPosts, setXPosts] = useState<NewsItem[]>([]);
   const [breakingNews, setBreakingNews] = useState<BreakingNewsItem[]>([]);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
@@ -314,9 +311,6 @@ function useSSE(): SSEData {
       es.addEventListener('thermal', (e) => {
         try { setThermalHotspots(JSON.parse(e.data)); } catch {}
       });
-      es.addEventListener('x-feed', (e) => {
-        try { setXPosts(JSON.parse(e.data)); } catch {}
-      });
       es.addEventListener('breaking-news', (e) => {
         try { setBreakingNews(JSON.parse(e.data)); } catch {}
       });
@@ -340,7 +334,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, xPosts, breakingNews, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, breakingNews, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -433,10 +427,10 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
       onMouseDown={() => setIsDragging(true)}
       onTouchStart={handleTouchStart}
       data-testid="resize-handle"
-      style={{ background: isDragging ? undefined : 'linear-gradient(to ' + (direction === 'col' ? 'right' : 'bottom') + ', transparent, hsl(220 30% 10%), transparent)' }}
+      style={{ background: isDragging ? undefined : 'linear-gradient(to ' + (direction === 'col' ? 'right' : 'bottom') + ', transparent, hsl(185 60% 8%), transparent)' }}
     >
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-20 -ml-[9px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-20 -mt-[9px]'} rounded transition-colors ${isDragging ? 'bg-primary/10' : 'bg-transparent group-hover:bg-primary/5'}`} />
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-10' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[2px] w-10'} rounded-full transition-all duration-200 ${isDragging ? 'bg-primary shadow-[0_0_8px_hsl(38_95%_54%/0.4)]' : 'bg-transparent group-hover:bg-primary/50'}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-10' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[2px] w-10'} rounded-full transition-all duration-200 ${isDragging ? 'bg-primary shadow-[0_0_8px_hsl(185_100%_42%/0.5)]' : 'bg-transparent group-hover:bg-primary/50'}`} />
     </div>
   );
 }
@@ -534,7 +528,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'xfeed' | 'avichay';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -549,8 +543,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
-  xfeed: { icon: MessageSquare, label: 'X / Twitter', labelAr: '\u0625\u0643\u0633 / \u062A\u0648\u064A\u062A\u0631' },
-  avichay: { icon: Zap, label: '@AvichayAdraee', labelAr: '\u0623\u0641\u064A\u062E\u0627\u064A \u0623\u062F\u0631\u0627\u0639\u064A' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -708,26 +700,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, avichay: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, avichay: 16 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false, xfeed: false, avichay: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, avichay: 16 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false, xfeed: false, avichay: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28, xfeed: 22, avichay: 16 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false, xfeed: false, avichay: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100, xfeed: 100, avichay: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100 },
     rowSplit: 50,
   },
 ];
@@ -735,20 +727,18 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
 const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
-  { i: 'map',       x: 0,  y: 0,  w: 6, h: 5, minW: 3, minH: 3 },
-  { i: 'alerts',    x: 6,  y: 0,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'intel',     x: 9,  y: 0,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'telegram',  x: 0,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'livefeed',  x: 3,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'events',    x: 6,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'radar',     x: 9,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'adsb',      x: 0,  y: 10, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'markets',   x: 4,  y: 10, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'cyber',     x: 8,  y: 10, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'alertmap',  x: 0,  y: 14, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'analytics', x: 4,  y: 14, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'xfeed',     x: 8,  y: 14, w: 2, h: 4, minW: 1, minH: 2 },
-  { i: 'avichay',   x: 10, y: 14, w: 2, h: 4, minW: 1, minH: 2 },
+  { i: 'map',       x: 0, y: 0,  w: 6,  h: 5, minW: 3, minH: 3 },
+  { i: 'alerts',    x: 6, y: 0,  w: 3,  h: 5, minW: 2, minH: 2 },
+  { i: 'intel',     x: 9, y: 0,  w: 3,  h: 5, minW: 2, minH: 2 },
+  { i: 'telegram',  x: 0, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
+  { i: 'livefeed',  x: 3, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
+  { i: 'events',    x: 6, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
+  { i: 'radar',     x: 9, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
+  { i: 'adsb',      x: 0, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
+  { i: 'markets',   x: 4, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
+  { i: 'alertmap',  x: 8, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
+  { i: 'cyber',     x: 4, y: 18, w: 4,  h: 4, minW: 2, minH: 2 },
+  { i: 'analytics', x: 8, y: 18, w: 4,  h: 4, minW: 2, minH: 2 },
 ];
 
 interface Correlation {
@@ -1072,7 +1062,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-5 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(225 18% 8% / 0.6)'}}>
+    <div className="h-6 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(220 35% 9% / 0.8)'}}>
       <span className="text-[7px] text-foreground/15 font-mono uppercase tracking-[0.25em] mr-3 shrink-0 font-bold">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
@@ -1238,7 +1228,7 @@ const LiveClock = memo(function LiveClock() {
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-[8px] text-foreground/20 font-mono hidden md:inline tracking-wider font-medium">{dateStr}</span>
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(225 18% 10% / 0.5)', border:'1px solid hsl(225 20% 100% / 0.06)', boxShadow:'0 0 8px hsl(36 100% 50% / 0.04)'}}>
+      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(220 35% 9% / 0.75)', border:'1px solid hsl(185 80% 50% / 0.1)', boxShadow:'0 0 8px hsl(185 100% 42% / 0.04)'}}>
         <span className="text-[11px] text-primary/80 font-mono font-bold tabular-nums tracking-[0.1em]">{formatted}</span>
         <span className="text-[7px] text-primary/30 font-mono font-bold tracking-[0.2em]">UTC</span>
       </div>
@@ -1253,15 +1243,15 @@ function formatPrice(c: CommodityData): string {
 }
 
 const TickerBar = memo(function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(225 18% 8% / 0.5)'}} />;
+  if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(220 35% 9% / 0.7)'}} />;
   const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
-    <div className="h-7 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(225 18% 8% / 0.65)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
-      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 18% 8% / 0.95) 60%, transparent)'}}>
+    <div className="h-8 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(220 35% 9% / 0.85)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
+      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(220 35% 9% / 0.95) 60%, transparent)'}}>
         <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 18% 8% / 0.95) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(220 35% 9% / 0.95) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((c, i) => (
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
@@ -1473,9 +1463,9 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
-      <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(36 100% 50% / 0.2) 20%, hsl(36 100% 50% / 0.3) 50%, hsl(36 100% 50% / 0.2) 80%, transparent)'}} />
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 3px hsl(36 100% 50% / 0.2))'}}>{icon}</span>
+    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.2) 20%, hsl(185 100% 42% / 0.3) 50%, hsl(185 100% 42% / 0.2) 80%, transparent)'}} />
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 3px hsl(185 100% 42% / 0.2))'}}>{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
       {count !== undefined && (
         <span className="text-[9px] font-mono text-foreground/35 tabular-nums leading-none bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">
@@ -1698,7 +1688,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
         </div>
       )}
       {selectedFlight && (
-        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 18% 10% / 0.5))'}} data-testid="flight-detail-card">
+        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(185 100% 42% / 0.06), hsl(220 35% 9% / 0.75))'}} data-testid="flight-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
             <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
@@ -2137,7 +2127,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
         <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
@@ -2444,8 +2434,8 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
         isMaximized={isMaximized}
       />
       {/* AI Natural Language Filter */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(225 18% 9% / 0.6)'}}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 18% 9% / 0.5)', border:'1px solid hsl(225 20% 100% / 0.06)'}}>
+      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(220 35% 9% / 0.82)'}}>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(220 35% 9% / 0.75)', border:'1px solid hsl(185 80% 50% / 0.1)'}}>
           <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
           <input
             type="text"
@@ -2545,7 +2535,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
       )}
 
       {selectedShip && (
-        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(225 18% 10% / 0.5))'}} data-testid="ship-detail-card">
+        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(220 35% 9% / 0.75))'}} data-testid="ship-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-blue-300" data-testid="text-ship-name">{selectedShip.name}</span>
             <button onClick={() => setSelectedShip(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="ship-close-detail">
@@ -2570,17 +2560,6 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
             >
               <MapPin className="w-3 h-3" />
               Google Maps
-            </a>
-            <a
-              href={`https://www.marinetraffic.com/en/ais/home/centerx:${selectedShip.lng}/centery:${selectedShip.lat}/zoom:10`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-[10px] font-mono font-bold text-foreground/50 transition-colors"
-              data-testid={`ship-mt-${selectedShip.id}`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="w-3 h-3" />
-              MarineTraffic
             </a>
           </div>
         </div>
@@ -2956,46 +2935,25 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel">
-      <div className={`${hasActiveAlerts ? 'px-4 py-3' : 'px-3 py-2'} border-b flex items-center gap-2 shrink-0 relative overflow-hidden ${hasActiveAlerts ? 'border-red-700/60' : 'border-white/[0.04] bg-gradient-to-r from-red-500/[0.04] to-transparent'}`} style={hasActiveAlerts ? {background:'linear-gradient(135deg, hsl(0 72% 38%) 0%, hsl(0 65% 28%) 50%, hsl(0 60% 22%) 100%)', boxShadow:'0 2px 20px rgb(239 68 68 / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.1)'} : undefined}>
-        {hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent pointer-events-none" />}
-        {hasActiveAlerts && <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgb(255_255_255_/_0.06)_0%,_transparent_60%)] pointer-events-none" />}
-        {!hasActiveAlerts && <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-red-500/60 via-red-500/30 to-transparent" />}
-        {!hasActiveAlerts && <div className="absolute inset-0 bg-gradient-to-b from-white/[0.01] to-transparent pointer-events-none" />}
-        <div className={`flex items-center justify-center shrink-0 ${hasActiveAlerts ? 'w-7 h-7 rounded-md bg-white/15 border border-white/20' : 'w-4 h-4 rounded bg-red-500/[0.08] border border-red-500/10'}`} style={hasActiveAlerts ? {boxShadow:'0 0 10px rgb(239 68 68 / 0.3)'} : undefined}>
-          <AlertOctagon className={`${hasActiveAlerts ? 'w-4 h-4 text-white drop-shadow-sm' : 'w-2.5 h-2.5 text-red-400/60'}`} />
-        </div>
-        <div className="flex flex-col leading-none gap-0.5">
-          <span className={`text-[13px] font-black uppercase tracking-[0.18em] ${hasActiveAlerts ? 'text-white drop-shadow-sm' : 'text-foreground/80'}`} style={{fontFamily:"'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif"}}>
-            {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'RED ALERT'}
+      <div className="px-3 py-2 border-b border-red-900/40 flex items-center gap-2 shrink-0" style={hasActiveAlerts ? {background:'hsl(0 70% 12% / 0.95)', borderLeft:'3px solid #ef4444'} : {background:'hsl(0 50% 8% / 0.6)'}}>
+        <AlertOctagon className={`w-4 h-4 shrink-0 ${hasActiveAlerts ? 'text-red-400 animate-pulse' : 'text-red-600/40'}`} />
+        <div className="flex flex-col leading-none gap-0.5 min-w-0">
+          <span className="text-[12px] font-black uppercase tracking-[0.15em] text-red-100">
+            {language === 'ar' ? 'الإنذار الأحمر' : 'RED ALERT'}
           </span>
-          <span className={`text-[9px] tracking-wide ${hasActiveAlerts ? 'text-white/45' : 'text-red-400/40'}`} style={{fontFamily:"'Inter', system-ui, sans-serif"}}>Home Front Command • Oref</span>
+          <span className="text-[9px] text-red-400/50 tracking-wide">Oref · Home Front Command</span>
         </div>
         {hasActiveAlerts && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] px-2.5 py-0.5 text-white font-black bg-white/20 rounded-full border border-white/25 animate-pulse tabular-nums" style={{fontFamily:"'Inter', system-ui, sans-serif", boxShadow:'0 0 8px rgb(255 255 255 / 0.15)'}}>
-              {alerts.length}
-            </span>
+          <div className="flex items-center gap-1.5 ml-1">
+            <span className="text-[13px] font-black text-red-300 tabular-nums">{alerts.length}</span>
             {liveCount > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 font-bold bg-emerald-500/25 text-emerald-200 rounded border border-emerald-400/30" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
-                {liveCount} API
-              </span>
-            )}
-            {simCount > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 font-semibold bg-white/10 text-white/50 rounded border border-white/15" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
-                {simCount} SIM
-              </span>
+              <span className="text-[9px] px-1.5 py-0.5 font-bold bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/25">LIVE</span>
             )}
           </div>
         )}
         <div className="flex-1" />
-        {hasActiveAlerts && (
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(255 255 255 / 0.5)'}} />
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/80 font-bold" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>{liveCount > 0 ? 'LIVE API' : 'LIVE'}</span>
-          </div>
-        )}
         {onShowHistory && (
-          <button onClick={onShowHistory} className="w-7 h-7 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/15 active:bg-white/25 transition-colors" title="Alert History" data-testid="button-alert-history">
+          <button onClick={onShowHistory} className="w-6 h-6 rounded flex items-center justify-center text-red-400/40 hover:text-red-300 hover:bg-red-900/30 transition-colors" title="Alert History" data-testid="button-alert-history">
             <History className="w-3 h-3" />
           </button>
         )}
@@ -3005,7 +2963,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       {hasActiveAlerts && (
         <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
           <div className="px-2 py-1.5">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 18% 9% / 0.5)', border:'1px solid hsl(225 20% 100% / 0.06)'}}>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(220 35% 9% / 0.75)', border:'1px solid hsl(185 80% 50% / 0.1)'}}>
               <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
               <input
                 type="text"
@@ -3184,7 +3142,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       <div className="px-3 py-1.5 border-t border-red-900/30 bg-red-950/15 shrink-0 flex items-center justify-between">
         <span className="text-[9px] text-red-400/35 tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>tzevaadom.co.il</span>
         <span className="text-[9px] text-red-400/35 tabular-nums tracking-wide" style={{fontFamily:"'Inter', system-ui, sans-serif"}}>
-          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'} • 5s refresh
+          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'} • 3s refresh
         </span>
       </div>
     </div>
@@ -3466,7 +3424,7 @@ function TelegramPanel({
               >
                 {msg.image && !isExpanded && (
                   <div
-                    className="relative w-full h-36 overflow-hidden cursor-zoom-in"
+                    className="relative w-full h-56 overflow-hidden cursor-zoom-in"
                     onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
                     data-testid={`img-thumbnail-${msg.id}`}
                   >
@@ -3510,7 +3468,7 @@ function TelegramPanel({
                       <img
                         src={msg.image}
                         alt=""
-                        className="w-full max-h-72 object-cover bg-black/20 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        className="w-full max-h-96 object-cover bg-black/20 cursor-zoom-in hover:opacity-90 transition-opacity"
                         loading="lazy"
                         onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -3569,14 +3527,6 @@ function MapLegend({ activeView, language }: { activeView: string; language: 'en
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Military', '\u0639\u0633\u0643\u0631\u064A')}</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" /><span className="text-foreground/70">{t('Commercial', '\u062A\u062C\u0627\u0631\u064A')}</span></div>
           <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" /><span className="text-foreground/70">{t('Surveillance', '\u0627\u0633\u062A\u0637\u0644\u0627\u0639')}</span></div>
-        </>
-      )}
-      {activeView === 'maritime' && (
-        <>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Military', '\u0639\u0633\u0643\u0631\u064A')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-500 shrink-0" /><span className="text-foreground/70">{t('Tanker', '\u0646\u0627\u0642\u0644\u0629')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" /><span className="text-foreground/70">{t('Cargo', '\u0634\u062D\u0646')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-purple-400 shrink-0" /><span className="text-foreground/70">{t('Patrol', '\u062F\u0648\u0631\u064A\u0629')}</span></div>
         </>
       )}
     </div>
@@ -3754,7 +3704,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="panel-drag-handle h-7 px-2.5 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
+      <div className="panel-drag-handle h-9 px-3 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
         <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
@@ -3930,7 +3880,7 @@ function AlertMapPanel({
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <MapPin className="w-3 h-3 text-red-400/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -3982,7 +3932,6 @@ const MAP_STYLE_OPTIONS = [
 function MapSection({
   events,
   flights,
-  ships,
   adsbFlights,
   redAlerts,
   thermalHotspots,
@@ -3994,7 +3943,6 @@ function MapSection({
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
-  ships: ShipData[];
   adsbFlights: AdsbFlight[];
   redAlerts: RedAlert[];
   thermalHotspots: ThermalHotspot[];
@@ -4004,19 +3952,18 @@ function MapSection({
   isMaximized?: boolean;
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }) {
-  const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
+  const [activeView, setActiveView] = useState<'conflict' | 'flights'>('conflict');
   const [mapStyleId, setMapStyleId] = useState<'dark' | 'light' | 'street'>('dark');
   const mapStyleUrl = MAP_STYLE_OPTIONS.find(s => s.id === mapStyleId)!.url;
 
   const views = [
     { key: 'conflict' as const, icon: AlertTriangle, label: language === 'en' ? 'Conflict' : '\u0646\u0632\u0627\u0639', labelEn: 'Conflict' },
     { key: 'flights' as const, icon: Plane, label: language === 'en' ? 'Flights' : '\u0631\u062D\u0644\u0627\u062A', labelEn: 'Flights' },
-    { key: 'maritime' as const, icon: Anchor, label: language === 'en' ? 'Hormuz' : '\u0647\u0631\u0645\u0632', labelEn: 'Hormuz' },
   ];
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <Target className="w-3 h-3 text-primary/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -4078,7 +4025,6 @@ function MapSection({
               <ConflictMap
                 events={events}
                 flights={flights}
-                ships={ships}
                 adsbFlights={adsbFlights}
                 redAlerts={redAlerts}
                 thermalHotspots={thermalHotspots}
@@ -4097,7 +4043,6 @@ function MapSection({
             <span className="text-[10px] text-foreground/70 font-mono">
               {activeView === 'conflict' && `${events.length} events`}
               {activeView === 'flights' && `${flights.length} aircraft`}
-              {activeView === 'maritime' && `${ships.length} vessels`}
             </span>
           </div>
         </div>
@@ -4116,11 +4061,11 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-5 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(225 18% 8% / 0.6)'}}>
-      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(225 18% 8% / 0.95) 50%, transparent)'}}>
+    <div className="h-6 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(220 35% 9% / 0.8)'}}>
+      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(220 35% 9% / 0.95) 50%, transparent)'}}>
         <span className="text-[7px] font-black tracking-[0.35em] text-primary/30 font-mono">NEWS</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(225 18% 8% / 0.95) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(220 35% 9% / 0.95) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
@@ -4183,324 +4128,6 @@ interface FalseAlarmData {
   recommendation: 'likely_real' | 'uncertain' | 'likely_false';
 }
 
-function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
-  posts: NewsItem[];
-  language: 'en' | 'ar';
-  onClose?: () => void;
-  onMaximize?: () => void;
-  isMaximized?: boolean;
-}) {
-  const [activeAccount, setActiveAccount] = useState<string | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const selectorRef = useRef<HTMLDivElement>(null);
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-
-  const accounts = useMemo(() => {
-    const map = new Map<string, number>();
-    posts.forEach(p => { map.set(p.source, (map.get(p.source) || 0) + 1); });
-    const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-    // Pin AvichayAdraee first if present
-    const pinnedIdx = sorted.findIndex(([name]) => name === 'AvichayAdraee');
-    if (pinnedIdx > 0) {
-      const [pinned] = sorted.splice(pinnedIdx, 1);
-      sorted.unshift(pinned);
-    }
-    return sorted;
-  }, [posts]);
-
-  const updateScrollState = useCallback(() => {
-    const el = selectorRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  }, []);
-
-  useEffect(() => {
-    const el = selectorRef.current;
-    if (!el) return;
-    updateScrollState();
-    el.addEventListener('scroll', updateScrollState, { passive: true });
-    const ro = new ResizeObserver(updateScrollState);
-    ro.observe(el);
-    return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
-  }, [accounts, updateScrollState]);
-
-  const scrollSelector = useCallback((dir: 'left' | 'right') => {
-    const el = selectorRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir === 'right' ? 160 : -160, behavior: 'smooth' });
-  }, []);
-
-  const filtered = activeAccount ? posts.filter(p => p.source === activeAccount) : posts;
-
-  const timeAgo = (ts: string) => {
-    const diff = Date.now() - new Date(ts).getTime();
-    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return `${Math.floor(diff / 86400000)}d ago`;
-  };
-
-  const categoryColors: Record<string, string> = {
-    breaking: 'bg-red-500/20 text-red-400 border-red-500/30',
-    military: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    diplomatic: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    humanitarian: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    economic: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-    nuclear: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  };
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
-      {/* Panel header */}
-      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/50 font-mono">{t('X / OSINT FEED', 'مصادر استخباراتية')}</span>
-        {posts.length > 0 && (
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.06] border border-emerald-500/[0.15]">
-            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
-            <span className="text-[8px] font-bold font-mono text-emerald-400/80 tracking-wider">LIVE</span>
-          </div>
-        )}
-        <span className="text-[9px] font-mono text-foreground/25 tabular-nums">{filtered.length} posts</span>
-        <div className="flex-1" />
-        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-xfeed">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
-
-      {/* Account selector rail */}
-      <div className="shrink-0 border-b border-white/[0.05] relative" style={{background:'hsl(225 18% 8% / 0.6)'}}>
-        {/* Left fade + arrow */}
-        {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to right, hsl(225 18% 8% / 0.8) 60%, transparent)'}}>
-            <button
-              className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
-              onClick={() => scrollSelector('left')}
-              aria-label="Scroll left"
-            >
-              <ChevronRight className="w-3.5 h-3.5 rotate-180" />
-            </button>
-          </div>
-        )}
-        {/* Scrollable pill row */}
-        <div
-          ref={selectorRef}
-          className="flex items-center gap-1.5 px-2 py-2 overflow-x-auto"
-          style={{scrollbarWidth:'none', WebkitOverflowScrolling:'touch', scrollSnapType:'x proximity'} as React.CSSProperties}
-        >
-          {/* ALL pill */}
-          <button
-            onClick={() => setActiveAccount(null)}
-            style={{scrollSnapAlign:'start'}}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono whitespace-nowrap transition-all shrink-0 border ${
-              !activeAccount
-                ? 'bg-primary/15 text-primary border-primary/30 shadow-[0_0_10px_hsl(36_100%_50%/0.1)]'
-                : 'text-foreground/45 border-white/[0.07] hover:bg-white/[0.05] hover:text-foreground/70 hover:border-white/[0.12]'
-            }`}
-            data-testid="button-xfeed-all"
-          >
-            <SiX className="w-3 h-3 opacity-60 shrink-0" />
-            {t('ALL', 'الكل')}
-            <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-md font-black ${!activeAccount ? 'bg-primary/25 text-primary' : 'bg-white/[0.08] text-foreground/40'}`}>{posts.length}</span>
-          </button>
-          {/* Per-account pills */}
-          {accounts.map(([name, count]) => {
-            const isActive = activeAccount === name;
-            return (
-              <button
-                key={name}
-                onClick={() => setActiveAccount(isActive ? null : name)}
-                style={{scrollSnapAlign:'start'}}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono whitespace-nowrap transition-all shrink-0 border ${
-                  isActive
-                    ? 'bg-primary/15 text-primary border-primary/30 shadow-[0_0_10px_hsl(36_100%_50%/0.1)]'
-                    : 'text-foreground/45 border-white/[0.07] hover:bg-white/[0.05] hover:text-foreground/70 hover:border-white/[0.12]'
-                }`}
-                data-testid={`button-xfeed-account-${name.replace(/\s+/g, '-')}`}
-              >
-                <span className={`text-[10px] ${isActive ? 'text-primary/50' : 'text-foreground/25'}`}>@</span>
-                <span>{name}</span>
-                <span className={`text-[10px] tabular-nums px-1.5 py-0.5 rounded-md font-black ${isActive ? 'bg-primary/25 text-primary' : 'bg-white/[0.08] text-foreground/40'}`}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
-        {/* Right fade + arrow */}
-        {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to left, hsl(225 18% 8% / 0.8) 60%, transparent)'}}>
-            <button
-              className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
-              onClick={() => scrollSelector('right')}
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Feed */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{scrollBehavior:'smooth'}}>
-        {filtered.length === 0 ? (
-          <div className="py-12 text-center">
-            <Loader2 className="w-6 h-6 text-foreground/15 animate-spin mx-auto mb-3" />
-            <p className="text-[11px] text-foreground/30 font-mono font-bold">{t('Loading X feeds…', 'جاري تحميل المنشورات…')}</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-white/[0.04]">
-            {filtered.map(post => (
-              <div key={post.id} className="px-3 py-3.5 hover:bg-white/[0.025] transition-colors group" data-testid={`xfeed-post-${post.id}`}>
-                <div className="flex items-start gap-2.5">
-                  {/* Avatar */}
-                  <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 mt-0.5">
-                    <SiX className="w-3.5 h-3.5 text-foreground/40" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {/* Source + time row */}
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-[13px] font-black text-foreground/85 truncate leading-tight">{post.source}</span>
-                      {/* Verified badge */}
-                      <svg className="w-3.5 h-3.5 text-blue-400/80 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.27 4.8-5.23 1.47 1.36-6.2 6.76z"/></svg>
-                      <span className="text-[10px] text-foreground/30 font-mono tabular-nums ml-auto shrink-0">{timeAgo(post.timestamp)}</span>
-                    </div>
-                    {/* Post content */}
-                    <p className="text-[13px] font-bold text-foreground/80 leading-snug mb-2.5">
-                      {language === 'ar' && (post as { titleAr?: string }).titleAr ? (post as { titleAr?: string }).titleAr : post.title}
-                    </p>
-                    {/* Footer: category + link */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {post.category && (
-                        <span className={`text-[9px] font-black font-mono uppercase px-2 py-0.5 rounded-full border ${categoryColors[post.category] || 'bg-white/5 text-foreground/40 border-white/10'}`}>
-                          {post.category}
-                        </span>
-                      )}
-                      {post.url && (
-                        <a
-                          href={post.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-blue-400/50 hover:text-blue-400 font-mono font-bold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`link-xfeed-${post.id}`}
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          Open on X
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AvichayFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
-  posts: NewsItem[];
-  language: 'en' | 'ar';
-  onClose?: () => void;
-  onMaximize?: () => void;
-  isMaximized?: boolean;
-}) {
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const filtered = posts.filter(p => p.source === 'IDF Arabic Spokesperson' || p.source === 'AvichayAdraee');
-
-  const timeAgo = (ts: string) => {
-    const diff = Date.now() - new Date(ts).getTime();
-    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return `${Math.floor(diff / 86400000)}d ago`;
-  };
-
-  const categoryColors: Record<string, string> = {
-    breaking: 'bg-red-500/20 text-red-400 border-red-500/30',
-    military: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-    diplomatic: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    humanitarian: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    economic: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-    nuclear: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  };
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="panel-avichay">
-      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
-        <div className="flex flex-col min-w-0">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono leading-none">@AvichayAdraee</span>
-          <span className="text-[8px] font-mono text-foreground/25 leading-none mt-0.5">{t('IDF Arabic Spokesperson', 'المتحدث العربي للجيش الإسرائيلي')}</span>
-        </div>
-        {filtered.length > 0 && (
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/[0.06] border border-emerald-500/[0.15]">
-            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" />
-            <span className="text-[8px] font-bold font-mono text-emerald-400/80 tracking-wider">LIVE</span>
-          </div>
-        )}
-        <span className="text-[9px] font-mono text-foreground/25 tabular-nums">{filtered.length} posts</span>
-        <div className="flex-1" />
-        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10" data-testid="button-maximize-avichay">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        {filtered.length === 0 ? (
-          <div className="py-12 text-center">
-            <Loader2 className="w-6 h-6 text-foreground/15 animate-spin mx-auto mb-3" />
-            <p className="text-[11px] text-foreground/30 font-mono font-bold">{t('Fetching @AvichayAdraee…', 'جاري التحميل…')}</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-white/[0.04]">
-            {filtered.map(post => (
-              <div key={post.id} className="px-3 py-3.5 hover:bg-white/[0.025] transition-colors group">
-                <div className="flex items-start gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 mt-0.5">
-                    <SiX className="w-3.5 h-3.5 text-foreground/40" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-[11px] font-black text-primary/80 font-mono">@AvichayAdraee</span>
-                      <svg className="w-3.5 h-3.5 text-blue-400/80 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.27 4.8-5.23 1.47 1.36-6.2 6.76z"/></svg>
-                      <span className="text-[10px] text-foreground/30 font-mono tabular-nums ml-auto shrink-0">{timeAgo(post.timestamp)}</span>
-                    </div>
-                    <p className="text-[13px] font-bold text-foreground/80 leading-snug mb-2.5">
-                      {language === 'ar' && (post as { titleAr?: string }).titleAr ? (post as { titleAr?: string }).titleAr : post.title}
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {post.category && (
-                        <span className={`text-[9px] font-black font-mono uppercase px-2 py-0.5 rounded-full border ${categoryColors[post.category] || 'bg-white/5 text-foreground/40 border-white/10'}`}>
-                          {post.category}
-                        </span>
-                      )}
-                      {post.url && (
-                        <a
-                          href={post.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-blue-400/50 hover:text-blue-400 font-mono font-bold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          Open on X
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function LLMDivergenceAlert({ assessments, language }: { assessments: LLMAssessmentData[]; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   const successful = assessments.filter(a => a.status === 'success');
@@ -4509,22 +4136,22 @@ function LLMDivergenceAlert({ assessments, language }: { assessments: LLMAssessm
   const allSame = risks.every(r => r === risks[0]);
   if (!allSame) {
     return (
-      <div className="mt-2 p-2 rounded bg-yellow-950/20 border border-yellow-500/20" data-testid="divergence-alert">
-        <div className="flex items-center gap-1.5 mb-1">
-          <AlertTriangle className="w-3 h-3 text-yellow-400" />
-          <span className="text-[10px] font-bold font-mono text-yellow-400 uppercase">{t('Model Divergence Detected', 'تم رصد اختلاف بين النماذج')}</span>
+      <div className="mt-3 p-3 rounded bg-yellow-950/20 border border-yellow-500/25" data-testid="divergence-alert">
+        <div className="flex items-center gap-2 mb-1.5">
+          <AlertTriangle className="w-4 h-4 text-yellow-400" />
+          <span className="text-[12px] font-black font-mono text-yellow-400 uppercase tracking-wider">{t('Model Divergence Detected', 'تم رصد اختلاف بين النماذج')}</span>
         </div>
-        <p className="text-[9px] text-foreground/50">
+        <p className="text-[11px] text-foreground/60 font-mono">
           {successful.map(a => `${a.engine}: ${a.riskLevel}`).join(' · ')}
         </p>
       </div>
     );
   }
   return (
-    <div className="mt-2 p-2 rounded bg-emerald-950/20 border border-emerald-500/20" data-testid="agreement-alert">
-      <div className="flex items-center gap-1.5">
-        <Shield className="w-3 h-3 text-emerald-400" />
-        <span className="text-[10px] font-bold font-mono text-emerald-400 uppercase">{t('All Models Agree', 'جميع النماذج متفقة')}: {risks[0]}</span>
+    <div className="mt-3 p-3 rounded bg-emerald-950/20 border border-emerald-500/25" data-testid="agreement-alert">
+      <div className="flex items-center gap-2">
+        <Shield className="w-4 h-4 text-emerald-400" />
+        <span className="text-[12px] font-black font-mono text-emerald-400 uppercase tracking-wider">{t('All Models Agree', 'جميع النماذج متفقة')}: {risks[0]}</span>
       </div>
     </div>
   );
@@ -4558,7 +4185,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 18% 9% / 0.7)', borderBottom:'1px solid hsl(225 20% 100% / 0.05)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 35% 9% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
@@ -4593,21 +4220,21 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
               {analytics.llmAssessments && analytics.llmAssessments.length > 0 && (
                 <div data-testid="section-multi-llm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Brain className="w-3 h-3 text-purple-400/60" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/50 font-mono">{t('Multi-LLM Intelligence Engine', 'محرك الذكاء متعدد النماذج')}</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Brain className="w-4 h-4 text-primary/70" />
+                    <span className="text-[12px] font-black uppercase tracking-[0.18em] text-foreground/70 font-mono">{t('Multi-LLM Engine', 'محرك الذكاء متعدد النماذج')}</span>
                   </div>
 
                   {analytics.consensusRisk && (
-                    <div className={`mb-3 p-2 rounded border ${
+                    <div className={`mb-3 p-3 rounded border ${
                       analytics.consensusRisk === 'EXTREME' ? 'bg-red-950/30 border-red-500/30' :
                       analytics.consensusRisk === 'HIGH' ? 'bg-orange-950/30 border-orange-500/30' :
                       analytics.consensusRisk === 'ELEVATED' ? 'bg-yellow-950/30 border-yellow-500/30' :
                       'bg-emerald-950/30 border-emerald-500/30'
                     }`} data-testid="consensus-box">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-mono text-foreground/50 uppercase">{t('Consensus Risk', 'مستوى المخاطر التوافقي')}</span>
-                        <span className={`text-xs font-black font-mono tracking-wider ${
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-mono font-bold text-foreground/60 uppercase tracking-wider">{t('Consensus Risk', 'مستوى المخاطر التوافقي')}</span>
+                        <span className={`text-[14px] font-black font-mono tracking-widest ${
                           analytics.consensusRisk === 'EXTREME' ? 'text-red-400' :
                           analytics.consensusRisk === 'HIGH' ? 'text-orange-400' :
                           analytics.consensusRisk === 'ELEVATED' ? 'text-yellow-400' :
@@ -4615,27 +4242,27 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         }`} data-testid="text-consensus-risk">{analytics.consensusRisk}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-foreground/40">{t('Model Agreement', 'توافق النماذج')}</span>
-                        <div className="flex-1 h-1.5 bg-white/[0.05] rounded overflow-hidden">
+                        <span className="text-[11px] font-mono font-semibold text-foreground/50">{t('Agreement', 'توافق')}</span>
+                        <div className="flex-1 h-2 bg-white/[0.05] rounded overflow-hidden">
                           <div className={`h-full rounded transition-all ${
                             (analytics.modelAgreement ?? 0) > 0.8 ? 'bg-emerald-500' :
                             (analytics.modelAgreement ?? 0) > 0.5 ? 'bg-yellow-500' : 'bg-red-500'
                           }`} style={{ width: `${(analytics.modelAgreement ?? 0) * 100}%` }} />
                         </div>
-                        <span className="text-[10px] font-bold font-mono text-foreground/60" data-testid="text-model-agreement">{((analytics.modelAgreement ?? 0) * 100).toFixed(0)}%</span>
+                        <span className="text-[12px] font-black font-mono text-foreground/70" data-testid="text-model-agreement">{((analytics.modelAgreement ?? 0) * 100).toFixed(0)}%</span>
                       </div>
                     </div>
                   )}
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {analytics.llmAssessments.map((assessment) => {
                       const engineColors: Record<string, string> = {
-                        'OpenAI': 'from-emerald-500/10 border-emerald-500/20 text-emerald-400',
-                        'Anthropic': 'from-orange-500/10 border-orange-500/20 text-orange-400',
-                        'Google': 'from-blue-500/10 border-blue-500/20 text-blue-400',
-                        'xAI': 'from-rose-500/10 border-rose-500/20 text-rose-400',
+                        'OpenAI': 'from-emerald-500/10 border-emerald-500/25 text-emerald-400',
+                        'Anthropic': 'from-orange-500/10 border-orange-500/25 text-orange-400',
+                        'Google': 'from-blue-500/10 border-blue-500/25 text-blue-400',
+                        'xAI': 'from-rose-500/10 border-rose-500/25 text-rose-400',
                       };
-                      const colors = engineColors[assessment.engine] || 'from-gray-500/10 border-gray-500/20 text-gray-400';
+                      const colors = engineColors[assessment.engine] || 'from-gray-500/10 border-gray-500/25 text-gray-400';
                       const borderColor = colors.split(' ')[1];
                       const textColor = colors.split(' ')[2];
 
@@ -4646,39 +4273,40 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         'bg-emerald-500/80 text-white';
 
                       return (
-                        <div key={assessment.engine} className={`p-2.5 rounded border bg-gradient-to-r to-transparent ${borderColor} ${colors.split(' ')[0]}`} data-testid={`llm-card-${assessment.engine.toLowerCase()}`}>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${assessment.status === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-                            <span className={`text-[11px] font-bold font-mono ${textColor}`}>{assessment.engine}</span>
-                            <span className="text-[9px] font-mono text-foreground/30">{assessment.model}</span>
+                        <div key={assessment.engine} className={`p-3 rounded border bg-gradient-to-r to-transparent ${borderColor} ${colors.split(' ')[0]}`} data-testid={`llm-card-${assessment.engine.toLowerCase()}`}>
+                          <div className="flex items-center gap-2.5 mb-2">
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${assessment.status === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}
+                              style={assessment.status === 'success' ? {boxShadow:'0 0 5px rgb(52 211 153 / 0.7)'} : undefined} />
+                            <span className={`text-[13px] font-black font-mono ${textColor}`}>{assessment.engine}</span>
+                            <span className="text-[11px] font-mono text-foreground/40">{assessment.model}</span>
                             <div className="flex-1" />
                             {assessment.status === 'success' && (
-                              <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${riskColor}`}>{assessment.riskLevel}</span>
+                              <span className={`text-[11px] font-black font-mono px-2 py-0.5 rounded ${riskColor}`}>{assessment.riskLevel}</span>
                             )}
-                            <span className="text-[9px] font-mono text-foreground/25">{assessment.latencyMs}ms</span>
+                            <span className="text-[10px] font-mono text-foreground/35">{assessment.latencyMs}ms</span>
                           </div>
 
                           {assessment.status === 'success' ? (
                             <>
-                              <p className="text-[10px] text-foreground/60 leading-relaxed mb-1.5" data-testid={`text-summary-${assessment.engine.toLowerCase()}`}>{assessment.summary}</p>
+                              <p className="text-[12px] text-foreground/70 leading-relaxed mb-2" data-testid={`text-summary-${assessment.engine.toLowerCase()}`}>{assessment.summary}</p>
                               {assessment.keyInsights.length > 0 && (
-                                <div className="space-y-0.5">
+                                <div className="space-y-1">
                                   {assessment.keyInsights.map((insight, idx) => (
-                                    <div key={idx} className="flex items-start gap-1.5">
-                                      <span className={`text-[8px] mt-0.5 ${textColor}`}>▸</span>
-                                      <span className="text-[9px] text-foreground/50 leading-tight">{insight}</span>
+                                    <div key={idx} className="flex items-start gap-2">
+                                      <span className={`text-[10px] mt-0.5 shrink-0 ${textColor}`}>▸</span>
+                                      <span className="text-[11px] text-foreground/60 leading-tight">{insight}</span>
                                     </div>
                                   ))}
                                 </div>
                               )}
-                              <div className="flex items-center gap-2 mt-1.5 pt-1 border-t border-white/[0.04]">
-                                <span className="text-[9px] font-mono text-foreground/30">{t('Confidence', 'الثقة')}: {(assessment.confidence * 100).toFixed(0)}%</span>
+                              <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-white/[0.06]">
+                                <span className="text-[11px] font-mono font-semibold text-foreground/45">{t('Confidence', 'الثقة')}: <span className="text-foreground/65">{(assessment.confidence * 100).toFixed(0)}%</span></span>
                               </div>
                             </>
                           ) : (
-                            <div className="flex items-center gap-2 py-1">
-                              <AlertTriangle className="w-3 h-3 text-red-400/60" />
-                              <span className="text-[10px] text-red-400/60 font-mono">{assessment.error || 'Engine unavailable'}</span>
+                            <div className="flex items-center gap-2 py-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-400/70" />
+                              <span className="text-[12px] text-red-400/70 font-mono font-semibold">{assessment.error || 'Engine unavailable'}</span>
                             </div>
                           )}
                         </div>
@@ -4925,7 +4553,7 @@ function PanelSidebar({
   aiBrief: import('@shared/schema').AIBrief | null;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed', 'avichay'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics'];
 
   const AI_MODELS = [
     { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
@@ -4944,20 +4572,20 @@ function PanelSidebar({
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className={`w-full h-8 flex items-center gap-2.5 px-3 relative transition-all duration-150 border-r-2 group
+        className={`w-full h-10 flex items-center gap-2.5 px-3 relative transition-all duration-150 border-r-2 group
           ${active
-            ? 'border-primary/80 text-foreground/85 bg-primary/[0.07]'
-            : 'border-transparent text-foreground/35 hover:text-foreground/65 hover:bg-white/[0.025] active:bg-white/[0.04]'
+            ? 'border-primary/80 text-foreground/90 bg-primary/[0.07]'
+            : 'border-transparent text-foreground/50 hover:text-foreground/75 hover:bg-white/[0.025] active:bg-white/[0.04]'
           }`}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${active ? 'text-primary/70' : 'text-foreground/30 group-hover:text-foreground/50'}`} />
-        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider flex-1 text-left leading-none truncate transition-colors ${active ? 'text-foreground/80' : 'text-foreground/35 group-hover:text-foreground/60'}`}>
+        <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-primary/80' : 'text-foreground/40 group-hover:text-foreground/60'}`} />
+        <span className={`text-[11px] font-mono font-bold uppercase tracking-wider flex-1 text-left leading-none truncate transition-colors ${active ? 'text-foreground/90' : 'text-foreground/50 group-hover:text-foreground/70'}`}>
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[8px] font-mono tabular-nums shrink-0 px-1 py-0.5 rounded transition-colors ${active ? 'text-primary/60 bg-primary/10' : 'text-foreground/20'}`}>
+          <span className={`text-[9px] font-mono tabular-nums shrink-0 px-1.5 py-0.5 rounded transition-colors ${active ? 'text-primary/70 bg-primary/10' : 'text-foreground/30'}`}>
             {stat}
           </span>
         )}
@@ -4968,7 +4596,7 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 200, background: 'hsl(225 20% 7% / 0.7)', backdropFilter: 'blur(20px) saturate(1.3)', WebkitBackdropFilter: 'blur(20px) saturate(1.3)' }}
+      style={{ width: 220, background: 'hsl(220 35% 9% / 0.9)', borderRight: '1px solid hsl(185 60% 20% / 0.18)' }}
     >
       {/* PANELS section */}
       <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
@@ -4985,30 +4613,31 @@ function PanelSidebar({
 
       {/* AI MODELS section */}
       <div className="mt-auto">
-        <div className="mx-3 my-2 h-px bg-white/[0.04]" />
-        <div className="px-3 pt-1 pb-1.5 flex items-center gap-2">
-          <Brain className="w-3 h-3 text-foreground/20" />
-          <span className="text-[8px] font-mono font-bold text-foreground/25 tracking-[0.2em] uppercase">AI Models</span>
-          <div className={`ml-auto w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400/50'}`} />
+        <div className="mx-3 my-2 h-px bg-white/[0.06]" />
+        <div className="px-3 pt-2 pb-1.5 flex items-center gap-2">
+          <Brain className="w-3.5 h-3.5 text-primary/50" />
+          <span className="text-[11px] font-mono font-black text-foreground/50 tracking-[0.18em] uppercase">AI Models</span>
+          <div className={`ml-auto w-2 h-2 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400/50'}`}
+            style={connected ? {boxShadow:'0 0 6px rgb(52 211 153 / 0.6)'} : undefined} />
         </div>
-        <div className="flex flex-col pb-3">
+        <div className="flex flex-col pb-3 gap-0.5 px-2">
           {AI_MODELS.map(m => {
             const isReady = connected;
             return (
-              <div key={m.key} className="flex items-center gap-2.5 px-3 h-7">
-                <div className={`w-2 h-2 rounded-full shrink-0 transition-all ${isReady ? m.color : 'bg-foreground/10'}`}
-                  style={isReady ? {boxShadow:`0 0 5px currentColor`} : undefined} />
-                <span className={`text-[9px] font-mono flex-1 uppercase tracking-wider transition-colors ${isReady ? 'text-foreground/45' : 'text-foreground/20'}`}>{m.label}</span>
-                <span className={`text-[8px] font-mono font-bold px-1 py-0.5 rounded transition-colors ${isReady ? 'text-emerald-400/60 bg-emerald-500/[0.06]' : 'text-foreground/15'}`}>
+              <div key={m.key} className={`flex items-center gap-2.5 px-2 h-9 rounded transition-colors ${isReady ? 'bg-white/[0.025]' : ''}`}>
+                <div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${isReady ? m.color : 'bg-foreground/10'}`}
+                  style={isReady ? {boxShadow:`0 0 6px currentColor`} : undefined} />
+                <span className={`text-[11px] font-mono font-bold flex-1 uppercase tracking-wider transition-colors ${isReady ? 'text-foreground/70' : 'text-foreground/25'}`}>{m.label}</span>
+                <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded transition-colors ${isReady ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-foreground/20'}`}>
                   {isReady ? 'ON' : 'OFF'}
                 </span>
               </div>
             );
           })}
           {aiBrief && (
-            <div className="mx-3 mt-2 px-2.5 py-2 rounded-sm" style={{background:'hsl(36 100% 50% / 0.06)', border:'1px solid hsl(36 100% 50% / 0.15)'}}>
-              <div className="text-[8px] font-mono text-foreground/35 uppercase tracking-widest mb-1">Threat Assessment</div>
-              <div className={`text-[10px] font-mono font-black tracking-wider ${
+            <div className="mx-1 mt-2 px-3 py-2.5 rounded" style={{background:'hsl(185 100% 42% / 0.07)', border:'1px solid hsl(185 100% 42% / 0.18)'}}>
+              <div className="text-[10px] font-mono font-bold text-foreground/45 uppercase tracking-widest mb-1">Threat Assessment</div>
+              <div className={`text-[13px] font-mono font-black tracking-wider ${
                 aiBrief.riskLevel === 'EXTREME' ? 'text-red-400' :
                 aiBrief.riskLevel === 'HIGH' ? 'text-orange-400' :
                 aiBrief.riskLevel === 'ELEVATED' ? 'text-yellow-400' : 'text-emerald-400'
@@ -5196,7 +4825,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, xfeed: true, avichay: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -5225,7 +4854,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v3') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v4') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         const merged = saved.map((item: GridItemLayout) => {
@@ -5245,7 +4874,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, xPosts, breakingNews, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, breakingNews, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' } | null>(null);
@@ -5261,7 +4890,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v3', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v4', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -5365,7 +4994,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'xfeed', 'avichay'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -5375,7 +5004,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    cyber: 22, alertmap: 28, analytics: 28, xfeed: 16, avichay: 16,
+    cyber: 22, alertmap: 28, analytics: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -5413,7 +5042,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v3', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v4', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
@@ -5487,20 +5116,11 @@ export default function Dashboard() {
         case 'intel':
           return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
         case 'map':
-          return <MapSection events={events} flights={flights} ships={ships} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
+          return <MapSection events={events} flights={flights} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'radar':
-          return (
-            <>
-              <div className="flex-1 flex flex-col min-h-0 border-b border-border overflow-hidden">
-                <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'radar' }); }} />
-              </div>
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <MaritimePanel ships={ships} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />
-              </div>
-            </>
-          );
+          return <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'radar' }); }} />;
         case 'adsb':
           return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'adsb' }); }} />;
         case 'alerts':
@@ -5517,10 +5137,6 @@ export default function Dashboard() {
           return <AlertMapPanel alerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'analytics':
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'xfeed':
-          return <XFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'avichay':
-          return <AvichayFeedPanel posts={xPosts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -5528,10 +5144,10 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.05] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 20% 7% / 0.8)', backdropFilter:'blur(24px) saturate(1.5)', WebkitBackdropFilter:'blur(24px) saturate(1.5)'}}>
-        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(36 100% 50% / 0.1) 30%, hsl(36 100% 50% / 0.15) 50%, hsl(36 100% 50% / 0.1) 70%, transparent)'}} />
+      <header className={`${isMobile ? 'h-12' : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 35% 9% / 0.92)', borderBottom:'1px solid hsl(185 80% 30% / 0.14)'}}>
+        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.12) 30%, hsl(185 100% 42% / 0.22) 50%, hsl(185 100% 42% / 0.12) 70%, transparent)'}} />
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} font-black tracking-[0.28em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 6px hsl(36 100% 50% / 0.25))'}}>◈ WARROOM</span>
+          <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-black tracking-[0.22em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 10px hsl(185 100% 42% / 0.5))'}}>◈ WARROOM</span>
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
@@ -5604,10 +5220,10 @@ export default function Dashboard() {
               <Button size="sm" variant="ghost" className={`px-2 h-7 rounded text-[11px] ${soundEnabled ? 'text-primary' : 'text-foreground/30'} hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] active:bg-amber-500/15 transition-all duration-150" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-cyan-400 hover:bg-cyan-500/[0.08] active:bg-cyan-500/15 transition-all duration-150" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
                 <StickyNote className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] active:bg-amber-500/15 transition-all duration-150" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-cyan-400 hover:bg-cyan-500/[0.08] active:bg-cyan-500/15 transition-all duration-150" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
                 <Eye className="w-3.5 h-3.5" />
               </Button>
               <div className="relative">
@@ -5662,8 +5278,6 @@ export default function Dashboard() {
               cyber: cyberEvents.length > 0 ? `${cyberEvents.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
-              xfeed: xPosts.length > 0 ? `${xPosts.length}` : '',
-              avichay: xPosts.filter(p => p.source === 'IDF Arabic Spokesperson' || p.source === 'AvichayAdraee').length > 0 ? `${xPosts.filter(p => p.source === 'IDF Arabic Spokesperson' || p.source === 'AvichayAdraee').length}` : '',
             }}
           />
         )}
@@ -5672,7 +5286,7 @@ export default function Dashboard() {
       {showMobileMenu && (isMobile || isTablet) && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMobileMenu(false)} />
-          <div className="absolute right-2 top-full z-50 mt-1 rounded-xl border border-white/[0.08] bg-[hsl(225_28%_5%)] backdrop-blur-xl shadow-2xl min-w-[180px]" data-testid="mobile-menu">
+          <div className="absolute right-2 top-full z-50 mt-1 rounded-xl border border-[hsl(185_60%_30%/0.15)] bg-[hsl(220_35%_9%)] shadow-2xl min-w-[180px]" data-testid="mobile-menu">
             <div className="p-1.5 flex flex-col gap-0.5">
               {[
                 { id: 'notif', icon: Bell, label: notificationsEnabled ? 'Notif ON' : 'Notif OFF', action: () => { toggleNotifications(); setShowMobileMenu(false); }, active: notificationsEnabled },
@@ -5699,7 +5313,7 @@ export default function Dashboard() {
             </div>
             <div className="border-t border-white/[0.05] px-3 py-2">
               <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
-                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, xPosts.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
+                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
                 <span>·</span>
                 <span>EVT {events.length}</span>
                 <span>·</span>
@@ -5772,7 +5386,7 @@ export default function Dashboard() {
                     className={`flex-1 min-w-[52px] min-h-[52px] py-2.5 flex flex-col items-center gap-1 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/30 active:text-foreground/50'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
                     data-testid={`mobile-tab-${id}`}
                   >
-                    {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" style={{ boxShadow: '0 2px 8px hsl(36 100% 50% / 0.3)' }} />}
+                    {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" style={{ boxShadow: '0 2px 8px hsl(185 100% 42% / 0.3)' }} />}
                     <Icon className={`w-[18px] h-[18px] transition-transform ${isActive ? 'scale-110' : ''}`} />
                     <span className={`text-[8px] font-mono font-bold uppercase tracking-wider transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/25'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
                     {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.6)' }} />}
@@ -5816,7 +5430,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'adsb' ? adsbFlights.length : id === 'cyber' ? cyberEvents.length : id === 'xfeed' ? xPosts.length : id === 'radar' ? flights.length : 0;
+                  const count = id === 'adsb' ? adsbFlights.length : id === 'cyber' ? cyberEvents.length : id === 'radar' ? flights.length : 0;
                   return (
                     <button
                       key={id}
@@ -5834,12 +5448,12 @@ export default function Dashboard() {
             </div>
           </div>
         ) : isTablet ? (
-          <div className="grid grid-cols-2 gap-px p-px h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)', background: 'hsl(225 20% 100% / 0.03)' }}>
+          <div className="grid grid-cols-2 gap-px p-px h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)', background: 'hsl(185 80% 42% / 0.04)' }}>
             {allPanels.filter(id => visiblePanels[id]).map(id => (
               <div
                 key={id}
                 className={`overflow-hidden ${id === 'map' || id === 'alertmap' ? 'col-span-2' : ''}`}
-                style={{ minHeight: id === 'map' ? '280px' : '180px', background: 'hsl(225 18% 10% / 0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+                style={{ minHeight: id === 'map' ? '280px' : '180px', background: 'hsl(220 35% 9% / 0.78)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
               >
                 {renderPanel(id)}
               </div>
@@ -5862,6 +5476,7 @@ export default function Dashboard() {
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
             rowHeight={150}
+            compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
             margin={[1, 1]}
@@ -5876,13 +5491,13 @@ export default function Dashboard() {
                   key={id}
                   className={`flex flex-col overflow-hidden cursor-grab active:cursor-grabbing rounded-[3px] ${hasAlertGlow ? '' : ''}`}
                   style={{
-                    background: 'hsl(225 18% 10% / 0.55)',
-                    backdropFilter: 'blur(20px) saturate(1.4)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
-                    border: '1px solid hsl(225 20% 100% / 0.06)',
+                    background: 'hsl(220 35% 9% / 0.78)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                    border: '1px solid hsl(185 80% 50% / 0.1)',
                     boxShadow: hasAlertGlow
-                      ? 'inset 0 1px 0 hsl(225 30% 100% / 0.04), 0 0 24px rgb(239 68 68 / 0.1), 0 0 0 1px hsl(0 80% 50% / 0.15)'
-                      : 'inset 0 1px 0 hsl(225 30% 100% / 0.04), 0 2px 12px hsl(225 40% 4% / 0.35)',
+                      ? 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 0 24px rgb(239 68 68 / 0.1), 0 0 0 1px hsl(0 80% 50% / 0.15)'
+                      : 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 2px 12px hsl(220 35% 5% / 0.5)',
                   }}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
                 >
@@ -5901,19 +5516,19 @@ export default function Dashboard() {
       {!isMobile && <NewsTicker news={news} language={language} />}
 
       {!isMobile && (
-        <div className="h-7 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(225 20% 7% / 0.75)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)'}}>
-          <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(225 20% 100% / 0.04) 30%, hsl(225 20% 100% / 0.06) 50%, hsl(225 20% 100% / 0.04) 70%, transparent)'}} />
+        <div className="h-8 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(220 35% 9% / 0.9)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)'}}>
+          <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 60% 50% / 0.05) 30%, hsl(185 80% 50% / 0.1) 50%, hsl(185 60% 50% / 0.05) 70%, transparent)'}} />
           <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
             <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
             <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, xPosts.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0, ships.length > 0].filter(Boolean).length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
             <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">VES</span>{ships.length}</span>
+
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">MKT</span>{commodities.length}</span>
           </div>
           {(redAlerts.length > 0 || sirens.length > 0) && (
