@@ -738,17 +738,17 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'map',       x: 0,  y: 0,  w: 6, h: 5, minW: 3, minH: 3 },
   { i: 'alerts',    x: 6,  y: 0,  w: 3, h: 5, minW: 2, minH: 2 },
   { i: 'intel',     x: 9,  y: 0,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'telegram',  x: 0,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'livefeed',  x: 3,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'events',    x: 6,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'radar',     x: 9,  y: 5,  w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'adsb',      x: 0,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'markets',   x: 3,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'cyber',     x: 6,  y: 9,  w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'alertmap',  x: 0,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'analytics', x: 4,  y: 12, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'xfeed',     x: 8,  y: 12, w: 2, h: 4, minW: 1, minH: 2 },
-  { i: 'avichay',   x: 10, y: 12, w: 2, h: 4, minW: 1, minH: 2 },
+  { i: 'telegram',  x: 0,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'livefeed',  x: 3,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'events',    x: 6,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'radar',     x: 9,  y: 5,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'adsb',      x: 0,  y: 10, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'markets',   x: 4,  y: 10, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'cyber',     x: 8,  y: 10, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'alertmap',  x: 0,  y: 14, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'analytics', x: 4,  y: 14, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'xfeed',     x: 8,  y: 14, w: 2, h: 4, minW: 1, minH: 2 },
+  { i: 'avichay',   x: 10, y: 14, w: 2, h: 4, minW: 1, minH: 2 },
 ];
 
 interface Correlation {
@@ -5225,7 +5225,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v2') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v3') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         const merged = saved.map((item: GridItemLayout) => {
@@ -5261,7 +5261,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v2', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v3', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -5413,7 +5413,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v2', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v3', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
@@ -5861,7 +5861,7 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={120}
+            rowHeight={150}
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
             margin={[1, 1]}
