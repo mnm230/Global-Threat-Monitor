@@ -25,7 +25,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **ADS-B Tracking:** Live ADS-B data from `adsb.lol` with auto-classification and detailed flight info.
 - **Telegram OSINT:** Scrapes public Telegram channels with server-side caching and filtering.
 - **AI Intelligence:** AI world brief panel with risk assessment, key developments, and forecasting.
-- **Multi-LLM Intelligence Engine:** Runs OpenAI GPT-4.1, Anthropic Claude Sonnet 4-6, Google Gemini 2.5 Flash, and xAI Grok-3 in parallel via OpenRouter for threat assessments, providing independent and consensus risk levels.
+- **Multi-LLM Intelligence Engine:** Runs OpenAI GPT-4.1, Anthropic Claude Sonnet 4-6, Google Gemini 2.5 Flash, and xAI Grok-3 in parallel via OpenRouter for threat assessments, providing independent and consensus risk levels. Anthropic Claude is the primary model for conflict-content AI tasks (batch classification, AI briefs, deductions, cyber extraction) to avoid Azure OpenAI content filtering on military/conflict topics. OpenAI is still used for the multi-LLM parallel assessment where Anthropic/Gemini/Grok provide fallback coverage.
 - **Persistence:** User settings, panel visibility, and layout presets stored in `localStorage`.
 - **Error Handling:** Generic `PanelErrorBoundary` for robust UI panel error handling.
 - **Accessibility:** Implemented `aria-labels` and `role="status"`.

@@ -382,31 +382,7 @@ async function fetchMediastack(): Promise<NewsItem[]> {
 }
 
 const X_FEED_ACCOUNTS = [
-  // --- Israeli military / official ---
   'AvichayAdraee',      // IDF Arabic Spokesperson (EN+AR)
-  'IDF',                // Israeli Defense Forces official (EN)
-  'IsraelRadar_',       // Israel Radar — real-time alerts (EN)
-  'IsraeliPM',          // Israeli PM office (EN)
-  // --- Lebanon / Hezbollah monitoring ---
-  'NaharnetEnglish',    // Naharnet — Lebanese news English (EN)
-  'LBCINews',           // LBCI Lebanon news (AR/EN)
-  'AlJumhuriya_ar',     // Lebanese political news (AR)
-  // --- Regional OSINT / conflict ---
-  'IntelCrab',          // Intel Crab — ME OSINT (EN)
-  'sentdefender',       // Sentinel Defender (EN)
-  'AuroraIntel',        // Aurora Intel (EN)
-  'Faytuks',            // Faytuks — ME news (EN+AR)
-  'Conflicts',          // Conflicts — global conflict tracking (EN)
-  'ELINTNews',          // ELINT News (EN)
-  'charles_lister',     // Charles Lister — Syria/Lebanon analyst (EN)
-  'QalaatAlMudiq',      // Qalaat Al-Mudiq — Syria/Lebanon OSINT (EN+AR)
-  'MiddleEastEye',      // Middle East Eye (EN+AR)
-  'igaboriau',          // Igor Sushko — OSINT analyst (EN)
-  'NotWoofers',         // OSINT Woofers (EN)
-  // --- Breaking news ---
-  'FirstSquawk',        // First Squawk — financial/geopolitical (EN)
-  'BNONews',            // BNO News — breaking (EN)
-  'NOWLebanon',         // NOW Lebanon — English Lebanon news (EN)
 ];
 const X_CACHE_TTL = 120_000;
 const X_RATE_LIMIT_BACKOFF = 300_000;
@@ -2159,21 +2135,16 @@ function recordAlertHistory(alerts: RedAlert[]) {
 }
 
 async function classifyThreatWithAI(text: string): Promise<ThreatClassification> {
+  const classifyPrompt = `You are a military intelligence analyst. Classify the following OSINT message. Return ONLY valid JSON with this exact schema:
+{"category":"missile_launch|airstrike|naval_movement|ground_offensive|air_defense|drone_activity|nuclear_related|economic_impact|diplomatic|humanitarian|cyber_attack|unknown","severity":"critical|high|medium|low","confidence":0.0-1.0,"entities":["named entities"],"locations":["place names"],"keywords":["key terms"]}`;
   try {
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-5.1',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a military intelligence analyst. Classify the following OSINT message. Return ONLY valid JSON with this exact schema:
-{"category":"missile_launch|airstrike|naval_movement|ground_offensive|air_defense|drone_activity|nuclear_related|economic_impact|diplomatic|humanitarian|cyber_attack|unknown","severity":"critical|high|medium|low","confidence":0.0-1.0,"entities":["named entities"],"locations":["place names"],"keywords":["key terms"]}`
-        },
-        { role: 'user', content: text }
-      ],
-      temperature: 0.1,
-      max_completion_tokens: 300,
+    const resp = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system: classifyPrompt,
+      messages: [{ role: 'user', content: text }],
     });
-    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -2262,22 +2233,18 @@ async function classifyMessages(messages: TelegramMessage[]): Promise<Classified
   const batchTexts = recent.map(m => m.text).join('\n---MSG_SEP---\n');
   let aiResults: ThreatClassification[] | null = null;
 
-  try {
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-5.1',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a military intelligence analyst. Classify each OSINT message separated by ---MSG_SEP---. Return a JSON array of objects, one per message, with this schema per object:
+  const batchSystemPrompt = `You are a military intelligence analyst. Classify each OSINT message separated by ---MSG_SEP---. Return a JSON array of objects, one per message, with this schema per object:
 {"category":"missile_launch|airstrike|naval_movement|ground_offensive|air_defense|drone_activity|nuclear_related|economic_impact|diplomatic|humanitarian|cyber_attack|unknown","severity":"critical|high|medium|low","confidence":0.0-1.0,"entities":["named entities"],"locations":["place names"],"keywords":["key terms"]}
-Return ONLY the JSON array, no other text.`
-        },
-        { role: 'user', content: batchTexts }
-      ],
-      temperature: 0.1,
-      max_completion_tokens: 2000,
+Return ONLY the JSON array, no other text.`;
+
+  try {
+    const resp = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      system: batchSystemPrompt,
+      messages: [{ role: 'user', content: batchTexts }],
     });
-    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
     const arrMatch = raw.match(/\[[\s\S]*\]/);
     if (arrMatch) {
       aiResults = JSON.parse(arrMatch[0]);
@@ -2773,34 +2740,33 @@ async function generateAIBriefLive(alerts: RedAlert[], messages: ClassifiedMessa
 
   const intelDigest = criticalMsgs.map(m => `[${m.channel}] ${m.text.slice(0, 200)}`).join('\n');
 
-  try {
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-5.1',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a senior military intelligence analyst producing a classified situation brief for a war room. Write concise, professional intelligence assessments. Return ONLY valid JSON:
+  const briefSystemPrompt = `You are a senior military intelligence analyst producing a classified situation brief for a war room. Write concise, professional intelligence assessments. Return ONLY valid JSON:
 {
   "summary": "2-3 paragraph situation assessment",
   "summaryAr": "Arabic translation of summary",
   "keyDevelopments": [{"text":"development","textAr":"Arabic","severity":"critical|high|medium","category":"category name"}],
   "focalPoints": ["key locations/topics"],
   "riskLevel": "EXTREME|HIGH|ELEVATED|MODERATE"
-}`
-        },
-        {
-          role: 'user',
-          content: `Generate intelligence brief based on current data:\n\nALERT STATUS: ${alertSummary}\n\nINTELLIGENCE DIGEST:\n${intelDigest || 'Limited OSINT available.'}\n\nProvide assessment with 4-6 key developments.`
-        }
-      ],
-      temperature: 0.3,
-      max_completion_tokens: 1500,
-    });
+}`;
+  const briefUserPrompt = `Generate intelligence brief based on current data:\n\nALERT STATUS: ${alertSummary}\n\nINTELLIGENCE DIGEST:\n${intelDigest || 'Limited OSINT available.'}\n\nProvide assessment with 4-6 key developments.`;
 
-    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+  try {
+    const resp = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 3000,
+      system: briefSystemPrompt,
+      messages: [{ role: 'user', content: briefUserPrompt }],
+    });
+    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch {
+        const cleaned = jsonMatch[0].replace(/[\x00-\x1f]/g, ' ');
+        parsed = JSON.parse(cleaned);
+      }
       const brief: AIBrief = {
         id: 'brief-ai-' + Date.now(),
         summary: parsed.summary || 'Assessment generation in progress.',
@@ -2814,7 +2780,7 @@ async function generateAIBriefLive(alerts: RedAlert[], messages: ClassifiedMessa
         focalPoints: Array.isArray(parsed.focalPoints) ? parsed.focalPoints : [],
         riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE'].includes(parsed.riskLevel) ? parsed.riskLevel : 'HIGH') as AIBrief['riskLevel'],
         generatedAt: new Date().toISOString(),
-        model: 'warroom-gpt-5.1',
+        model: 'warroom-claude-sonnet',
       };
       aiBriefCache = { data: brief, fetchedAt: Date.now() };
       return brief;
@@ -2841,25 +2807,18 @@ async function generateDeductionLive(query: string, alerts: RedAlert[], messages
   const alertContext = alerts.slice(0, 10).map(a => `${a.city} (${a.threatType}) at ${a.timestamp}`).join('; ');
   const intelContext = messages.slice(0, 5).map(m => `[${m.channel}] ${m.text.slice(0, 150)}`).join('\n');
 
-  try {
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-5.1',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a senior intelligence analyst in a war room. Answer the analyst's query with numbered probability-based assessments. Be specific with percentages and timeframes. Format as structured intelligence assessment with 3-5 key points. Also provide a confidence score (0-1) and timeframe. Return ONLY valid JSON:
-{"response":"your assessment","responseAr":"Arabic translation","confidence":0.0-1.0,"timeframe":"e.g. 24-48 hours"}`
-        },
-        {
-          role: 'user',
-          content: `QUERY: ${query}\n\nCURRENT ALERTS: ${alertContext || 'None active'}\n\nRECENT INTEL:\n${intelContext || 'Limited data available.'}`
-        }
-      ],
-      temperature: 0.4,
-      max_completion_tokens: 1000,
-    });
+  const deductionSystemPrompt = `You are a senior intelligence analyst in a war room. Answer the analyst's query with numbered probability-based assessments. Be specific with percentages and timeframes. Format as structured intelligence assessment with 3-5 key points. Also provide a confidence score (0-1) and timeframe. Return ONLY valid JSON:
+{"response":"your assessment","responseAr":"Arabic translation","confidence":0.0-1.0,"timeframe":"e.g. 24-48 hours"}`;
+  const deductionUserPrompt = `QUERY: ${query}\n\nCURRENT ALERTS: ${alertContext || 'None active'}\n\nRECENT INTEL:\n${intelContext || 'Limited data available.'}`;
 
-    const raw = resp.choices?.[0]?.message?.content?.trim() || '';
+  try {
+    const resp = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: deductionSystemPrompt,
+      messages: [{ role: 'user', content: deductionUserPrompt }],
+    });
+    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -3083,7 +3042,7 @@ async function fetchCyberEvents(): Promise<CyberEvent[]> {
     const [articles, otxEvents] = await Promise.all([fetchCyberRSSArticles(), fetchOTXPulses()]);
 
     let gptEvents: CyberEvent[] = [];
-    if (articles.length > 0 && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+    if (articles.length > 0 && process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
       const meArticles = articles.filter(a => isMERelevant(a.title + ' ' + a.description));
       const otherArticles = articles.filter(a => !isMERelevant(a.title + ' ' + a.description));
       const prioritized = [...meArticles, ...otherArticles].slice(0, 30);
@@ -3093,13 +3052,7 @@ async function fetchCyberEvents(): Promise<CyberEvent[]> {
         `${i + 1}. TITLE: ${a.title}\nDATE: ${a.pubDate}\nSUMMARY: ${a.description}`
       ).join('\n\n');
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_completion_tokens: 3000,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a cyber threat intelligence analyst specializing EXCLUSIVELY in the Middle East region. Your task is to extract ONLY cybersecurity incidents that directly involve Middle East countries or Middle East-origin threat actors.
+      const cyberSystemPrompt = `You are a cyber threat intelligence analyst specializing EXCLUSIVELY in the Middle East region. Your task is to extract ONLY cybersecurity incidents that directly involve Middle East countries or Middle East-origin threat actors.
 
 STRICT REGIONAL FILTER — ONLY include events that match at least ONE:
 • Target country is: Iran, Israel, Palestine, Lebanon, Syria, Iraq, Saudi Arabia, UAE, Qatar, Bahrain, Kuwait, Oman, Yemen, Jordan, Egypt, Turkey, Libya, Tunisia, Morocco, Afghanistan, Pakistan
@@ -3122,8 +3075,13 @@ Return a JSON array of 6-15 events. Each object MUST have:
 
 If fewer than 6 articles are ME-relevant, return only the ones that ARE relevant. Do NOT fabricate or supplement with hypothetical events. Only include events with verifiable source articles.
 
-Return ONLY a valid JSON array. No markdown, no explanation.`,
-          },
+Return ONLY a valid JSON array. No markdown, no explanation.`;
+
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 3000,
+        system: cyberSystemPrompt,
+        messages: [
           {
             role: 'user',
             content: `Extract MIDDLE EAST ONLY cyber threat events from these recent cybersecurity news articles:\n\n${articlesText}`,
@@ -3131,7 +3089,7 @@ Return ONLY a valid JSON array. No markdown, no explanation.`,
         ],
       });
 
-      const content = response.choices[0]?.message?.content?.trim() || '[]';
+      const content = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '[]';
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]) as CyberEvent[];
@@ -3206,6 +3164,22 @@ export async function registerRoutes(
     'southlebanon',      // South Lebanon ground reports (AR)
     'nabatiehnews',      // Nabatieh governorate — IDF ground axis (AR)
     'Yemen_Press',       // Regional conflict updates (AR)
+    // --- Priority fast-update channels (also in PRIORITY_TELEGRAM_CHANNELS below) ---
+    'wfwitness',         // War footage witness — live ground video/reports (EN)
+  ];
+
+  // Channels polled on the fast 2-second cycle — highest update frequency
+  const PRIORITY_TELEGRAM_CHANNELS = [
+    'wfwitness',         // fastest live updates
+    'lebaborim',         // Lebanon war room
+    'bintjbeilnews',     // Bint Jbeil front line
+    'almanarnews',       // Al-Manar (Hezbollah) — real-time
+    'AlAhedNews',        // Al-Ahed ground reports
+    'BNONewsRoom',       // BNO breaking news
+    'GeoConfirmed',      // geo-confirmed events
+    'ELINTNews',         // ELINT / air+ground activity
+    'OSINTdefender',     // fast OSINT
+    'clashreport',       // clash reports
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
@@ -3376,6 +3350,26 @@ export async function registerRoutes(
     const allMessages = results.flat();
     allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return allMessages.slice(0, 50);
+  }
+
+  // Fetches only the priority fast-lane channels and merges with cached full results
+  async function fetchPriorityTelegram(): Promise<TelegramMessage[]> {
+    const fresh = await Promise.all(
+      PRIORITY_TELEGRAM_CHANNELS.map(ch => scrapeChannel(ch).catch(() => []))
+    );
+    const freshMsgs = fresh.flat();
+
+    // Merge with cached messages from non-priority channels (already in telegramCache)
+    const otherMsgs: TelegramMessage[] = [];
+    for (const ch of LIVE_TELEGRAM_CHANNELS) {
+      if (PRIORITY_TELEGRAM_CHANNELS.includes(ch)) continue;
+      const cached = telegramCache.get(ch);
+      if (cached) otherMsgs.push(...cached.data);
+    }
+
+    const all = [...freshMsgs, ...otherMsgs];
+    all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return all.slice(0, 80);
   }
 
   app.get('/api/telegram', async (_req, res) => {
@@ -3743,14 +3737,22 @@ export async function registerRoutes(
       });
     }, 15000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
+    // Priority fast-lane: refresh hot channels every 2s and push to client immediately
     intervals.push(setInterval(() => {
-      fetchLiveTelegram().then(tgMsgs => {
+      fetchPriorityTelegram().then(tgMsgs => {
         latestTgMsgs = tgMsgs;
         send('telegram', tgMsgs);
         const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
         send('breaking-news', breaking);
       }).catch(() => {});
-    }, 5000));
+    }, 2000));
+    // Full sweep of all channels every 30s to keep non-priority caches warm
+    intervals.push(setInterval(() => {
+      fetchLiveTelegram().then(tgMsgs => {
+        latestTgMsgs = tgMsgs;
+        send('telegram', tgMsgs);
+      }).catch(() => {});
+    }, 30000));
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
       const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];
@@ -3766,7 +3768,7 @@ export async function registerRoutes(
     intervals.push(setInterval(() => fetchCyberEvents().then(events => send('cyber', events)), 10000));
 
     intervals.push(setInterval(async () => {
-      const tgMsgs = await fetchLiveTelegram().catch(() => []);
+      const tgMsgs = latestTgMsgs.length > 0 ? latestTgMsgs : await fetchPriorityTelegram().catch(() => []);
       if (tgMsgs.length > 0) {
         const classified = await classifyMessages(tgMsgs);
         send('classified', classified);
