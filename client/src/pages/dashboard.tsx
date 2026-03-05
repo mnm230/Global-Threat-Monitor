@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/components/theme-provider';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import type {
   NewsItem,
   CommodityData,
@@ -314,6 +314,9 @@ function useSSE(): SSEData {
       es.addEventListener('breaking-news', (e) => {
         try { setBreakingNews(JSON.parse(e.data)); } catch {}
       });
+      es.addEventListener('analytics', (e) => {
+        try { queryClient.setQueryData(['/api/analytics'], (old: any) => ({ ...old, ...JSON.parse(e.data) })); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -528,7 +531,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'osint';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -543,6 +546,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
+  osint: { icon: Activity, label: 'OSINT Feed', labelAr: 'تغذية OSINT' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -682,6 +686,282 @@ function useDesktopNotifications(
   }, [alerts, sirens, news, enabled, level]);
 }
 
+// ─── OSINT Timeline ──────────────────────────────────────────────
+interface OsintEntry {
+  id: string;
+  source: 'alert' | 'telegram' | 'event';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  title: string;
+  body: string;
+  timestamp: string;
+  icon: string;
+  borderColor: string;
+}
+
+const OSINT_SEVERITY_STYLE: Record<string, string> = {
+  critical: 'text-red-400 bg-red-500/10 border-red-500/30',
+  high:     'text-orange-400 bg-orange-500/10 border-orange-500/30',
+  medium:   'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+  low:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+};
+
+function buildOsintEntries(
+  alerts: RedAlert[],
+  messages: TelegramMessage[],
+  events: ConflictEvent[],
+  lang: 'en' | 'ar',
+): OsintEntry[] {
+  const entries: OsintEntry[] = [];
+  const THREAT_SEV: Record<string, OsintEntry['severity']> = {
+    missiles: 'critical', hostile_aircraft_intrusion: 'critical',
+    rockets: 'high', uav_intrusion: 'medium',
+  };
+  alerts.forEach(a => entries.push({
+    id: `alert-${a.id}`,
+    source: 'alert',
+    severity: THREAT_SEV[a.threatType] || 'high',
+    title: `${a.threatType.replace(/_/g, ' ').toUpperCase()} · ${lang === 'ar' ? a.cityAr : a.city}`,
+    body: `${a.region} · ${a.country}`,
+    timestamp: a.timestamp,
+    icon: a.threatType === 'missiles' ? '🎯' : a.threatType === 'uav_intrusion' ? '🛸' : '🚨',
+    borderColor: '#ef4444',
+  }));
+  messages.forEach(m => entries.push({
+    id: `tg-${m.id}`,
+    source: 'telegram',
+    severity: 'medium',
+    title: m.channel,
+    body: lang === 'ar' && m.textAr ? m.textAr : m.text,
+    timestamp: m.timestamp,
+    icon: '📡',
+    borderColor: '#38bdf8',
+  }));
+  events.forEach(e => entries.push({
+    id: `evt-${e.id}`,
+    source: 'event',
+    severity: e.severity,
+    title: lang === 'ar' && e.titleAr ? e.titleAr : e.title,
+    body: lang === 'ar' && e.descriptionAr ? e.descriptionAr : e.description,
+    timestamp: e.timestamp,
+    icon: e.type === 'missile' ? '🎯' : e.type === 'airstrike' ? '✈️' : e.type === 'nuclear' ? '☢️' : '⚡',
+    borderColor: '#f97316',
+  }));
+  return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMaximize, isMaximized }: {
+  alerts: RedAlert[];
+  messages: TelegramMessage[];
+  events: ConflictEvent[];
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  type FilterKey = 'all' | 'alert' | 'telegram' | 'event';
+  const [filter, setFilter] = useState<FilterKey>('all');
+  const listRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
+
+  const allEntries = useMemo(
+    () => buildOsintEntries(alerts, messages, events, language),
+    [alerts, messages, events, language],
+  );
+  const filtered = useMemo(
+    () => filter === 'all' ? allEntries : allEntries.filter(e => e.source === filter),
+    [allEntries, filter],
+  );
+
+  useEffect(() => {
+    if (filtered.length > prevCountRef.current && listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+    prevCountRef.current = filtered.length;
+  }, [filtered.length]);
+
+  const relTime = (ts: string) => {
+    const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (s < 60) return `${s}s`;
+    if (s < 3600) return `${Math.floor(s / 60)}m`;
+    return `${Math.floor(s / 3600)}h`;
+  };
+
+  const filterBtns: { key: FilterKey; label: string }[] = [
+    { key: 'all',      label: `ALL (${allEntries.length})` },
+    { key: 'alert',    label: `ALERTS (${allEntries.filter(e => e.source === 'alert').length})` },
+    { key: 'telegram', label: `SIGINT (${allEntries.filter(e => e.source === 'telegram').length})` },
+    { key: 'event',    label: `EVENTS (${allEntries.filter(e => e.source === 'event').length})` },
+  ];
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="osint-timeline-panel">
+      <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2 shrink-0" style={{background:'hsl(220 35% 9% / 0.9)'}}>
+        <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/90">OSINT TIMELINE</span>
+        <div className="flex-1" />
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+      <div className="px-2 py-1 border-b border-white/[0.03] flex gap-1 shrink-0 flex-wrap" style={{background:'hsl(220 35% 7% / 0.6)'}}>
+        {filterBtns.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setFilter(key)}
+            className={`text-[9px] px-2 py-0.5 rounded font-bold tracking-wider transition-colors border ${
+              filter === key
+                ? 'bg-primary/20 text-primary border-primary/30'
+                : 'text-muted-foreground/40 hover:text-muted-foreground/70 border-transparent'
+            }`}
+          >{label}</button>
+        ))}
+      </div>
+      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0">
+        {filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-16 text-[11px] text-muted-foreground/25 font-mono">NO ENTRIES</div>
+        ) : filtered.map(entry => (
+          <div
+            key={entry.id}
+            className="px-3 py-1.5 border-l-2 hover:bg-white/[0.02] transition-colors"
+            style={{ borderLeftColor: entry.borderColor, borderBottom: '1px solid hsl(225 20% 100% / 0.025)' }}
+          >
+            <div className="flex items-start gap-2">
+              <span className="text-[11px] shrink-0 leading-5">{entry.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                  <span className={`text-[8px] px-1 py-px rounded border font-black uppercase shrink-0 ${OSINT_SEVERITY_STYLE[entry.severity]}`}>{entry.severity}</span>
+                  <span className="text-[10px] font-bold text-foreground/85 truncate">{entry.title}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground/50 leading-tight line-clamp-2">{entry.body}</p>
+              </div>
+              <span className="text-[9px] text-muted-foreground/30 font-mono shrink-0 tabular-nums pl-1">{relTime(entry.timestamp)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Alert Escalation ────────────────────────────────────────────
+interface EscalationState {
+  level: 'WATCH' | 'WARNING' | 'CRITICAL' | null;
+  count: number;
+  rate: number;
+}
+
+function useEscalation(
+  alerts: RedAlert[],
+  soundEnabled: boolean,
+  notificationsEnabled: boolean,
+): EscalationState {
+  const WINDOW_MS = 60_000;
+  const tsLog = useRef<number[]>([]);
+  const prevLevel = useRef<EscalationState['level']>(null);
+  const initialized = useRef(false);
+  const [state, setState] = useState<EscalationState>({ level: null, count: 0, rate: 0 });
+
+  useEffect(() => {
+    const now = Date.now();
+    const currentIds = new Set(alerts.map(a => a.id));
+
+    if (!initialized.current) {
+      initialized.current = true;
+      // Seed log from current alerts timestamps
+      alerts.forEach(a => {
+        const t = new Date(a.timestamp).getTime();
+        if (t > now - WINDOW_MS) tsLog.current.push(t);
+      });
+    } else {
+      // Only add timestamps for genuinely new alerts
+      alerts.forEach(a => {
+        const t = new Date(a.timestamp).getTime();
+        if (t > now - WINDOW_MS) tsLog.current.push(t);
+      });
+    }
+
+    // Prune outside window
+    tsLog.current = tsLog.current.filter(t => t > now - WINDOW_MS);
+    const count = tsLog.current.length;
+    const rate = Math.round(count); // alerts in last 60s ≈ per-minute rate
+
+    let level: EscalationState['level'] = null;
+    if (count >= 15)     level = 'CRITICAL';
+    else if (count >= 8) level = 'WARNING';
+    else if (count >= 3) level = 'WATCH';
+
+    const LEVELS = [null, 'WATCH', 'WARNING', 'CRITICAL'] as const;
+    const prevL = prevLevel.current;
+    const isEscalating = LEVELS.indexOf(level) > LEVELS.indexOf(prevL);
+
+    if (isEscalating && level) {
+      if (soundEnabled) {
+        try {
+          if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+          const ctx = audioCtxRef.current;
+          if (ctx.state === 'suspended') ctx.resume();
+          const t = ctx.currentTime;
+          const beeps = level === 'CRITICAL' ? 5 : level === 'WARNING' ? 3 : 2;
+          const freq = level === 'CRITICAL' ? 1100 : level === 'WARNING' ? 880 : 660;
+          for (let i = 0; i < beeps; i++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'square';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.06, t + i * 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.2 + 0.14);
+            osc.start(t + i * 0.2);
+            osc.stop(t + i * 0.2 + 0.15);
+          }
+        } catch {}
+      }
+      if (notificationsEnabled) {
+        const emoji = level === 'CRITICAL' ? '🔴' : level === 'WARNING' ? '🟠' : '🟡';
+        sendNotification(
+          `${emoji} ESCALATION — ${level}`,
+          `${count} alerts in the last 60 seconds`,
+          `escalation-${level}`,
+          level === 'CRITICAL',
+        );
+      }
+    }
+
+    prevLevel.current = level;
+    setState({ level, count, rate });
+  }, [alerts, soundEnabled, notificationsEnabled]);
+
+  return state;
+}
+
+function EscalationBanner({ state, onDismiss }: { state: EscalationState; onDismiss: () => void }) {
+  if (!state.level) return null;
+  const cfg = {
+    CRITICAL: { bg: 'hsl(0 80% 12% / 0.98)',  border: 'hsl(0 80% 50% / 0.5)',  dot: 'bg-red-500',    text: 'text-red-300',    label: 'CRITICAL ESCALATION' },
+    WARNING:  { bg: 'hsl(28 80% 10% / 0.98)',  border: 'hsl(28 80% 50% / 0.4)', dot: 'bg-orange-500', text: 'text-orange-300', label: 'WARNING — HIGH ALERT RATE' },
+    WATCH:    { bg: 'hsl(48 60% 9% / 0.98)',   border: 'hsl(48 80% 50% / 0.3)', dot: 'bg-yellow-500', text: 'text-yellow-300', label: 'WATCH — ACTIVITY SURGE' },
+  }[state.level];
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-1.5 shrink-0 z-40"
+      style={{ background: cfg.bg, borderBottom: `1px solid ${cfg.border}` }}
+      role="alert"
+      data-testid="escalation-banner"
+    >
+      <div className={`w-2 h-2 rounded-full animate-pulse ${cfg.dot}`} />
+      <span className={`text-[10px] font-black uppercase tracking-[0.18em] ${cfg.text}`}>{cfg.label}</span>
+      <span className="text-[10px] text-muted-foreground/50 font-mono">{state.count} alerts/min</span>
+      <div className="flex-1" />
+      <button
+        onClick={onDismiss}
+        className="text-[9px] uppercase tracking-wider text-muted-foreground/35 hover:text-muted-foreground/60 transition-colors"
+        data-testid="button-dismiss-escalation"
+      >DISMISS</button>
+    </div>
+  );
+}
+
+
 interface AnalystNote {
   id: string;
   text: string;
@@ -700,7 +980,7 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: true },
     colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28 },
     rowSplit: 58,
   },
@@ -739,6 +1019,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'alertmap',  x: 8, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
   { i: 'cyber',     x: 4, y: 18, w: 4,  h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 8, y: 18, w: 4,  h: 4, minW: 2, minH: 2 },
+  { i: 'osint',     x: 0, y: 14, w: 12, h: 4, minW: 3, minH: 2 },
 ];
 
 interface Correlation {
@@ -4825,7 +5106,7 @@ export default function Dashboard() {
     }
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, osint: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
