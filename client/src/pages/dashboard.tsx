@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, Component, type ErrorInfo, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, Component, memo, type ErrorInfo, type ReactNode } from 'react';
 import GridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 import type { LayoutItem as GridItemLayout, Layout as GridLayout2 } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
@@ -1213,7 +1213,7 @@ function timeAgo(timestamp: string): string {
   return `${Math.floor(diff / 86400)}d`;
 }
 
-function LiveClock() {
+const LiveClock = memo(function LiveClock() {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000);
@@ -1244,7 +1244,7 @@ function LiveClock() {
       </div>
     </div>
   );
-}
+});
 
 function formatPrice(c: CommodityData): string {
   const decimals = c.price < 10 ? 4 : 2;
@@ -1252,9 +1252,9 @@ function formatPrice(c: CommodityData): string {
   return `${prefix}${c.price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
-function TickerBar({ commodities }: { commodities: CommodityData[] }) {
+const TickerBar = memo(function TickerBar({ commodities }: { commodities: CommodityData[] }) {
   if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(225 18% 8% / 0.5)'}} />;
-  const items = [...commodities, ...commodities, ...commodities];
+  const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
     <div className="h-7 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(225 18% 8% / 0.65)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
@@ -1277,7 +1277,7 @@ function TickerBar({ commodities }: { commodities: CommodityData[] }) {
       </div>
     </div>
   );
-}
+});
 
 const THREAT_LABELS: Record<string, { en: string; ar: string; icon: string }> = {
   rocket: { en: 'ROCKET FIRE', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', icon: '\u{1F680}' },
@@ -1453,7 +1453,7 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
   );
 }
 
-function PanelHeader({
+const PanelHeader = memo(function PanelHeader({
   title,
   icon,
   live,
@@ -1494,7 +1494,7 @@ function PanelHeader({
       {onClose && <PanelMinimizeButton onMinimize={onClose} />}
     </div>
   );
-}
+});
 
 const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'secondary' | 'outline'; color: string }> = {
   breaking: { variant: 'destructive', color: 'text-red-400' },
@@ -1504,7 +1504,7 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
 };
 
 
-function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
+const CommodityRow = memo(function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
   return (
     <div
       className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2.5 font-mono text-xs items-center hover:bg-white/[0.02] transition-colors duration-150 border-l-2 border-l-transparent ${c.change >= 0 ? 'border-l-emerald-500/20' : 'border-l-red-500/20'}`}
@@ -1522,7 +1522,7 @@ function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar'
       </div>
     </div>
   );
-}
+});
 
 function SectionLabel({ label }: { label: string }) {
   return (
@@ -2054,7 +2054,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   const [view, setView] = useState<'radar' | 'list'>('radar');
   const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [interpPos, setInterpPos] = useState<Map<string, { lat: number; lng: number }>>(new Map());
+  const interpPosRef2 = useRef<Map<string, { lat: number; lng: number }>>(new Map());
   const lastDataRef = useRef<{ flights: AdsbFlight[]; time: number }>({ flights: [], time: Date.now() });
   const animFrameRef = useRef<number>(0);
   const isLoading = adsbFlights.length === 0;
@@ -2097,14 +2097,13 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
           const dLat = (speedMs * deltaT * Math.cos(hRad)) / R * (180 / Math.PI);
           const dLng = (speedMs * deltaT * Math.sin(hRad)) / (R * Math.cos(f.lat * Math.PI / 180)) * (180 / Math.PI);
           const pLat = f.lat + dLat; const pLng = f.lng + dLng;
-          // Keep within reasonable world bounds
           next.set(f.id, (pLat > -80 && pLat < 80 && pLng > -180 && pLng < 180)
             ? { lat: pLat, lng: pLng } : { lat: f.lat, lng: f.lng });
         } else {
           next.set(f.id, { lat: f.lat, lng: f.lng });
         }
       }
-      setInterpPos(next);
+      interpPosRef2.current = next;
       animFrameRef.current = requestAnimationFrame(animate);
     };
     animFrameRef.current = requestAnimationFrame(animate);
@@ -2196,7 +2195,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
             <div className="flex-1 min-h-0 relative">
               <AdsbMapView
                 flights={sorted}
-                interpPos={interpPos}
+                interpPos={interpPosRef2.current}
                 selectedFlight={selectedFlight}
                 hoveredId={hoveredId}
                 onSelect={setSelectedFlight}
@@ -5177,14 +5176,18 @@ export default function Dashboard() {
   const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'intel', 'markets'];
 
   useEffect(() => {
+    let raf = 0;
     const check = () => {
-      const w = window.innerWidth;
-      setIsMobile(w < 768);
-      setIsTablet(w >= 768 && w < 1200);
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const w = window.innerWidth;
+        setIsMobile(w < 768);
+        setIsTablet(w >= 768 && w < 1200);
+      });
     };
     check();
     window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    return () => { window.removeEventListener('resize', check); cancelAnimationFrame(raf); };
   }, []);
 
   useEffect(() => {
@@ -5348,8 +5351,10 @@ export default function Dashboard() {
     return () => el.removeEventListener('touchmove', onTouchMove);
   }, [isMobile]);
 
-  useAlertSound(redAlerts.map(a => ({ id: a.id, threatType: a.threatType })), soundEnabled, settings.silentMode, settings.volume);
-  useAlertSound(sirens.map(s => ({ id: s.id, threatType: s.threatType })), soundEnabled, settings.silentMode, settings.volume);
+  const alertSoundData = useMemo(() => redAlerts.map(a => ({ id: a.id, threatType: a.threatType })), [redAlerts]);
+  const sirenSoundData = useMemo(() => sirens.map(s => ({ id: s.id, threatType: s.threatType })), [sirens]);
+  useAlertSound(alertSoundData, soundEnabled, settings.silentMode, settings.volume);
+  useAlertSound(sirenSoundData, soundEnabled, settings.silentMode, settings.volume);
   useDesktopNotifications(redAlerts, sirens, news, notificationsEnabled, settings.notificationLevel);
 
   const threatLevel = useMemo(() => getThreatLevel(redAlerts.length, sirens.length, settings, redAlerts), [redAlerts, sirens.length, settings]);

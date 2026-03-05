@@ -3823,9 +3823,14 @@ export async function registerRoutes(
 
     const intervals: NodeJS.Timeout[] = [];
 
+    const lastHashes = new Map<string, string>();
     const send = (event: string, data: unknown) => {
       try {
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+        const json = JSON.stringify(data);
+        const hash = Buffer.from(json.slice(0, 200) + json.length).toString('base64');
+        if (lastHashes.get(event) === hash) return;
+        lastHashes.set(event, hash);
+        res.write(`event: ${event}\ndata: ${json}\n\n`);
       } catch {}
     };
 

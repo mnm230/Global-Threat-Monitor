@@ -27,6 +27,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **AI Intelligence:** AI world brief panel with risk assessment, key developments, and forecasting.
 - **Multi-LLM Intelligence Engine:** Runs OpenAI GPT-4.1, Anthropic Claude Sonnet 4-6, Google Gemini 2.5 Flash, and xAI Grok-3 in parallel via OpenRouter for threat assessments, providing independent and consensus risk levels. Anthropic Claude is the primary model for conflict-content AI tasks (batch classification, AI briefs, deductions, cyber extraction) to avoid Azure OpenAI content filtering on military/conflict topics. OpenAI is still used for the multi-LLM parallel assessment where Anthropic/Gemini/Grok provide fallback coverage.
 - **Persistence:** User settings, panel visibility, and layout presets stored in `localStorage`.
+- **Performance Optimizations:** React.memo on frequently-rendered components (PanelHeader, CommodityRow, LiveClock, TickerBar). ADS-B flight interpolation uses refs instead of React state (canvas renders independently from React reconciliation). Resize handler debounced via rAF. SSE server-side hash-based deduplication avoids resending unchanged data. CSS containment (`contain: layout style paint`) and `will-change: transform` on all grid items and glass panels for GPU compositing. Memoized alert sound data arrays to prevent unnecessary re-renders.
 - **Error Handling:** Generic `PanelErrorBoundary` for robust UI panel error handling.
 - **Accessibility:** Implemented `aria-labels` and `role="status"`.
 
