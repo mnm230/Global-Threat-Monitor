@@ -1797,6 +1797,20 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
   useEffect(() => { selectedRef.current = selectedFlight; }, [selectedFlight]);
   useEffect(() => { hoveredRef.current = hoveredId; }, [hoveredId]);
 
+  const getFlightAtPoint = useCallback((px: number, py: number) => {
+    if (!mapRef.current) return null;
+    let closest: AdsbFlight | null = null;
+    let minDist = 22;
+    for (const f of flightsRef.current) {
+      const pos = interpPosRef.current.get(f.id) || { lat: f.lat, lng: f.lng };
+      if (!pos.lat || !pos.lng) continue;
+      const pt = mapRef.current.project([pos.lng, pos.lat]);
+      const d = Math.hypot(pt.x - px, pt.y - py);
+      if (d < minDist) { minDist = d; closest = f; }
+    }
+    return closest;
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     let map: any;
@@ -1811,8 +1825,26 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
         maxZoom: 14,
         attributionControl: false,
         pitchWithRotate: false,
+        dragRotate: false,
+        touchZoomRotate: true,
+        touchPitch: false,
       });
       mapRef.current = map;
+
+      map.on('click', (e: any) => {
+        const f = getFlightAtPoint(e.point.x, e.point.y);
+        onSelect(f?.id === selectedRef.current?.id ? null : f);
+      });
+
+      map.on('mousemove', (e: any) => {
+        const f = getFlightAtPoint(e.point.x, e.point.y);
+        onHover(f?.id ?? null);
+        map.getCanvas().style.cursor = f ? 'pointer' : '';
+      });
+
+      map.on('mouseout', () => {
+        onHover(null);
+      });
 
       const startDraw = () => {
         const draw = () => {
@@ -1850,7 +1882,6 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
             ctx.translate(x, y);
             ctx.rotate(headingRad);
 
-            // Pulse ring for military/surveillance
             if (f.type === 'military' || f.type === 'surveillance' || f.flagged) {
               ctx.beginPath();
               ctx.arc(0, 0, 14, 0, Math.PI * 2);
@@ -1861,7 +1892,6 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
               ctx.globalAlpha = 1;
             }
 
-            // Selection/hover ring
             if (isSel || isHov) {
               ctx.beginPath();
               ctx.arc(0, 0, 18, 0, Math.PI * 2);
@@ -1870,12 +1900,11 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
               ctx.stroke();
             }
 
-            // Plane body
             ctx.beginPath();
-            ctx.moveTo(0, -10);      // nose
-            ctx.lineTo(6, 7);        // right rear
-            ctx.lineTo(0, 2.5);      // tail notch
-            ctx.lineTo(-6, 7);       // left rear
+            ctx.moveTo(0, -10);
+            ctx.lineTo(6, 7);
+            ctx.lineTo(0, 2.5);
+            ctx.lineTo(-6, 7);
             ctx.closePath();
             ctx.fillStyle = color;
             ctx.globalAlpha = isSel || isHov ? 1 : 0.9;
@@ -1888,7 +1917,6 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
 
             ctx.restore();
 
-            // Labels (drawn in screen space)
             ctx.globalAlpha = 1;
             if (isSel || isHov || f.type === 'military' || f.type === 'surveillance') {
               ctx.font = 'bold 10px "JetBrains Mono", monospace';
@@ -1910,9 +1938,7 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
         animRef.current = requestAnimationFrame(draw);
       };
 
-      // Trigger canvas draw when map is ready or moves
       map.on('load', startDraw);
-      map.on('move', () => {}); // ensures map stays interactive
     });
 
     return () => {
@@ -1921,45 +1947,59 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
     };
   }, []);
 
-  const getFlightAtPoint = (clientX: number, clientY: number, canvas: HTMLCanvasElement) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = clientX - rect.left;
-    const my = clientY - rect.top;
-    if (!mapRef.current) return null;
-    let closest: AdsbFlight | null = null;
-    let minDist = 18;
-    for (const f of flightsRef.current) {
-      const pos = interpPosRef.current.get(f.id) || { lat: f.lat, lng: f.lng };
-      if (!pos.lat || !pos.lng) continue;
-      const pt = mapRef.current.project([pos.lng, pos.lat]);
-      const d = Math.hypot(pt.x - mx, pt.y - my);
-      if (d < minDist) { minDist = d; closest = f; }
+  const fitToFlights = useCallback(() => {
+    if (!mapRef.current || flightsRef.current.length === 0) return;
+    const fls = flightsRef.current;
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    for (const f of fls) {
+      if (!f.lat || !f.lng) continue;
+      minLat = Math.min(minLat, f.lat);
+      maxLat = Math.max(maxLat, f.lat);
+      minLng = Math.min(minLng, f.lng);
+      maxLng = Math.max(maxLng, f.lng);
     }
-    return closest;
-  };
+    if (minLat < maxLat && minLng < maxLng) {
+      mapRef.current.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 30, maxZoom: 8, duration: 600 });
+    }
+  }, []);
 
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const f = getFlightAtPoint(e.clientX, e.clientY, e.currentTarget);
-    onSelect(f?.id === selectedRef.current?.id ? null : f);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const f = getFlightAtPoint(e.clientX, e.clientY, e.currentTarget);
-    onHover(f?.id ?? null);
-  };
+  useEffect(() => {
+    if (selectedFlight && mapRef.current) {
+      const pos = interpPosRef.current.get(selectedFlight.id) || { lat: selectedFlight.lat, lng: selectedFlight.lng };
+      if (pos.lat && pos.lng) {
+        mapRef.current.easeTo({ center: [pos.lng, pos.lat], duration: 400 });
+      }
+    }
+  }, [selectedFlight]);
 
   return (
     <div className="relative w-full h-full">
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0" style={{ touchAction: 'none' }} />
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={{ pointerEvents: 'all', cursor: 'crosshair' }}
-        onClick={handleClick}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => onHover(null)}
+        style={{ pointerEvents: 'none' }}
       />
-      {/* Legend overlay */}
+      <div className="absolute top-2 right-2 flex flex-col gap-1">
+        <button
+          onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
+          className="w-7 h-7 rounded bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 flex items-center justify-center text-sm font-bold transition-all"
+          data-testid="adsb-zoom-in"
+        >+</button>
+        <button
+          onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
+          className="w-7 h-7 rounded bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 flex items-center justify-center text-sm font-bold transition-all"
+          data-testid="adsb-zoom-out"
+        >−</button>
+        <button
+          onClick={fitToFlights}
+          className="w-7 h-7 rounded bg-black/60 border border-white/10 text-cyan-400/60 hover:text-cyan-300 hover:bg-black/80 flex items-center justify-center transition-all"
+          title="Fit to all aircraft"
+          data-testid="adsb-fit-bounds"
+        >
+          <Maximize2 className="w-3 h-3" />
+        </button>
+      </div>
       <div className="absolute bottom-2 left-2 flex gap-2 pointer-events-none">
         {(['military','surveillance','commercial','cargo'] as const).map(t => (
           <div key={t} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold" style={{ background: 'rgba(0,0,0,0.55)', color: ADSB_PLANE_COLORS[t] }}>
