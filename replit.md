@@ -10,7 +10,7 @@ Not specified.
 The WARROOM dashboard is built with a modern web stack, prioritizing real-time data delivery, interactive visualization, and a dark, information-dense UI.
 
 **UI/UX Decisions:**
-- **Theme:** Bloomberg Terminal-inspired dark aesthetic with a warm amber primary accent (`hsl(36 90% 52%)`) and a blue-tinted near-black background (`hsl(228 28% 4%)`).
+- **Theme:** Bloomberg Terminal-inspired dark aesthetic with a warm amber primary accent (`hsl(36 90% 52%)`) and a lightened blue-tinted dark background (`hsl(225 22% 8%)`). All inline dark HSL values raised to ~8-11% lightness range for improved readability while retaining military/command-center feel.
 - **Typography:** JetBrains Mono for data, Inter for UI text. Compact font sizes (9-10px) for high information density.
 - **Responsiveness:** Adaptive layout for mobile (<768px), tablet (768-1199px), and desktop (1200+), with specific UI adjustments for each breakpoint. Mobile: single-panel view with bottom tab bar (6 primary tabs + "More" bottom sheet), swipe navigation between panels with dot indicators, compact mini commodity ticker, dropdown hamburger menu with status info (SRC/EVT/ADS counts + clock), panel slide transitions, 100dvh viewport, safe-area-inset support, touch-action manipulation, and hidden close/maximize buttons. Touch targets: 52px min tab buttons, 18px icons.
 - **Panel System:** Features 14 panels (`intel`, `map`, `telegram`, `events`, `radar`, `adsb`, `alerts`, `markets`, `cyber`, `livefeed`, `alertmap`, `analytics`, `xfeed`, `avichay`) in a customizable, resizable grid (react-grid-layout, 12-col, 120px row height). Mobile uses single-panel view, tablet uses 2-column CSS grid.
@@ -22,7 +22,7 @@ The WARROOM dashboard is built with a modern web stack, prioritizing real-time d
 - **Real-time Data:** Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates across all data types.
 - **Data Handling:** Shared TypeScript types (`shared/schema.ts`) for consistency.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts with visual urgency tiers and trilingual support.
-- **ADS-B Tracking:** Live ADS-B data from `adsb.lol` with auto-classification and detailed flight info.
+- **ADS-B Tracking:** Live ADS-B data from `adsb.lol` with auto-classification and detailed flight info. Route lookup via `api.adsbdb.com/v0/callsign/{callsign}` (primary) and `hexdb.io/api/v1/route/iata/{callsign}` (fallback), both free/no-key. Server-side cache with 10-minute TTL. Shows origin→destination airports + airline name in flight detail cards.
 - **Telegram OSINT:** Scrapes public Telegram channels with server-side caching and filtering.
 - **AI Intelligence:** AI world brief panel with risk assessment, key developments, and forecasting.
 - **Multi-LLM Intelligence Engine:** Runs OpenAI GPT-4.1, Anthropic Claude Sonnet 4-6, Google Gemini 2.5 Flash, and xAI Grok-3 in parallel via OpenRouter for threat assessments, providing independent and consensus risk levels. Anthropic Claude is the primary model for conflict-content AI tasks (batch classification, AI briefs, deductions, cyber extraction) to avoid Azure OpenAI content filtering on military/conflict topics. OpenAI is still used for the multi-LLM parallel assessment where Anthropic/Gemini/Grok provide fallback coverage.

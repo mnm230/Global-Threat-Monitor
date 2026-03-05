@@ -3512,6 +3512,71 @@ export async function registerRoutes(
     res.json(flights);
   });
 
+  const routeCache = new Map<string, { data: any; ts: number }>();
+  const ROUTE_CACHE_TTL = 10 * 60 * 1000;
+
+  app.get('/api/adsb/route/:callsign', async (req, res) => {
+    const callsign = (req.params.callsign || '').trim().toUpperCase();
+    if (!callsign) return res.status(400).json({ error: 'Callsign required' });
+
+    const cached = routeCache.get(callsign);
+    if (cached && Date.now() - cached.ts < ROUTE_CACHE_TTL) {
+      return res.json(cached.data);
+    }
+
+    try {
+      const adsbdbRes = await fetch(`https://api.adsbdb.com/v0/callsign/${callsign}`, {
+        signal: AbortSignal.timeout(6000),
+      });
+      if (adsbdbRes.ok) {
+        const json = await adsbdbRes.json() as any;
+        const fr = json?.response?.flightroute;
+        if (fr) {
+          const result = {
+            origin: fr.origin ? {
+              name: fr.origin.name || '',
+              iata: fr.origin.iata_code || '',
+              icao: fr.origin.icao_code || '',
+              country: fr.origin.country_name || '',
+            } : null,
+            destination: fr.destination ? {
+              name: fr.destination.name || '',
+              iata: fr.destination.iata_code || '',
+              icao: fr.destination.icao_code || '',
+              country: fr.destination.country_name || '',
+            } : null,
+            airline: fr.airline?.name || null,
+          };
+          routeCache.set(callsign, { data: result, ts: Date.now() });
+          return res.json(result);
+        }
+      }
+    } catch {}
+
+    try {
+      const hexRes = await fetch(`https://hexdb.io/api/v1/route/iata/${callsign}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (hexRes.ok) {
+        const text = await hexRes.text();
+        const parts = text.trim().split('-');
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const result = {
+            origin: { name: '', iata: parts[0], icao: '', country: '' },
+            destination: { name: '', iata: parts[1], icao: '', country: '' },
+            airline: null,
+          };
+          routeCache.set(callsign, { data: result, ts: Date.now() });
+          return res.json(result);
+        }
+      }
+    } catch {}
+
+    const unknown = { origin: null, destination: null, airline: null };
+    routeCache.set(callsign, { data: unknown, ts: Date.now() });
+    res.json(unknown);
+  });
+
   app.get('/api/ai-brief', async (_req, res) => {
     const alerts = await generateRedAlerts();
     const messages = classifiedMessageCache;

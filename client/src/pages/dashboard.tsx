@@ -1072,7 +1072,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-5 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(225 30% 3%)'}}>
+    <div className="h-5 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(225 22% 7%)'}}>
       <span className="text-[7px] text-foreground/15 font-mono uppercase tracking-[0.25em] mr-3 shrink-0 font-bold">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
@@ -1238,7 +1238,7 @@ function LiveClock() {
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
       <span className="text-[8px] text-foreground/20 font-mono hidden md:inline tracking-wider font-medium">{dateStr}</span>
-      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(225 28% 6%)', border:'1px solid hsl(225 18% 10%)'}}>
+      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm" style={{background:'hsl(225 20% 11%)', border:'1px solid hsl(225 16% 15%)'}}>
         <span className="text-[11px] text-primary/80 font-mono font-bold tabular-nums tracking-[0.1em]">{formatted}</span>
         <span className="text-[7px] text-primary/30 font-mono font-bold tracking-[0.2em]">UTC</span>
       </div>
@@ -1253,15 +1253,15 @@ function formatPrice(c: CommodityData): string {
 }
 
 function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-white/[0.03]" style={{background:'hsl(225 30% 3.5%)'}} />;
+  if (!commodities.length) return <div className="h-7 border-b border-white/[0.03]" style={{background:'hsl(225 20% 9.5%)'}} />;
   const items = [...commodities, ...commodities, ...commodities];
 
   return (
-    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 0%, hsl(225 30% 3.5%) 50%, hsl(225 28% 4%) 100%)'}}>
-      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 28% 4%) 70%, transparent)'}}>
+    <div className="h-7 border-b border-white/[0.03] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'linear-gradient(90deg, hsl(225 20% 9%) 0%, hsl(225 20% 9.5%) 50%, hsl(225 20% 9%) 100%)'}}>
+      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(225 20% 9%) 70%, transparent)'}}>
         <span className="text-[8px] font-black tracking-[0.3em] text-primary/40 font-mono">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 28% 4%) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(225 20% 9%) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((c, i) => (
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
@@ -1473,7 +1473,7 @@ function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+    <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
       <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/55 shrink-0">{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
@@ -1656,6 +1656,25 @@ function headingToCompass(deg: number): string {
 
 function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized, onLocateFlight }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
   const [selectedFlight, setSelectedFlight] = useState<FlightData | null>(null);
+  const [flightRoute, setFlightRoute] = useState<{ origin: { name: string; iata: string; icao: string; country: string } | null; destination: { name: string; iata: string; icao: string; country: string } | null; airline: string | null } | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedFlight) { setFlightRoute(null); return; }
+    const cs = selectedFlight.callsign?.trim();
+    if (!cs || selectedFlight.type === 'military') {
+      setFlightRoute({ origin: null, destination: null, airline: null });
+      return;
+    }
+    let cancelled = false;
+    setRouteLoading(true);
+    fetch(`/api/adsb/route/${encodeURIComponent(cs)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!cancelled) setFlightRoute(data || { origin: null, destination: null, airline: null }); })
+      .catch(() => { if (!cancelled) setFlightRoute({ origin: null, destination: null, airline: null }); })
+      .finally(() => { if (!cancelled) setRouteLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedFlight?.callsign]);
   const sorted = [...flights].sort((a, b) => {
     const order = { military: 0, surveillance: 1, commercial: 2 };
     return (order[a.type] ?? 3) - (order[b.type] ?? 3);
@@ -1679,20 +1698,35 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
         </div>
       )}
       {selectedFlight && (
-        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 28% 6%))'}} data-testid="flight-detail-card">
+        <div className="px-3 py-2 border-b border-primary/20 animate-fade-in bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(36 100% 50% / 0.06), hsl(225 20% 11%))'}} data-testid="flight-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
             <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
               <X className="w-3 h-3" />
             </button>
           </div>
+          {flightRoute && (flightRoute.origin || flightRoute.destination || flightRoute.airline) && (
+            <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-mono" data-testid="flight-radar-route">
+              {flightRoute.airline && <span className="text-primary/60 font-bold">{flightRoute.airline}</span>}
+              {flightRoute.airline && (flightRoute.origin || flightRoute.destination) && <span className="text-foreground/20">·</span>}
+              {flightRoute.origin && <span className="text-foreground/80">{flightRoute.origin.iata || flightRoute.origin.icao}{flightRoute.origin.name ? ` ${flightRoute.origin.name}` : ''}</span>}
+              {flightRoute.origin && flightRoute.destination && <span className="text-primary/50 font-bold">→</span>}
+              {flightRoute.destination && <span className="text-foreground/80">{flightRoute.destination.iata || flightRoute.destination.icao}{flightRoute.destination.name ? ` ${flightRoute.destination.name}` : ''}</span>}
+            </div>
+          )}
+          {routeLoading && <div className="text-[9px] font-mono text-foreground/25 mb-1">Loading route...</div>}
+          {flightRoute && !flightRoute.origin && !flightRoute.destination && !routeLoading && selectedFlight.type !== 'military' && (
+            <div className="text-[9px] font-mono text-foreground/20 mb-1">Route unknown</div>
+          )}
+          {selectedFlight.type === 'military' && !routeLoading && (
+            <div className="text-[9px] font-mono text-red-400/40 mb-1">Military — route classified</div>
+          )}
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono">
             <div data-testid="text-flight-type"><span className="text-foreground/30">TYPE</span> <span className="text-foreground/70">{selectedFlight.type.toUpperCase()}</span></div>
             <div data-testid="text-flight-altitude"><span className="text-foreground/30">ALT</span> <span className="text-foreground/70">{selectedFlight.altitude.toLocaleString()}ft</span></div>
             <div data-testid="text-flight-speed"><span className="text-foreground/30">SPD</span> <span className="text-foreground/70">{selectedFlight.speed}kts</span></div>
             <div data-testid="text-flight-heading"><span className="text-foreground/30">HDG</span> <span className="text-foreground/70">{Math.round(selectedFlight.heading)}° {headingToCompass(selectedFlight.heading)}</span></div>
             {selectedFlight.aircraft && <div data-testid="text-flight-aircraft"><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>}
-            {selectedFlight.origin && <div data-testid="text-flight-origin"><span className="text-foreground/30">ORIG</span> <span className="text-foreground/70">{selectedFlight.origin}</span></div>}
             <div className="col-span-2" data-testid="text-flight-position"><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedFlight.lat.toFixed(4)}, {selectedFlight.lng.toFixed(4)}</span></div>
           </div>
           <div className="flex gap-2 mt-2 pt-1.5 border-t border-primary/15">
@@ -2025,6 +2059,26 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   const animFrameRef = useRef<number>(0);
   const isLoading = adsbFlights.length === 0;
 
+  const [flightRoute, setFlightRoute] = useState<{ origin: { name: string; iata: string; icao: string; country: string } | null; destination: { name: string; iata: string; icao: string; country: string } | null; airline: string | null } | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedFlight) { setFlightRoute(null); return; }
+    const cs = selectedFlight.callsign?.trim();
+    if (!cs || selectedFlight.type === 'military') {
+      setFlightRoute({ origin: null, destination: null, airline: null });
+      return;
+    }
+    let cancelled = false;
+    setRouteLoading(true);
+    fetch(`/api/adsb/route/${encodeURIComponent(cs)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!cancelled) setFlightRoute(data || { origin: null, destination: null, airline: null }); })
+      .catch(() => { if (!cancelled) setFlightRoute({ origin: null, destination: null, airline: null }); })
+      .finally(() => { if (!cancelled) setRouteLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedFlight?.callsign]);
+
   useEffect(() => {
     lastDataRef.current = { flights: adsbFlights, time: Date.now() };
   }, [adsbFlights]);
@@ -2084,7 +2138,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
         <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
@@ -2163,6 +2217,22 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
                   <button onClick={() => setSelectedFlight(null)} className="text-foreground/30 hover:text-foreground/60"><X className="w-3 h-3"/></button>
                 </div>
               </div>
+              {flightRoute && (flightRoute.origin || flightRoute.destination || flightRoute.airline) && (
+                <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-mono" data-testid="flight-route-strip">
+                  {flightRoute.airline && <span className="text-cyan-400/60">{flightRoute.airline}</span>}
+                  {flightRoute.airline && (flightRoute.origin || flightRoute.destination) && <span className="text-foreground/20">·</span>}
+                  {flightRoute.origin && <span className="text-foreground/80" data-testid="flight-route-origin">{flightRoute.origin.iata || flightRoute.origin.icao}{flightRoute.origin.name ? ` ${flightRoute.origin.name}` : ''}</span>}
+                  {flightRoute.origin && flightRoute.destination && <span className="text-cyan-400/50">→</span>}
+                  {flightRoute.destination && <span className="text-foreground/80" data-testid="flight-route-dest">{flightRoute.destination.iata || flightRoute.destination.icao}{flightRoute.destination.name ? ` ${flightRoute.destination.name}` : ''}</span>}
+                </div>
+              )}
+              {routeLoading && <div className="text-[9px] font-mono text-foreground/25 mb-1">Loading route...</div>}
+              {flightRoute && !flightRoute.origin && !flightRoute.destination && !routeLoading && selectedFlight.type !== 'military' && (
+                <div className="text-[9px] font-mono text-foreground/20 mb-1">Route unknown</div>
+              )}
+              {selectedFlight.type === 'military' && !routeLoading && (
+                <div className="text-[9px] font-mono text-red-400/40 mb-1">Military — route classified</div>
+              )}
               <div className="grid grid-cols-4 gap-1 text-[9px] font-mono">
                 <span><span className="text-foreground/30">ALT </span><span className="text-foreground/70">{selectedFlight.altitude > 0 ? `${Math.round(selectedFlight.altitude/100)*100}ft` : 'GND'}</span></span>
                 <span><span className="text-foreground/30">GS </span><span className="text-foreground/70">{selectedFlight.groundSpeed}kt</span></span>
@@ -2199,13 +2269,27 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
                 <X className="w-3 h-3" />
               </button>
             </div>
+            {flightRoute && (flightRoute.origin || flightRoute.destination || flightRoute.airline) && (
+              <div className="flex items-center gap-1.5 mb-1.5 px-2 py-1 rounded bg-cyan-500/[0.06] border border-cyan-500/10 text-[10px] font-mono" data-testid="flight-route-list">
+                {flightRoute.airline && <span className="text-cyan-400/70 font-bold">{flightRoute.airline}</span>}
+                {flightRoute.airline && (flightRoute.origin || flightRoute.destination) && <span className="text-foreground/20">·</span>}
+                {flightRoute.origin && <span className="text-foreground/80" data-testid="flight-route-list-origin">{flightRoute.origin.iata || flightRoute.origin.icao}{flightRoute.origin.name ? ` ${flightRoute.origin.name}` : ''}</span>}
+                {flightRoute.origin && flightRoute.destination && <span className="text-cyan-400/50 font-bold">→</span>}
+                {flightRoute.destination && <span className="text-foreground/80" data-testid="flight-route-list-dest">{flightRoute.destination.iata || flightRoute.destination.icao}{flightRoute.destination.name ? ` ${flightRoute.destination.name}` : ''}</span>}
+              </div>
+            )}
+            {routeLoading && <div className="text-[9px] font-mono text-foreground/25 mb-1.5">Loading route...</div>}
+            {flightRoute && !flightRoute.origin && !flightRoute.destination && !routeLoading && selectedFlight.type !== 'military' && (
+              <div className="text-[9px] font-mono text-foreground/20 mb-1.5">Route unknown</div>
+            )}
+            {selectedFlight.type === 'military' && !routeLoading && (
+              <div className="text-[9px] font-mono text-red-400/40 mb-1.5">Military — route classified</div>
+            )}
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-mono">
               <div><span className="text-foreground/30">HEX</span> <span className="text-foreground/70">{selectedFlight.hex}</span></div>
               <div><span className="text-foreground/30">REG</span> <span className="text-foreground/70">{selectedFlight.registration}</span></div>
               <div><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>
               <div><span className="text-foreground/30">CTRY</span> <span className="text-foreground/70">{selectedFlight.country}</span></div>
-              <div><span className="text-foreground/30">ORIG</span> <span className="text-foreground/70">{selectedFlight.origin}</span></div>
-              <div><span className="text-foreground/30">DEST</span> <span className="text-foreground/70">{selectedFlight.destination}</span></div>
               <div><span className="text-foreground/30">ALT</span> <span className="text-foreground/70">{selectedFlight.altitude.toLocaleString()}ft</span></div>
               <div><span className="text-foreground/30">GS</span> <span className="text-foreground/70">{selectedFlight.groundSpeed}kts</span></div>
               <div><span className="text-foreground/30">VR</span> <span className={selectedFlight.verticalRate > 0 ? 'text-green-400' : selectedFlight.verticalRate < 0 ? 'text-red-400' : 'text-foreground/70'}>{selectedFlight.verticalRate > 0 ? '+' : ''}{selectedFlight.verticalRate}fpm</span></div>
@@ -2361,8 +2445,8 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
         isMaximized={isMaximized}
       />
       {/* AI Natural Language Filter */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(225 28% 3.5%)'}}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 25% 5%)', border:'1px solid hsl(225 18% 9%)'}}>
+      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(225 20% 8%)'}}>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 20% 10%)', border:'1px solid hsl(225 16% 14%)'}}>
           <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
           <input
             type="text"
@@ -2462,7 +2546,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
       )}
 
       {selectedShip && (
-        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(225 28% 6%))'}} data-testid="ship-detail-card">
+        <div className="px-3 py-2 border-b border-blue-500/20 animate-fade-in" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(225 20% 11%))'}} data-testid="ship-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-blue-300" data-testid="text-ship-name">{selectedShip.name}</span>
             <button onClick={() => setSelectedShip(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="ship-close-detail">
@@ -2922,7 +3006,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       {hasActiveAlerts && (
         <div className="border-b border-red-900/30 bg-red-950/20 shrink-0">
           <div className="px-2 py-1.5">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 25% 5%)', border:'1px solid hsl(225 18% 9%)'}}>
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(225 20% 10%)', border:'1px solid hsl(225 16% 14%)'}}>
               <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
               <input
                 type="text"
@@ -3671,7 +3755,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="panel-drag-handle h-7 px-2.5 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-7 px-2.5 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
         <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
@@ -3847,7 +3931,7 @@ function AlertMapPanel({
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <MapPin className="w-3 h-3 text-red-400/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -3933,7 +4017,7 @@ function MapSection({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-6 px-2.5 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <Target className="w-3 h-3 text-primary/50 shrink-0" />
         <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
@@ -4033,11 +4117,11 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-5 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(225 30% 3%)'}}>
-      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(225 30% 3%) 60%, transparent)'}}>
+    <div className="h-5 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(225 22% 7%)'}}>
+      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(225 22% 7%) 60%, transparent)'}}>
         <span className="text-[7px] font-black tracking-[0.35em] text-primary/30 font-mono">NEWS</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(225 30% 3%) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(225 22% 7%) 30%, transparent)'}} />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
           <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
@@ -4171,7 +4255,7 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-xfeed">
       {/* Panel header */}
-      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/50 font-mono">{t('X / OSINT FEED', 'مصادر استخباراتية')}</span>
@@ -4188,10 +4272,10 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
       </div>
 
       {/* Account selector rail */}
-      <div className="shrink-0 border-b border-white/[0.05] relative" style={{background:'hsl(225 28% 2.5%)'}}>
+      <div className="shrink-0 border-b border-white/[0.05] relative" style={{background:'hsl(225 22% 7%)'}}>
         {/* Left fade + arrow */}
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to right, hsl(225 28% 2.5%) 60%, transparent)'}}>
+          <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to right, hsl(225 22% 7%) 60%, transparent)'}}>
             <button
               className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
               onClick={() => scrollSelector('left')}
@@ -4246,7 +4330,7 @@ function XFeedPanel({ posts, language, onClose, onMaximize, isMaximized }: {
         </div>
         {/* Right fade + arrow */}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to left, hsl(225 28% 2.5%) 60%, transparent)'}}>
+          <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none" style={{background:'linear-gradient(to left, hsl(225 22% 7%) 60%, transparent)'}}>
             <button
               className="pointer-events-auto w-6 h-full flex items-center justify-center text-foreground/40 hover:text-foreground/80 transition-colors"
               onClick={() => scrollSelector('right')}
@@ -4347,7 +4431,7 @@ function AvichayFeedPanel({ posts, language, onClose, onMaximize, isMaximized }:
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-avichay">
-      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-7 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <SiX className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
         <div className="flex flex-col min-w-0">
@@ -4475,7 +4559,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 28% 3.5%)', borderBottom:'1px solid hsl(225 18% 9%)'}}>
+      <div className="panel-drag-handle h-7 px-2.5 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(225 20% 8%)', borderBottom:'1px solid hsl(225 16% 14%)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
@@ -4885,7 +4969,7 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 200, background: 'hsl(225 30% 2.5%)' }}
+      style={{ width: 200, background: 'hsl(225 22% 6%)' }}
     >
       {/* PANELS section */}
       <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
@@ -5439,7 +5523,7 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 30% 2%)'}}>
+      <header className={`${isMobile ? 'h-10' : isTouchDevice ? 'min-h-[44px]' : 'h-8'} border-b border-white/[0.07] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(225 22% 6%)'}}>
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} font-black tracking-[0.28em] text-primary font-mono select-none whitespace-nowrap`}>◈ WARROOM</span>
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
@@ -5668,7 +5752,7 @@ export default function Dashboard() {
                 />
               ))}
             </div>
-            <div className="shrink-0 border-t border-white/[0.07] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 30% 2.5%)' }} data-testid="mobile-tab-bar">
+            <div className="shrink-0 border-t border-white/[0.07] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', background: 'hsl(225 22% 6%)' }} data-testid="mobile-tab-bar">
               {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -5786,9 +5870,9 @@ export default function Dashboard() {
                   key={id}
                   className={`flex flex-col overflow-hidden border border-white/[0.08] cursor-grab active:cursor-grabbing ${hasAlertGlow ? 'ring-1 ring-red-500/40' : ''}`}
                   style={{
-                    background: 'hsl(225 27% 4%)',
+                    background: 'hsl(225 20% 10%)',
                     boxShadow: hasAlertGlow
-                      ? '0 0 20px rgb(239 68 68 / 0.12), 0 0 0 1px hsl(225 18% 9%)'
+                      ? '0 0 20px rgb(239 68 68 / 0.12), 0 0 0 1px hsl(225 16% 14%)'
                       : '0 0 0 1px hsl(225 18% 9% / 0.5)',
                   }}
                   data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
@@ -5808,7 +5892,7 @@ export default function Dashboard() {
       {!isMobile && <NewsTicker news={news} language={language} />}
 
       {!isMobile && (
-        <div className="h-7 border-t border-white/[0.04] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'linear-gradient(180deg, hsl(225 28% 4%) 0%, hsl(225 30% 3%) 100%)'}}>
+        <div className="h-7 border-t border-white/[0.04] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'linear-gradient(180deg, hsl(225 20% 9%) 0%, hsl(225 22% 7%) 100%)'}}>
           <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
             <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
             <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
