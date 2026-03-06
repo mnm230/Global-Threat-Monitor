@@ -3130,27 +3130,95 @@ Return this exact JSON schema (all fields required, write in military prose — 
     console.error('[SITREP] Error:', (err as Error).message);
   }
 
-  // Fallback
+  // Data-driven fallback — build a real SITREP from fetched data without AI
+  const criticalAlerts = windowAlerts.filter(a => ['ballistic_missile','cruise_missile','rocket_salvo'].includes(a.threatType));
+  const countries = [...new Set(windowAlerts.map(a => a.country))];
+  const threatTypes = [...new Set(windowAlerts.map(a => a.threatType))];
+
+  // Determine risk level from data
+  let riskLevel: Sitrep['riskLevel'] = 'MODERATE';
+  if (criticalAlerts.length > 5 || windowConflicts.filter(e => e.severity === 'critical').length > 3) riskLevel = 'EXTREME';
+  else if (windowAlerts.length > 10 || windowConflicts.filter(e => e.severity === 'high').length > 5) riskLevel = 'HIGH';
+  else if (windowAlerts.length > 3 || windowConflicts.length > 3) riskLevel = 'ELEVATED';
+
+  // Situation
+  const situation = windowAlerts.length > 0 || windowConflicts.length > 0
+    ? `Theater remains ${riskLevel} threat posture. ${windowAlerts.length} alert activation(s) recorded in ${windowLabel} across ${countries.join(', ') || 'multiple AOs'}. ${windowConflicts.length} conflict event(s) mapped via GDELT. Threat vectors include: ${threatTypes.slice(0, 4).join(', ') || 'varied'}.`
+    : `No significant hostile activity recorded in ${windowLabel}. Theater posture remains at ${riskLevel} baseline. Continuous monitoring active across all domains.`;
+
+  // OPFOR
+  const opforLocations = windowConflicts.filter(e => e.severity === 'critical' || e.severity === 'high').slice(0, 3).map(e => e.title);
+  const opfor = windowConflicts.length > 0
+    ? `OPFOR activity: ${windowConflicts.length} conflict events detected. ${opforLocations.length > 0 ? `Significant activity: ${opforLocations.join('; ')}.` : ''} ${windowCyber.length > 0 ? `Cyber domain: ${windowCyber.length} incident(s) targeting regional infrastructure.` : 'No confirmed cyber operations.'}`
+    : 'No confirmed OPFOR kinetic activity in this period. Maintain elevated vigilance for launch indicators.';
+
+  // BLUFOR
+  const ewActive = windowEW.length;
+  const blufor = `Air defense posture active. ${windowAlerts.length > 0 ? `${windowAlerts.length} intercept activation(s) triggered across active defense batteries.` : 'No intercept activations required this period.'} ${ewActive > 0 ? `${ewActive} active EW/GPS disruption zone(s) tracked.` : ''} Coalition ISR assets maintaining coverage.`;
+
+  // Key events from real data
+  const keyEvents: Sitrep['keyEvents'] = [
+    ...windowAlerts.slice(0, 4).map(a => ({
+      dtg,
+      location: `${a.city}, ${a.country}`,
+      event: `${a.threatType.replace(/_/g, ' ').toUpperCase()} alert activated. Countdown: ${a.countdown}s. Area: ${a.area || a.city}.`,
+      significance: (criticalAlerts.includes(a) ? 'critical' : 'high') as 'critical' | 'high' | 'medium',
+    })),
+    ...windowConflicts.filter(e => e.severity === 'critical' || e.severity === 'high').slice(0, 4).map(e => ({
+      dtg,
+      location: e.location || e.country,
+      event: `${e.title}. ${e.description.slice(0, 120)}`,
+      significance: (e.severity === 'critical' ? 'critical' : 'high') as 'critical' | 'high' | 'medium',
+    })),
+    ...windowCyber.slice(0, 2).map(e => ({
+      dtg,
+      location: `${e.country} — ${e.sector} sector`,
+      event: `Cyber: ${e.type} on ${e.target}. ${e.description.slice(0, 100)}`,
+      significance: (e.severity === 'critical' ? 'critical' : 'medium') as 'critical' | 'high' | 'medium',
+    })),
+  ].slice(0, 8);
+
+  // Intelligence
+  const intelligence = windowMessages.length > 0
+    ? `${windowMessages.length} OSINT items classified in period. ${windowMessages.filter(m => m.classification === 'critical').length} critical-tier intercepts. ${windowMessages.slice(0, 2).map(m => m.text.slice(0, 80)).join(' | ')}`
+    : `No OSINT items in this window. Pattern-of-life baseline normal. ${windowConflicts.length > 0 ? `GDELT conflict mapping shows ${windowConflicts.length} events — cross-reference with ISR feed.` : 'No anomalous patterns detected.'}`;
+
+  // Infrastructure
+  const infrastructure = windowInfra.length > 0
+    ? `${windowInfra.length} infrastructure event(s) recorded. ${windowInfra.slice(0, 3).map(e => `${e.type} in ${e.region}, ${e.country}`).join('; ')}.`
+    : 'No critical infrastructure incidents reported. Power, ports, and airport status nominal.';
+
+  // EW/Cyber
+  const ewCyber = `${ewActive > 0 ? `${ewActive} active EW disruption zone(s): ${windowEW.slice(0, 2).map(e => `${e.type} in ${e.country} (r=${e.radiusKm}km)`).join(', ')}.` : 'No active EW jamming confirmed.'} ${windowCyber.length > 0 ? `${windowCyber.length} cyber incident(s): ${windowCyber.slice(0,2).map(e => `${e.type} on ${e.target}`).join(', ')}.` : 'Cyber domain: no active incidents.'}`;
+
+  // Commander's Assessment
+  const commandersAssessment = `Current threat posture: ${riskLevel}. ${windowAlerts.length > 0 ? `Alert frequency indicates active hostile launch operations — maintain air defense at DEFCON-ready.` : 'Threat environment stable but volatile — do not reduce readiness.'} ${windowConflicts.filter(e => e.severity === 'critical').length > 0 ? 'Critical kinetic events suggest potential escalation. Recommend increased ISR tasking.' : 'Escalation indicators remain below critical threshold.'}`;
+
+  // Outlook
+  const nextPeriod = window === '1h' ? 'next 1 hour' : window === '6h' ? 'next 6 hours' : 'next 24 hours';
+  const outlook = `${riskLevel === 'EXTREME' || riskLevel === 'HIGH' ? 'Continued hostile activity likely in' : 'Threat environment expected to remain at current posture for'} ${nextPeriod}. ${windowAlerts.length > 5 ? 'High alert tempo suggests sustained campaign — prepare for continued intercept operations.' : 'Monitor launch indicators and maintain readiness posture.'} Next SITREP generation recommended at end of period.`;
+
   const fallback: Sitrep = {
-    id: `sitrep-fallback-${Date.now()}`,
+    id: `sitrep-data-${window}-${Date.now()}`,
     window,
     dtg,
-    riskLevel: 'HIGH',
-    situation: 'SITREP generation temporarily unavailable.',
-    opfor: 'Data unavailable.',
-    blufor: 'Data unavailable.',
-    keyEvents: [],
-    intelligence: 'Assessment pending.',
-    infrastructure: 'No data.',
-    ewCyber: 'No data.',
-    commandersAssessment: 'Unable to generate at this time.',
-    outlook: 'Monitor and retry.',
+    riskLevel,
+    situation,
+    opfor,
+    blufor,
+    keyEvents,
+    intelligence,
+    infrastructure,
+    ewCyber,
+    commandersAssessment,
+    outlook,
     alertCount: windowAlerts.length,
     eventCount: windowConflicts.length,
     generatedAt: new Date().toISOString(),
-    model: 'fallback',
+    model: 'data-driven',
   };
   sitrepCaches[window] = { data: fallback, fetchedAt: Date.now() };
+  console.log(`[SITREP] Data-driven fallback generated window=${window} riskLevel=${riskLevel} keyEvents=${fallback.keyEvents.length}`);
   return fallback;
 }
 
