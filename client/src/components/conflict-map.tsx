@@ -58,16 +58,16 @@ interface ViewState {
 }
 
 const REGION_PRESETS: Record<string, ViewState> = {
-  global: { longitude: 45, latitude: 25, zoom: 2, pitch: 0, bearing: 0 },
+  global: { longitude: 42, latitude: 26, zoom: 3.5, pitch: 0, bearing: 0 },
   mena: { longitude: 42, latitude: 28, zoom: 4, pitch: 0, bearing: 0 },
   gulf: { longitude: 52, latitude: 26, zoom: 6, pitch: 0, bearing: 0 },
   levant: { longitude: 36, latitude: 32, zoom: 6, pitch: 0, bearing: 0 },
 };
 
 const VIEW_CONFIG: Record<string, ViewState> = {
-  conflict: { longitude: 47, latitude: 31, zoom: 5, pitch: 0, bearing: 0 },
-  flights: { longitude: 48, latitude: 32, zoom: 5, pitch: 0, bearing: 0 },
-  maritime: { longitude: 56.1, latitude: 26.2, zoom: 8, pitch: 0, bearing: 0 },
+  conflict: { longitude: 38, latitude: 28, zoom: 4.8, pitch: 42, bearing: -6 },
+  flights:  { longitude: 45, latitude: 31, zoom: 5,   pitch: 22, bearing: 0  },
+  maritime: { longitude: 55, latitude: 24, zoom: 5.5, pitch: 34, bearing: 0  },
 };
 
 const EVENT_COLORS: Record<string, [number, number, number]> = {
@@ -516,6 +516,26 @@ const SUPPLY_ROUTES = [
   },
 ];
 
+// Simplified country conflict-zone polygons — colored by threat level
+const COUNTRY_THREAT_ZONES = [
+  { name: 'Gaza Strip',   color: [239, 68, 68,  55] as [number,number,number,number], border: [239, 68, 68, 140] as [number,number,number,number],
+    polygon: [[34.22,31.21],[34.55,31.21],[34.55,31.76],[34.22,31.76]] },
+  { name: 'Israel',       color: [239, 68, 68,  28] as [number,number,number,number], border: [239, 68, 68,  90] as [number,number,number,number],
+    polygon: [[34.22,29.50],[35.88,29.50],[35.88,33.40],[35.55,33.10],[34.90,32.60],[34.50,32.20],[34.30,31.20],[34.22,29.50]] },
+  { name: 'Lebanon',      color: [249,115, 22,  30] as [number,number,number,number], border: [249,115, 22,  90] as [number,number,number,number],
+    polygon: [[35.10,33.05],[36.62,33.05],[36.62,34.70],[35.90,34.70],[35.10,33.60],[35.10,33.05]] },
+  { name: 'Syria',        color: [249,115, 22,  22] as [number,number,number,number], border: [249,115, 22,  70] as [number,number,number,number],
+    polygon: [[35.62,32.70],[42.38,32.70],[42.38,37.32],[38.75,37.32],[36.82,36.60],[36.02,35.80],[35.62,32.70]] },
+  { name: 'Iraq',         color: [234,179,  8,  18] as [number,number,number,number], border: [234,179,  8,  60] as [number,number,number,number],
+    polygon: [[38.80,29.10],[48.58,29.10],[48.58,37.40],[45.55,37.40],[42.38,37.32],[38.80,33.40],[38.80,29.10]] },
+  { name: 'Iran',         color: [249,115, 22,  18] as [number,number,number,number], border: [249,115, 22,  60] as [number,number,number,number],
+    polygon: [[44.05,25.08],[63.32,25.08],[63.32,39.78],[44.05,39.78]] },
+  { name: 'Yemen',        color: [239, 68, 68,  20] as [number,number,number,number], border: [239, 68, 68,  65] as [number,number,number,number],
+    polygon: [[42.55,12.10],[53.12,12.10],[53.12,18.00],[42.55,18.00]] },
+  { name: 'Jordan',       color: [234,179,  8,  14] as [number,number,number,number], border: [234,179,  8,  50] as [number,number,number,number],
+    polygon: [[34.95,29.20],[38.02,29.20],[39.30,32.08],[38.80,33.40],[36.98,33.36],[35.98,32.70],[34.95,30.50],[34.95,29.20]] },
+] as const;
+
 const SHIPPING_LANES = [
   {
     name: 'Strait of Hormuz TSS',
@@ -596,7 +616,8 @@ type LayerKey =
   | 'satelliteThermal'
   | 'thermalHeatmap'
   | 'alertHeatmap'
-  | 'aiHeatmap';
+  | 'aiHeatmap'
+  | 'countryZones';
 
 const MISSILE_TRAJECTORIES = [
   { id: 'traj-1', source: [51.4, 35.7], target: [34.8, 32.1], label: 'Tehran > Tel Aviv', type: 'ballistic' },
@@ -643,7 +664,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
   { key: 'ships', label: 'Ship Tracks', color: '#3b82f6', defaultOn: true, group: 'operational' },
   { key: 'adsbFlights', label: 'ADS-B Live Flights', color: '#06b6d4', defaultOn: true, group: 'operational' },
   { key: 'missileLines', label: 'Missile Trajectories', color: '#ef4444', defaultOn: true, group: 'operational' },
-  { key: 'animatedArcs', label: 'Animated Missile Arcs', color: '#f43f5e', defaultOn: false, group: 'operational' },
+  { key: 'animatedArcs', label: 'Missile Trajectory Arcs', color: '#f43f5e', defaultOn: true, group: 'operational' },
   { key: 'heatmap', label: 'Threat Heat Map', color: '#fbbf24', defaultOn: false, group: 'operational' },
   { key: 'hormuzStrait', label: 'Strait of Hormuz', color: '#f97316', defaultOn: true, group: 'operational' },
 
@@ -686,11 +707,12 @@ const LAYER_CONFIGS: LayerConfig[] = [
 
   { key: 'eezBoundaries', label: 'EEZ Boundaries', color: '#0ea5e9', defaultOn: false, group: 'maritime' },
 
-  { key: 'satelliteThermal', label: 'Thermal Hotspots', color: '#ff6b35', defaultOn: false, group: 'satellite' },
-  { key: 'thermalHeatmap', label: 'Thermal Heat Map', color: '#ff3300', defaultOn: false, group: 'satellite' },
+  { key: 'satelliteThermal', label: 'NASA FIRMS Active Fire', color: '#ff6b35', defaultOn: true, group: 'satellite' },
+  { key: 'thermalHeatmap', label: 'NASA FIRMS Heat Map', color: '#ff3300', defaultOn: true, group: 'satellite' },
 
   { key: 'alertHeatmap', label: 'Alert Density Map', color: '#dc2626', defaultOn: true, group: 'operational' },
   { key: 'aiHeatmap', label: 'AI Threat Heatmap', color: '#ff0000', defaultOn: false, group: 'operational' },
+  { key: 'countryZones', label: 'Country Threat Zones', color: '#f97316', defaultOn: true, group: 'operational' },
 ];
 
 interface SearchItem {
@@ -825,7 +847,7 @@ interface ConflictMapProps {
   adsbFlights?: AdsbFlight[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
-  activeView: 'conflict' | 'flights';
+  activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
   mapStyle?: string;
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
@@ -2427,9 +2449,8 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
       );
     }
 
-    // ── Red Alert live markers (fixed position, no moving radius) ──
+    // ── Red Alert live markers with animated pulsing threat rings ──
     if (redAlerts.length > 0) {
-      // Threat → color map
       const ALERT_COLORS: Record<string, [number, number, number]> = {
         missiles:                   [255,  30,  30],
         rockets:                    [255, 100,  30],
@@ -2437,46 +2458,39 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
         uav_intrusion:              [200, 100, 255],
       };
 
-      // Outer glow (fixed size)
+      // ── 3 animated pulsing threat rings at staggered phase offsets ──
+      [0, 0.33, 0.66].forEach((offset, i) => {
+        const phase = (pulseTime + offset) % 1;
+        const radius = 7000 + phase * 62000;          // expands 7km → 69km
+        const alpha  = Math.floor((1 - phase) * 210); // fades from 210→0
+        result.push(new ScatterplotLayer({
+          id: `threat-ring-pulse-${i}`,
+          data: redAlerts,
+          getPosition: (d: RedAlert) => [d.lng, d.lat],
+          getRadius: radius,
+          getFillColor: [0, 0, 0, 0],
+          getLineColor: (d: RedAlert) => {
+            const c = ALERT_COLORS[d.threatType] || [255, 30, 30];
+            return [c[0], c[1], c[2], alpha] as [number, number, number, number];
+          },
+          stroked: true,
+          filled: false,
+          lineWidthMinPixels: 1.5,
+          radiusUnits: 'meters',
+          pickable: false,
+        }));
+      });
+
+      // Static backing glow
       result.push(new ScatterplotLayer({
         id: 'red-alert-glow',
         data: redAlerts,
         getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 24000,
-        getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 40] as [number,number,number,number],
+        getRadius: 18000,
+        getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 30] as [number,number,number,number],
         stroked: false,
-        radiusMinPixels: 24,
-        radiusMaxPixels: 70,
-        pickable: false,
-      }));
-
-      // Outer ring (fixed)
-      result.push(new ScatterplotLayer({
-        id: 'red-alert-ring',
-        data: redAlerts,
-        getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 15000,
-        getFillColor: [0,0,0,0],
-        getLineColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 160] as [number,number,number,number],
-        stroked: true,
-        lineWidthMinPixels: 2,
-        radiusMinPixels: 12,
-        radiusMaxPixels: 44,
-        pickable: false,
-      }));
-
-      // Inner ring (fixed)
-      result.push(new ScatterplotLayer({
-        id: 'red-alert-inner-ring',
-        data: redAlerts,
-        getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 8000,
-        getFillColor: [0,0,0,0],
-        getLineColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 90] as [number,number,number,number],
-        stroked: true,
-        lineWidthMinPixels: 1.5,
-        radiusMinPixels: 7,
-        radiusMaxPixels: 20,
+        radiusMinPixels: 16,
+        radiusMaxPixels: 55,
         pickable: false,
       }));
 
@@ -2549,8 +2563,24 @@ export default function ConflictMap({ events, flights, adsbFlights = [], redAler
       }
     }
 
+    // ── Country Threat Zones ──
+    if (layerVisibility.countryZones) {
+      result.push(new PolygonLayer({
+        id: 'country-threat-zones-fill',
+        data: COUNTRY_THREAT_ZONES,
+        getPolygon: (d: typeof COUNTRY_THREAT_ZONES[number]) => d.polygon as [number, number][],
+        getFillColor: (d: typeof COUNTRY_THREAT_ZONES[number]) => d.color,
+        getLineColor: (d: typeof COUNTRY_THREAT_ZONES[number]) => d.border,
+        getLineWidth: 1.5,
+        lineWidthUnits: 'pixels',
+        filled: true,
+        stroked: true,
+        pickable: false,
+      }));
+    }
+
     return result;
-  }, [events, flights, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+  }, [events, flights, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, pulseTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
 
   useEffect(() => {
     if (!deckContainerRef.current) return;

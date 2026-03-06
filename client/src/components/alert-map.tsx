@@ -5,6 +5,18 @@ import type { RedAlert } from '@shared/schema';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
+// Constrain the alert map to Middle East / MENA only — no Ukraine, no Europe
+const ME_BOUNDS: [[number, number], [number, number]] = [
+  [24.0, 10.0],  // SW: western Egypt / Sudan
+  [65.0, 42.0],  // NE: Iran / Afghanistan border
+];
+
+const MIDDLE_EAST_COUNTRIES = new Set([
+  'Israel', 'Palestine', 'Gaza', 'Lebanon', 'Syria', 'Jordan', 'Iraq', 'Iran',
+  'Saudi Arabia', 'Yemen', 'Oman', 'UAE', 'Qatar', 'Bahrain', 'Kuwait',
+  'Egypt', 'Libya', 'Turkey', 'Cyprus', 'Armenia', 'Azerbaijan',
+]);
+
 const THREAT_COLORS: Record<string, string> = {
   rockets: '#ef4444',
   missiles: '#f97316',
@@ -26,7 +38,14 @@ export default function AlertMap({
 
   const geoJson = useMemo(() => {
     const features = alerts
-      .filter(a => a.lat && a.lng)
+      .filter(a => {
+        if (!a.lat || !a.lng) return false;
+        // Keep only Middle East / MENA coordinates
+        if (a.lng < ME_BOUNDS[0][0] || a.lng > ME_BOUNDS[1][0]) return false;
+        if (a.lat < ME_BOUNDS[0][1] || a.lat > ME_BOUNDS[1][1]) return false;
+        if (a.country && !MIDDLE_EAST_COUNTRIES.has(a.country)) return false;
+        return true;
+      })
       .map(a => {
         const elapsed = (Date.now() - new Date(a.timestamp).getTime()) / 1000;
         const isActive = elapsed < a.countdown || a.countdown === 0;
@@ -62,6 +81,7 @@ export default function AlertMap({
         style: MAP_STYLE,
         center: [35.2, 31.5],
         zoom: 7,
+        maxBounds: ME_BOUNDS,
         attributionControl: { compact: true, customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
       });
     } catch (err) {
@@ -226,9 +246,15 @@ export default function AlertMap({
     if (geoJson.features.length > 0) {
       const bounds = new LngLatBounds();
       geoJson.features.forEach(f => {
-        bounds.extend(f.geometry.coordinates as [number, number]);
+        const [lng, lat] = f.geometry.coordinates as [number, number];
+        // Only extend bounds if coordinate is within Middle East region
+        if (lng >= ME_BOUNDS[0][0] && lng <= ME_BOUNDS[1][0] && lat >= ME_BOUNDS[0][1] && lat <= ME_BOUNDS[1][1]) {
+          bounds.extend([lng, lat]);
+        }
       });
-      map.fitBounds(bounds, { padding: 50, maxZoom: 10, duration: 1000 });
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, { padding: 60, maxZoom: 10, minZoom: 5, duration: 1000 });
+      }
     }
   }, [geoJson]);
 

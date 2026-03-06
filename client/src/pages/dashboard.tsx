@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { useLanguage } from '@/components/theme-provider';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type {
@@ -88,6 +89,7 @@ import {
   Cpu,
   Video,
   MoreHorizontal,
+  Users,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -1057,19 +1059,23 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
 const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
-  { i: 'map',       x: 0, y: 0,  w: 6,  h: 5, minW: 3, minH: 3 },
-  { i: 'alerts',    x: 6, y: 0,  w: 3,  h: 5, minW: 2, minH: 2 },
-  { i: 'intel',     x: 9, y: 0,  w: 3,  h: 5, minW: 2, minH: 2 },
-  { i: 'telegram',  x: 0, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
-  { i: 'livefeed',  x: 3, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
-  { i: 'events',    x: 6, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
-  { i: 'radar',     x: 9, y: 5,  w: 3,  h: 5, minW: 2, minH: 2 },
-  { i: 'adsb',      x: 0, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
-  { i: 'markets',   x: 4, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
-  { i: 'alertmap',  x: 8, y: 10, w: 4,  h: 4, minW: 2, minH: 2 },
-  { i: 'cyber',     x: 4, y: 18, w: 4,  h: 4, minW: 2, minH: 2 },
-  { i: 'analytics', x: 8, y: 18, w: 4,  h: 4, minW: 2, minH: 2 },
-  { i: 'osint',     x: 0, y: 14, w: 12, h: 4, minW: 3, minH: 2 },
+  // Row 1 — PRIORITY: Red Alerts + Telegram + Map  (y=0, h=9 = 720px)
+  { i: 'alerts',    x: 0, y: 0,  w: 4, h: 9, minW: 2, minH: 4 },
+  { i: 'telegram',  x: 4, y: 0,  w: 4, h: 9, minW: 2, minH: 3 },
+  { i: 'map',       x: 8, y: 0,  w: 4, h: 9, minW: 3, minH: 3 },
+  // Row 2 — Intel + LiveFeed + Events + Radar  (y=9, h=5)
+  { i: 'intel',     x: 0, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'livefeed',  x: 3, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'events',    x: 6, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
+  { i: 'radar',     x: 9, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
+  // Row 3 — Air & AlertMap & Markets  (y=14, h=4)
+  { i: 'adsb',      x: 0, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'alertmap',  x: 4, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'markets',   x: 8, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
+  // Row 4 — Analysis  (y=18, h=4)
+  { i: 'cyber',     x: 0, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'analytics', x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'osint',     x: 8, y: 18, w: 4, h: 4, minW: 3, minH: 2 },
 ];
 
 interface Correlation {
@@ -1794,7 +1800,7 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
       <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.2) 20%, hsl(185 100% 42% / 0.3) 50%, hsl(185 100% 42% / 0.2) 80%, transparent)'}} />
       <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 3px hsl(185 100% 42% / 0.2))'}}>{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
@@ -1813,6 +1819,109 @@ const PanelHeader = memo(function PanelHeader({
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
       {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+    </div>
+  );
+});
+
+// ── Floating Window ──────────────────────────────────────────────────────────
+interface FloatState { x: number; y: number; w: number; h: number; z: number }
+
+const FloatingWindow = memo(function FloatingWindow({
+  id, title, icon, children, state, onDock, onClose, onFocus,
+}: {
+  id: string; title: string; icon: React.ReactNode; children: React.ReactNode;
+  state: FloatState; onDock: () => void; onClose: () => void; onFocus: () => void;
+}) {
+  const [pos, setPos] = useState({ x: state.x, y: state.y });
+  const [size, setSize] = useState({ w: state.w, h: state.h });
+  const drag = useRef<{ mx: number; my: number; ox: number; oy: number } | null>(null);
+  const resize = useRef<{ mx: number; my: number; ow: number; oh: number } | null>(null);
+
+  const onTitleDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button,[data-no-drag]')) return;
+    drag.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    onFocus(); e.preventDefault();
+  };
+  const onTitleMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    setPos({
+      x: Math.max(0, drag.current.ox + e.clientX - drag.current.mx),
+      y: Math.max(0, drag.current.oy + e.clientY - drag.current.my),
+    });
+  };
+  const onTitleUp = () => { drag.current = null; };
+
+  const onResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    resize.current = { mx: e.clientX, my: e.clientY, ow: size.w, oh: size.h };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.stopPropagation(); e.preventDefault();
+  };
+  const onResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!resize.current) return;
+    setSize({
+      w: Math.max(300, resize.current.ow + e.clientX - resize.current.mx),
+      h: Math.max(220, resize.current.oh + e.clientY - resize.current.my),
+    });
+  };
+  const onResizeUp = () => { resize.current = null; };
+
+  return (
+    <div
+      onPointerDown={onFocus}
+      data-testid={`float-window-${id}`}
+      style={{
+        position: 'fixed', left: pos.x, top: pos.y,
+        width: size.w, height: size.h, zIndex: state.z,
+        display: 'flex', flexDirection: 'column',
+        borderRadius: 10, overflow: 'hidden',
+        background: 'hsl(220 35% 12% / 0.92)',
+        backdropFilter: 'blur(28px) saturate(1.5)',
+        WebkitBackdropFilter: 'blur(28px) saturate(1.5)',
+        border: '1px solid rgba(255,255,255,0.11)',
+        boxShadow: '0 28px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)',
+        pointerEvents: 'auto',
+      }}
+    >
+      {/* Title bar — drag handle */}
+      <div
+        onPointerDown={onTitleDown} onPointerMove={onTitleMove} onPointerUp={onTitleUp}
+        style={{
+          height: 38, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px',
+          background: 'hsl(220 35% 15% / 0.98)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          cursor: 'grab', flexShrink: 0, userSelect: 'none',
+        }}
+      >
+        <span style={{ display: 'flex', color: 'hsl(185 100% 42% / 0.65)' }}>{icon}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontFamily: 'monospace', flex: 1 }}>{title}</span>
+        <button
+          onClick={onDock} data-no-drag title="Dock back to grid"
+          style={{ width: 24, height: 24, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(100,180,255,0.08)', border: '1px solid rgba(100,180,255,0.15)', color: 'rgba(100,180,255,0.5)', cursor: 'pointer', flexShrink: 0 }}
+        >
+          <Minimize2 style={{ width: 11, height: 11 }} />
+        </button>
+        <button
+          onClick={onClose} data-no-drag title="Close"
+          style={{ width: 24, height: 24, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(220,50,50,0.09)', border: '1px solid rgba(220,50,50,0.2)', color: 'rgba(230,100,100,0.6)', cursor: 'pointer', flexShrink: 0 }}
+        >
+          <X style={{ width: 11, height: 11 }} />
+        </button>
+      </div>
+      {/* Content */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {children}
+      </div>
+      {/* Resize handle */}
+      <div
+        onPointerDown={onResizeDown} onPointerMove={onResizeMove} onPointerUp={onResizeUp}
+        style={{
+          position: 'absolute', right: 0, bottom: 0, width: 18, height: 18,
+          cursor: 'nwse-resize', zIndex: 2,
+          background: 'linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.1) 50%)',
+          borderRadius: '0 0 10px 0',
+        }}
+      />
     </div>
   );
 });
@@ -2458,7 +2567,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
         <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
@@ -2569,7 +2678,7 @@ function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [
       )}
 
       {/* ── LIST VIEW ── */}
-      {view === 'list' && <ScrollArea className="flex-1">
+      {view === 'list' && <ScrollArea className="flex-1 min-h-0">
         {isLoading && (
           <div className="px-3 py-8 text-center">
             <Radar className="w-6 h-6 text-cyan-400/40 mx-auto mb-2 animate-pulse" />
@@ -3417,7 +3526,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       )}
 
       {/* ── ALERT LIST ── */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div>
           {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
             const regionName = compositeKey.split('::')[1];
@@ -3826,7 +3935,7 @@ const TelegramPanel = memo(function TelegramPanel({
         </div>
       )}
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-2 space-y-1.5">
           <div ref={topRef} />
           {displayMessages.length === 0 && (
@@ -3948,25 +4057,43 @@ const TelegramPanel = memo(function TelegramPanel({
 
 function MapLegend({ activeView, language }: { activeView: string; language: 'en' | 'ar' }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const conflictItems = [
+    { color: '#ef4444', label: t('Missile/Strike', 'صاروخ/ضربة') },
+    { color: '#f97316', label: t('Airstrike', 'غارة جوية') },
+    { color: '#3b82f6', label: t('Naval Ops', 'عمليات بحرية') },
+    { color: '#eab308', label: t('Ground', 'بري') },
+    { color: '#22c55e', label: t('Air Defense', 'دفاع جوي') },
+    { color: '#a855f7', label: t('Nuclear Site', 'موقع نووي') },
+  ];
+  const flightItems = [
+    { color: '#ef4444', label: t('Military', 'عسكري') },
+    { color: '#22d3ee', label: t('Surveillance', 'استطلاع') },
+    { color: '#f9c31f', label: t('Commercial', 'تجاري') },
+  ];
+  const items = activeView === 'conflict' ? conflictItems : flightItems;
   return (
-    <div className="absolute bottom-3 left-3 z-[1000] bg-card/90 backdrop-blur-md border border-white/[0.06] rounded p-2 text-[9px] space-y-0.5" dir="ltr">
-      {activeView === 'conflict' && (
-        <>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Missile/Strike', '\u0635\u0627\u0631\u0648\u062E/\u0636\u0631\u0628\u0629')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-orange-500 shrink-0" /><span className="text-foreground/70">{t('Airstrike', '\u063A\u0627\u0631\u0629 \u062C\u0648\u064A\u0629')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" /><span className="text-foreground/70">{t('Naval Ops', '\u0639\u0645\u0644\u064A\u0627\u062A \u0628\u062D\u0631\u064A\u0629')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" /><span className="text-foreground/70">{t('Ground', '\u0628\u0631\u064A')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 shrink-0" /><span className="text-foreground/70">{t('Air Defense', '\u062F\u0641\u0627\u0639 \u062C\u0648\u064A')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" /><span className="text-foreground/70">{t('Nuclear Site', '\u0645\u0648\u0642\u0639 \u0646\u0648\u0648\u064A')}</span></div>
-        </>
-      )}
-      {activeView === 'flights' && (
-        <>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-red-500 shrink-0" /><span className="text-foreground/70">{t('Military', '\u0639\u0633\u0643\u0631\u064A')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-400 shrink-0" /><span className="text-foreground/70">{t('Commercial', '\u062A\u062C\u0627\u0631\u064A')}</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" /><span className="text-foreground/70">{t('Surveillance', '\u0627\u0633\u062A\u0637\u0644\u0627\u0639')}</span></div>
-        </>
-      )}
+    <div
+      dir="ltr"
+      style={{
+        position: 'absolute', bottom: 14, left: 14, zIndex: 1000,
+        background: 'rgba(4,7,16,0.88)', backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 10, padding: '10px 12px',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
+        fontFamily: "'JetBrains Mono', monospace",
+      }}
+    >
+      <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 7 }}>
+        {activeView === 'conflict' ? 'EVENT TYPES' : 'AIRCRAFT'}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {items.map(({ color, label }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}80`, flexShrink: 0 }} />
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -4142,7 +4269,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="panel-drag-handle h-9 px-3 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
         <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
         <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
@@ -4165,7 +4292,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         {anomalies.length > 0 && (
           <div className="border-b border-amber-500/20 bg-amber-950/10">
             <div className="px-3 py-2 flex items-center gap-1.5">
@@ -4246,7 +4373,51 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
               </div>
             </div>
 
-            <div className="px-3 py-3">
+            {brief.tacticalSituation && (
+              <div className="px-3 py-3 border-t border-white/[0.03]">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Crosshair className="w-3 h-3 text-red-400/70" />
+                  <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
+                    {language === 'en' ? 'Tactical Situation' : '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062A\u0643\u062A\u064A\u0643\u064A'}
+                  </span>
+                  <span className="ml-auto text-[9px] font-mono text-red-400/50 bg-red-950/20 border border-red-500/20 px-1.5 py-0.5 rounded">24H</span>
+                </div>
+                <p className="text-xs text-foreground/70 leading-relaxed border-l-2 border-red-500/30 pl-2.5">{brief.tacticalSituation}</p>
+              </div>
+            )}
+
+            {brief.escalationIndicators && brief.escalationIndicators.length > 0 && (
+              <div className="px-3 py-3 border-t border-white/[0.03]">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <TriangleAlert className="w-3 h-3 text-amber-400/70" />
+                  <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
+                    {language === 'en' ? 'Escalation Indicators' : '\u0645\u0624\u0634\u0631\u0627\u062A \u0627\u0644\u062A\u0635\u0639\u064A\u062F'}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {brief.escalationIndicators.map((ind, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-amber-400/60 font-mono text-[10px] mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                      <p className="text-xs text-foreground/65 leading-relaxed">{ind}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {brief.actorAnalysis && (
+              <div className="px-3 py-3 border-t border-white/[0.03]">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Users className="w-3 h-3 text-blue-400/70" />
+                  <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
+                    {language === 'en' ? 'Actor Analysis' : '\u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0623\u0637\u0631\u0627\u0641'}
+                  </span>
+                </div>
+                <p className="text-xs text-foreground/70 leading-relaxed border-l-2 border-blue-500/30 pl-2.5">{brief.actorAnalysis}</p>
+              </div>
+            )}
+
+            <div className="px-3 py-3 border-t border-white/[0.03]">
               <div className="flex items-center gap-1.5 mb-2">
                 <Zap className="w-3 h-3 text-amber-400/70" />
                 <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
@@ -4318,27 +4489,35 @@ function AlertMapPanel({
   onMaximize?: () => void;
   isMaximized?: boolean;
 }) {
+  const ME_COUNTRIES = new Set([
+    'Israel', 'Palestine', 'Gaza', 'Lebanon', 'Syria', 'Jordan', 'Iraq', 'Iran',
+    'Saudi Arabia', 'Yemen', 'Oman', 'UAE', 'Qatar', 'Bahrain', 'Kuwait',
+    'Egypt', 'Libya', 'Turkey', 'Cyprus',
+  ]);
+
+  const meAlerts = alerts.filter(a => !a.country || ME_COUNTRIES.has(a.country));
+
   const now = Date.now();
-  const activeAlerts = alerts.filter(a => {
+  const activeAlerts = meAlerts.filter(a => {
     const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
     return elapsed < a.countdown || a.countdown === 0;
   });
 
-  const recentAlerts = [...alerts]
+  const recentAlerts = [...meAlerts]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 5);
 
-  const byThreat = alerts.reduce<Record<string, number>>((acc, a) => {
+  const byThreat = meAlerts.reduce<Record<string, number>>((acc, a) => {
     acc[a.threatType] = (acc[a.threatType] || 0) + 1;
     return acc;
   }, {});
 
-  const countriesAffected = new Set(alerts.map(a => a.country)).size;
+  const countriesAffected = new Set(meAlerts.map(a => a.country)).size;
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
         <MapPin className="w-3.5 h-3.5 text-red-400/70 shrink-0" />
         <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/60 font-mono">
@@ -4363,7 +4542,7 @@ function AlertMapPanel({
       {/* Stats bar */}
       <div className="shrink-0 px-2 py-1.5 flex items-center gap-2 flex-wrap" style={{background:'hsl(220 28% 11%)', borderBottom:'1px solid hsl(185 28% 22% / 0.4)'}}>
         <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 border border-red-500/25">
-          <span className="text-[11px] font-black text-red-300 font-mono">{alerts.length}</span>
+          <span className="text-[11px] font-black text-red-300 font-mono">{meAlerts.length}</span>
           <span className="text-[9px] uppercase text-red-400/70 font-bold tracking-wide">Total</span>
         </div>
         {Object.entries(ALERT_THREAT_META).map(([key, meta]) => {
@@ -4399,7 +4578,7 @@ function AlertMapPanel({
                 </div>
               }
             >
-              <AlertMapComponent alerts={alerts} language={language} />
+              <AlertMapComponent alerts={meAlerts} language={language} />
             </Suspense>
           </MapErrorBoundary>
         </div>
@@ -4487,76 +4666,139 @@ function MapSection({
   isMaximized?: boolean;
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }) {
-  const [activeView, setActiveView] = useState<'conflict' | 'flights'>('conflict');
+  const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
   const [mapStyleId, setMapStyleId] = useState<'dark' | 'light' | 'street'>('dark');
   const mapStyleUrl = MAP_STYLE_OPTIONS.find(s => s.id === mapStyleId)!.url;
+  const hasActiveThreats = redAlerts.length > 0;
 
-  const views = [
-    { key: 'conflict' as const, icon: AlertTriangle, label: language === 'en' ? 'Conflict' : '\u0646\u0632\u0627\u0639', labelEn: 'Conflict' },
-    { key: 'flights' as const, icon: Plane, label: language === 'en' ? 'Flights' : '\u0631\u062D\u0644\u0627\u062A', labelEn: 'Flights' },
+  const MODES = [
+    { key: 'conflict' as const, icon: AlertTriangle, label: 'CONFLICT', color: '#ef4444' },
+    { key: 'flights'  as const, icon: Plane,         label: 'AIR',      color: '#22d3ee' },
+    { key: 'maritime' as const, icon: Anchor,        label: 'MARITIME', color: '#3b82f6' },
+  ];
+  const activeMode = MODES.find(m => m.key === activeView)!;
+
+  const statRow = [
+    { label: 'EVT',  value: events.length,                        color: '#f97316',                              pulse: false },
+    { label: 'ALR',  value: redAlerts.length,                     color: hasActiveThreats ? '#ef4444' : '#3a4555', pulse: hasActiveThreats },
+    { label: 'AIR',  value: flights.length + adsbFlights.length,  color: '#22d3ee',                              pulse: false },
+    { label: 'FIRE', value: thermalHotspots.length,               color: '#ff6b35',                              pulse: false },
   ];
 
   return (
-    <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <Target className="w-3 h-3 text-primary/50 shrink-0" />
-        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-foreground/45 font-mono">
-          {language === 'en' ? 'Map' : '\u062E\u0631\u064A\u0637\u0629'}
-        </span>
-        <div className="flex items-center gap-px bg-white/[0.02] rounded border border-white/[0.05] p-0.5">
-          {views.map((v) => (
-            <button
-              key={v.key}
-              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
-                activeView === v.key
-                  ? 'bg-primary/15 text-primary/90 border border-primary/20'
-                  : 'text-foreground/30 hover:text-foreground/60 border border-transparent'
-              }`}
-              onClick={() => setActiveView(v.key)}
-              data-testid={`button-map-${v.key}`}
-            >
-              {v.labelEn}
-            </button>
-          ))}
+    <div className="h-full flex flex-col min-h-0" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+
+      {/* ── THEATRE OF OPERATIONS header ── */}
+      <div
+        className="panel-drag-handle shrink-0 cursor-grab active:cursor-grabbing select-none"
+        style={{ background: 'rgba(2,5,12,0.98)', borderBottom: '1px solid rgba(34,211,238,0.12)', position: 'relative' }}
+      >
+        {/* top dynamic accent stripe */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          background: `linear-gradient(90deg, transparent, ${activeMode.color}55 20%, ${activeMode.color}99 50%, ${activeMode.color}55 80%, transparent)`,
+          transition: 'background 0.35s',
+        }} />
+
+        {/* main row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px', height: 42 }}>
+
+          {/* Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 2, flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color, boxShadow: `0 0 8px ${activeMode.color}bb`, transition: 'all 0.3s' }} />
+              <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color + '44', transition: 'all 0.3s' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,211,238,0.82)', lineHeight: 1.25 }}>THEATRE OF OPERATIONS</span>
+              <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.26em', color: 'rgba(255,255,255,0.16)', lineHeight: 1 }}>MIDDLE EAST · MENA · GULF</span>
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />
+
+          {/* Mode selector */}
+          <div style={{ display: 'flex', gap: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 6, padding: 2, flexShrink: 0 }} data-no-drag>
+            {MODES.map(m => {
+              const active = activeView === m.key;
+              return (
+                <button key={m.key} onClick={() => setActiveView(m.key)} data-testid={`button-map-${m.key}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '3px 9px', fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+                    borderRadius: 4, border: 'none', cursor: 'pointer',
+                    background: active ? `${m.color}1e` : 'transparent',
+                    color: active ? m.color : 'rgba(255,255,255,0.22)',
+                    boxShadow: active ? `0 0 0 1px ${m.color}44, inset 0 0 10px ${m.color}0d` : 'none',
+                    transition: 'all 0.18s',
+                  }}
+                >
+                  <m.icon style={{ width: 9, height: 9 }} />
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: 3, marginLeft: 2 }}>
+            {statRow.map(({ label, value, color, pulse }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: `${color}0e`, border: `1px solid ${color}22`, borderRadius: 4 }}>
+                {pulse && <div style={{ width: 4, height: 4, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, animation: 'pulse 1.1s ease-in-out infinite', flexShrink: 0 }} />}
+                <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.20)', letterSpacing: '0.1em' }}>{label}</span>
+                <span style={{ fontSize: 12, fontWeight: 900, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+              </div>
+            ))}
+          </div>
+
+          {hasActiveThreats && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 4, animation: 'alert-critical-glow 1.1s ease-in-out infinite', flexShrink: 0 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 7px rgba(239,68,68,0.8)', animation: 'pulse 0.8s ease-in-out infinite' }} />
+              <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.18em', color: '#ef4444' }}>ACTIVE THREAT</span>
+            </div>
+          )}
+
+          <div style={{ flex: 1 }} />
+
+          {/* Map style */}
+          <div style={{ display: 'flex', gap: 1, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5, padding: 2, flexShrink: 0 }} data-no-drag>
+            {MAP_STYLE_OPTIONS.map(s => (
+              <button key={s.id} onClick={() => setMapStyleId(s.id)} data-testid={`button-map-style-${s.id}`}
+                style={{ padding: '2px 7px', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 3, border: 'none', cursor: 'pointer', background: mapStyleId === s.id ? 'rgba(34,211,238,0.12)' : 'transparent', color: mapStyleId === s.id ? '#22d3ee' : 'rgba(255,255,255,0.18)', transition: 'all 0.15s' }}
+              >{s.label.toUpperCase()}</button>
+            ))}
+          </div>
+
+          {/* NASA FIRMS badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', background: 'rgba(255,107,53,0.07)', border: '1px solid rgba(255,107,53,0.20)', borderRadius: 4, flexShrink: 0 }}>
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ff6b35', boxShadow: '0 0 5px rgba(255,107,53,0.65)' }} />
+            <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,107,53,0.65)' }}>FIRMS</span>
+          </div>
+
+          {/* LIVE */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.20)', borderRadius: 4, flexShrink: 0 }}>
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.65)', animation: 'pulse 1.8s ease-in-out infinite' }} />
+            <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,197,94,0.65)' }}>LIVE</span>
+          </div>
+
+          {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
         </div>
-        <div className="flex-1" />
-        <div className="flex items-center gap-px bg-white/[0.02] rounded border border-white/[0.05] p-0.5" data-no-drag>
-          {MAP_STYLE_OPTIONS.map(s => (
-            <button
-              key={s.id}
-              className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold transition-colors ${
-                mapStyleId === s.id
-                  ? 'bg-primary/15 text-primary/90 border border-primary/20'
-                  : 'text-foreground/30 hover:text-foreground/60 border border-transparent'
-              }`}
-              onClick={() => setMapStyleId(s.id)}
-              data-testid={`button-map-style-${s.id}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-xs uppercase tracking-[0.15em] text-emerald-500/60 font-bold">LIVE</span>
-        </div>
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
+
+      {/* ── Map canvas ── */}
       <div className="flex-1 relative min-h-0">
         <div className="absolute inset-0">
           <MapErrorBoundary>
-            <Suspense
-              fallback={
-                <div className="w-full h-full flex items-center justify-center bg-card/20">
-                  <div className="text-center">
-                    <Globe className="w-8 h-8 text-primary mx-auto mb-2 animate-pulse" />
-                    <p className="text-[11px] text-muted-foreground">Loading map...</p>
-                  </div>
+            <Suspense fallback={
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,5,12,0.96)', flexDirection: 'column', gap: 14 }}>
+                <div style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(34,211,238,0.14)', borderTop: '2px solid rgba(34,211,238,0.85)', animation: 'spin 0.9s linear infinite' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(34,211,238,0.45)', letterSpacing: '0.22em', fontFamily: 'monospace' }}>INITIALISING MAP</span>
+                  <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.14)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>THEATRE OF OPERATIONS</span>
                 </div>
-              }
-            >
+              </div>
+            }>
               <ConflictMap
                 events={events}
                 flights={flights}
@@ -4572,15 +4814,6 @@ function MapSection({
           </MapErrorBoundary>
         </div>
         <MapLegend activeView={activeView} language={language} />
-        <div className="absolute top-3 right-3 z-[1000] bg-background/95 backdrop-blur-md border border-primary/20 rounded-md px-2 py-1">
-          <div className="flex items-center gap-1.5">
-            <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[10px] text-foreground/70 font-mono">
-              {activeView === 'conflict' && `${events.length} events`}
-              {activeView === 'flights' && `${flights.length} aircraft`}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -4617,23 +4850,30 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   );
 }
 
-interface LLMAssessmentData {
-  engine: string;
-  model: string;
-  riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
-  summary: string;
-  keyInsights: string[];
+
+interface EscalationForecastData {
+  nextHour: number;
+  next3Hours: number;
+  velocityPerHour: number;
   confidence: number;
-  generatedAt: string;
-  latencyMs: number;
-  status: 'success' | 'error' | 'timeout';
-  error?: string;
+  direction: 'surging' | 'escalating' | 'stable' | 'cooling';
+  basisHours: number;
+  projectedPeak: string;
+}
+
+interface RegionAnomalyData {
+  region: string;
+  currentCount: number;
+  rollingAvg: number;
+  zScore: number;
+  pctAboveAvg: number;
+  severity: 'critical' | 'warning';
 }
 
 interface AnalyticsData {
   alertsByRegion: Record<string, number>;
   alertsByType: Record<string, number>;
-  alertTimeline: { time: string; count: number }[];
+  alertTimeline: { time: string; count: number; regions?: Record<string, number>; types?: Record<string, number> }[];
   topSources: { channel: string; count: number; reliability: number }[];
   activeAlertCount: number;
   falseAlarmRate: number;
@@ -4641,9 +4881,13 @@ interface AnalyticsData {
   threatTrend: 'escalating' | 'stable' | 'deescalating';
   patterns: PatternData[];
   falseAlarms: FalseAlarmData[];
-  llmAssessments?: LLMAssessmentData[];
-  consensusRisk?: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
-  modelAgreement?: number;
+  escalationForecast?: EscalationForecastData;
+  regionAnomalies?: RegionAnomalyData[];
+  conflictEventCount?: number;
+  thermalHotspotCount?: number;
+  militaryFlightCount?: number;
+  eventsByType?: Record<string, number>;
+  lastUpdated?: string;
 }
 
 interface PatternData {
@@ -4663,34 +4907,7 @@ interface FalseAlarmData {
   recommendation: 'likely_real' | 'uncertain' | 'likely_false';
 }
 
-function LLMDivergenceAlert({ assessments, language }: { assessments: LLMAssessmentData[]; language: 'en' | 'ar' }) {
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const successful = assessments.filter(a => a.status === 'success');
-  if (successful.length < 2) return null;
-  const risks = successful.map(a => a.riskLevel);
-  const allSame = risks.every(r => r === risks[0]);
-  if (!allSame) {
-    return (
-      <div className="mt-3 p-3 rounded bg-yellow-950/20 border border-yellow-500/25" data-testid="divergence-alert">
-        <div className="flex items-center gap-2 mb-1.5">
-          <AlertTriangle className="w-4 h-4 text-yellow-400" />
-          <span className="text-[12px] font-black font-mono text-yellow-400 uppercase tracking-wider">{t('Model Divergence Detected', 'تم رصد اختلاف بين النماذج')}</span>
-        </div>
-        <p className="text-[11px] text-foreground/60 font-mono">
-          {successful.map(a => `${a.engine}: ${a.riskLevel}`).join(' · ')}
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="mt-3 p-3 rounded bg-emerald-950/20 border border-emerald-500/25" data-testid="agreement-alert">
-      <div className="flex items-center gap-2">
-        <Shield className="w-4 h-4 text-emerald-400" />
-        <span className="text-[12px] font-black font-mono text-emerald-400 uppercase tracking-wider">{t('All Models Agree', 'جميع النماذج متفقة')}: {risks[0]}</span>
-      </div>
-    </div>
-  );
-}
+
 
 function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   language: 'en' | 'ar';
@@ -4720,7 +4937,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 28% 13% / 0.9)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
@@ -4733,182 +4950,354 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
           {!analytics ? (
             <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-blue-400/40 animate-spin mx-auto" /></div>
           ) : (
-            <>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
-                  <span className="text-[10px] text-foreground/40 font-mono">{t('Active', '\u0646\u0634\u0637')}</span>
-                  <span className="text-lg font-bold font-mono text-red-400" data-testid="text-active-alerts">{analytics.activeAlertCount}</span>
-                </div>
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
-                  <span className="text-[10px] text-foreground/40 font-mono">{t('False Alarm %', '\u0625\u0646\u0630\u0627\u0631 \u0643\u0627\u0630\u0628')}</span>
-                  <span className="text-lg font-bold font-mono text-yellow-400" data-testid="text-false-alarm-rate">{(analytics.falseAlarmRate * 100).toFixed(1)}%</span>
-                </div>
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
-                  <span className="text-[10px] text-foreground/40 font-mono">{t('Avg Response', '\u0645\u062A\u0648\u0633\u0637')}</span>
-                  <span className="text-lg font-bold font-mono text-blue-400" data-testid="text-avg-response">{analytics.avgResponseTime}s</span>
-                </div>
-                <div className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-1.5 flex flex-col items-center">
-                  <span className="text-[10px] text-foreground/40 font-mono">{t('Trend', '\u0627\u062A\u062C\u0627\u0647')}</span>
-                  <span className={`text-sm font-bold font-mono ${trendColor}`} data-testid="text-trend">{trendIcon} {analytics.threatTrend.toUpperCase()}</span>
-                </div>
+            <TooltipProvider delayDuration={200}>
+              {/* ── Last updated timestamp ── */}
+              {analytics.lastUpdated && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1.5 cursor-default mb-1 -mt-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <span className="text-[9px] font-mono text-foreground/30 hover:text-foreground/50 transition-colors">
+                        Updated {timeAgo(analytics.lastUpdated)}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono">
+                    <p className="text-foreground/80">Last data refresh</p>
+                    <p className="text-emerald-400">{new Date(analytics.lastUpdated).toUTCString()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* ── Primary stat row ── */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { label: t('ACTIVE','نشط'), value: analytics.activeAlertCount, color: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-950/10', testid: 'text-active-alerts', tooltip: 'Oref red alerts currently within countdown window' },
+                  { label: t('FALSE ALM','كاذب'), value: `${(analytics.falseAlarmRate * 100).toFixed(1)}%`, color: 'text-yellow-400', border: 'border-yellow-500/20', bg: 'bg-yellow-950/10', testid: 'text-false-alarm-rate', tooltip: 'Estimated false alarm rate based on AI scoring of alert patterns' },
+                  { label: t('AVG RSP','متوسط'), value: `${analytics.avgResponseTime}s`, color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-950/10', testid: 'text-avg-response', tooltip: 'Average shelter countdown time across active alerts' },
+                  { label: t('TREND','اتجاه'), value: `${trendIcon}`, color: trendColor, border: 'border-white/[0.06]', bg: 'bg-white/[0.02]', testid: 'text-trend', sub: analytics.threatTrend.slice(0,4).toUpperCase(), tooltip: `Threat trend: ${analytics.threatTrend} (comparing last 30min vs prior 30min alert rate)` },
+                ].map(stat => (
+                  <Tooltip key={stat.label}>
+                    <TooltipTrigger asChild>
+                      <div className={`${stat.bg} border ${stat.border} rounded p-2 flex flex-col items-center gap-0.5 cursor-default hover:brightness-125 transition-all`}>
+                        <span className="text-[8px] text-foreground/35 font-mono tracking-wider">{stat.label}</span>
+                        <span className={`text-base font-black font-mono leading-none ${stat.color}`} data-testid={stat.testid}>{stat.value}</span>
+                        {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-70`}>{stat.sub}</span>}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
+                      <p className="text-foreground/70 leading-relaxed">{stat.tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
               </div>
 
-              {analytics.llmAssessments && analytics.llmAssessments.length > 0 && (
-                <div data-testid="section-multi-llm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Brain className="w-4 h-4 text-primary/70" />
-                    <span className="text-[12px] font-black uppercase tracking-[0.18em] text-foreground/70 font-mono">{t('Multi-LLM Engine', 'محرك الذكاء متعدد النماذج')}</span>
-                  </div>
-
-                  {analytics.consensusRisk && (
-                    <div className={`mb-3 p-3 rounded border ${
-                      analytics.consensusRisk === 'EXTREME' ? 'bg-red-950/30 border-red-500/30' :
-                      analytics.consensusRisk === 'HIGH' ? 'bg-orange-950/30 border-orange-500/30' :
-                      analytics.consensusRisk === 'ELEVATED' ? 'bg-yellow-950/30 border-yellow-500/30' :
-                      'bg-emerald-950/30 border-emerald-500/30'
-                    }`} data-testid="consensus-box">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-mono font-bold text-foreground/60 uppercase tracking-wider">{t('Consensus Risk', 'مستوى المخاطر التوافقي')}</span>
-                        <span className={`text-[14px] font-black font-mono tracking-widest ${
-                          analytics.consensusRisk === 'EXTREME' ? 'text-red-400' :
-                          analytics.consensusRisk === 'HIGH' ? 'text-orange-400' :
-                          analytics.consensusRisk === 'ELEVATED' ? 'text-yellow-400' :
-                          'text-emerald-400'
-                        }`} data-testid="text-consensus-risk">{analytics.consensusRisk}</span>
+              {/* ── Live intel counters row ── */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  {
+                    label: t('CONFLICT EVT','أحداث'), value: analytics.conflictEventCount ?? 0,
+                    color: 'text-orange-400', border: 'border-orange-500/20', bg: 'bg-orange-950/10',
+                    tooltip: `${analytics.conflictEventCount ?? 0} mapped conflict events from GDELT, Oref alerts, and NASA FIRMS thermal data`,
+                    sub: analytics.eventsByType ? Object.entries(analytics.eventsByType).sort((a,b)=>b[1]-a[1])[0]?.[0]?.toUpperCase() : undefined,
+                  },
+                  {
+                    label: t('THERMAL SAT','حراري'), value: analytics.thermalHotspotCount ?? 0,
+                    color: 'text-red-300', border: 'border-red-500/20', bg: 'bg-red-950/10',
+                    tooltip: 'NASA FIRMS VIIRS satellite thermal hotspots (high/nominal confidence) detected in theater in last 48h',
+                    sub: 'NASA',
+                  },
+                  {
+                    label: t('MIL FLIGHT','طيران'), value: analytics.militaryFlightCount ?? 0,
+                    color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-950/10',
+                    tooltip: 'Military aircraft currently tracked via ADS-B in Middle East theater',
+                    sub: 'ADS-B',
+                  },
+                ].map(stat => (
+                  <Tooltip key={stat.label}>
+                    <TooltipTrigger asChild>
+                      <div className={`${stat.bg} border ${stat.border} rounded p-2 flex flex-col items-center gap-0.5 cursor-default hover:brightness-125 transition-all`}>
+                        <span className="text-[8px] text-foreground/35 font-mono tracking-wider truncate w-full text-center">{stat.label}</span>
+                        <span className={`text-base font-black font-mono leading-none ${stat.color}`}>{stat.value}</span>
+                        {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-60 truncate max-w-full`}>{stat.sub}</span>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono font-semibold text-foreground/50">{t('Agreement', 'توافق')}</span>
-                        <div className="flex-1 h-2 bg-white/[0.05] rounded overflow-hidden">
-                          <div className={`h-full rounded transition-all ${
-                            (analytics.modelAgreement ?? 0) > 0.8 ? 'bg-emerald-500' :
-                            (analytics.modelAgreement ?? 0) > 0.5 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`} style={{ width: `${(analytics.modelAgreement ?? 0) * 100}%` }} />
-                        </div>
-                        <span className="text-[12px] font-black font-mono text-foreground/70" data-testid="text-model-agreement">{((analytics.modelAgreement ?? 0) * 100).toFixed(0)}%</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
+                      <p className="text-foreground/70 leading-relaxed">{stat.tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+
+              {/* ── Event type breakdown ── */}
+              {analytics.eventsByType && Object.keys(analytics.eventsByType).length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('Live Event Types', 'أنواع الأحداث')}</span>
+                    <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.eventsByType).reduce((s,v)=>s+v,0)} total</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(analytics.eventsByType).sort((a,b)=>b[1]-a[1]).map(([type, count]) => {
+                      const colors: Record<string, string> = {
+                        missile: 'bg-red-950/40 border-red-500/25 text-red-300',
+                        airstrike: 'bg-orange-950/40 border-orange-500/25 text-orange-300',
+                        defense: 'bg-cyan-950/40 border-cyan-500/25 text-cyan-300',
+                        ground: 'bg-yellow-950/40 border-yellow-500/25 text-yellow-300',
+                        naval: 'bg-blue-950/40 border-blue-500/25 text-blue-300',
+                        nuclear: 'bg-purple-950/40 border-purple-500/25 text-purple-300',
+                      };
+                      return (
+                        <span key={type} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${colors[type] || 'bg-white/[0.03] border-white/10 text-foreground/50'}`}>
+                          {type.toUpperCase()} {count}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+
+              {/* ── Escalation Forecast ── */}
+              {analytics.escalationForecast && (() => {
+                const fc = analytics.escalationForecast;
+                const dirConfig = {
+                  surging:    { label: 'SURGING',    color: 'text-red-400',    bg: 'bg-red-950/30 border-red-500/30',    icon: '⚡', glow: 'shadow-[0_0_12px_rgb(239_68_68_/_0.25)]' },
+                  escalating: { label: 'ESCALATING', color: 'text-orange-400', bg: 'bg-orange-950/25 border-orange-500/25', icon: '▲', glow: '' },
+                  stable:     { label: 'STABLE',     color: 'text-yellow-400', bg: 'bg-yellow-950/20 border-yellow-500/20', icon: '●', glow: '' },
+                  cooling:    { label: 'COOLING',    color: 'text-emerald-400', bg: 'bg-emerald-950/20 border-emerald-500/20', icon: '▼', glow: '' },
+                }[fc.direction];
+                const confPct = Math.round(fc.confidence * 100);
+                const velSign = fc.velocityPerHour >= 0 ? '+' : '';
+                return (
+                  <div className={`rounded border p-2.5 ${dirConfig.bg} ${dirConfig.glow}`} data-testid="section-escalation-forecast">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${dirConfig.color}`} />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Escalation Forecast', 'توقعات التصعيد')}</span>
+                      <div className="flex-1" />
+                      <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded ${dirConfig.color}`} style={{background:'rgb(0 0 0 / 0.25)'}}>
+                        {dirConfig.icon} {dirConfig.label}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 1h</span>
+                        <span className={`text-xl font-black font-mono leading-none ${dirConfig.color}`}>{fc.nextHour}</span>
+                        <span className="text-[7px] font-mono text-foreground/30">alerts</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 3h</span>
+                        <span className={`text-xl font-black font-mono leading-none ${dirConfig.color}`}>{fc.next3Hours}</span>
+                        <span className="text-[7px] font-mono text-foreground/30">alerts</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Velocity</span>
+                        <span className={`text-xl font-black font-mono leading-none ${dirConfig.color}`}>{velSign}{fc.velocityPerHour}</span>
+                        <span className="text-[7px] font-mono text-foreground/30">/hr</span>
                       </div>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-mono text-foreground/30">{t('Confidence', 'الثقة')}</span>
+                      <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${fc.confidence > 0.6 ? 'bg-emerald-400/70' : fc.confidence > 0.35 ? 'bg-yellow-400/70' : 'bg-red-400/50'}`}
+                          style={{ width: `${confPct}%` }}
+                        />
+                      </div>
+                      <span className={`text-[8px] font-black font-mono ${fc.confidence > 0.6 ? 'text-emerald-400' : fc.confidence > 0.35 ? 'text-yellow-400' : 'text-red-400/70'}`}>{confPct}%</span>
+                      {fc.projectedPeak && (
+                        <span className="text-[8px] font-mono text-foreground/25 ml-1">peak {fc.projectedPeak}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
-                  <div className="space-y-2.5">
-                    {analytics.llmAssessments.map((assessment) => {
-                      const engineColors: Record<string, string> = {
-                        'OpenAI': 'from-emerald-500/10 border-emerald-500/25 text-emerald-400',
-                        'Anthropic': 'from-orange-500/10 border-orange-500/25 text-orange-400',
-                        'Google': 'from-blue-500/10 border-blue-500/25 text-blue-400',
-                        'xAI': 'from-rose-500/10 border-rose-500/25 text-rose-400',
-                      };
-                      const colors = engineColors[assessment.engine] || 'from-gray-500/10 border-gray-500/25 text-gray-400';
-                      const borderColor = colors.split(' ')[1];
-                      const textColor = colors.split(' ')[2];
-
-                      const riskColor = assessment.riskLevel === 'EXTREME' ? 'bg-red-500/80 text-white' :
-                        assessment.riskLevel === 'HIGH' ? 'bg-orange-500/80 text-white' :
-                        assessment.riskLevel === 'ELEVATED' ? 'bg-yellow-500/80 text-black' :
-                        assessment.riskLevel === 'MODERATE' ? 'bg-blue-500/80 text-white' :
-                        'bg-emerald-500/80 text-white';
-
+              {/* ── Region Anomalies ── */}
+              {analytics.regionAnomalies && analytics.regionAnomalies.length > 0 && (
+                <div data-testid="section-region-anomalies">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400/70 shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Anomaly Detection', 'رصد الشذوذ')}</span>
+                    <div className="flex-1" />
+                    <span className="text-[8px] font-mono text-foreground/30">{analytics.regionAnomalies.length} flagged</span>
+                  </div>
+                  <div className="space-y-1" data-testid="list-anomalies">
+                    {analytics.regionAnomalies.map(a => {
+                      const isCrit = a.severity === 'critical';
+                      const barPct = Math.min(100, Math.round((a.zScore / 4) * 100));
                       return (
-                        <div key={assessment.engine} className={`p-3 rounded border bg-gradient-to-r to-transparent ${borderColor} ${colors.split(' ')[0]}`} data-testid={`llm-card-${assessment.engine.toLowerCase()}`}>
-                          <div className="flex items-center gap-2.5 mb-2">
-                            <div className={`w-2 h-2 rounded-full shrink-0 ${assessment.status === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`}
-                              style={assessment.status === 'success' ? {boxShadow:'0 0 5px rgb(52 211 153 / 0.7)'} : undefined} />
-                            <span className={`text-[13px] font-black font-mono ${textColor}`}>{assessment.engine}</span>
-                            <span className="text-[11px] font-mono text-foreground/40">{assessment.model}</span>
-                            <div className="flex-1" />
-                            {assessment.status === 'success' && (
-                              <span className={`text-[11px] font-black font-mono px-2 py-0.5 rounded ${riskColor}`}>{assessment.riskLevel}</span>
-                            )}
-                            <span className="text-[10px] font-mono text-foreground/35">{assessment.latencyMs}ms</span>
+                        <div
+                          key={a.region}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
+                            isCrit
+                              ? 'bg-red-950/25 border-red-500/25 hover:border-red-500/45'
+                              : 'bg-amber-950/20 border-amber-500/20 hover:border-amber-500/40'
+                          }`}
+                          data-testid={`anomaly-${a.region.toLowerCase().replace(/\s/g, '-')}`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isCrit ? 'bg-red-400 animate-pulse' : 'bg-amber-400'}`} />
+                          <span className={`text-[10px] font-bold font-mono w-16 truncate ${isCrit ? 'text-red-300' : 'text-amber-300'}`}>{a.region}</span>
+                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${isCrit ? 'bg-red-400/65' : 'bg-amber-400/55'}`}
+                              style={{ width: `${barPct}%` }}
+                            />
                           </div>
-
-                          {assessment.status === 'success' ? (
-                            <>
-                              <p className="text-[12px] text-foreground/70 leading-relaxed mb-2" data-testid={`text-summary-${assessment.engine.toLowerCase()}`}>{assessment.summary}</p>
-                              {assessment.keyInsights.length > 0 && (
-                                <div className="space-y-1">
-                                  {assessment.keyInsights.map((insight, idx) => (
-                                    <div key={idx} className="flex items-start gap-2">
-                                      <span className={`text-[10px] mt-0.5 shrink-0 ${textColor}`}>▸</span>
-                                      <span className="text-[11px] text-foreground/60 leading-tight">{insight}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-white/[0.06]">
-                                <span className="text-[11px] font-mono font-semibold text-foreground/45">{t('Confidence', 'الثقة')}: <span className="text-foreground/65">{(assessment.confidence * 100).toFixed(0)}%</span></span>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-center gap-2 py-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-red-400/70" />
-                              <span className="text-[12px] text-red-400/70 font-mono font-semibold">{assessment.error || 'Engine unavailable'}</span>
-                            </div>
-                          )}
+                          <div className="flex flex-col items-end gap-0">
+                            <span className={`text-[9px] font-black font-mono ${isCrit ? 'text-red-400' : 'text-amber-400'}`}>
+                              {a.pctAboveAvg > 0 ? '+' : ''}{a.pctAboveAvg}%
+                            </span>
+                            <span className="text-[7px] font-mono text-foreground/25">z={a.zScore.toFixed(1)}</span>
+                          </div>
+                          <span className={`text-[8px] font-black font-mono px-1.5 py-0.5 rounded border ml-1 ${
+                            isCrit ? 'text-red-400 bg-red-950/50 border-red-500/30' : 'text-amber-400 bg-amber-950/40 border-amber-500/25'
+                          }`}>{isCrit ? 'CRIT' : 'WARN'}</span>
                         </div>
                       );
                     })}
                   </div>
-
-                  <LLMDivergenceAlert assessments={analytics.llmAssessments} language={language} />
                 </div>
               )}
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('24h Timeline', '\u062C\u062F\u0648\u0644 24 \u0633\u0627\u0639\u0629')}</span>
-                <div className="flex items-end gap-px h-12 bg-white/[0.02] rounded border border-white/[0.04] p-1" data-testid="chart-timeline">
-                  {analytics.alertTimeline.map((b, i) => (
-                    <div key={i} className="flex-1 flex items-end justify-center" title={`${b.time}: ${b.count}`}>
-                      <div
-                        className="w-full rounded-sm bg-blue-500/60 hover:bg-blue-400/80 transition-colors min-h-[1px]"
-                        style={{ height: `${Math.max(4, (b.count / maxTimeline) * 100)}%` }}
-                      />
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Alert Timeline', 'الجدول الزمني 24 ساعة')}</span>
+                  <span className="text-[9px] font-mono text-foreground/30">UTC · {analytics.alertTimeline.reduce((s, b) => s + b.count, 0)} alerts</span>
+                </div>
+                <div className="flex items-end gap-[2px] h-16 bg-white/[0.02] rounded border border-white/[0.04] px-1.5 pt-1.5 pb-0" data-testid="chart-timeline">
+                  {analytics.alertTimeline.map((b, i) => {
+                    const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                    const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                    const barColor = b.count > maxTimeline * 0.7 ? 'rgb(239 68 68 / 0.75)' :
+                      b.count > maxTimeline * 0.4 ? 'rgb(251 146 60 / 0.65)' : 'rgb(59 130 246 / 0.55)';
+                    return (
+                      <Tooltip key={i}>
+                        <TooltipTrigger asChild>
+                          <div className="flex-1 flex flex-col items-center justify-end h-full group cursor-default">
+                            <div
+                              className="w-full rounded-t-[2px] transition-all group-hover:brightness-150 group-hover:scale-y-105 min-h-[2px] origin-bottom"
+                              style={{ height: `${Math.max(3, (b.count / maxTimeline) * 80)}%`, background: barColor }}
+                            />
+                            {i % 6 === 0 && (
+                              <span className="text-[7px] font-mono text-foreground/25 mt-0.5 leading-none">{b.time}</span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-black/95 border-white/10 p-2 min-w-[130px]">
+                          <p className="text-[11px] font-black font-mono text-foreground/90 mb-1">{b.time} UTC</p>
+                          <p className="text-[10px] font-mono text-foreground/60 mb-1.5">{b.count} alert{b.count !== 1 ? 's' : ''}</p>
+                          {topRegions.length > 0 && (
+                            <div className="mb-1">
+                              <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Regions</p>
+                              {topRegions.map(([r, c]) => (
+                                <div key={r} className="flex justify-between gap-3">
+                                  <span className="text-[9px] font-mono text-foreground/55">{r}</span>
+                                  <span className="text-[9px] font-bold font-mono text-orange-300/80">{c}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {topTypes.length > 0 && (
+                            <div>
+                              <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Types</p>
+                              {topTypes.map(([t, c]) => (
+                                <div key={t} className="flex justify-between gap-3">
+                                  <span className="text-[9px] font-mono text-foreground/55 uppercase">{t.replace(/_/g,' ')}</span>
+                                  <span className="text-[9px] font-bold font-mono text-blue-300/80">{c}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {b.count === 0 && <p className="text-[9px] font-mono text-foreground/25 italic">No alerts this hour</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('By Region', 'المنطقة')}</span>
+                    <span className="text-[8px] font-mono text-foreground/25">{regionEntries.reduce((s,[,v])=>s+v,0)}</span>
+                  </div>
+                  <div className="space-y-1" data-testid="chart-by-region">
+                    {regionEntries.slice(0, 7).map(([region, count]) => {
+                      const pct = (count / maxRegion) * 100;
+                      const barColor = pct > 70 ? 'bg-red-500/60' : pct > 40 ? 'bg-orange-500/55' : 'bg-amber-500/45';
+                      return (
+                        <div key={region} className="flex items-center gap-1.5">
+                          <span className="text-[8px] font-mono text-foreground/45 w-14 truncate">{region}</span>
+                          <div className="flex-1 h-2 bg-white/[0.03] rounded-full overflow-hidden">
+                            <div className={`h-full ${barColor} rounded-full`} style={{ width: `${Math.max(6, pct)}%` }} />
+                          </div>
+                          <span className="text-[8px] font-bold font-mono text-foreground/45 w-4 text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('By Type', 'النوع')}</span>
+                    <span className="text-[8px] font-mono text-foreground/25">{typeEntries.length}</span>
+                  </div>
+                  <div className="space-y-1" data-testid="chart-by-type">
+                    {typeEntries.slice(0, 7).map(([type, count]) => {
+                      const pct = (count / maxType) * 100;
+                      const typeColors: Record<string, string> = {
+                        missile: 'bg-red-500/60', airstrike: 'bg-orange-500/55',
+                        rocket: 'bg-amber-500/50', drone: 'bg-purple-500/55',
+                        artillery: 'bg-yellow-500/50', ground_incursion: 'bg-emerald-500/50',
+                        cyber: 'bg-cyan-500/50',
+                      };
+                      return (
+                        <div key={type} className="flex items-center gap-1.5">
+                          <span className="text-[8px] font-mono text-foreground/45 w-14 truncate uppercase">{type.replace(/_/g,' ')}</span>
+                          <div className="flex-1 h-2 bg-white/[0.03] rounded-full overflow-hidden">
+                            <div className={`h-full ${typeColors[type] || 'bg-blue-500/50'} rounded-full`} style={{ width: `${Math.max(6, pct)}%` }} />
+                          </div>
+                          <span className="text-[8px] font-bold font-mono text-foreground/45 w-4 text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Alerts by Region', '\u062D\u0633\u0628 \u0627\u0644\u0645\u0646\u0637\u0642\u0629')}</span>
-                <div className="space-y-1" data-testid="chart-by-region">
-                  {regionEntries.map(([region, count]) => (
-                    <div key={region} className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-foreground/60 w-24 truncate">{region}</span>
-                      <div className="flex-1 h-3 bg-white/[0.03] rounded overflow-hidden">
-                        <div className="h-full bg-red-500/50 rounded" style={{ width: `${(count / maxRegion) * 100}%` }} />
-                      </div>
-                      <span className="text-[10px] font-mono text-foreground/40 w-6 text-right">{count}</span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Source Reliability', 'موثوقية المصادر')}</span>
+                  <span className="text-[9px] font-mono text-foreground/30">{analytics.topSources.length} feeds</span>
                 </div>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Alerts by Type', '\u062D\u0633\u0628 \u0627\u0644\u0646\u0648\u0639')}</span>
-                <div className="space-y-1" data-testid="chart-by-type">
-                  {typeEntries.map(([type, count]) => (
-                    <div key={type} className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-foreground/60 w-24 truncate uppercase">{type.replace(/_/g, ' ')}</span>
-                      <div className="flex-1 h-3 bg-white/[0.03] rounded overflow-hidden">
-                        <div className="h-full bg-orange-500/50 rounded" style={{ width: `${(count / maxType) * 100}%` }} />
-                      </div>
-                      <span className="text-[10px] font-mono text-foreground/40 w-6 text-right">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Source Reliability', '\u0645\u0648\u062B\u0648\u0642\u064A\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631')}</span>
                 <div className="space-y-1" data-testid="table-sources">
-                  {analytics.topSources.map((src) => (
-                    <div key={src.channel} className="flex items-center gap-2 px-2 py-1 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                      <span className="text-[10px] font-mono text-foreground/70 flex-1 truncate">{src.channel}</span>
-                      <span className="text-[10px] font-mono text-foreground/40">{src.count}</span>
-                      <div className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${src.reliability > 0.8 ? 'bg-emerald-950/40 text-emerald-400' : src.reliability > 0.5 ? 'bg-yellow-950/40 text-yellow-400' : 'bg-red-950/40 text-red-400'}`}>
-                        {(src.reliability * 100).toFixed(0)}%
-                      </div>
-                    </div>
-                  ))}
+                  {analytics.topSources.map((src) => {
+                    const reliabilityPct = (src.reliability * 100).toFixed(0);
+                    const reliabilityColor = src.reliability > 0.85 ? 'text-emerald-400' : src.reliability > 0.7 ? 'text-yellow-400' : 'text-red-400';
+                    const reliabilityBg = src.reliability > 0.85 ? 'bg-emerald-950/30 border-emerald-500/20' : src.reliability > 0.7 ? 'bg-yellow-950/30 border-yellow-500/20' : 'bg-red-950/30 border-red-500/20';
+                    const reliabilityLabel = src.reliability > 0.85 ? 'High reliability — primary source' : src.reliability > 0.7 ? 'Moderate reliability — verify with second source' : 'Low reliability — use with caution';
+                    return (
+                      <Tooltip key={src.channel}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-transparent hover:border-white/[0.04] cursor-default">
+                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${src.reliability > 0.85 ? 'bg-emerald-400' : src.reliability > 0.7 ? 'bg-yellow-400' : 'bg-red-400'}`} />
+                            <span className="text-[10px] font-mono text-foreground/65 flex-1 truncate">{src.channel}</span>
+                            <span className="text-[9px] font-mono text-foreground/30 mr-1">{src.count}msg</span>
+                            <div className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded border ${reliabilityBg} ${reliabilityColor}`}>
+                              {reliabilityPct}%
+                            </div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
+                          <p className="text-foreground/80 font-bold mb-0.5">{src.channel}</p>
+                          <p className={`${reliabilityColor} mb-0.5`}>{reliabilityLabel}</p>
+                          <p className="text-foreground/40">{src.count} messages processed this session</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -4917,14 +5306,25 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Detected Patterns', '\u0623\u0646\u0645\u0627\u0637')}</span>
                   <div className="space-y-1.5" data-testid="list-patterns">
                     {patterns.map(p => (
-                      <div key={p.id} className="p-2 rounded bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/40 transition-colors" data-testid={`pattern-${p.id}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Sparkles className="w-3 h-3 text-purple-400" />
-                          <span className="text-[11px] font-bold text-purple-300 font-mono uppercase">{p.type.replace(/_/g, ' ')}</span>
-                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.confidence > 0.7 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-yellow-950/40 text-yellow-400'}`}>{(p.confidence * 100).toFixed(0)}%</span>
-                        </div>
-                        <p className="text-[10px] text-foreground/50">{p.description}</p>
-                      </div>
+                      <Tooltip key={p.id}>
+                        <TooltipTrigger asChild>
+                          <div className="p-2 rounded bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-default" data-testid={`pattern-${p.id}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Sparkles className="w-3 h-3 text-purple-400" />
+                              <span className="text-[11px] font-bold text-purple-300 font-mono uppercase">{p.type.replace(/_/g, ' ')}</span>
+                              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.confidence > 0.7 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-yellow-950/40 text-yellow-400'}`}>{(p.confidence * 100).toFixed(0)}%</span>
+                              <span className="ml-auto text-[8px] font-mono text-foreground/30">{timeAgo(p.detectedAt)}</span>
+                            </div>
+                            <p className="text-[10px] text-foreground/50">{p.description}</p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
+                          <p className="text-foreground/50 mb-0.5">Detected at</p>
+                          <p className="text-foreground/80">{new Date(p.detectedAt).toUTCString()}</p>
+                          {p.affectedRegions.length > 0 && <p className="text-foreground/40 mt-1">Regions: {p.affectedRegions.join(', ')}</p>}
+                          <p className="text-foreground/40 mt-0.5">{p.alertCount} alerts in pattern</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                 </div>
@@ -4935,17 +5335,26 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('False Alarm Analysis', '\u062A\u062D\u0644\u064A\u0644 \u0625\u0646\u0630\u0627\u0631\u0627\u062A \u0643\u0627\u0630\u0628\u0629')}</span>
                   <div className="space-y-1" data-testid="list-false-alarms">
                     {falseAlarms.slice(0, 10).map(fa => (
-                      <div key={fa.alertId} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors" data-testid={`false-alarm-${fa.alertId}`}>
-                        <div className={`w-2 h-2 rounded-full ${fa.score > 0.7 ? 'bg-red-500' : fa.score > 0.4 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
-                        <span className="text-[10px] font-mono text-foreground/60 flex-1 truncate">{fa.recommendation.replace(/_/g, ' ')}</span>
-                        <span className="text-[10px] font-mono text-foreground/40 truncate max-w-[120px]">{fa.reasons[0] || ''}</span>
-                        <span className="text-[10px] font-bold font-mono text-foreground/50">{(fa.score * 100).toFixed(0)}%</span>
-                      </div>
+                      <Tooltip key={fa.alertId}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-default" data-testid={`false-alarm-${fa.alertId}`}>
+                            <div className={`w-2 h-2 rounded-full ${fa.score > 0.7 ? 'bg-red-500' : fa.score > 0.4 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
+                            <span className="text-[10px] font-mono text-foreground/60 flex-1 truncate">{fa.recommendation.replace(/_/g, ' ')}</span>
+                            <span className="text-[10px] font-mono text-foreground/40 truncate max-w-[120px]">{fa.reasons[0] || ''}</span>
+                            <span className="text-[10px] font-bold font-mono text-foreground/50">{(fa.score * 100).toFixed(0)}%</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
+                          <p className={`font-bold mb-1 ${fa.score > 0.7 ? 'text-red-400' : fa.score > 0.4 ? 'text-yellow-400' : 'text-emerald-400'}`}>{fa.recommendation.replace(/_/g,' ').toUpperCase()}</p>
+                          <p className="text-foreground/50 mb-0.5">Alert ID: {fa.alertId}</p>
+                          {fa.reasons.map((r, i) => <p key={i} className="text-foreground/60">• {r}</p>)}
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                 </div>
               )}
-            </>
+            </TooltipProvider>
           )}
         </div>
       </ScrollArea>
@@ -5076,26 +5485,16 @@ function PanelSidebar({
   closePanel,
   language,
   panelStats,
-  connected,
-  aiBrief,
 }: {
   visiblePanels: Record<PanelId, boolean>;
   openPanel: (id: PanelId) => void;
   closePanel: (id: PanelId) => void;
   language: 'en' | 'ar';
   panelStats: Partial<Record<PanelId, string | number>>;
-  connected: boolean;
-  aiBrief: import('@shared/schema').AIBrief | null;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
   const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'osint'];
 
-  const AI_MODELS = [
-    { key: 'gpt-4.1',  label: 'GPT-4.1',  color: 'bg-emerald-400' },
-    { key: 'claude',   label: 'CLAUDE',    color: 'bg-sky-400' },
-    { key: 'gemini',   label: 'GEMINI',    color: 'bg-violet-400' },
-    { key: 'grok',     label: 'GROK',      color: 'bg-amber-400' },
-  ];
 
   const renderBtn = (id: PanelId) => {
     const cfg = PANEL_CONFIG[id];
@@ -5146,41 +5545,6 @@ function PanelSidebar({
         {bottomGroup.map(renderBtn)}
       </div>
 
-      {/* AI MODELS section */}
-      <div className="mt-auto">
-        <div className="mx-3 my-2 h-px bg-white/[0.06]" />
-        <div className="px-3 pt-2 pb-1.5 flex items-center gap-2">
-          <Brain className="w-3.5 h-3.5 text-primary/50" />
-          <span className="text-[11px] font-mono font-black text-foreground/50 tracking-[0.18em] uppercase">AI Models</span>
-          <div className={`ml-auto w-2 h-2 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400/50'}`}
-            style={connected ? {boxShadow:'0 0 6px rgb(52 211 153 / 0.6)'} : undefined} />
-        </div>
-        <div className="flex flex-col pb-3 gap-0.5 px-2">
-          {AI_MODELS.map(m => {
-            const isReady = connected;
-            return (
-              <div key={m.key} className={`flex items-center gap-2.5 px-2 h-9 rounded transition-colors ${isReady ? 'bg-white/[0.025]' : ''}`}>
-                <div className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${isReady ? m.color : 'bg-foreground/10'}`}
-                  style={isReady ? {boxShadow:`0 0 6px currentColor`} : undefined} />
-                <span className={`text-[11px] font-mono font-bold flex-1 uppercase tracking-wider transition-colors ${isReady ? 'text-foreground/70' : 'text-foreground/25'}`}>{m.label}</span>
-                <span className={`text-[10px] font-mono font-black px-1.5 py-0.5 rounded transition-colors ${isReady ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-foreground/20'}`}>
-                  {isReady ? 'ON' : 'OFF'}
-                </span>
-              </div>
-            );
-          })}
-          {aiBrief && (
-            <div className="mx-1 mt-2 px-3 py-2.5 rounded" style={{background:'hsl(185 100% 42% / 0.07)', border:'1px solid hsl(185 100% 42% / 0.18)'}}>
-              <div className="text-[10px] font-mono font-bold text-foreground/45 uppercase tracking-widest mb-1">Threat Assessment</div>
-              <div className={`text-[13px] font-mono font-black tracking-wider ${
-                aiBrief.riskLevel === 'EXTREME' ? 'text-red-400' :
-                aiBrief.riskLevel === 'HIGH' ? 'text-orange-400' :
-                aiBrief.riskLevel === 'ELEVATED' ? 'text-yellow-400' : 'text-emerald-400'
-              }`}>{aiBrief.riskLevel}</div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -5378,7 +5742,7 @@ export default function Dashboard() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: false, osint: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: false, analytics: false, osint: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -5407,7 +5771,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v4') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v6') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         const merged = saved.map((item: GridItemLayout) => {
@@ -5447,7 +5811,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v4', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v6', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -5463,6 +5827,47 @@ export default function Dashboard() {
 
   const toggleMaximize = useCallback((id: PanelId) => {
     setMaximizedPanel(prev => prev === id ? null : id);
+  }, []);
+
+  // ── Floating panel system ──────────────────────────────────────────────────
+  const [floatingPanels, setFloatingPanels] = useState<Partial<Record<PanelId, FloatState>>>({});
+  const floatTopZ = useRef(600);
+
+  const popOutPanel = useCallback((id: PanelId) => {
+    floatTopZ.current += 1;
+    setFloatingPanels(prev => {
+      if (prev[id]) {
+        // already floating — just focus
+        return { ...prev, [id]: { ...prev[id]!, z: floatTopZ.current } };
+      }
+      const count = Object.keys(prev).length;
+      const w = Math.min(window.innerWidth * 0.38, 540);
+      const h = Math.min(window.innerHeight * 0.58, 560);
+      return {
+        ...prev,
+        [id]: {
+          x: Math.max(40, (window.innerWidth - w) / 2 + count * 28),
+          y: Math.max(60, (window.innerHeight - h) / 2 + count * 28),
+          w, h, z: floatTopZ.current,
+        },
+      };
+    });
+  }, []);
+
+  const dockPanel = useCallback((id: PanelId) => {
+    setFloatingPanels(prev => { const n = { ...prev }; delete n[id]; return n; });
+  }, []);
+
+  const closeFloatPanel = useCallback((id: PanelId) => {
+    setFloatingPanels(prev => { const n = { ...prev }; delete n[id]; return n; });
+    closePanel(id);
+  }, [closePanel]);
+
+  const focusFloatPanel = useCallback((id: PanelId) => {
+    floatTopZ.current += 1;
+    setFloatingPanels(prev =>
+      prev[id] ? { ...prev, [id]: { ...prev[id]!, z: floatTopZ.current } } : prev
+    );
   }, []);
 
   useEffect(() => {
@@ -5599,7 +6004,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v4', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v6', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
@@ -5703,10 +6108,10 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-12' : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 28% 13% / 0.92)', borderBottom:'1px solid hsl(185 60% 30% / 0.18)'}}>
+      <header className={`${isMobile ? 'h-12' : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 20% 17% / 0.97)', borderBottom:'1px solid hsl(185 30% 30% / 0.22)'}}>
         <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.12) 30%, hsl(185 100% 42% / 0.22) 50%, hsl(185 100% 42% / 0.12) 70%, transparent)'}} />
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-black tracking-[0.22em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 10px hsl(185 100% 42% / 0.5))'}}>◈ WARROOM</span>
+          <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-black tracking-[0.22em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 6px hsl(185 100% 42% / 0.35))'}}>◈ WARROOM</span>
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
@@ -5823,8 +6228,6 @@ export default function Dashboard() {
             openPanel={openPanel}
             closePanel={closePanel}
             language={language}
-            connected={connected}
-            aiBrief={aiBrief}
             panelStats={{
               map: 'LIVE',
               alerts: redAlerts.length > 0 ? `${redAlerts.length} ACTIVE` : '',
@@ -5911,9 +6314,9 @@ export default function Dashboard() {
 
       <div
         ref={panelsScrollRef}
-        className="flex-1 min-h-0 overflow-auto scroll-smooth"
+        className="flex-1 overflow-y-auto scroll-smooth"
+        style={{ minHeight: 0 }}
         data-testid="resizable-panels"
-        onWheel={e => { e.currentTarget.scrollTop += e.deltaY; }}
       >
         {isMobile ? (
           <div className="flex flex-col h-full min-h-0">
@@ -6013,12 +6416,19 @@ export default function Dashboard() {
             </div>
           </div>
         ) : isTablet ? (
-          <div className="grid grid-cols-2 gap-px p-px h-full auto-rows-fr" style={{ gridAutoRows: 'minmax(200px, 1fr)', background: 'hsl(185 80% 42% / 0.04)' }}>
+          <div className="grid grid-cols-2 gap-1 p-1" style={{ gridAutoRows: 'minmax(320px, auto)', background: 'hsl(185 80% 42% / 0.04)' }}>
             {allPanels.filter(id => visiblePanels[id]).map(id => (
               <div
                 key={id}
-                className={`overflow-hidden ${id === 'map' || id === 'alertmap' ? 'col-span-2' : ''}`}
-                style={{ minHeight: id === 'map' ? '280px' : '180px', background: 'hsl(220 28% 13% / 0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+                className={`overflow-hidden rounded-md ${id === 'map' || id === 'alertmap' || id === 'alerts' ? 'col-span-2' : ''}`}
+                style={{
+                  minHeight: id === 'map' ? '420px' : id === 'alerts' ? '380px' : id === 'alertmap' ? '360px' : '320px',
+                  background: 'hsl(220 28% 13% / 0.82)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.35)' : '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: id === 'alerts' ? '0 0 30px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                }}
               >
                 {renderPanel(id)}
               </div>
@@ -6040,41 +6450,102 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={150}
+            rowHeight={110}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[1, 1]}
-            containerPadding={[0, 0]}
+            margin={[4, 4]}
+            containerPadding={[4, 4]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
-            style={{ minHeight: 400, paddingBottom: 60 }}
+            style={{ paddingBottom: 80 }}
           >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
               const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;
+              const isFloating = !!floatingPanels[id];
+              const Icon = PANEL_CONFIG[id]?.icon;
               return (
                 <div
                   key={id}
-                  className={`flex flex-col overflow-hidden cursor-grab active:cursor-grabbing rounded-[3px] ${hasAlertGlow ? '' : ''}`}
+                  className="group flex flex-col overflow-hidden rounded-[6px]"
                   style={{
-                    background: 'hsl(220 28% 13% / 0.82)',
-                    backdropFilter: 'blur(6px)',
-                    WebkitBackdropFilter: 'blur(6px)',
-                    border: '1px solid hsl(185 80% 50% / 0.1)',
-                    boxShadow: hasAlertGlow
-                      ? 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 0 24px rgb(239 68 68 / 0.1), 0 0 0 1px hsl(0 80% 50% / 0.15)'
-                      : 'inset 0 1px 0 hsl(185 60% 50% / 0.04), 0 2px 12px hsl(220 28% 8% / 0.4)',
+                    background: isFloating
+                      ? 'rgba(8,12,22,0.35)'
+                      : hasAlertGlow
+                        ? 'hsl(0 25% 12% / 0.92)'
+                        : 'hsl(220 30% 14% / 0.78)',
+                    backdropFilter: isFloating ? 'none' : 'blur(10px)',
+                    WebkitBackdropFilter: isFloating ? 'none' : 'blur(10px)',
+                    border: isFloating
+                      ? '1px dashed rgba(255,255,255,0.07)'
+                      : hasAlertGlow
+                        ? '1px solid hsl(0 80% 55% / 0.55)'
+                        : '1px solid rgba(255,255,255,0.07)',
+                    boxShadow: isFloating
+                      ? 'none'
+                      : hasAlertGlow
+                        ? '0 0 40px rgb(239 68 68 / 0.22), 0 0 80px rgb(239 68 68 / 0.08), inset 0 0 24px rgb(239 68 68 / 0.06), inset 0 1px 0 rgba(255,255,255,0.08)'
+                        : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 10px rgba(0,0,0,0.28)',
+                    transition: 'border-color 0.25s, box-shadow 0.25s, background 0.25s',
+                    position: 'relative',
+                    zIndex: hasAlertGlow ? 2 : undefined,
                   }}
-                  data-testid={hasAlertGlow ? 'alert-panel-glow' : undefined}
+                  data-testid={hasAlertGlow && !isFloating ? 'alert-panel-glow' : undefined}
                 >
-                  <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
-                    {renderPanel(id)}
-                  </PanelErrorBoundary>
+                  {isFloating ? (
+                    /* placeholder while panel is floating */
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'default' }}>
+                      {Icon && <Icon style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.1)' }} />}
+                      <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.15)', fontFamily: 'monospace' }}>{PANEL_CONFIG[id]?.label || id}</span>
+                      <button
+                        onClick={() => dockPanel(id)} data-no-drag
+                        style={{ fontSize: 9, padding: '3px 10px', borderRadius: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', letterSpacing: '0.08em', fontFamily: 'monospace' }}
+                      >⊞ DOCK</button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Pop-out button — appears on hover */}
+                      {!isMobile && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); popOutPanel(id); }}
+                          data-no-drag
+                          className="absolute top-1 right-1 z-[90] opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                          title="Pop out as floating window"
+                          style={{ width: 22, height: 22, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}
+                        >
+                          <ExternalLink style={{ width: 10, height: 10 }} />
+                        </button>
+                      )}
+                      <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
+                        {renderPanel(id)}
+                      </PanelErrorBoundary>
+                    </>
+                  )}
                 </div>
               );
             })}
           </RGL>
         )}
       </div>
+
+      {/* ── Floating Windows ── */}
+      {Object.entries(floatingPanels).map(([id, state]) => {
+        const panelId = id as PanelId;
+        const cfg = PANEL_CONFIG[panelId];
+        const Icon = cfg?.icon;
+        return (
+          <FloatingWindow
+            key={id} id={id}
+            title={cfg?.label || id}
+            icon={Icon ? <Icon style={{ width: 14, height: 14 }} /> : null}
+            state={state!}
+            onDock={() => dockPanel(panelId)}
+            onClose={() => closeFloatPanel(panelId)}
+            onFocus={() => focusFloatPanel(panelId)}
+          >
+            {renderPanel(panelId)}
+          </FloatingWindow>
+        );
+      })}
 
       {/* ── Floating scroll buttons (desktop only) ── */}
       {!isMobile && !maximizedPanel && (

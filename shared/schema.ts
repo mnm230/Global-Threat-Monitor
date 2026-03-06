@@ -154,6 +154,9 @@ export interface AIBrief {
   riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE';
   generatedAt: string;
   model: string;
+  tacticalSituation?: string;
+  escalationIndicators?: string[];
+  actorAnalysis?: string;
 }
 
 export interface AIDeduction {
@@ -211,10 +214,29 @@ export interface LLMAssessment {
   error?: string;
 }
 
+export interface EscalationForecast {
+  nextHour: number;
+  next3Hours: number;
+  velocityPerHour: number;
+  confidence: number;
+  direction: 'surging' | 'escalating' | 'stable' | 'cooling';
+  basisHours: number;
+  projectedPeak: string;
+}
+
+export interface RegionAnomaly {
+  region: string;
+  currentCount: number;
+  rollingAvg: number;
+  zScore: number;
+  pctAboveAvg: number;
+  severity: 'critical' | 'warning';
+}
+
 export interface AnalyticsSnapshot {
   alertsByRegion: Record<string, number>;
   alertsByType: Record<string, number>;
-  alertTimeline: { time: string; count: number }[];
+  alertTimeline: { time: string; count: number; regions?: Record<string, number>; types?: Record<string, number> }[];
   avgResponseTime: number;
   activeAlertCount: number;
   falseAlarmRate: number;
@@ -225,6 +247,13 @@ export interface AnalyticsSnapshot {
   llmAssessments?: LLMAssessment[];
   consensusRisk?: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW';
   modelAgreement?: number;
+  escalationForecast?: EscalationForecast;
+  regionAnomalies?: RegionAnomaly[];
+  conflictEventCount?: number;
+  thermalHotspotCount?: number;
+  militaryFlightCount?: number;
+  eventsByType?: Record<string, number>;
+  lastUpdated?: string;
 }
 
 export interface CyberEvent {

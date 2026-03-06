@@ -17,7 +17,11 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.oref.org.il)",
-      "Bash(echo Bearer: ${BEARER:0:40}...:*)"
+      "Bash(echo Bearer: ${BEARER:0:40}...:*)",
+      "Bash(printenv:*)",
+      "Bash(ss:*)",
+      "Bash(grep:*)",
+      "Bash(git stash:*)"
     ]
   }
 }
