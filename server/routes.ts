@@ -4494,6 +4494,12 @@ export async function registerRoutes(
       send('analytics', analytics);
     }, 30000));
 
+    generateAttackPrediction().then(pred => send('attack-prediction', pred)).catch(() => {});
+    intervals.push(setInterval(async () => {
+      const pred = await generateAttackPrediction();
+      send('attack-prediction', pred);
+    }, 30000));
+
     intervals.push(setInterval(() => {
       console.log('[CACHE-FLUSH] Clearing all caches (15-min interval)');
       newsApiCache = null;
@@ -4511,6 +4517,7 @@ export async function registerRoutes(
       multiLLMCache = null;
       thermalCache = null;
       cyberCache = null;
+      attackPredictionCache = null;
     }, 15 * 60 * 1000));
 
     req.on('close', () => {
@@ -4541,6 +4548,169 @@ export async function registerRoutes(
   app.get('/api/x-feed', async (_req, res) => {
     const data = await fetchXFeeds();
     res.json(data);
+  });
+
+  let attackPredictionCache: { data: any; fetchedAt: number } | null = null;
+  const ATTACK_PRED_CACHE_TTL = 25000;
+
+  async function generateAttackPrediction(): Promise<any> {
+    if (attackPredictionCache && Date.now() - attackPredictionCache.fetchedAt < ATTACK_PRED_CACHE_TTL) {
+      return attackPredictionCache.data;
+    }
+
+    const now = Date.now();
+    const alerts = alertHistory.length > 0 ? alertHistory : latestAlerts;
+
+    const regionCounts: Record<string, number> = {};
+    const typeCounts: Record<string, number> = {};
+    const recentAlerts: string[] = [];
+    const last2h = alerts.filter(a => now - new Date(a.timestamp).getTime() < 2 * 3600000);
+    const last30m = alerts.filter(a => now - new Date(a.timestamp).getTime() < 30 * 60000);
+
+    for (const a of alerts) {
+      const region = a.region || a.country || 'Unknown';
+      regionCounts[region] = (regionCounts[region] || 0) + 1;
+      typeCounts[a.threatType] = (typeCounts[a.threatType] || 0) + 1;
+    }
+
+    for (const a of last30m.slice(0, 15)) {
+      recentAlerts.push(`${a.city} (${a.threatType}, countdown: ${a.countdown}s)`);
+    }
+
+    const topRegions = Object.entries(regionCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
+    const topTypes = Object.entries(typeCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
+
+    const velocity30m = last30m.length;
+    const velocity2h = last2h.length;
+    const velocityPerHour = last2h.length > 0 ? last2h.length / 2 : 0;
+    const isEscalating = velocity30m > (velocity2h / 4) * 1.3;
+
+    const intelDigest = classifiedMessageCache
+      .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
+      .slice(0, 10)
+      .map(m => `[${m.channel}] ${m.text.slice(0, 120)}`)
+      .join('\n');
+
+    const systemPrompt = `You are a predictive military intelligence AI specializing in Middle East conflict forecasting. Based on real-time alert data, classified intelligence, and pattern analysis, generate attack predictions. Return ONLY valid JSON with this exact structure:
+{
+  "predictions": [
+    {
+      "region": "string (target region name)",
+      "threatVector": "rockets|missiles|uav|cruise_missile|ballistic|mortar|anti_tank|combined",
+      "probability": 0.0-1.0,
+      "timeframe": "imminent|1h|3h|6h|12h|24h",
+      "source": "string (likely origin of attack)",
+      "rationale": "string (1-2 sentence explanation)",
+      "severity": "critical|high|medium|low"
+    }
+  ],
+  "overallThreatLevel": "EXTREME|HIGH|ELEVATED|MODERATE|LOW",
+  "escalationVector": "string (brief description of escalation direction)",
+  "nextLikelyTarget": "string (most probable next target region)",
+  "confidence": 0.0-1.0,
+  "patternSummary": "string (2-3 sentence pattern analysis)"
+}
+Generate 3-6 predictions ordered by probability. Base predictions on actual alert velocity, geographic patterns, and threat type distribution.`;
+
+    const userPrompt = `REAL-TIME ALERT DATA (last 6h):
+Total alerts: ${alerts.length}
+Last 30min: ${velocity30m} alerts
+Last 2h: ${velocity2h} alerts
+Velocity: ${velocityPerHour.toFixed(1)} alerts/hour
+Trend: ${isEscalating ? 'ESCALATING' : 'STABLE/DECLINING'}
+
+TOP TARGETED REGIONS:
+${topRegions.map(([r, c]) => `- ${r}: ${c} alerts`).join('\n')}
+
+THREAT TYPES:
+${topTypes.map(([t, c]) => `- ${t}: ${c} incidents`).join('\n')}
+
+RECENT ALERTS (last 30min):
+${recentAlerts.join('\n') || 'None'}
+
+CLASSIFIED INTELLIGENCE:
+${intelDigest || 'Limited OSINT available.'}`;
+
+    try {
+      const resp = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+
+      const raw = resp.content?.[0]?.type === 'text' ? resp.content[0].text : '';
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const result = {
+          predictions: Array.isArray(parsed.predictions) ? parsed.predictions.slice(0, 6).map((p: any) => ({
+            region: p.region || 'Unknown',
+            threatVector: p.threatVector || 'rockets',
+            probability: Math.min(1, Math.max(0, p.probability || 0.5)),
+            timeframe: p.timeframe || '3h',
+            source: p.source || 'Unknown',
+            rationale: p.rationale || '',
+            severity: (['critical','high','medium','low'].includes(p.severity) ? p.severity : 'medium'),
+          })) : [],
+          overallThreatLevel: (['EXTREME','HIGH','ELEVATED','MODERATE','LOW'].includes(parsed.overallThreatLevel) ? parsed.overallThreatLevel : 'HIGH'),
+          escalationVector: parsed.escalationVector || 'Multi-axis pressure continues',
+          nextLikelyTarget: parsed.nextLikelyTarget || topRegions[0]?.[0] || 'Northern Israel',
+          confidence: Math.min(1, Math.max(0, parsed.confidence || 0.6)),
+          patternSummary: parsed.patternSummary || 'Pattern analysis based on current alert velocity and geographic distribution.',
+          generatedAt: new Date().toISOString(),
+          dataPoints: {
+            totalAlerts: alerts.length,
+            velocity30m: velocity30m,
+            velocity2h: velocity2h,
+            velocityPerHour: parseFloat(velocityPerHour.toFixed(1)),
+            isEscalating,
+            topRegions: topRegions.map(([r, c]) => ({ region: r, count: c })),
+          },
+        };
+        attackPredictionCache = { data: result, fetchedAt: Date.now() };
+        return result;
+      }
+      throw new Error('No valid JSON');
+    } catch (err) {
+      console.error('[ATTACK-PREDICTION] LLM error:', (err as Error).message);
+      const fallback = {
+        predictions: topRegions.slice(0, 4).map(([region, count], i) => ({
+          region,
+          threatVector: topTypes[i]?.[0] || 'rockets',
+          probability: Math.min(0.95, 0.4 + (count as number / Math.max(alerts.length, 1)) * 0.5),
+          timeframe: velocity30m > 10 ? 'imminent' : velocity30m > 5 ? '1h' : '3h',
+          source: 'Pattern analysis',
+          rationale: `${count} alerts detected in region with ${isEscalating ? 'escalating' : 'sustained'} tempo.`,
+          severity: (count as number) > alerts.length * 0.3 ? 'critical' : (count as number) > alerts.length * 0.1 ? 'high' : 'medium',
+        })),
+        overallThreatLevel: isEscalating ? 'HIGH' : 'ELEVATED',
+        escalationVector: isEscalating ? 'Alert velocity increasing across multiple fronts' : 'Sustained pressure on primary sectors',
+        nextLikelyTarget: topRegions[0]?.[0] || 'Northern Israel',
+        confidence: 0.55,
+        patternSummary: `Data-driven fallback: ${alerts.length} alerts tracked, ${velocity30m} in last 30 minutes. ${isEscalating ? 'Escalation detected.' : 'Pattern stable.'}`,
+        generatedAt: new Date().toISOString(),
+        dataPoints: {
+          totalAlerts: alerts.length,
+          velocity30m,
+          velocity2h,
+          velocityPerHour: parseFloat(velocityPerHour.toFixed(1)),
+          isEscalating,
+          topRegions: topRegions.map(([r, c]) => ({ region: r, count: c })),
+        },
+      };
+      attackPredictionCache = { data: fallback, fetchedAt: Date.now() };
+      return fallback;
+    }
+  }
+
+  app.get('/api/attack-prediction', async (_req, res) => {
+    try {
+      const prediction = await generateAttackPrediction();
+      res.json(prediction);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to generate attack prediction' });
+    }
   });
 
   app.get('/api/alert-history', (_req, res) => {

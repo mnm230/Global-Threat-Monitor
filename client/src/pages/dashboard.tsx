@@ -234,6 +234,32 @@ function useAnomalyDetection(
   return anomalies;
 }
 
+interface AttackPrediction {
+  predictions: Array<{
+    region: string;
+    threatVector: string;
+    probability: number;
+    timeframe: string;
+    source: string;
+    rationale: string;
+    severity: 'critical' | 'high' | 'medium' | 'low';
+  }>;
+  overallThreatLevel: string;
+  escalationVector: string;
+  nextLikelyTarget: string;
+  confidence: number;
+  patternSummary: string;
+  generatedAt: string;
+  dataPoints: {
+    totalAlerts: number;
+    velocity30m: number;
+    velocity2h: number;
+    velocityPerHour: number;
+    isEscalating: boolean;
+    topRegions: Array<{ region: string; count: number }>;
+  };
+}
+
 interface SSEData {
   news: NewsItem[];
   commodities: CommodityData[];
@@ -248,6 +274,7 @@ interface SSEData {
   infraEvents: InfraEvent[];
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
+  attackPrediction: AttackPrediction | null;
   connected: boolean;
 }
 
@@ -265,6 +292,7 @@ function useSSE(): SSEData {
   const [infraEvents, setInfraEvents] = useState<InfraEvent[]>([]);
   const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
   const [breakingNews, setBreakingNews] = useState<BreakingNewsItem[]>([]);
+  const [attackPrediction, setAttackPrediction] = useState<AttackPrediction | null>(null);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
@@ -322,6 +350,9 @@ function useSSE(): SSEData {
       es.addEventListener('analytics', (e) => {
         try { queryClient.setQueryData(['/api/analytics'], (old: any) => ({ ...old, ...JSON.parse(e.data) })); } catch {}
       });
+      es.addEventListener('attack-prediction', (e) => {
+        try { setAttackPrediction(JSON.parse(e.data)); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -342,7 +373,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -536,7 +567,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep';
+type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep' | 'attackpred';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -553,6 +584,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
   osint: { icon: Activity, label: 'OSINT Feed', labelAr: 'تغذية OSINT' },
   sitrep: { icon: FileDown, label: 'SITREP', labelAr: 'تقرير الوضع' },
+  attackpred: { icon: Crosshair, label: 'Attack Predictor', labelAr: 'توقع الهجوم' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1085,6 +1117,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'infra',     x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'osint',     x: 8, y: 18, w: 4, h: 4, minW: 3, minH: 2 },
+  { i: 'attackpred', x: 0, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
 ];
 
 interface Correlation {
@@ -5389,6 +5422,176 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
   );
 }
 
+function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, prediction }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; prediction: AttackPrediction | null }) {
+  const threatColors: Record<string, string> = {
+    EXTREME: 'text-red-400',
+    HIGH: 'text-orange-400',
+    ELEVATED: 'text-yellow-400',
+    MODERATE: 'text-blue-400',
+    LOW: 'text-green-400',
+  };
+  const threatBgs: Record<string, string> = {
+    EXTREME: 'bg-red-500/15 border-red-500/30',
+    HIGH: 'bg-orange-500/15 border-orange-500/30',
+    ELEVATED: 'bg-yellow-500/15 border-yellow-500/30',
+    MODERATE: 'bg-blue-500/15 border-blue-500/30',
+    LOW: 'bg-green-500/15 border-green-500/30',
+  };
+  const severityColors: Record<string, string> = {
+    critical: 'bg-red-500/20 text-red-300 border-red-500/30',
+    high: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+    medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+    low: 'bg-green-500/20 text-green-300 border-green-500/30',
+  };
+  const VectorIcon = ({ type }: { type: string }) => {
+    switch (type) {
+      case 'rockets': return <Zap className="w-3 h-3 text-red-400" />;
+      case 'missiles': return <Target className="w-3 h-3 text-orange-400" />;
+      case 'uav': return <Plane className="w-3 h-3 text-yellow-400" />;
+      case 'cruise_missile': return <Plane className="w-3 h-3 text-red-300" />;
+      case 'ballistic': return <AlertTriangle className="w-3 h-3 text-red-500" />;
+      case 'mortar': return <Crosshair className="w-3 h-3 text-orange-300" />;
+      case 'anti_tank': return <Shield className="w-3 h-3 text-blue-400" />;
+      case 'combined': return <ShieldAlert className="w-3 h-3 text-yellow-300" />;
+      default: return <AlertTriangle className="w-3 h-3 text-white/50" />;
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full" data-testid="panel-attackpred">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-2">
+          <Crosshair className="w-3.5 h-3.5 text-red-400" />
+          <span className="text-[11px] font-semibold tracking-wide uppercase text-white/90">{language === 'ar' ? 'توقع الهجوم بالذكاء الاصطناعي' : 'AI Attack Predictor'}</span>
+          {prediction?.dataPoints?.isEscalating && (
+            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-red-500/25 text-red-300 rounded border border-red-500/30 animate-pulse" data-testid="badge-escalating">ESCALATING</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
+          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2.5 min-h-0">
+        {!prediction ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+              <span className="text-[10px] text-white/40">Generating AI predictions...</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className={`flex items-center justify-between p-2 rounded border ${threatBgs[prediction.overallThreatLevel] || threatBgs.HIGH}`} data-testid="threat-level-banner">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className={`w-4 h-4 ${threatColors[prediction.overallThreatLevel] || 'text-orange-400'}`} />
+                <div>
+                  <div className={`text-[11px] font-bold ${threatColors[prediction.overallThreatLevel] || 'text-orange-400'}`}>
+                    {prediction.overallThreatLevel} THREAT
+                  </div>
+                  <div className="text-[9px] text-white/50">
+                    AI Confidence: {Math.round(prediction.confidence * 100)}%
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[9px] text-white/40">Next target</div>
+                <div className="text-[10px] font-medium text-white/80" data-testid="text-next-target">{prediction.nextLikelyTarget}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex items-center gap-1.5 flex-1">
+                <Activity className="w-3 h-3 text-cyan-400/70" />
+                <span className="text-[9px] text-white/50">{prediction.dataPoints.totalAlerts} alerts</span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-1">
+                <Zap className="w-3 h-3 text-yellow-400/70" />
+                <span className="text-[9px] text-white/50">{prediction.dataPoints.velocityPerHour}/hr</span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-1">
+                {prediction.dataPoints.isEscalating ? <TrendingUp className="w-3 h-3 text-red-400/70" /> : <TrendingDown className="w-3 h-3 text-green-400/70" />}
+                <span className="text-[9px] text-white/50">{prediction.dataPoints.velocity30m} / 30m</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold text-white/60 uppercase tracking-wider px-1">{language === 'ar' ? 'توقعات التهديد' : 'Threat Predictions'}</div>
+              {prediction.predictions.map((p, i) => (
+                <div key={i} className={`p-2 rounded border ${severityColors[p.severity]} bg-opacity-50`} data-testid={`prediction-card-${i}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5">
+                      <VectorIcon type={p.threatVector} />
+                      <span className="text-[10px] font-semibold text-white/90">{p.region}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${p.probability >= 0.7 ? 'bg-red-500/25 text-red-300' : p.probability >= 0.4 ? 'bg-yellow-500/25 text-yellow-300' : 'bg-blue-500/25 text-blue-300'}`} data-testid={`text-probability-${i}`}>
+                        {Math.round(p.probability * 100)}%
+                      </span>
+                      <span className="text-[9px] text-white/40 font-mono" data-testid={`text-timeframe-${i}`}>{p.timeframe}</span>
+                    </div>
+                  </div>
+                  <div className="w-full h-1 rounded-full bg-white/10 mb-1.5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${p.probability >= 0.7 ? 'bg-red-400' : p.probability >= 0.4 ? 'bg-yellow-400' : 'bg-blue-400'}`}
+                      style={{ width: `${Math.round(p.probability * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[9px] text-white/50 leading-relaxed flex-1">{p.rationale}</div>
+                    <div className="text-[8px] text-white/30 shrink-0">
+                      {p.threatVector.replace('_', ' ')} | {p.source}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-2 rounded border border-cyan-500/15 bg-cyan-500/5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Brain className="w-3 h-3 text-cyan-400/70" />
+                <span className="text-[9px] font-semibold text-cyan-300/80 uppercase tracking-wider">{language === 'ar' ? 'تحليل الأنماط' : 'Pattern Analysis'}</span>
+              </div>
+              <p className="text-[9px] text-white/50 leading-relaxed" data-testid="text-pattern-summary">{prediction.patternSummary}</p>
+            </div>
+
+            <div className="p-2 rounded border border-white/[0.06] bg-white/[0.02]">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Target className="w-3 h-3 text-orange-400/70" />
+                <span className="text-[9px] font-semibold text-white/60 uppercase tracking-wider">{language === 'ar' ? 'اتجاه التصعيد' : 'Escalation Vector'}</span>
+              </div>
+              <p className="text-[9px] text-white/50 leading-relaxed" data-testid="text-escalation-vector">{prediction.escalationVector}</p>
+            </div>
+
+            {prediction.dataPoints.topRegions.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-[9px] font-semibold text-white/40 uppercase tracking-wider px-1">{language === 'ar' ? 'مناطق مستهدفة' : 'Targeted Regions'}</div>
+                {prediction.dataPoints.topRegions.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 px-1" data-testid={`region-bar-${i}`}>
+                    <span className="text-[9px] text-white/60 w-20 truncate">{r.region}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-500/60 to-cyan-400/40 transition-all duration-500"
+                        style={{ width: `${Math.min(100, (r.count / Math.max(...prediction.dataPoints.topRegions.map(x => x.count), 1)) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-white/40 font-mono w-8 text-right">{r.count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="text-[8px] text-white/20 text-center pt-1" data-testid="text-generated-at">
+              Updated: {new Date(prediction.generatedAt).toLocaleTimeString()}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PanelSidebar({
   visiblePanels,
   openPanel,
@@ -5672,7 +5875,7 @@ export default function Dashboard() {
   
 
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false, attackpred: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -5721,7 +5924,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -5886,7 +6089,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep', 'attackpred'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -5896,7 +6099,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, markets: 28,
-    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28,
+    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -6033,6 +6236,8 @@ export default function Dashboard() {
           return <OsintTimelinePanel alerts={redAlerts} messages={telegramMessages} events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'sitrep':
           return <SitrepPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'attackpred':
+          return <AttackPredictorPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} />;
       }
     })();
     return panel ?? null;
