@@ -24,6 +24,8 @@ const THREAT_COLORS: Record<string, string> = {
   hostile_aircraft_intrusion: '#7c3aed',
 };
 
+const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
+
 export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; language: 'en' | 'ar' }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -74,9 +76,10 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
         container: containerRef.current,
         style: MAP_STYLE,
         center: [35.5, 32.0],
-        zoom: 6,
+        zoom: IS_MOBILE ? 5 : 6,
         maxBounds: ME_BOUNDS,
         attributionControl: false,
+        antialias: false,   // not needed for a 2D circle/symbol map
         fadeDuration: 0,
       });
     } catch (err) {

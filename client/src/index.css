@@ -207,7 +207,7 @@
     background: hsl(185 60% 45% / 0.9);
   }
 
-  /* Dot-grid overlay — subtle */
+  /* Dot-grid overlay — subtle. Disable on mobile to avoid a full-screen repaint layer */
   body::after {
     content: '';
     position: fixed;
@@ -221,6 +221,12 @@
     pointer-events: none;
     z-index: 9998;
     will-change: auto;
+  }
+
+  @media (max-width: 767px) {
+    body::after {
+      display: none; /* skip full-screen dot grid layer on mobile */
+    }
   }
 
   /* Panel headers - larger & bolder */
@@ -612,6 +618,24 @@
     overflow: hidden;
     overscroll-behavior: none;
     -webkit-text-size-adjust: 100%;
+  }
+
+  /* Promote map container to its own compositor layer */
+  .maplibregl-canvas {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+
+  /* Reduce paint cost on mobile panel transitions */
+  .warroom-mobile-panel-transition {
+    will-change: opacity, transform;
+    contain: layout style paint;
+  }
+
+  /* Avoid repainting on scroll inside panels */
+  .overflow-y-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   .warroom-header {

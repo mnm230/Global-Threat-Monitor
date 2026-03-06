@@ -13,7 +13,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, AdsbFlight, CyberEvent, EWEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, CyberEvent, EWEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -37,251 +37,6 @@ const grok = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL,
 });
-
-const ADSB_API_BASE = 'https://api.airplanes.live/v2';
-
-const ADSB_QUERY_POINTS = [
-  { lat: 32.0, lon: 35.0, dist: 250 },  // Israel / Palestine / West Bank
-  { lat: 33.9, lon: 35.5, dist: 180 },  // Lebanon / Cyprus / eastern Med
-  { lat: 28.0, lon: 50.0, dist: 250 },  // Persian Gulf / Iran coast
-  { lat: 25.5, lon: 55.0, dist: 200 },  // UAE / Gulf of Oman / Hormuz
-  { lat: 33.5, lon: 44.0, dist: 200 },  // Iraq / Syria border
-  { lat: 27.0, lon: 34.0, dist: 200 },  // Red Sea / Yemen approaches
-  { lat: 38.0, lon: 32.0, dist: 250 },  // Turkey
-  { lat: 28.0, lon: 31.0, dist: 250 },  // Egypt / Sinai / Nile Delta
-  { lat: 35.5, lon: 52.0, dist: 200 },  // Tehran / Northern Iran
-];
-
-const MILITARY_HEX_PREFIXES = [
-  'AE', 'AF', '3F', '43C', '43D',
-  '738', '739', '73A',   // Israel
-  '06A', '06B',          // Iran
-  '71C',                 // Lebanon (LAF)
-];
-
-const MILITARY_CALLSIGN_PATTERNS = [
-  // US SIGINT / surveillance
-  /^FORTE/i, /^DUKE/i, /^HOMER/i, /^JAKE/i, /^NCHO/i,
-  /^LAGR/i, /^TOPCAT/i, /^DARKS/i, /^REAPER/i,
-  // US airlift / tanker
-  /^RCH/i, /^EVAC/i, /^RFF/i, /^JAKE/i,
-  // Israel (IDF/IAF)
-  /^IAF/i, /^ELBIT/i,
-  // Iran
-  /^IRGC/i, /^IRIAF/i,
-  // Lebanon Armed Forces
-  /^LAF/i, /^LBAF/i,
-  // NATO / European
-  /^GAF/i, /^RAFAIR/i, /^ASCOT/i, /^USMIL/i,
-  // Generic military fighters/tankers
-  /^VIPER/i, /^COBRA/i, /^HAWK/i, /^MAGMA/i, /^REACH/i,
-];
-
-const SURVEILLANCE_TYPES = ['GLEX', 'GL5T', 'E3CF', 'E3TF', 'E6', 'RC135', 'P8', 'RQ4', 'MQ9', 'U2'];
-
-function classifyAircraftType(ac: Record<string, unknown>): AdsbFlight['type'] {
-  const hex = ((ac.hex as string) || '').toUpperCase();
-  const callsign = ((ac.flight as string) || '').trim().toUpperCase();
-  const category = (ac.category as string) || '';
-  const dbType = ((ac.t as string) || '').toUpperCase();
-
-  if (SURVEILLANCE_TYPES.some(st => dbType.includes(st))) return 'surveillance';
-
-  for (const prefix of MILITARY_HEX_PREFIXES) {
-    if (hex.startsWith(prefix)) {
-      if (MILITARY_CALLSIGN_PATTERNS.some(p => p.test(callsign))) return 'military';
-    }
-  }
-  if (MILITARY_CALLSIGN_PATTERNS.some(p => p.test(callsign))) return 'military';
-
-  if (category === 'A5' || category === 'A4') {
-    if (dbType.includes('C17') || dbType.includes('C130') || dbType.includes('C5') ||
-        dbType.includes('B74') || dbType.includes('B77') || dbType.includes('A33')) {
-      const reg = ((ac.r as string) || '').toUpperCase();
-      if (/^\d{2}-\d{4}/.test(reg) || /^N\d{5}/.test(reg)) return 'cargo';
-    }
-  }
-
-  if (category === 'B2' || category === 'B1' || category === 'B4') return 'military';
-
-  if (dbType.includes('GLEX') || dbType.includes('GL5T') || dbType.includes('GLF') ||
-      dbType.includes('CL60') || dbType.includes('FA50') || dbType.includes('FA7X') ||
-      dbType.includes('G280') || dbType.includes('LJ')) {
-    if (!callsign.match(/^[A-Z]{3}\d/)) return 'private';
-  }
-
-  if (callsign.match(/^[A-Z]{3}\d/) || category === 'A3' || category === 'A5') return 'commercial';
-
-  if (dbType.includes('C17') || dbType.includes('C130') || dbType.includes('KC') ||
-      dbType.includes('B74') && !callsign.match(/^[A-Z]{3}\d/)) return 'cargo';
-
-  return 'commercial';
-}
-
-function isFlaggedFlight(ac: Record<string, unknown>, acType: AdsbFlight['type']): { flagged: boolean; flagReason?: string } {
-  const squawk = (ac.squawk as string) || '';
-  const emergency = (ac.emergency as string) || 'none';
-  const alt = (typeof ac.alt_baro === 'number' ? ac.alt_baro : 0) as number;
-  const callsign = ((ac.flight as string) || '').trim();
-
-  if (emergency !== 'none' && emergency !== '') return { flagged: true, flagReason: `EMERGENCY: ${emergency}` };
-  if (squawk === '7700') return { flagged: true, flagReason: 'SQUAWK 7700 - EMERGENCY' };
-  if (squawk === '7600') return { flagged: true, flagReason: 'SQUAWK 7600 - COMM FAILURE' };
-  if (squawk === '7500') return { flagged: true, flagReason: 'SQUAWK 7500 - HIJACK' };
-  if (acType === 'military') return { flagged: true, flagReason: 'Military aircraft' };
-  if (acType === 'surveillance') return { flagged: true, flagReason: 'ISR/Surveillance platform' };
-  if (acType === 'government') return { flagged: true, flagReason: 'Government aircraft' };
-  if (alt > 50000) return { flagged: true, flagReason: `High altitude: ${alt}ft` };
-
-  return { flagged: false };
-}
-
-function countryFromHex(hex: string): string {
-  const h = hex.toUpperCase();
-  if (h.startsWith('738') || h.startsWith('739') || h.startsWith('73A')) return 'Israel';
-  if (h.startsWith('06A') || h.startsWith('06B')) return 'Iran';
-  if (h.startsWith('71C') || h.startsWith('71D')) return 'Lebanon';
-  if (h.startsWith('710') || h.startsWith('711') || h.startsWith('712')) return 'Saudi Arabia';
-  if (h.startsWith('715') || h.startsWith('716')) return 'Kuwait';
-  if (h.startsWith('713') || h.startsWith('714')) return 'Iraq';
-  if (h.startsWith('71A') || h.startsWith('71B')) return 'Syria';
-  if (h.startsWith('4B1') || h.startsWith('4B2')) return 'Jordan';
-  if (h.startsWith('AE') || h.startsWith('AF') || h.startsWith('A8') || h.startsWith('AA')) return 'USA';
-  if (h.startsWith('400') || h.startsWith('401') || h.startsWith('43')) return 'UK';
-  if (h.startsWith('3C') || h.startsWith('3D')) return 'Germany';
-  if (h.startsWith('47')) return 'France';
-  if (h.startsWith('896') || h.startsWith('897')) return 'South Korea';
-  if (h.startsWith('780')) return 'China';
-  if (h.startsWith('4CA')) return 'Ireland';
-  if (h.startsWith('4B0')) return 'Bahrain';
-  if (h.startsWith('760') || h.startsWith('A6E')) return 'UAE';
-  if (h.startsWith('75')) return 'Qatar';
-  if (h.startsWith('800') || h.startsWith('801')) return 'India';
-  if (h.startsWith('C0')) return 'Canada';
-  if (h.startsWith('50')) return 'Australia';
-  if (h.startsWith('86')) return 'Japan';
-  if (h.startsWith('48') || h.startsWith('49')) return 'Turkey';
-  if (h.startsWith('896E')) return 'UAE';
-  if (h.startsWith('76')) return 'Qatar';
-  return 'Unknown';
-}
-
-function transformAdsbAircraft(ac: Record<string, unknown>, index: number): AdsbFlight | null {
-  const hex = (ac.hex as string) || '';
-  const altBaro = ac.alt_baro;
-  if (!hex || altBaro === 'ground' || altBaro === undefined) return null;
-
-  const lat = ac.lat as number | undefined;
-  const lon = ac.lon as number | undefined;
-  if (lat === undefined || lon === undefined) return null;
-
-  const callsign = ((ac.flight as string) || 'N/A').trim() || 'N/A';
-  const acType = classifyAircraftType(ac);
-  const { flagged, flagReason } = isFlaggedFlight(ac, acType);
-
-  return {
-    id: `live-${hex}`,
-    hex: hex.toUpperCase(),
-    callsign,
-    type: acType,
-    aircraft: ((ac.t as string) || 'Unknown').toUpperCase(),
-    registration: ((ac.r as string) || hex.toUpperCase()),
-    origin: '',
-    destination: '',
-    lat,
-    lng: lon,
-    altitude: typeof altBaro === 'number' ? altBaro : 0,
-    groundSpeed: (ac.gs as number) || 0,
-    verticalRate: (ac.baro_rate as number) || (ac.geom_rate as number) || 0,
-    heading: (ac.track as number) || (ac.true_heading as number) || 0,
-    squawk: (ac.squawk as string) || '0000',
-    rssi: (ac.rssi as number) || -30,
-    seen: (ac.seen as number) || 0,
-    country: countryFromHex(hex),
-    flagged,
-    flagReason,
-  };
-}
-
-let cachedLiveFlights: AdsbFlight[] = [];
-let lastFetchTime = 0;
-const FETCH_COOLDOWN_MS = 8000; // refresh at most every 8s; serve cache in between
-
-async function fetchLiveAdsbFlights(): Promise<AdsbFlight[]> {
-  const now = Date.now();
-  if (now - lastFetchTime < FETCH_COOLDOWN_MS && cachedLiveFlights.length > 0) {
-    return cachedLiveFlights;
-  }
-
-  try {
-    const seenHexes = new Set<string>();
-    const allFlights: AdsbFlight[] = [];
-
-    const geoQueries = ADSB_QUERY_POINTS.map(async (pt) => {
-      const url = `${ADSB_API_BASE}/point/${pt.lat}/${pt.lon}/${pt.dist}`;
-      const resp = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!resp.ok) return [];
-      const data = await resp.json() as { ac?: Record<string, unknown>[] };
-      return data.ac || [];
-    });
-
-    const milQuery = (async () => {
-      try {
-        const resp = await fetch(`${ADSB_API_BASE}/mil`, {
-          headers: { 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!resp.ok) return [];
-        const data = await resp.json() as { ac?: Record<string, unknown>[] };
-        return (data.ac || []).filter((a: Record<string, unknown>) => {
-          const lat = a.lat as number | undefined;
-          const lon = a.lon as number | undefined;
-          if (lat === undefined || lon === undefined) return false;
-          return lat > 10 && lat < 45 && lon > 22 && lon < 68;
-        });
-      } catch { return []; }
-    })();
-
-    const results = await Promise.allSettled([...geoQueries, milQuery]);
-
-    let idx = 0;
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        for (const ac of result.value) {
-          const hex = ((ac.hex as string) || '').toLowerCase();
-          if (seenHexes.has(hex)) continue;
-          seenHexes.add(hex);
-          const flight = transformAdsbAircraft(ac, idx++);
-          if (flight) allFlights.push(flight);
-        }
-      }
-    }
-
-    if (allFlights.length > 0) {
-      allFlights.sort((a, b) => {
-        const priority: Record<string, number> = { military: 0, surveillance: 1, government: 2, cargo: 3, commercial: 4, private: 5 };
-        return (priority[a.type] ?? 5) - (priority[b.type] ?? 5);
-      });
-      cachedLiveFlights = allFlights;
-      lastFetchTime = now;
-      console.log(`[ADSB] Fetched ${allFlights.length} live aircraft from airplanes.live`);
-    } else if (cachedLiveFlights.length > 0) {
-      return cachedLiveFlights;
-    } else {
-      console.log('[ADSB] No live data available');
-      return [];
-    }
-
-    return allFlights;
-  } catch (err) {
-    console.error('[ADSB] API fetch failed:', (err as Error).message);
-    if (cachedLiveFlights.length > 0) return cachedLiveFlights;
-    return [];
-  }
-}
 
 // --- Shared news category classifier ---
 function classifyTitle(text: string): 'breaking' | 'military' | 'diplomatic' | 'economic' {
@@ -4079,75 +3834,6 @@ export async function registerRoutes(
     res.json(await generateRedAlerts());
   });
 
-  app.get('/api/adsb', async (_req, res) => {
-    const flights = await fetchLiveAdsbFlights();
-    res.json(flights);
-  });
-
-  const routeCache = new Map<string, { data: any; ts: number }>();
-  const ROUTE_CACHE_TTL = 10 * 60 * 1000;
-
-  app.get('/api/adsb/route/:callsign', async (req, res) => {
-    const callsign = (req.params.callsign || '').trim().toUpperCase();
-    if (!callsign) return res.status(400).json({ error: 'Callsign required' });
-
-    const cached = routeCache.get(callsign);
-    if (cached && Date.now() - cached.ts < ROUTE_CACHE_TTL) {
-      return res.json(cached.data);
-    }
-
-    try {
-      const adsbdbRes = await fetch(`https://api.adsbdb.com/v0/callsign/${callsign}`, {
-        signal: AbortSignal.timeout(6000),
-      });
-      if (adsbdbRes.ok) {
-        const json = await adsbdbRes.json() as any;
-        const fr = json?.response?.flightroute;
-        if (fr) {
-          const result = {
-            origin: fr.origin ? {
-              name: fr.origin.name || '',
-              iata: fr.origin.iata_code || '',
-              icao: fr.origin.icao_code || '',
-              country: fr.origin.country_name || '',
-            } : null,
-            destination: fr.destination ? {
-              name: fr.destination.name || '',
-              iata: fr.destination.iata_code || '',
-              icao: fr.destination.icao_code || '',
-              country: fr.destination.country_name || '',
-            } : null,
-            airline: fr.airline?.name || null,
-          };
-          routeCache.set(callsign, { data: result, ts: Date.now() });
-          return res.json(result);
-        }
-      }
-    } catch {}
-
-    try {
-      const hexRes = await fetch(`https://hexdb.io/api/v1/route/iata/${callsign}`, {
-        signal: AbortSignal.timeout(5000),
-      });
-      if (hexRes.ok) {
-        const text = await hexRes.text();
-        const parts = text.trim().split('-');
-        if (parts.length === 2 && parts[0] && parts[1]) {
-          const result = {
-            origin: { name: '', iata: parts[0], icao: '', country: '' },
-            destination: { name: '', iata: parts[1], icao: '', country: '' },
-            airline: null,
-          };
-          routeCache.set(callsign, { data: result, ts: Date.now() });
-          return res.json(result);
-        }
-      }
-    } catch {}
-
-    const unknown = { origin: null, destination: null, airline: null };
-    routeCache.set(callsign, { data: unknown, ts: Date.now() });
-    res.json(unknown);
-  });
 
   app.get('/api/ai-brief', async (_req, res) => {
     const [alerts, conflictEvents] = await Promise.all([generateRedAlerts(), fetchGDELTConflictEvents()]);
@@ -4191,15 +3877,13 @@ export async function registerRoutes(
   app.get('/api/analytics', async (_req, res) => {
     const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
     const messages = classifiedMessageCache;
-    const [conflictEvents, thermalHotspots, adsbFlights, llmAssessments] = await Promise.all([
+    const [conflictEvents, thermalHotspots, llmAssessments] = await Promise.all([
       fetchGDELTConflictEvents(),
       fetchThermalHotspots(),
-      fetchLiveAdsbFlights(),
       runMultiLLMAssessment(alerts, messages),
     ]);
-    const militaryFlightCount = adsbFlights.filter(f => f.type === 'military').length;
     const thermalCount = thermalHotspots.filter(h => h.confidence === 'high' || h.confidence === 'nominal').length;
-    const analytics = generateAnalytics(alerts, messages, conflictEvents, thermalCount, militaryFlightCount);
+    const analytics = generateAnalytics(alerts, messages, conflictEvents, thermalCount, 0);
     const { consensusRisk, modelAgreement } = computeConsensus(llmAssessments);
     res.json({ ...analytics, llmAssessments, consensusRisk, modelAgreement });
   });
@@ -4453,15 +4137,8 @@ export async function registerRoutes(
     latestAlerts = [];
 
     send('commodities', generateCommodities());
-    fetchGDELTConflictEvents().then(async (events) => {
-      const adsbFlights = await fetchLiveAdsbFlights();
-      const flights = adsbFlights.map(f => ({
-        id: f.id, callsign: f.callsign,
-        type: (f.type === 'cargo' || f.type === 'private' || f.type === 'government') ? 'commercial' as const : f.type as 'military' | 'commercial' | 'surveillance',
-        lat: f.lat, lng: f.lng, altitude: f.altitude, heading: f.heading,
-        speed: f.groundSpeed, aircraft: f.aircraft, origin: f.origin, squawk: f.squawk,
-      }));
-      send('events', { events, flights, ships: [] });
+    fetchGDELTConflictEvents().then((events) => {
+      send('events', { events, flights: [], ships: [] });
     });
     generateNews().then(news => send('news', news));
     generateRedAlerts().then(alerts => {
@@ -4477,7 +4154,6 @@ export async function registerRoutes(
       const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
       send('breaking-news', breaking);
     });
-    fetchLiveAdsbFlights().then(flights => send('adsb', flights));
     fetchLiveTelegram().then(tgMsgs => {
       latestTgMsgs = tgMsgs;
       send('telegram', tgMsgs);
@@ -4499,7 +4175,6 @@ export async function registerRoutes(
     fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
     intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
-    intervals.push(setInterval(() => fetchLiveAdsbFlights().then(flights => send('adsb', flights)), 5000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       latestAlerts = alerts;
       recordAlertHistory(alerts);
@@ -4510,15 +4185,8 @@ export async function registerRoutes(
       send('breaking-news', breaking);
     }), 1500));
     intervals.push(setInterval(() => {
-      fetchGDELTConflictEvents().then(async (events) => {
-        const adsbFlights = await fetchLiveAdsbFlights();
-        const flights = adsbFlights.map(f => ({
-          id: f.id, callsign: f.callsign,
-          type: (f.type === 'cargo' || f.type === 'private' || f.type === 'government') ? 'commercial' as const : f.type as 'military' | 'commercial' | 'surveillance',
-          lat: f.lat, lng: f.lng, altitude: f.altitude, heading: f.heading,
-          speed: f.groundSpeed, aircraft: f.aircraft, origin: f.origin, squawk: f.squawk,
-        }));
-        send('events', { events, flights, ships: [] });
+      fetchGDELTConflictEvents().then((events) => {
+        send('events', { events, flights: [], ships: [] });
       });
     }, 30000));
     intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
@@ -4562,17 +4230,16 @@ export async function registerRoutes(
 
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
-      const [conflictEvents, thermalHotspots, adsbFlights] = await Promise.all([
+      const [conflictEvents, thermalHotspots] = await Promise.all([
         fetchGDELTConflictEvents(),
         fetchThermalHotspots(),
-        fetchLiveAdsbFlights(),
       ]);
       const analytics = generateAnalytics(
         alerts,
         classifiedMessageCache,
         conflictEvents,
         thermalHotspots.filter(h => h.confidence === 'high' || h.confidence === 'nominal').length,
-        adsbFlights.filter(f => f.type === 'military').length,
+        0,
       );
       send('analytics', analytics);
     }, 30000));

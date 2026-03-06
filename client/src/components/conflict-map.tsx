@@ -2,8 +2,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { ScatterplotLayer, IconLayer, LineLayer, TextLayer } from '@deck.gl/layers';
-import type { ConflictEvent, FlightData, AdsbFlight, RedAlert, ThermalHotspot, EWEvent } from '@shared/schema';
+import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot, EWEvent } from '@shared/schema';
 
 // ── Map styles ────────────────────────────────────────────────────────────────
 const MAP_THEMES = {
@@ -23,39 +23,6 @@ const EVENT_COLORS: Record<string, [number, number, number]> = {
   ground:    [234, 179, 8],
   nuclear:   [168, 85,  247],
 };
-
-const ADSB_COLORS: Record<string, [number, number, number]> = {
-  military:     [239, 68,  68],
-  surveillance: [34,  211, 238],
-  government:   [251, 191, 36],
-  commercial:   [148, 163, 184],
-  private:      [148, 163, 184],
-  cargo:        [148, 163, 184],
-};
-
-// ── Plane icon ────────────────────────────────────────────────────────────────
-const ICON_SIZE = 64;
-const PLANE_ATLAS = (() => {
-  if (typeof document === 'undefined') return '';
-  const c = document.createElement('canvas');
-  c.width = ICON_SIZE; c.height = ICON_SIZE;
-  const ctx = c.getContext('2d')!;
-  const cx = ICON_SIZE / 2, cy = ICON_SIZE / 2, s = ICON_SIZE / 64;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - 30 * s); ctx.lineTo(cx + 3 * s, cy - 24 * s);
-  ctx.lineTo(cx + 3.5 * s, cy - 8 * s); ctx.lineTo(cx + 26 * s, cy + 4 * s);
-  ctx.lineTo(cx + 26 * s, cy + 9 * s); ctx.lineTo(cx + 3.5 * s, cy + 3 * s);
-  ctx.lineTo(cx + 3 * s, cy + 14 * s); ctx.lineTo(cx + 11 * s, cy + 21 * s);
-  ctx.lineTo(cx + 11 * s, cy + 25 * s); ctx.lineTo(cx, cy + 21 * s);
-  ctx.lineTo(cx - 11 * s, cy + 25 * s); ctx.lineTo(cx - 11 * s, cy + 21 * s);
-  ctx.lineTo(cx - 3 * s, cy + 14 * s); ctx.lineTo(cx - 3.5 * s, cy + 3 * s);
-  ctx.lineTo(cx - 26 * s, cy + 9 * s); ctx.lineTo(cx - 26 * s, cy + 4 * s);
-  ctx.lineTo(cx - 3.5 * s, cy - 8 * s); ctx.lineTo(cx - 3 * s, cy - 24 * s);
-  ctx.closePath(); ctx.fill();
-  return c.toDataURL();
-})();
-const PLANE_MAPPING = { plane: { x: 0, y: 0, width: ICON_SIZE, height: ICON_SIZE, mask: true } } as const;
 
 // ── Static intel data ─────────────────────────────────────────────────────────
 const MILITARY_BASES = [
@@ -93,7 +60,6 @@ const LAYER_GROUPS = [
     layers: [
       { key: 'events',  label: 'Conflict Events', color: '#ef4444', on: true  },
       { key: 'alerts',  label: 'Red Alerts',      color: '#f43f5e', on: true  },
-      { key: 'adsb',    label: 'ADS-B Flights',   color: '#22d3ee', on: true  },
       { key: 'thermal', label: 'NASA FIRMS Thermal', color: '#f97316', on: true },
     ],
   },
@@ -147,17 +113,6 @@ function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'
       sub: e.description,
       badge: `${e.type.toUpperCase()} · ${e.severity.toUpperCase()}`,
       color: color ? `rgb(${color.join(',')})` : '#ef4444',
-    };
-  }
-  // AdsbFlight
-  if ('callsign' in obj && 'aircraft' in obj) {
-    const f = obj as unknown as AdsbFlight;
-    const color = ADSB_COLORS[f.type];
-    return {
-      title: f.callsign || 'Unknown',
-      sub: `${f.aircraft || '?'} · Alt ${f.altitude?.toLocaleString() || '?'} ft · ${Math.round(f.groundSpeed || 0)} kt`,
-      badge: f.type?.toUpperCase(),
-      color: color ? `rgb(${color.join(',')})` : '#22d3ee',
     };
   }
   // RedAlert
@@ -216,7 +171,6 @@ function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'
 interface ConflictMapProps {
   events: ConflictEvent[];
   flights: FlightData[];
-  adsbFlights?: AdsbFlight[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
   ewEvents?: EWEvent[];
@@ -226,9 +180,12 @@ interface ConflictMapProps {
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }
 
+// ── Mobile detection (module-level, stable across renders) ───────────────────
+const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
-  events, adsbFlights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
+  events, redAlerts = [], thermalHotspots = [], ewEvents = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation,
 }: ConflictMapProps) {
   const containerRef      = useRef<HTMLDivElement>(null);
@@ -241,7 +198,8 @@ export default function ConflictMap({
   const [vis, setVis] = useState<Record<LayerKey, boolean>>(
     () => Object.fromEntries(ALL_LAYERS.map(l => [l.key, l.on])) as Record<LayerKey, boolean>
   );
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Sidebar closed by default on mobile to save GPU/layout cost
+  const [sidebarOpen, setSidebarOpen] = useState(!IS_MOBILE);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     () => Object.fromEntries(LAYER_GROUPS.map(g => [g.id, true]))
   );
@@ -285,7 +243,7 @@ export default function ConflictMap({
       center: [init.lng, init.lat],
       zoom: init.zoom,
       attributionControl: false,
-      antialias: true,
+      antialias: !IS_MOBILE,   // antialias is GPU-expensive; skip on mobile
       fadeDuration: 0,
     });
     mapRef.current = map;
@@ -345,24 +303,27 @@ export default function ConflictMap({
         pickable: true,
       }));
 
-      const critical = events.filter(e => e.severity === 'critical');
-      if (critical.length > 0) {
-        layers.push(new TextLayer({
-          id: 'events-labels',
-          data: critical,
-          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getText: (d: ConflictEvent) => d.type.toUpperCase(),
-          getSize: 10,
-          getColor: (d: ConflictEvent) =>
-            [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), 200] as [number, number, number, number],
-          getPixelOffset: [0, -16] as [number, number],
-          fontFamily: 'monospace', fontWeight: 'bold',
-          outlineWidth: 3, outlineColor: [0, 0, 0, 200] as [number, number, number, number],
-          fontSettings: { sdf: true },
-          getTextAnchor: 'middle' as const,
-          getAlignmentBaseline: 'bottom' as const,
-          pickable: false,
-        }));
+      // Skip TextLayer on mobile — it's expensive and hard to read on small screens
+      if (!IS_MOBILE) {
+        const critical = events.filter(e => e.severity === 'critical');
+        if (critical.length > 0) {
+          layers.push(new TextLayer({
+            id: 'events-labels',
+            data: critical,
+            getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+            getText: (d: ConflictEvent) => d.type.toUpperCase(),
+            getSize: 10,
+            getColor: (d: ConflictEvent) =>
+              [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), 200] as [number, number, number, number],
+            getPixelOffset: [0, -16] as [number, number],
+            fontFamily: 'monospace', fontWeight: 'bold',
+            outlineWidth: 3, outlineColor: [0, 0, 0, 200] as [number, number, number, number],
+            fontSettings: { sdf: true },
+            getTextAnchor: 'middle' as const,
+            getAlignmentBaseline: 'bottom' as const,
+            pickable: false,
+          }));
+        }
       }
     }
 
@@ -382,45 +343,6 @@ export default function ConflictMap({
         stroked: true, lineWidthMinPixels: 1,
         radiusMinPixels: 2, radiusMaxPixels: 9,
         pickable: true,
-      }));
-    }
-
-    // ── ADS-B live flights ──
-    if (vis.adsb && adsbFlights.length > 0) {
-      const moving = adsbFlights.filter(f => f.groundSpeed > 20 && f.heading != null);
-      if (moving.length > 0) {
-        layers.push(new LineLayer({
-          id: 'adsb-vectors',
-          data: moving,
-          getSourcePosition: (d: AdsbFlight) => [d.lng, d.lat],
-          getTargetPosition: (d: AdsbFlight) => {
-            const rad = (d.heading! * Math.PI) / 180;
-            const dist = 18000;
-            return [
-              d.lng + (dist * Math.sin(rad)) / (111320 * Math.cos((d.lat * Math.PI) / 180)),
-              d.lat + (dist * Math.cos(rad)) / 111320,
-            ];
-          },
-          getColor: (d: AdsbFlight) =>
-            [...(ADSB_COLORS[d.type] ?? ADSB_COLORS.commercial), d.flagged ? 130 : 45] as [number, number, number, number],
-          getWidth: 1, widthMinPixels: 1,
-          pickable: false,
-        }));
-      }
-
-      layers.push(new IconLayer({
-        id: 'adsb',
-        data: adsbFlights,
-        getPosition: (d: AdsbFlight) => [d.lng, d.lat],
-        getIcon: () => 'plane',
-        iconAtlas: PLANE_ATLAS,
-        iconMapping: PLANE_MAPPING,
-        getSize: (d: AdsbFlight) => d.flagged ? 22 : 15,
-        getAngle: (d: AdsbFlight) => 360 - (d.heading ?? 0),
-        getColor: (d: AdsbFlight) =>
-          [...(ADSB_COLORS[d.type] ?? ADSB_COLORS.commercial), d.flagged ? 255 : 185] as [number, number, number, number],
-        sizeMinPixels: 9, sizeMaxPixels: 26,
-        billboard: false, pickable: true,
       }));
     }
 
@@ -495,7 +417,7 @@ export default function ConflictMap({
     }
 
     return layers;
-  }, [vis, events, adsbFlights, redAlerts, thermalHotspots, ewEvents]);
+  }, [vis, events, redAlerts, thermalHotspots, ewEvents]);
 
   // Keep refs current so the rAF loop can read latest data without closures
   useEffect(() => {
@@ -511,9 +433,17 @@ export default function ConflictMap({
   }, [vis.alerts]);
 
   // rAF loop — only animates the pulsing ring, does NOT trigger any React re-renders
+  // On mobile: throttle to ~20fps (every 3rd frame) to reduce GPU pressure
   useEffect(() => {
     let raf: number;
+    let frame = 0;
+    const MOBILE_SKIP = 3; // render every Nth frame on mobile (~20fps)
     const tick = () => {
+      frame++;
+      if (IS_MOBILE && frame % MOBILE_SKIP !== 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       const t = Date.now() / 1000;
       const alpha = Math.round(25 + 22 * Math.sin(t * 2.4));
       const activeAlerts = alertsRef.current;
@@ -609,11 +539,12 @@ export default function ConflictMap({
       <div
         className="absolute top-0 left-0 h-full z-20 flex flex-col transition-transform duration-300"
         style={{
-          width: 210,
+          width: IS_MOBILE ? 190 : 210,
           transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          background: 'rgba(6,8,14,0.88)',
+          // backdrop-filter is GPU-expensive; use solid bg on mobile instead
+          background: IS_MOBILE ? 'rgba(6,8,14,0.97)' : 'rgba(6,8,14,0.88)',
           borderRight: '1px solid rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: IS_MOBILE ? undefined : 'blur(8px)',
         }}
       >
         {/* Header */}
@@ -703,7 +634,6 @@ export default function ConflictMap({
                     const count =
                       cfg.key === 'events'  ? events.length :
                       cfg.key === 'alerts'  ? redAlerts.filter(a => a.lat && a.lng).length :
-                      cfg.key === 'adsb'    ? adsbFlights.length :
                       cfg.key === 'thermal' ? thermalHotspots.filter(h => h.confidence !== 'low').length :
                       cfg.key === 'bases'   ? MILITARY_BASES.length :
                       cfg.key === 'nuclear' ? NUCLEAR_SITES.length : 0;
@@ -764,8 +694,8 @@ export default function ConflictMap({
           <div className="flex gap-0 divide-x divide-white/[0.06]">
             {[
               { label: 'Alerts', value: redAlerts.filter(a => a.lat && a.lng).length, color: '#f87171' },
-              { label: 'Mil AC', value: adsbFlights.filter(f => f.type === 'military').length, color: '#22d3ee' },
               { label: 'Events', value: events.length, color: '#fb923c' },
+              { label: 'Thermal', value: thermalHotspots.filter(h => h.confidence !== 'low').length, color: '#f97316' },
             ].map(({ label, value, color }) => (
               <div key={label} className="flex flex-col items-center flex-1 px-2">
                 <span className="text-[8px] font-mono uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>{label}</span>
@@ -785,14 +715,6 @@ export default function ConflictMap({
             <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" style={{boxShadow:'0 0 5px rgba(239,68,68,0.7)'}} />
             <span className="text-[9px] font-black font-mono text-red-300 tracking-wide">
               {redAlerts.filter(a => a.lat && a.lng).length} ALERT{redAlerts.filter(a => a.lat && a.lng).length !== 1 ? 'S' : ''}
-            </span>
-          </div>
-        )}
-        {adsbFlights.filter(f => f.type === 'military').length > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full backdrop-blur-sm" style={{background:'rgba(6,8,18,0.75)', border:'1px solid rgba(34,211,238,0.15)', boxShadow:'0 2px 10px rgba(0,0,0,0.3)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" style={{boxShadow:'0 0 4px rgba(34,211,238,0.6)'}} />
-            <span className="text-[9px] font-mono font-bold text-cyan-300/75 tracking-wide">
-              {adsbFlights.filter(f => f.type === 'military').length} MIL
             </span>
           </div>
         )}

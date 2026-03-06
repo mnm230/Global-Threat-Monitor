@@ -65,28 +65,6 @@ export interface FlightData {
   squawk?: string;
 }
 
-export interface AdsbFlight {
-  id: string;
-  hex: string;
-  callsign: string;
-  type: 'military' | 'commercial' | 'surveillance' | 'cargo' | 'private' | 'government';
-  aircraft: string;
-  registration: string;
-  origin: string;
-  destination: string;
-  lat: number;
-  lng: number;
-  altitude: number;
-  groundSpeed: number;
-  verticalRate: number;
-  heading: number;
-  squawk: string;
-  rssi: number;
-  seen: number;
-  country: string;
-  flagged: boolean;
-  flagReason?: string;
-}
 
 export interface ShipData {
   id: string;
@@ -387,4 +365,33 @@ export interface SatelliteImage {
   description: string;
   changeDetected?: boolean;
   changeType?: 'construction' | 'destruction' | 'military_activity' | 'fire' | 'flooding' | 'none';
+}
+
+export type SitrepWindow = '1h' | '6h' | '24h';
+
+export interface SitrepKeyEvent {
+  dtg: string;
+  location: string;
+  event: string;
+  significance: 'critical' | 'high' | 'medium';
+}
+
+export interface Sitrep {
+  id: string;
+  window: SitrepWindow;
+  dtg: string;
+  riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE';
+  situation: string;
+  opfor: string;
+  blufor: string;
+  keyEvents: SitrepKeyEvent[];
+  intelligence: string;
+  infrastructure: string;
+  ewCyber: string;
+  commandersAssessment: string;
+  outlook: string;
+  alertCount: number;
+  eventCount: number;
+  generatedAt: string;
+  model: string;
 }

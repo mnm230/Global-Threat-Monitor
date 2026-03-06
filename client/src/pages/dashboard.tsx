@@ -24,7 +24,6 @@ import type {
   RedAlert,
   AIBrief,
   AIDeduction,
-  AdsbFlight,
   EWEvent,
   InfraEvent,
   ThermalHotspot,
@@ -241,7 +240,6 @@ interface SSEData {
   ships: ShipData[];
   sirens: SirenAlert[];
   redAlerts: RedAlert[];
-  adsbFlights: AdsbFlight[];
   aiBrief: AIBrief | null;
   telegramMessages: TelegramMessage[];
   ewEvents: EWEvent[];
@@ -259,7 +257,6 @@ function useSSE(): SSEData {
   const [ships, setShips] = useState<ShipData[]>([]);
   const [sirens, setSirens] = useState<SirenAlert[]>([]);
   const [redAlerts, setRedAlerts] = useState<RedAlert[]>([]);
-  const [adsbFlights, setAdsbFlights] = useState<AdsbFlight[]>([]);
   const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [ewEvents, setEwEvents] = useState<EWEvent[]>([]);
@@ -302,9 +299,6 @@ function useSSE(): SSEData {
       es.addEventListener('red-alerts', (e) => {
         try { setRedAlerts(JSON.parse(e.data)); } catch {}
       });
-      es.addEventListener('adsb', (e) => {
-        try { setAdsbFlights(JSON.parse(e.data)); } catch {}
-      });
       es.addEventListener('ai-brief', (e) => {
         try { setAiBrief(JSON.parse(e.data)); } catch {}
       });
@@ -346,7 +340,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -540,7 +534,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint';
+type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -548,7 +542,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   telegram: { icon: Send, label: 'Telegram', labelAr: '\u062A\u0644\u063A\u0631\u0627\u0645' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   radar: { icon: Plane, label: 'Radar', labelAr: '\u0631\u0627\u062F\u0627\u0631' },
-  adsb: { icon: Radar, label: 'ADS-B', labelAr: '\u0645\u0631\u0627\u0642\u0628\u0629 \u062C\u0648\u064A\u0629' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
   ew: { icon: Radio, label: 'Elec. Warfare', labelAr: 'الحرب الإلكترونية' },
@@ -1045,26 +1038,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100 },
     rowSplit: 50,
   },
 ];
@@ -1081,10 +1074,9 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'livefeed',  x: 3, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
   { i: 'events',    x: 6, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
   { i: 'radar',     x: 9, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
-  // Row 3 — Air & AlertMap & Markets  (y=14, h=4)
-  { i: 'adsb',      x: 0, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'alertmap',  x: 4, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'markets',   x: 8, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
+  // Row 3 — AlertMap & Markets  (y=14, h=4)
+  { i: 'alertmap',  x: 0, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
+  { i: 'markets',   x: 6, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
   // Row 4 — Analysis  (y=18, h=4)
   { i: 'ew',        x: 0, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'infra',     x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
@@ -1452,7 +1444,6 @@ function generateExportReport(
   alerts: RedAlert[],
   sirens: SirenAlert[],
   commodities: CommodityData[],
-  adsbFlights: AdsbFlight[],
   threatLevel: { level: string; color: string },
   language: 'en' | 'ar'
 ): string {
@@ -1469,7 +1460,6 @@ function generateExportReport(
   alerts.forEach(a => { byCountry[a.country] = (byCountry[a.country] || 0) + 1; });
 
   const milFlights = flights.filter(f => f.type === 'military' || f.type === 'surveillance');
-  const flaggedAdsb = adsbFlights.filter(f => f.flagged);
 
   const movers = [...commodities].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0, 6);
 
@@ -1518,10 +1508,6 @@ ${topEvents.map(e => `<tr><td><span class="sev" style="color:${sevColors[e.sever
 ${milFlights.map(f => `<tr><td style="color:#fff">${f.callsign}</td><td>${f.type.toUpperCase()}</td><td>${f.altitude.toLocaleString()} ft</td><td>${Math.round(f.heading)}</td></tr>`).join('')}
 </tbody></table>
 
-${flaggedAdsb.length > 0 ? `<h2>Flagged ADS-B Tracks (${flaggedAdsb.length})</h2>
-<table><thead><tr><th>Callsign</th><th>Type</th><th>Altitude</th><th>Squawk</th><th>Note</th></tr></thead><tbody>
-${flaggedAdsb.map(f => `<tr><td style="color:#ef4444;font-weight:bold">${f.callsign}</td><td>${f.type}</td><td>${f.altitude.toLocaleString()} ft</td><td>${f.squawk}</td><td style="color:#aaa">${f.flagReason || ''}</td></tr>`).join('')}
-</tbody></table>` : ''}
 
 <h2>Maritime Situation (${ships.length} Vessels)</h2>
 <table><thead><tr><th>Vessel</th><th>Type</th><th>Flag</th><th>Speed</th><th>Heading</th></tr></thead><tbody>
