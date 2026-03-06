@@ -171,6 +171,7 @@
   }
 
   /* Scale up tiny hardcoded pixel font sizes used throughout the dashboard */
+  .text-\[6px\]  { font-size: 10px !important; font-weight: 700 !important; }
   .text-\[7px\]  { font-size: 10px !important; font-weight: 600 !important; }
   .text-\[8px\]  { font-size: 11px !important; font-weight: 600 !important; }
   .text-\[9px\]  { font-size: 12px !important; font-weight: 600 !important; }
@@ -233,9 +234,10 @@
     transition: box-shadow 0.15s ease;
   }
 
-  /* Smooth transitions on interactive elements */
+  /* Smooth transitions + prevent 300ms tap delay on interactive elements */
   button, a, [role="button"] {
     transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    touch-action: manipulation;
   }
 
   /* Scrollable panels container */
@@ -472,8 +474,16 @@
     background-color: transparent;
   }
 
-  button, [role="button"], a, label[style*="cursor: pointer"] {
-    -webkit-tap-highlight-color: rgba(0, 255, 255, 0.05);
+  /* Eliminate 300ms tap delay on ALL interactive elements */
+  button, [role="button"], a, label, input, select, textarea, summary {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent iOS from zooming in on input focus — must be >= 16px */
+  input:not([type="range"]), select, textarea {
+    font-size: 16px !important;
+    min-height: 44px;
   }
 
   * {
@@ -510,35 +520,50 @@
   }
 
   .panel-drag-handle {
-    min-height: 40px !important;
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
+    min-height: 44px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
   }
 
   input[type="range"] {
-    height: 32px;
+    height: 36px;
     cursor: pointer;
+    min-height: 36px !important;
   }
 
   input[type="range"]::-webkit-slider-thumb {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
   }
 
+  /* Slim scrollbars on touch — use native momentum overlay */
   ::-webkit-scrollbar {
-    width: 8px !important;
-    height: 8px !important;
+    width: 3px !important;
+    height: 3px !important;
   }
 
   ::-webkit-scrollbar-thumb {
-    min-height: 44px;
-    border-radius: 4px;
+    min-height: 48px;
+    border-radius: 2px;
   }
 
+  /* 44×44 minimum touch targets for panel controls */
   .warroom-panel-close,
   .warroom-panel-maximize {
-    min-width: 32px !important;
-    min-height: 32px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  /* Enlarge MapLibre GL map control buttons */
+  .maplibregl-ctrl-group button {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 18px !important;
+  }
+
+  /* Visible active state tap feedback */
+  button:active, [role="button"]:active {
+    opacity: 0.75;
   }
 }
 
@@ -553,8 +578,8 @@
 
   .warroom-header {
     padding: 2px 8px;
-    gap: 4px;
-    min-height: 40px;
+    gap: 6px;
+    min-height: 48px;
   }
 
   .warroom-header .header-title {
@@ -568,20 +593,20 @@
   }
 
   .warroom-panel-header {
-    padding: 6px 10px;
-    font-size: 12px;
-    min-height: 32px;
+    padding: 8px 12px;
+    font-size: 13px;
+    min-height: 44px;
   }
 
   .warroom-panel-body {
-    padding: 6px 8px;
+    padding: 8px 10px;
     font-size: 13px;
     -webkit-overflow-scrolling: touch;
   }
 
   .warroom-mobile-tabs {
     display: flex;
-    background: hsl(220 28% 12% / 0.92);
+    background: hsl(220 28% 12% / 0.96);
     border-top: 1px solid hsl(185 40% 28% / 0.14);
     min-height: 56px;
   }
@@ -591,34 +616,50 @@
     touch-action: manipulation;
   }
 
+  /* No drag handle on mobile — panels aren't draggable */
   .panel-drag-handle {
-    min-height: 28px !important;
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    min-height: 40px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
     cursor: default !important;
   }
 
   .maplibregl-ctrl-group {
-    margin: 4px !important;
+    margin: 6px !important;
   }
 
   .maplibregl-ctrl-group button {
-    width: 36px !important;
-    height: 36px !important;
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  /* Landscape phone: slim header to reclaim vertical space */
+  @media (orientation: landscape) {
+    .warroom-header {
+      min-height: 40px;
+      padding: 0 8px;
+    }
+    .warroom-mobile-tabs {
+      min-height: 48px;
+    }
+    .panel-drag-handle {
+      min-height: 36px !important;
+    }
   }
 
   .warroom-mobile-mini-ticker {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
-    padding: 3px 8px;
-    background: hsl(220 28% 12% / 0.85);
-    border-bottom: 1px solid hsl(185 40% 28% / 0.1);
-    min-height: 24px;
+    scroll-snap-type: x proximity;
+    padding: 4px 10px;
+    background: hsl(220 28% 12% / 0.9);
+    border-bottom: 1px solid hsl(185 40% 28% / 0.12);
+    min-height: 28px;
   }
 
   .warroom-mobile-mini-ticker::-webkit-scrollbar {
@@ -629,36 +670,40 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    padding: 3px 0 1px;
+    gap: 2px;
+    padding: 2px 0;
     background: hsl(220 28% 12% / 0.75);
+    min-height: 24px;
   }
 
+  /* Dots are now inside buttons — style only the visual indicator */
   .warroom-mobile-swipe-dots .dot {
-    width: 5px;
-    height: 5px;
+    display: block;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: hsl(185 25% 22%);
+    background: hsl(185 25% 28%);
     transition: all 0.2s ease;
   }
 
   .warroom-mobile-swipe-dots .dot.active {
-    width: 14px;
+    width: 16px;
     border-radius: 3px;
     background: hsl(185 100% 42%);
+    box-shadow: 0 0 6px hsl(185 100% 42% / 0.5);
   }
 
   .warroom-mobile-panel-transition {
-    animation: mobileSlideIn 0.18s ease-out;
+    animation: mobileSlideIn 0.16s ease-out;
   }
 
   @keyframes mobileSlideIn {
-    from { opacity: 0.7; transform: translateX(8px); }
+    from { opacity: 0.75; transform: translateX(6px); }
     to { opacity: 1; transform: translateX(0); }
   }
 }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1399px) {
   .warroom-panel-body {
     font-size: 13px;
   }
@@ -669,18 +714,81 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1199px) and (hover: none) and (pointer: coarse) {
+/* ── iPad & tablet touch devices ─────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1399px) and (hover: none) and (pointer: coarse) {
+  .warroom-header {
+    min-height: 52px;
+    padding: 0 12px;
+  }
+
+  .warroom-panel {
+    min-height: 280px;
+  }
+
+  .warroom-panel-header {
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .panel-drag-handle {
+    min-height: 48px !important;
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+    cursor: default !important;
+  }
+
+  /* Larger map controls on iPad */
+  .maplibregl-ctrl-group {
+    margin: 8px !important;
+  }
+
+  .maplibregl-ctrl-group button {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 20px !important;
+  }
+
+  /* Larger close/maximize buttons */
+  .warroom-panel-close,
+  .warroom-panel-maximize {
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+
+  /* iPad scrollbar: hide on touch, use momentum */
+  [data-testid="resizable-panels"]::-webkit-scrollbar {
+    width: 0 !important;
+  }
+
+  [data-testid="resizable-panels"] {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Generous tap targets in settings and menus */
+  .warroom-panel-body button,
+  .warroom-panel-body [role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* iPad landscape: give more breathing room */
+@media (min-width: 900px) and (max-width: 1399px) and (hover: none) and (pointer: coarse) and (orientation: landscape) {
   .warroom-header {
     min-height: 48px;
   }
 
-  .warroom-panel {
-    min-height: 260px;
+  .panel-drag-handle {
+    min-height: 44px !important;
   }
 
-  .warroom-panel-header {
-    min-height: 40px;
-    padding: 8px 12px;
+  .maplibregl-ctrl-group button {
+    width: 44px !important;
+    height: 44px !important;
   }
 }
 

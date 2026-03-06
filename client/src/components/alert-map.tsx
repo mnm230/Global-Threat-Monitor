@@ -3,7 +3,7 @@ import { useEffect, useRef, useMemo } from 'react';
 import { Map as MapLibreMap, Popup, LngLatBounds } from 'maplibre-gl';
 import type { RedAlert } from '@shared/schema';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json';
 
 // Constrain the alert map to Middle East / MENA only — no Ukraine, no Europe
 const ME_BOUNDS: [[number, number], [number, number]] = [

@@ -1,846 +1,195 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
-import { Deck } from '@deck.gl/core';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { ScatterplotLayer, PathLayer, LineLayer, ArcLayer, PolygonLayer, TextLayer, IconLayer } from '@deck.gl/layers';
-import { HeatmapLayer } from '@deck.gl/aggregation-layers';
-import { PathStyleExtension } from '@deck.gl/extensions';
+import { ScatterplotLayer, IconLayer, LineLayer, TextLayer } from '@deck.gl/layers';
 import type { ConflictEvent, FlightData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// ── Map style ────────────────────────────────────────────────────────────────
+const DEFAULT_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json';
 
-const PLANE_ICON_SIZE = 64;
-const PLANE_ICON_ATLAS = (() => {
+// ── Colors ───────────────────────────────────────────────────────────────────
+const EVENT_COLORS: Record<string, [number, number, number]> = {
+  missile:   [239, 68,  68],
+  airstrike: [249, 115, 22],
+  defense:   [34,  211, 238],
+  naval:     [59,  130, 246],
+  ground:    [234, 179, 8],
+  nuclear:   [168, 85,  247],
+};
+
+const ADSB_COLORS: Record<string, [number, number, number]> = {
+  military:     [239, 68,  68],
+  surveillance: [34,  211, 238],
+  government:   [251, 191, 36],
+  commercial:   [148, 163, 184],
+  private:      [148, 163, 184],
+  cargo:        [148, 163, 184],
+};
+
+// ── Plane icon ────────────────────────────────────────────────────────────────
+const ICON_SIZE = 64;
+const PLANE_ATLAS = (() => {
   if (typeof document === 'undefined') return '';
   const c = document.createElement('canvas');
-  c.width = PLANE_ICON_SIZE;
-  c.height = PLANE_ICON_SIZE;
+  c.width = ICON_SIZE; c.height = ICON_SIZE;
   const ctx = c.getContext('2d')!;
-  const cx = PLANE_ICON_SIZE / 2;
-  const cy = PLANE_ICON_SIZE / 2;
-  const s = PLANE_ICON_SIZE / 64;
+  const cx = ICON_SIZE / 2, cy = ICON_SIZE / 2, s = ICON_SIZE / 64;
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.moveTo(cx, cy - 30 * s);
-  ctx.lineTo(cx + 3 * s, cy - 24 * s);
-  ctx.lineTo(cx + 3.5 * s, cy - 8 * s);
-  ctx.lineTo(cx + 26 * s, cy + 4 * s);
-  ctx.lineTo(cx + 26 * s, cy + 9 * s);
-  ctx.lineTo(cx + 3.5 * s, cy + 3 * s);
-  ctx.lineTo(cx + 3 * s, cy + 14 * s);
-  ctx.lineTo(cx + 11 * s, cy + 21 * s);
-  ctx.lineTo(cx + 11 * s, cy + 25 * s);
-  ctx.lineTo(cx, cy + 21 * s);
-  ctx.lineTo(cx - 11 * s, cy + 25 * s);
-  ctx.lineTo(cx - 11 * s, cy + 21 * s);
-  ctx.lineTo(cx - 3 * s, cy + 14 * s);
-  ctx.lineTo(cx - 3.5 * s, cy + 3 * s);
-  ctx.lineTo(cx - 26 * s, cy + 9 * s);
-  ctx.lineTo(cx - 26 * s, cy + 4 * s);
-  ctx.lineTo(cx - 3.5 * s, cy - 8 * s);
-  ctx.lineTo(cx - 3 * s, cy - 24 * s);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(cx, cy - 30 * s); ctx.lineTo(cx + 3 * s, cy - 24 * s);
+  ctx.lineTo(cx + 3.5 * s, cy - 8 * s); ctx.lineTo(cx + 26 * s, cy + 4 * s);
+  ctx.lineTo(cx + 26 * s, cy + 9 * s); ctx.lineTo(cx + 3.5 * s, cy + 3 * s);
+  ctx.lineTo(cx + 3 * s, cy + 14 * s); ctx.lineTo(cx + 11 * s, cy + 21 * s);
+  ctx.lineTo(cx + 11 * s, cy + 25 * s); ctx.lineTo(cx, cy + 21 * s);
+  ctx.lineTo(cx - 11 * s, cy + 25 * s); ctx.lineTo(cx - 11 * s, cy + 21 * s);
+  ctx.lineTo(cx - 3 * s, cy + 14 * s); ctx.lineTo(cx - 3.5 * s, cy + 3 * s);
+  ctx.lineTo(cx - 26 * s, cy + 9 * s); ctx.lineTo(cx - 26 * s, cy + 4 * s);
+  ctx.lineTo(cx - 3.5 * s, cy - 8 * s); ctx.lineTo(cx - 3 * s, cy - 24 * s);
+  ctx.closePath(); ctx.fill();
   return c.toDataURL();
 })();
-const PLANE_ICON_MAPPING = {
-  plane: { x: 0, y: 0, width: PLANE_ICON_SIZE, height: PLANE_ICON_SIZE, mask: true }
-} as const;
-const IS_TOUCH = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+const PLANE_MAPPING = { plane: { x: 0, y: 0, width: ICON_SIZE, height: ICON_SIZE, mask: true } } as const;
 
-interface ViewState {
-  longitude: number;
-  latitude: number;
-  zoom: number;
-  pitch: number;
-  bearing: number;
-}
-
-const REGION_PRESETS: Record<string, ViewState> = {
-  global: { longitude: 42, latitude: 26, zoom: 3.5, pitch: 0, bearing: 0 },
-  mena: { longitude: 42, latitude: 28, zoom: 4, pitch: 0, bearing: 0 },
-  gulf: { longitude: 52, latitude: 26, zoom: 6, pitch: 0, bearing: 0 },
-  levant: { longitude: 36, latitude: 32, zoom: 6, pitch: 0, bearing: 0 },
-};
-
-const VIEW_CONFIG: Record<string, ViewState> = {
-  conflict: { longitude: 38, latitude: 28, zoom: 4.8, pitch: 42, bearing: -6 },
-  flights:  { longitude: 45, latitude: 31, zoom: 5,   pitch: 22, bearing: 0  },
-  maritime: { longitude: 55, latitude: 24, zoom: 5.5, pitch: 34, bearing: 0  },
-};
-
-const EVENT_COLORS: Record<string, [number, number, number]> = {
-  missile: [239, 68, 68],
-  airstrike: [249, 115, 22],
-  defense: [34, 211, 238],
-  naval: [59, 130, 246],
-  ground: [234, 179, 8],
-  nuclear: [168, 85, 247],
-};
-
-const FLIGHT_COLORS: Record<string, [number, number, number]> = {
-  military: [239, 68, 68],
-  surveillance: [34, 211, 238],
-  commercial: [34, 197, 94],
-};
-
-const SHIP_COLORS: Record<string, [number, number, number]> = {
-  military: [239, 68, 68],
-  tanker: [245, 158, 11],
-  cargo: [59, 130, 246],
-  patrol: [234, 179, 8],
-};
-
-const SEVERITY_RADIUS: Record<string, number> = {
-  critical: 12,
-  high: 9,
-  medium: 7,
-  low: 5,
-};
-
-const STRAIT_OF_HORMUZ: number[][] = [
-  [56.0, 26.1],
-  [56.2, 26.3],
-  [56.4, 26.6],
-  [56.5, 26.8],
-  [56.6, 27.0],
-];
-
+// ── Static intel data ─────────────────────────────────────────────────────────
 const MILITARY_BASES = [
-  { name: 'Al Udeid Air Base', lat: 25.117, lng: 51.315, country: 'Qatar', operator: 'US' },
-  { name: 'Al Dhafra Air Base', lat: 24.248, lng: 54.547, country: 'UAE', operator: 'US' },
-  { name: 'Camp Arifjan', lat: 29.085, lng: 48.088, country: 'Kuwait', operator: 'US' },
-  { name: 'Incirlik Air Base', lat: 37.002, lng: 35.426, country: 'Turkey', operator: 'US' },
-  { name: 'Al Tanf Garrison', lat: 33.513, lng: 38.661, country: 'Syria', operator: 'US' },
-  { name: 'Ramat David AFB', lat: 32.665, lng: 35.188, country: 'Israel', operator: 'Israel' },
-  { name: 'Nevatim AFB', lat: 31.208, lng: 34.962, country: 'Israel', operator: 'Israel' },
-  { name: 'Palmachim AFB', lat: 31.898, lng: 34.691, country: 'Israel', operator: 'Israel' },
-  { name: 'Bandar Abbas AFB', lat: 27.183, lng: 56.267, country: 'Iran', operator: 'Iran' },
-  { name: 'Isfahan AFB', lat: 32.655, lng: 51.668, country: 'Iran', operator: 'Iran' },
-  { name: 'Tabriz AFB', lat: 38.130, lng: 46.235, country: 'Iran', operator: 'Iran' },
-  { name: 'Shiraz AFB', lat: 29.540, lng: 52.590, country: 'Iran', operator: 'Iran' },
-  { name: 'Bushehr NAB', lat: 28.918, lng: 50.835, country: 'Iran', operator: 'Iran' },
-  { name: 'Al Salem Air Base', lat: 29.346, lng: 47.521, country: 'Kuwait', operator: 'US' },
-  { name: 'Camp Lemonnier', lat: 11.547, lng: 43.146, country: 'Djibouti', operator: 'US' },
-  { name: 'Hatzerim AFB', lat: 31.233, lng: 34.662, country: 'Israel', operator: 'Israel' },
-  { name: 'Prince Sultan Air Base', lat: 24.062, lng: 47.580, country: 'Saudi Arabia', operator: 'US' },
-  { name: 'Isa Air Base', lat: 25.918, lng: 50.591, country: 'Bahrain', operator: 'US' },
+  { name: 'Al Udeid AB', lat: 25.117, lng: 51.315, country: 'Qatar',        operator: 'US CENTCOM' },
+  { name: 'Al Dhafra AB', lat: 24.248, lng: 54.547, country: 'UAE',         operator: 'US Air Force' },
+  { name: 'Incirlik AB',  lat: 37.002, lng: 35.426, country: 'Turkey',       operator: 'USAF / NATO' },
+  { name: 'Ramat David',  lat: 32.665, lng: 35.188, country: 'Israel',       operator: 'IAF' },
+  { name: 'Nevatim AFB',  lat: 31.208, lng: 34.962, country: 'Israel',       operator: 'IAF' },
+  { name: 'Palmachim',    lat: 31.898, lng: 34.691, country: 'Israel',       operator: 'IAF / Mossad' },
+  { name: 'Bandar Abbas', lat: 27.183, lng: 56.267, country: 'Iran',         operator: 'IRIAF' },
+  { name: 'Isfahan AFB',  lat: 32.655, lng: 51.668, country: 'Iran',         operator: 'IRIAF' },
+  { name: 'Camp Lemonnier', lat: 11.547, lng: 43.146, country: 'Djibouti',  operator: 'US CJTF-HOA' },
+  { name: 'Prince Sultan AB', lat: 24.062, lng: 47.580, country: 'Saudi Arabia', operator: 'USAF' },
+  { name: 'Isa AB',       lat: 25.918, lng: 50.591, country: 'Bahrain',      operator: 'US 5th Fleet' },
+  { name: 'Al Tanf',      lat: 33.513, lng: 38.661, country: 'Syria',        operator: 'US SOF' },
+  { name: 'Tartus NB',    lat: 34.890, lng: 35.870, country: 'Syria',        operator: 'Russian Navy' },
+  { name: 'Hatzerim AFB', lat: 31.233, lng: 34.662, country: 'Israel',       operator: 'IAF' },
 ];
 
-const NUCLEAR_FACILITIES = [
-  { name: 'Natanz Enrichment', lat: 33.724, lng: 51.727, country: 'Iran', type: 'Enrichment' },
-  { name: 'Fordow Enrichment', lat: 34.881, lng: 51.577, country: 'Iran', type: 'Enrichment' },
-  { name: 'Bushehr NPP', lat: 28.830, lng: 50.888, country: 'Iran', type: 'Power Plant' },
-  { name: 'Isfahan UCF', lat: 32.654, lng: 51.668, country: 'Iran', type: 'Conversion' },
-  { name: 'Arak Heavy Water', lat: 34.379, lng: 49.247, country: 'Iran', type: 'Heavy Water' },
-  { name: 'Parchin Complex', lat: 35.526, lng: 51.774, country: 'Iran', type: 'Research' },
-  { name: 'Dimona Reactor', lat: 31.070, lng: 35.206, country: 'Israel', type: 'Reactor' },
-  { name: 'Sorek Nuclear Center', lat: 31.868, lng: 34.705, country: 'Israel', type: 'Research' },
+const NUCLEAR_SITES = [
+  { name: 'Natanz Enrichment', lat: 33.724, lng: 51.727, country: 'Iran',   type: 'Enrichment Facility' },
+  { name: 'Fordow Enrichment', lat: 34.881, lng: 51.577, country: 'Iran',   type: 'Underground Enrichment' },
+  { name: 'Bushehr NPP',       lat: 28.830, lng: 50.888, country: 'Iran',   type: 'Power Plant' },
+  { name: 'Isfahan UCF',       lat: 32.654, lng: 51.668, country: 'Iran',   type: 'Conversion Facility' },
+  { name: 'Arak Heavy Water',  lat: 34.379, lng: 49.247, country: 'Iran',   type: 'Heavy Water Reactor' },
+  { name: 'Parchin Complex',   lat: 35.526, lng: 51.774, country: 'Iran',   type: 'Research / Explosives' },
+  { name: 'Dimona Reactor',    lat: 31.070, lng: 35.206, country: 'Israel', type: 'Undeclared Reactor' },
+  { name: 'Sorek Research',    lat: 31.868, lng: 34.705, country: 'Israel', type: 'Research Reactor' },
 ];
 
-const AIR_DEFENSE = [
-  { name: 'Iron Dome - Tel Aviv', lat: 32.085, lng: 34.782, country: 'Israel', system: 'Iron Dome' },
-  { name: 'Iron Dome - Haifa', lat: 32.794, lng: 34.990, country: 'Israel', system: 'Iron Dome' },
-  { name: "David's Sling - Ramat David", lat: 32.665, lng: 35.188, country: 'Israel', system: "David's Sling" },
-  { name: 'Arrow - Palmachim', lat: 31.898, lng: 34.691, country: 'Israel', system: 'Arrow' },
-  { name: 'S-300 - Isfahan', lat: 32.654, lng: 51.668, country: 'Iran', system: 'S-300' },
-  { name: 'S-300 - Bushehr', lat: 28.918, lng: 50.835, country: 'Iran', system: 'S-300' },
-  { name: 'Bavar-373 - Tehran', lat: 35.689, lng: 51.389, country: 'Iran', system: 'Bavar-373' },
-  { name: 'Pantsir - Abu Dhabi', lat: 24.453, lng: 54.377, country: 'UAE', system: 'Pantsir-S1' },
-  { name: 'Iron Dome - Ashkelon', lat: 31.669, lng: 34.574, country: 'Israel', system: 'Iron Dome' },
-  { name: 'THAAD - Al Dhafra', lat: 24.248, lng: 54.547, country: 'UAE', system: 'THAAD' },
-  { name: 'Patriot - Prince Sultan', lat: 24.062, lng: 47.580, country: 'Saudi Arabia', system: 'Patriot PAC-3' },
-];
-
-const UNDERSEA_CABLES = [
+// ── Layer config (grouped) ────────────────────────────────────────────────────
+const LAYER_GROUPS = [
   {
-    name: 'AAE-1',
-    color: [0, 200, 200] as [number, number, number],
-    path: [[32.0, 31.2], [34.0, 28.0], [38.0, 21.5], [43.0, 12.5], [50.0, 25.0], [56.0, 25.5], [65.0, 22.0], [72.0, 18.0]],
+    id: 'live', label: 'LIVE FEEDS', color: '#ef4444',
+    layers: [
+      { key: 'events',  label: 'Conflict Events', color: '#ef4444', on: true  },
+      { key: 'alerts',  label: 'Red Alerts',      color: '#f43f5e', on: true  },
+      { key: 'adsb',    label: 'ADS-B Flights',   color: '#22d3ee', on: true  },
+      { key: 'thermal', label: 'NASA FIRMS Thermal', color: '#f97316', on: true },
+    ],
   },
   {
-    name: 'FLAG Europe-Asia',
-    color: [200, 100, 0] as [number, number, number],
-    path: [[32.3, 31.3], [34.5, 27.5], [39.0, 20.0], [44.0, 11.5], [48.0, 24.5], [57.0, 25.0], [66.0, 21.5], [73.0, 17.0]],
+    id: 'military', label: 'MILITARY', color: '#3b82f6',
+    layers: [
+      { key: 'bases',   label: 'Military Bases',  color: '#3b82f6', on: false },
+      { key: 'nuclear', label: 'Nuclear Sites',   color: '#a855f7', on: false },
+    ],
   },
-  {
-    name: 'SEA-ME-WE-5',
-    color: [100, 200, 100] as [number, number, number],
-    path: [[32.5, 31.0], [35.0, 27.0], [40.0, 19.0], [45.0, 12.0], [52.0, 24.0], [58.0, 24.5], [68.0, 20.0], [75.0, 15.0]],
-  },
-  {
-    name: 'EIG',
-    color: [200, 200, 0] as [number, number, number],
-    path: [[32.0, 31.5], [33.5, 28.5], [37.5, 22.0], [42.5, 13.0], [49.0, 25.5], [55.0, 26.0]],
-  },
-  {
-    name: 'FALCON',
-    color: [200, 50, 200] as [number, number, number],
-    path: [[48.0, 29.5], [50.5, 26.5], [52.0, 25.0], [54.0, 25.5], [56.5, 25.8]],
-  },
-  {
-    name: 'Gulf Bridge International',
-    color: [50, 150, 250] as [number, number, number],
-    path: [[48.5, 29.3], [50.0, 27.0], [51.5, 26.0], [53.0, 25.5], [55.0, 25.2]],
-  },
-];
-
-const PIPELINES = [
-  {
-    name: 'East-West Pipeline (Saudi)',
-    color: [200, 150, 50] as [number, number, number],
-    path: [[49.5, 26.0], [47.0, 25.5], [44.0, 24.5], [42.0, 24.0], [39.5, 24.5], [38.0, 25.5]],
-  },
-  {
-    name: 'IGAT Pipeline (Iran)',
-    color: [100, 150, 200] as [number, number, number],
-    path: [[52.0, 27.5], [51.5, 30.0], [51.0, 32.5], [50.5, 34.0], [49.5, 36.0]],
-  },
-  {
-    name: 'Kirkuk-Ceyhan Pipeline',
-    color: [150, 200, 100] as [number, number, number],
-    path: [[44.4, 35.5], [43.5, 36.0], [42.5, 36.5], [41.0, 37.0], [39.0, 37.0], [36.5, 36.8], [35.9, 36.8]],
-  },
-  {
-    name: 'Tapline',
-    color: [200, 100, 150] as [number, number, number],
-    path: [[50.2, 26.3], [48.0, 28.5], [46.0, 30.0], [42.0, 31.5], [38.0, 32.5], [36.0, 33.5], [35.5, 34.0]],
-  },
-  {
-    name: 'Dolphin Gas Pipeline',
-    color: [120, 200, 180] as [number, number, number],
-    path: [[51.5, 25.9], [52.5, 25.5], [54.0, 24.8], [54.5, 24.5]],
-  },
-  {
-    name: 'SUMED Pipeline',
-    color: [220, 180, 80] as [number, number, number],
-    path: [[32.3, 29.9], [31.5, 30.0], [30.5, 30.2], [29.9, 30.5]],
-  },
-];
-
-const DRONE_BASES = [
-  { name: 'Sde Dov UAV Hub', lat: 32.114, lng: 34.782, country: 'Israel', type: 'Hermes 900' },
-  { name: 'Palmachim Drone Wing', lat: 31.900, lng: 34.690, country: 'Israel', type: 'Heron TP' },
-  { name: 'Ali Al Salem UAV', lat: 29.346, lng: 47.521, country: 'Kuwait', type: 'MQ-9 Reaper' },
-  { name: 'Al Dhafra UAV Ops', lat: 24.250, lng: 54.550, country: 'UAE', type: 'MQ-9 Reaper' },
-  { name: 'Shahed Base - Isfahan', lat: 32.700, lng: 51.700, country: 'Iran', type: 'Shahed-136' },
-  { name: 'IRGC Drone Center - Kashan', lat: 33.990, lng: 51.460, country: 'Iran', type: 'Mohajer-6' },
-  { name: 'Houthi Drone Launch - Sanaa', lat: 15.370, lng: 44.190, country: 'Yemen', type: 'Samad-3' },
-];
-
-const COMMAND_CENTERS = [
-  { name: 'IDF HQ - Tel Aviv (Hakirya)', lat: 32.074, lng: 34.790, country: 'Israel', type: 'National Command' },
-  { name: 'CENTCOM Forward - Al Udeid', lat: 25.120, lng: 51.318, country: 'Qatar', type: 'US CENTCOM' },
-  { name: 'IRGC Joint Command - Tehran', lat: 35.700, lng: 51.420, country: 'Iran', type: 'IRGC Command' },
-  { name: 'Hezbollah War Room - Dahieh', lat: 33.850, lng: 35.510, country: 'Lebanon', type: 'Militia HQ' },
-  { name: 'IDF Northern Command - Safed', lat: 32.966, lng: 35.496, country: 'Israel', type: 'Regional Command' },
-  { name: 'IDF Southern Command - Beersheba', lat: 31.252, lng: 34.791, country: 'Israel', type: 'Regional Command' },
-  { name: 'Iranian Navy HQ - Bandar Abbas', lat: 27.185, lng: 56.263, country: 'Iran', type: 'Naval Command' },
-];
-
-const RADAR_SITES = [
-  { name: 'Green Pine - Negev', lat: 31.0, lng: 34.8, country: 'Israel', system: 'Green Pine' },
-  { name: 'AN/TPY-2 - Dimona', lat: 31.068, lng: 35.200, country: 'Israel', system: 'AN/TPY-2 (US)' },
-  { name: 'Ghadir Radar - Garmsar', lat: 35.2, lng: 52.3, country: 'Iran', system: 'Ghadir' },
-  { name: 'Sepehr Radar - Khorasan', lat: 36.3, lng: 59.6, country: 'Iran', system: 'Sepehr' },
-  { name: 'Qamar Radar - Ahvaz', lat: 31.3, lng: 48.7, country: 'Iran', system: 'Qamar' },
-  { name: 'EW Station - Cyprus', lat: 34.6, lng: 32.9, country: 'UK', system: 'RAF Akrotiri EW' },
-];
-
-const BALLISTIC_SITES = [
-  { name: 'Shahrud Missile Base', lat: 36.430, lng: 55.000, country: 'Iran', type: 'MRBM' },
-  { name: 'Tabriz Missile Base', lat: 38.080, lng: 46.300, country: 'Iran', type: 'SRBM' },
-  { name: 'Khorramabad Missile Site', lat: 33.490, lng: 48.350, country: 'Iran', type: 'MRBM' },
-  { name: 'Kermanshah Missile Base', lat: 34.330, lng: 47.080, country: 'Iran', type: 'SRBM' },
-  { name: 'Semnan Space Center', lat: 35.234, lng: 53.920, country: 'Iran', type: 'SLV/ICBM' },
-  { name: 'Jericho Silo - Sdot Micha', lat: 31.700, lng: 34.960, country: 'Israel', type: 'IRBM' },
-];
-
-const ARMS_DEPOTS = [
-  { name: 'IRGC Parchin Storage', lat: 35.530, lng: 51.780, country: 'Iran', type: 'Weapons Complex' },
-  { name: 'Imam Ali Base (T-4)', lat: 34.522, lng: 37.632, country: 'Syria', type: 'IRGC Depot' },
-  { name: 'Hezbollah Arms Cache - Hermel', lat: 34.392, lng: 36.385, country: 'Lebanon', type: 'Militia Cache' },
-  { name: 'IDF Tzrifin Depot', lat: 31.860, lng: 34.880, country: 'Israel', type: 'Central Armory' },
-  { name: 'IRGC Khojir Complex', lat: 35.620, lng: 51.660, country: 'Iran', type: 'Underground' },
-];
-
-const SPECIAL_FORCES = [
-  { name: 'Sayeret Matkal HQ', lat: 31.870, lng: 34.840, country: 'Israel', type: 'Tier-1 SOF' },
-  { name: 'Shayetet 13 Base', lat: 32.800, lng: 34.960, country: 'Israel', type: 'Naval SOF' },
-  { name: 'IRGC Quds Force - Tehran', lat: 35.700, lng: 51.400, country: 'Iran', type: 'IRGC-QF' },
-  { name: 'Delta/JSOC Forward - Erbil', lat: 36.200, lng: 44.010, country: 'Iraq', type: 'US SOF' },
-  { name: 'SAS Forward - Akrotiri', lat: 34.590, lng: 32.990, country: 'UK', type: 'UK SOF' },
-];
-
-const ANTI_SHIP_BATTERIES = [
-  { name: 'Noor ASCM - Abu Musa', lat: 25.870, lng: 55.030, country: 'Iran', system: 'Noor (C-802)' },
-  { name: 'Khalij Fars - Bandar Lengeh', lat: 26.560, lng: 54.880, country: 'Iran', system: 'Khalij Fars' },
-  { name: 'IRGCN Jask Battery', lat: 25.640, lng: 57.770, country: 'Iran', system: 'Qader' },
-  { name: 'Harpoon - Haifa', lat: 32.810, lng: 34.990, country: 'Israel', system: 'Harpoon' },
-  { name: 'Houthi ASCM - Hodeidah', lat: 14.798, lng: 42.954, country: 'Yemen', system: 'C-802 variant' },
-];
-
-const CYBER_CENTERS = [
-  { name: 'Unit 8200 HQ - Herzliya', lat: 32.162, lng: 34.775, country: 'Israel', type: 'SIGINT/Cyber' },
-  { name: 'CyberCommand - Beersheba', lat: 31.264, lng: 34.800, country: 'Israel', type: 'Cyber Ops' },
-  { name: 'IRGC Cyber HQ - Tehran', lat: 35.710, lng: 51.370, country: 'Iran', type: 'Offensive Cyber' },
-  { name: 'NSA/CSS Georgia (Forward)', lat: 25.100, lng: 51.320, country: 'Qatar', type: 'US NSA' },
-  { name: 'GCHQ Ayios Nikolaos', lat: 35.080, lng: 33.900, country: 'UK', type: 'SIGINT Station' },
-];
-
-const ELINT_SITES = [
-  { name: 'Mt. Hermon SIGINT', lat: 33.415, lng: 35.858, country: 'Israel', type: 'ELINT/SIGINT' },
-  { name: 'Urim SIGINT Base', lat: 31.320, lng: 34.430, country: 'Israel', type: 'SIGINT' },
-  { name: 'Pine Gap Relay (Diego Garcia)', lat: -7.316, lng: 72.411, country: 'US/UK', type: 'Relay Station' },
-  { name: 'Misawa Relay (Forward)', lat: 25.020, lng: 51.360, country: 'US', type: 'ELINT Forward' },
-];
-
-const AIRPORTS = [
-  { name: 'Ben Gurion Intl (TLV)', lat: 32.011, lng: 34.887, country: 'Israel', type: 'International' },
-  { name: 'Imam Khomeini Intl (IKA)', lat: 35.416, lng: 51.152, country: 'Iran', type: 'International' },
-  { name: 'Beirut Rafic Hariri (BEY)', lat: 33.821, lng: 35.488, country: 'Lebanon', type: 'International' },
-  { name: 'Dubai Intl (DXB)', lat: 25.253, lng: 55.365, country: 'UAE', type: 'International' },
-  { name: 'King Khalid Intl (RUH)', lat: 24.958, lng: 46.699, country: 'Saudi Arabia', type: 'International' },
-  { name: 'Queen Alia Intl (AMM)', lat: 31.723, lng: 35.993, country: 'Jordan', type: 'International' },
-  { name: 'Hamad Intl (DOH)', lat: 25.261, lng: 51.565, country: 'Qatar', type: 'International' },
-  { name: 'Baghdad Intl (BGW)', lat: 33.262, lng: 44.236, country: 'Iraq', type: 'International' },
-];
-
-const REFINERIES = [
-  { name: 'Abadan Refinery', lat: 30.339, lng: 48.293, country: 'Iran', capacity: '400k bpd' },
-  { name: 'Ras Tanura Refinery', lat: 26.632, lng: 50.093, country: 'Saudi Arabia', capacity: '550k bpd' },
-  { name: 'Jubail Industrial', lat: 27.011, lng: 49.659, country: 'Saudi Arabia', capacity: '400k bpd' },
-  { name: 'Ruwais Refinery', lat: 24.114, lng: 52.730, country: 'UAE', capacity: '837k bpd' },
-  { name: 'Haifa Refinery', lat: 32.810, lng: 35.000, country: 'Israel', capacity: '197k bpd' },
-  { name: 'Shuaiba Refinery', lat: 29.035, lng: 48.160, country: 'Kuwait', capacity: '200k bpd' },
-  { name: 'Isfahan Refinery', lat: 32.630, lng: 51.650, country: 'Iran', capacity: '375k bpd' },
-];
-
-const PORTS = [
-  { name: 'Jebel Ali Port', lat: 25.007, lng: 55.071, country: 'UAE', type: 'Commercial Mega-Port' },
-  { name: 'Bandar Abbas Port', lat: 27.188, lng: 56.261, country: 'Iran', type: 'Naval/Commercial' },
-  { name: 'Haifa Port', lat: 32.819, lng: 34.988, country: 'Israel', type: 'Commercial' },
-  { name: 'Chabahar Port', lat: 25.296, lng: 60.643, country: 'Iran', type: 'Strategic Deep-Water' },
-  { name: 'King Abdulaziz Port (Dammam)', lat: 26.480, lng: 50.200, country: 'Saudi Arabia', type: 'Commercial' },
-  { name: 'Port of Fujairah', lat: 25.142, lng: 56.356, country: 'UAE', type: 'Oil Terminal' },
-  { name: 'Duqm Port', lat: 19.670, lng: 57.712, country: 'Oman', type: 'Strategic/Naval' },
-  { name: 'Tartus Naval Base', lat: 34.890, lng: 35.870, country: 'Syria', type: 'Russian Naval' },
-];
-
-const DESALINATION = [
-  { name: 'Ras Al Khair Desal', lat: 27.148, lng: 49.271, country: 'Saudi Arabia', capacity: '1.025M m3/d' },
-  { name: 'Sorek B Desalination', lat: 31.648, lng: 34.555, country: 'Israel', capacity: '200k m3/d' },
-  { name: 'Jebel Ali Desal', lat: 25.060, lng: 55.090, country: 'UAE', capacity: '636k m3/d' },
-  { name: 'Ashkelon Desalination', lat: 31.620, lng: 34.530, country: 'Israel', capacity: '118k m3/d' },
-  { name: 'Jubail Desal Plant', lat: 26.960, lng: 49.610, country: 'Saudi Arabia', capacity: '800k m3/d' },
-];
-
-const POWER_PLANTS = [
-  { name: 'Shoaiba Power Plant', lat: 20.680, lng: 39.510, country: 'Saudi Arabia', type: 'Oil/Gas 5600MW' },
-  { name: 'Jebel Ali Power Station', lat: 25.040, lng: 55.100, country: 'UAE', type: 'Gas 8695MW' },
-  { name: 'Orot Rabin Power Plant', lat: 32.420, lng: 34.875, country: 'Israel', type: 'Coal/Gas 2590MW' },
-  { name: 'Montazeri Power Plant', lat: 32.630, lng: 51.640, country: 'Iran', type: 'Gas 2000MW' },
-  { name: 'Barakah Nuclear Plant', lat: 23.960, lng: 52.260, country: 'UAE', type: 'Nuclear 5380MW' },
-];
-
-const TELECOM_HUBS = [
-  { name: 'TelecomCity Jeddah (Landing)', lat: 21.500, lng: 39.170, country: 'Saudi Arabia', type: 'Cable Landing' },
-  { name: 'Fujairah Cable Station', lat: 25.140, lng: 56.340, country: 'UAE', type: 'Cable Landing' },
-  { name: 'Suez Canal Cable Hub', lat: 30.000, lng: 32.570, country: 'Egypt', type: 'Cable Junction' },
-  { name: 'Bezeq Central - Tel Aviv', lat: 32.070, lng: 34.780, country: 'Israel', type: 'Telecom HQ' },
-];
-
-const REFUGEE_CAMPS = [
-  { name: 'Zaatari Refugee Camp', lat: 32.293, lng: 36.323, country: 'Jordan', population: '80,000' },
-  { name: 'Azraq Camp', lat: 31.842, lng: 36.838, country: 'Jordan', population: '42,000' },
-  { name: 'Ain al-Hilweh', lat: 33.540, lng: 35.380, country: 'Lebanon', population: '55,000' },
-  { name: 'Shatila Camp', lat: 33.860, lng: 35.500, country: 'Lebanon', population: '22,000' },
-  { name: 'Domiz Camp', lat: 36.753, lng: 42.928, country: 'Iraq', population: '35,000' },
-  { name: 'Dadaab Complex', lat: 0.056, lng: 40.335, country: 'Kenya', population: '230,000' },
-];
-
-const BORDER_CROSSINGS = [
-  { name: 'Rafah Crossing', lat: 31.273, lng: 34.248, country: 'Egypt/Palestine', type: 'Major Land' },
-  { name: 'Allenby Bridge', lat: 31.873, lng: 35.534, country: 'Jordan/Palestine', type: 'Major Land' },
-  { name: 'Reyhanli/Bab al-Hawa', lat: 36.243, lng: 36.649, country: 'Turkey/Syria', type: 'Humanitarian' },
-  { name: 'Chaman Crossing', lat: 30.917, lng: 66.445, country: 'Pakistan/Afghanistan', type: 'Major Land' },
-  { name: 'Ibrahim Khalil', lat: 37.145, lng: 42.381, country: 'Iraq/Turkey', type: 'Commercial' },
-  { name: 'Mandali Crossing', lat: 33.750, lng: 45.540, country: 'Iraq/Iran', type: 'Military/Commercial' },
-];
-
-const UN_POSITIONS = [
-  { name: 'UNIFIL HQ - Naqoura', lat: 33.117, lng: 35.140, country: 'Lebanon', force: 'UNIFIL' },
-  { name: 'UNDOF - Golan', lat: 33.130, lng: 35.850, country: 'Syria/Israel', force: 'UNDOF' },
-  { name: 'UNTSO - Jerusalem', lat: 31.774, lng: 35.236, country: 'Israel', force: 'UNTSO' },
-  { name: 'UNAMI - Baghdad', lat: 33.310, lng: 44.370, country: 'Iraq', force: 'UNAMI' },
-  { name: 'UNDP Yemen - Aden', lat: 12.825, lng: 45.028, country: 'Yemen', force: 'UNDP' },
-];
-
-const HOSPITALS = [
-  { name: 'Rambam Medical Center', lat: 32.832, lng: 34.990, country: 'Israel', type: 'Military Trauma' },
-  { name: 'Shifa Hospital', lat: 31.520, lng: 34.440, country: 'Palestine', type: 'Major Medical' },
-  { name: 'AUBMC - Beirut', lat: 33.900, lng: 35.480, country: 'Lebanon', type: 'Major Medical' },
-  { name: 'Landstuhl Regional (Forward Evac)', lat: 25.350, lng: 51.440, country: 'Qatar', type: 'US Military Medical' },
-  { name: 'King Fahd Military Hospital', lat: 24.700, lng: 46.740, country: 'Saudi Arabia', type: 'Military Hospital' },
-];
-
-const EMBASSIES = [
-  { name: 'US Embassy - Baghdad', lat: 33.298, lng: 44.395, country: 'Iraq', type: 'US Embassy' },
-  { name: 'US Embassy - Amman', lat: 31.953, lng: 35.930, country: 'Jordan', type: 'US Embassy' },
-  { name: 'US Embassy - Beirut (Awkar)', lat: 33.920, lng: 35.560, country: 'Lebanon', type: 'US Embassy' },
-  { name: 'Russian Embassy - Damascus', lat: 33.505, lng: 36.290, country: 'Syria', type: 'Russian Embassy' },
-  { name: 'Iranian Embassy - Beirut', lat: 33.880, lng: 35.520, country: 'Lebanon', type: 'Iranian Embassy' },
-  { name: 'Chinese Embassy - Riyadh', lat: 24.690, lng: 46.690, country: 'Saudi Arabia', type: 'Chinese Embassy' },
-];
-
-const PROXY_MILITIA = [
-  { name: 'Hezbollah - Southern Suburb', lat: 33.852, lng: 35.512, country: 'Lebanon', group: 'Hezbollah' },
-  { name: 'Hezbollah - South Lebanon', lat: 33.200, lng: 35.300, country: 'Lebanon', group: 'Hezbollah' },
-  { name: 'PMF/Hashd HQ - Baghdad', lat: 33.320, lng: 44.360, country: 'Iraq', group: 'PMF (Hashd)' },
-  { name: 'Kata\'ib Hezbollah - Jurf al-Sakhar', lat: 32.900, lng: 44.120, country: 'Iraq', group: "Kata'ib Hezbollah" },
-  { name: 'Houthi HQ - Sanaa', lat: 15.369, lng: 44.191, country: 'Yemen', group: 'Ansar Allah (Houthi)' },
-  { name: 'PIJ - Gaza', lat: 31.510, lng: 34.450, country: 'Palestine', group: 'Palestinian Islamic Jihad' },
-  { name: 'Hamas Military Wing - Gaza', lat: 31.520, lng: 34.460, country: 'Palestine', group: 'Hamas (Izz ad-Din)' },
-];
-
-const TUNNEL_NETWORKS = [
-  { name: 'Gaza Tunnel Complex (North)', lat: 31.540, lng: 34.500, country: 'Palestine', type: 'Hamas Cross-Border' },
-  { name: 'Gaza Tunnel Complex (South)', lat: 31.270, lng: 34.260, country: 'Palestine', type: 'Smuggling/Military' },
-  { name: 'Hezbollah Tunnel - Metula', lat: 33.280, lng: 35.580, country: 'Lebanon/Israel', type: 'Attack Tunnel' },
-  { name: 'Fordow Underground Facility', lat: 34.880, lng: 51.575, country: 'Iran', type: 'Hardened Nuclear' },
-  { name: 'Natanz Underground Halls', lat: 33.720, lng: 51.725, country: 'Iran', type: 'Hardened Enrichment' },
-];
-
-const EEZ_ZONES = [
-  {
-    name: 'Iran EEZ',
-    color: [220, 50, 50, 40] as [number, number, number, number],
-    borderColor: [220, 50, 50, 120] as [number, number, number, number],
-    polygon: [[53.0, 25.0], [56.3, 26.5], [57.0, 25.4], [57.3, 24.0], [56.0, 22.0], [54.5, 22.5], [53.5, 23.5], [53.0, 25.0]] as [number, number][],
-  },
-  {
-    name: 'Saudi Arabia EEZ',
-    color: [34, 197, 94, 30] as [number, number, number, number],
-    borderColor: [34, 197, 94, 100] as [number, number, number, number],
-    polygon: [[50.5, 28.0], [50.0, 26.5], [50.2, 25.0], [50.8, 24.5], [51.0, 24.0], [50.5, 22.0], [49.0, 22.0], [48.5, 23.0], [48.8, 25.0], [49.5, 27.0], [50.5, 28.0]] as [number, number][],
-  },
-  {
-    name: 'UAE EEZ',
-    color: [59, 130, 246, 30] as [number, number, number, number],
-    borderColor: [59, 130, 246, 100] as [number, number, number, number],
-    polygon: [[52.0, 25.2], [54.0, 26.2], [55.5, 26.0], [56.3, 25.5], [56.0, 24.5], [55.0, 24.0], [54.0, 24.0], [53.0, 24.5], [52.0, 25.2]] as [number, number][],
-  },
-  {
-    name: 'Oman EEZ',
-    color: [168, 85, 247, 30] as [number, number, number, number],
-    borderColor: [168, 85, 247, 100] as [number, number, number, number],
-    polygon: [[56.5, 26.5], [57.5, 25.0], [59.5, 23.5], [59.8, 22.0], [58.5, 20.5], [57.0, 20.0], [56.0, 21.0], [55.0, 23.0], [56.0, 25.5], [56.5, 26.5]] as [number, number][],
-  },
-  {
-    name: 'Kuwait EEZ',
-    color: [250, 204, 21, 35] as [number, number, number, number],
-    borderColor: [250, 204, 21, 110] as [number, number, number, number],
-    polygon: [[48.0, 29.5], [48.5, 29.8], [49.0, 29.3], [48.8, 28.8], [48.3, 28.8], [48.0, 29.5]] as [number, number][],
-  },
-  {
-    name: 'Qatar EEZ',
-    color: [139, 92, 246, 30] as [number, number, number, number],
-    borderColor: [139, 92, 246, 100] as [number, number, number, number],
-    polygon: [[51.0, 26.2], [51.8, 26.5], [52.0, 25.8], [51.8, 24.8], [51.0, 24.5], [50.5, 25.0], [50.7, 25.8], [51.0, 26.2]] as [number, number][],
-  },
-  {
-    name: 'Bahrain EEZ',
-    color: [236, 72, 153, 35] as [number, number, number, number],
-    borderColor: [236, 72, 153, 110] as [number, number, number, number],
-    polygon: [[50.3, 26.3], [50.7, 26.4], [50.8, 26.0], [50.6, 25.8], [50.3, 25.9], [50.3, 26.3]] as [number, number][],
-  },
-  {
-    name: 'Iraq EEZ',
-    color: [245, 158, 11, 30] as [number, number, number, number],
-    borderColor: [245, 158, 11, 100] as [number, number, number, number],
-    polygon: [[47.8, 30.0], [48.5, 30.0], [48.8, 29.5], [48.5, 29.4], [47.8, 29.5], [47.8, 30.0]] as [number, number][],
-  },
-  {
-    name: 'Yemen EEZ',
-    color: [239, 68, 68, 25] as [number, number, number, number],
-    borderColor: [239, 68, 68, 80] as [number, number, number, number],
-    polygon: [[42.5, 12.5], [43.5, 12.8], [45.0, 13.0], [48.0, 14.0], [52.0, 16.5], [51.0, 14.0], [48.5, 12.0], [45.0, 11.5], [42.5, 12.5]] as [number, number][],
-  },
-  {
-    name: 'Israel EEZ',
-    color: [96, 165, 250, 30] as [number, number, number, number],
-    borderColor: [96, 165, 250, 100] as [number, number, number, number],
-    polygon: [[34.0, 33.3], [34.8, 33.5], [34.8, 31.5], [34.3, 31.2], [33.5, 31.5], [33.5, 33.0], [34.0, 33.3]] as [number, number][],
-  },
-  {
-    name: 'Lebanon EEZ',
-    color: [16, 185, 129, 30] as [number, number, number, number],
-    borderColor: [16, 185, 129, 100] as [number, number, number, number],
-    polygon: [[35.1, 34.7], [35.5, 34.7], [35.0, 34.0], [34.5, 33.8], [34.0, 33.5], [34.0, 34.2], [35.1, 34.7]] as [number, number][],
-  },
-  {
-    name: 'Egypt EEZ (Red Sea)',
-    color: [245, 158, 11, 25] as [number, number, number, number],
-    borderColor: [245, 158, 11, 80] as [number, number, number, number],
-    polygon: [[33.5, 28.0], [35.0, 28.5], [36.5, 27.5], [37.5, 24.0], [36.0, 22.0], [35.0, 22.5], [34.0, 24.0], [33.5, 28.0]] as [number, number][],
-  },
-];
-
-const OIL_GAS_FIELDS = [
-  { name: 'Ghawar Oil Field', lat: 25.400, lng: 49.200, country: 'Saudi Arabia', type: 'Oil (Largest)' },
-  { name: 'South Pars / North Dome', lat: 26.000, lng: 52.000, country: 'Iran/Qatar', type: 'Gas (Largest)' },
-  { name: 'Burgan Oil Field', lat: 28.900, lng: 47.950, country: 'Kuwait', type: 'Oil' },
-  { name: 'Rumaila Oil Field', lat: 30.450, lng: 47.350, country: 'Iraq', type: 'Oil' },
-  { name: 'Tamar Gas Field', lat: 32.600, lng: 33.600, country: 'Israel', type: 'Offshore Gas' },
-  { name: 'Leviathan Gas Field', lat: 32.900, lng: 33.300, country: 'Israel', type: 'Offshore Gas' },
-  { name: 'Kirkuk Oil Field', lat: 35.400, lng: 44.400, country: 'Iraq', type: 'Oil' },
-  { name: 'Marun Oil Field', lat: 31.350, lng: 49.500, country: 'Iran', type: 'Oil' },
-];
-
-const SUPPLY_ROUTES = [
-  {
-    name: 'Iran-Syria Arms Corridor',
-    color: [220, 50, 50] as [number, number, number],
-    path: [[51.4, 35.7], [48.0, 34.0], [45.0, 34.0], [42.0, 34.5], [38.0, 34.0], [36.3, 33.9]],
-  },
-  {
-    name: 'US Central Logistics (Kuwait-Iraq)',
-    color: [50, 150, 250] as [number, number, number],
-    path: [[47.9, 29.3], [47.0, 30.5], [45.5, 32.0], [44.4, 33.3]],
-  },
-  {
-    name: 'Houthi Supply Line (Iran-Yemen)',
-    color: [200, 80, 200] as [number, number, number],
-    path: [[57.0, 25.5], [55.0, 22.0], [50.0, 18.0], [45.0, 15.5], [44.2, 15.3]],
-  },
-];
-
-// Simplified country conflict-zone polygons — colored by threat level
-const COUNTRY_THREAT_ZONES = [
-  { name: 'Gaza Strip',   color: [239, 68, 68,  55] as [number,number,number,number], border: [239, 68, 68, 140] as [number,number,number,number],
-    polygon: [[34.22,31.21],[34.55,31.21],[34.55,31.76],[34.22,31.76]] },
-  { name: 'Israel',       color: [239, 68, 68,  28] as [number,number,number,number], border: [239, 68, 68,  90] as [number,number,number,number],
-    polygon: [[34.22,29.50],[35.88,29.50],[35.88,33.40],[35.55,33.10],[34.90,32.60],[34.50,32.20],[34.30,31.20],[34.22,29.50]] },
-  { name: 'Lebanon',      color: [249,115, 22,  30] as [number,number,number,number], border: [249,115, 22,  90] as [number,number,number,number],
-    polygon: [[35.10,33.05],[36.62,33.05],[36.62,34.70],[35.90,34.70],[35.10,33.60],[35.10,33.05]] },
-  { name: 'Syria',        color: [249,115, 22,  22] as [number,number,number,number], border: [249,115, 22,  70] as [number,number,number,number],
-    polygon: [[35.62,32.70],[42.38,32.70],[42.38,37.32],[38.75,37.32],[36.82,36.60],[36.02,35.80],[35.62,32.70]] },
-  { name: 'Iraq',         color: [234,179,  8,  18] as [number,number,number,number], border: [234,179,  8,  60] as [number,number,number,number],
-    polygon: [[38.80,29.10],[48.58,29.10],[48.58,37.40],[45.55,37.40],[42.38,37.32],[38.80,33.40],[38.80,29.10]] },
-  { name: 'Iran',         color: [249,115, 22,  18] as [number,number,number,number], border: [249,115, 22,  60] as [number,number,number,number],
-    polygon: [[44.05,25.08],[63.32,25.08],[63.32,39.78],[44.05,39.78]] },
-  { name: 'Yemen',        color: [239, 68, 68,  20] as [number,number,number,number], border: [239, 68, 68,  65] as [number,number,number,number],
-    polygon: [[42.55,12.10],[53.12,12.10],[53.12,18.00],[42.55,18.00]] },
-  { name: 'Jordan',       color: [234,179,  8,  14] as [number,number,number,number], border: [234,179,  8,  50] as [number,number,number,number],
-    polygon: [[34.95,29.20],[38.02,29.20],[39.30,32.08],[38.80,33.40],[36.98,33.36],[35.98,32.70],[34.95,30.50],[34.95,29.20]] },
 ] as const;
 
-const SHIPPING_LANES = [
-  {
-    name: 'Strait of Hormuz TSS',
-    color: [0, 180, 230] as [number, number, number],
-    path: [[56.1, 25.8], [56.3, 26.2], [56.5, 26.5], [56.6, 26.8], [56.7, 27.1], [56.5, 27.5]],
-  },
-  {
-    name: 'Bab el-Mandeb Strait TSS',
-    color: [0, 180, 230] as [number, number, number],
-    path: [[43.0, 12.3], [43.3, 12.5], [43.5, 12.8], [43.2, 13.2]],
-  },
-  {
-    name: 'Suez Canal Approach',
-    color: [0, 180, 230] as [number, number, number],
-    path: [[32.3, 31.3], [32.4, 31.0], [32.5, 30.5], [32.6, 30.0], [32.5, 29.9]],
-  },
-];
+type LayerKey = typeof LAYER_GROUPS[number]['layers'][number]['key'];
 
-const NO_FLY_ZONES = [
-  {
-    name: 'Damascus TFR',
-    color: [255, 60, 60] as [number, number, number],
-    path: [[36.0, 33.7], [36.6, 33.7], [36.6, 33.3], [36.0, 33.3], [36.0, 33.7]],
-  },
-  {
-    name: 'Dimona Restricted Airspace',
-    color: [255, 60, 60] as [number, number, number],
-    path: [[35.0, 31.2], [35.4, 31.2], [35.4, 30.9], [35.0, 30.9], [35.0, 31.2]],
-  },
-  {
-    name: 'Natanz P-57 TFR',
-    color: [255, 60, 60] as [number, number, number],
-    path: [[51.5, 33.9], [52.0, 33.9], [52.0, 33.5], [51.5, 33.5], [51.5, 33.9]],
-  },
-];
+const ALL_LAYERS = LAYER_GROUPS.flatMap(g => g.layers);
 
-type LayerKey =
-  | 'events'
-  | 'flights'
-  | 'ships'
-  | 'adsbFlights'
-  | 'missileLines'
-  | 'animatedArcs'
-  | 'heatmap'
-  | 'hormuzStrait'
-  | 'militaryBases'
-  | 'nuclearFacilities'
-  | 'airDefense'
-  | 'underseaCables'
-  | 'pipelines'
-  | 'droneBases'
-  | 'commandCenters'
-  | 'radarSites'
-  | 'ballisticSites'
-  | 'armsDepots'
-  | 'specialForces'
-  | 'antiShipBatteries'
-  | 'cyberCenters'
-  | 'elintSites'
-  | 'airports'
-  | 'refineries'
-  | 'ports'
-  | 'desalination'
-  | 'powerPlants'
-  | 'telecomHubs'
-  | 'oilGasFields'
-  | 'refugeeCamps'
-  | 'borderCrossings'
-  | 'unPositions'
-  | 'hospitals'
-  | 'embassies'
-  | 'proxyMilitia'
-  | 'tunnelNetworks'
-  | 'eezBoundaries'
-  | 'supplyRoutes'
-  | 'shippingLanes'
-  | 'noFlyZones'
-  | 'satelliteThermal'
-  | 'thermalHeatmap'
-  | 'alertHeatmap'
-  | 'aiHeatmap'
-  | 'countryZones';
-
-const MISSILE_TRAJECTORIES = [
-  { id: 'traj-1', source: [51.4, 35.7], target: [34.8, 32.1], label: 'Tehran > Tel Aviv', type: 'ballistic' },
-  { id: 'traj-2', source: [48.4, 33.5], target: [34.6, 31.5], label: 'W.Iraq > Beersheva', type: 'cruise' },
-  { id: 'traj-3', source: [44.2, 15.4], target: [34.9, 29.6], label: 'Sanaa > Eilat', type: 'ballistic' },
-  { id: 'traj-4', source: [35.5, 33.9], target: [35.0, 32.8], label: 'S.Lebanon > Haifa', type: 'rocket' },
-  { id: 'traj-5', source: [34.5, 31.5], target: [34.8, 31.7], label: 'Gaza > Ashkelon', type: 'rocket' },
-  { id: 'traj-6', source: [47.1, 34.0], target: [44.4, 33.3], label: 'W.Iran > Baghdad', type: 'cruise' },
-  { id: 'traj-7', source: [56.3, 27.2], target: [54.4, 24.5], label: 'Hormuz > Abu Dhabi', type: 'cruise' },
-  { id: 'traj-8', source: [42.5, 14.8], target: [43.3, 12.6], label: 'Houthi > Bab el-Mandeb', type: 'antiship' },
-];
-
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-interface LayerConfig {
-  key: LayerKey;
-  label: string;
-  color: string;
-  defaultOn: boolean;
-  group: string;
-}
-
-const LAYER_GROUPS = [
-  { id: 'operational', label: 'OPERATIONAL', color: '#ef4444' },
-  { id: 'military', label: 'MILITARY', color: '#3b82f6' },
-  { id: 'strategic', label: 'STRATEGIC', color: '#a855f7' },
-  { id: 'infrastructure', label: 'INFRASTRUCTURE', color: '#f59e0b' },
-  { id: 'linear', label: 'ROUTES & ZONES', color: '#06b6d4' },
-  { id: 'humanitarian', label: 'HUMANITARIAN', color: '#22c55e' },
-  { id: 'threat', label: 'THREAT ACTORS', color: '#f43f5e' },
-  { id: 'maritime', label: 'MARITIME', color: '#0ea5e9' },
-  { id: 'satellite', label: 'SATELLITE', color: '#ff6b35' },
-];
-
-const LAYER_CONFIGS: LayerConfig[] = [
-  { key: 'events', label: 'Conflict Events', color: '#ef4444', defaultOn: true, group: 'operational' },
-  { key: 'flights', label: 'Flight Tracks', color: '#22d3ee', defaultOn: true, group: 'operational' },
-  { key: 'ships', label: 'Ship Tracks', color: '#3b82f6', defaultOn: true, group: 'operational' },
-  { key: 'adsbFlights', label: 'ADS-B Live Flights', color: '#06b6d4', defaultOn: true, group: 'operational' },
-  { key: 'missileLines', label: 'Missile Trajectories', color: '#ef4444', defaultOn: true, group: 'operational' },
-  { key: 'animatedArcs', label: 'Missile Trajectory Arcs', color: '#f43f5e', defaultOn: true, group: 'operational' },
-  { key: 'heatmap', label: 'Threat Heat Map', color: '#fbbf24', defaultOn: false, group: 'operational' },
-  { key: 'hormuzStrait', label: 'Strait of Hormuz', color: '#f97316', defaultOn: true, group: 'operational' },
-
-  { key: 'militaryBases', label: 'Military Bases', color: '#3b82f6', defaultOn: false, group: 'military' },
-  { key: 'droneBases', label: 'Drone/UAV Bases', color: '#818cf8', defaultOn: false, group: 'military' },
-  { key: 'commandCenters', label: 'Command Centers', color: '#f472b6', defaultOn: false, group: 'military' },
-  { key: 'specialForces', label: 'Special Forces', color: '#a78bfa', defaultOn: false, group: 'military' },
-  { key: 'radarSites', label: 'Radar/EW Stations', color: '#34d399', defaultOn: false, group: 'military' },
-  { key: 'armsDepots', label: 'Arms Depots', color: '#fb923c', defaultOn: false, group: 'military' },
-
-  { key: 'nuclearFacilities', label: 'Nuclear Facilities', color: '#a855f7', defaultOn: false, group: 'strategic' },
-  { key: 'ballisticSites', label: 'Ballistic Missile Sites', color: '#f43f5e', defaultOn: false, group: 'strategic' },
-  { key: 'airDefense', label: 'Air Defense Systems', color: '#22d3ee', defaultOn: false, group: 'strategic' },
-  { key: 'antiShipBatteries', label: 'Anti-Ship Batteries', color: '#fb7185', defaultOn: false, group: 'strategic' },
-  { key: 'cyberCenters', label: 'Cyber/SIGINT Centers', color: '#2dd4bf', defaultOn: false, group: 'strategic' },
-  { key: 'elintSites', label: 'ELINT Stations', color: '#38bdf8', defaultOn: false, group: 'strategic' },
-
-  { key: 'airports', label: 'Airports', color: '#94a3b8', defaultOn: false, group: 'infrastructure' },
-  { key: 'refineries', label: 'Refineries', color: '#f59e0b', defaultOn: false, group: 'infrastructure' },
-  { key: 'ports', label: 'Ports', color: '#60a5fa', defaultOn: false, group: 'infrastructure' },
-  { key: 'desalination', label: 'Desalination Plants', color: '#67e8f9', defaultOn: false, group: 'infrastructure' },
-  { key: 'powerPlants', label: 'Power Plants', color: '#fbbf24', defaultOn: false, group: 'infrastructure' },
-  { key: 'telecomHubs', label: 'Telecom/Cable Hubs', color: '#a3e635', defaultOn: false, group: 'infrastructure' },
-  { key: 'oilGasFields', label: 'Oil/Gas Fields', color: '#ca8a04', defaultOn: false, group: 'infrastructure' },
-
-  { key: 'underseaCables', label: 'Undersea Cables', color: '#06b6d4', defaultOn: false, group: 'linear' },
-  { key: 'pipelines', label: 'Pipelines', color: '#ca8a04', defaultOn: false, group: 'linear' },
-  { key: 'supplyRoutes', label: 'Supply Routes', color: '#ef4444', defaultOn: false, group: 'linear' },
-  { key: 'shippingLanes', label: 'Shipping Lanes', color: '#0ea5e9', defaultOn: false, group: 'linear' },
-  { key: 'noFlyZones', label: 'No-Fly Zones', color: '#ef4444', defaultOn: false, group: 'linear' },
-
-  { key: 'refugeeCamps', label: 'Refugee Camps', color: '#22c55e', defaultOn: false, group: 'humanitarian' },
-  { key: 'borderCrossings', label: 'Border Crossings', color: '#facc15', defaultOn: false, group: 'humanitarian' },
-  { key: 'unPositions', label: 'UN Positions', color: '#60a5fa', defaultOn: false, group: 'humanitarian' },
-  { key: 'hospitals', label: 'Hospitals', color: '#f87171', defaultOn: false, group: 'humanitarian' },
-  { key: 'embassies', label: 'Embassies', color: '#c084fc', defaultOn: false, group: 'humanitarian' },
-
-  { key: 'proxyMilitia', label: 'Proxy Militias', color: '#f43f5e', defaultOn: false, group: 'threat' },
-  { key: 'tunnelNetworks', label: 'Tunnel Networks', color: '#a3a3a3', defaultOn: false, group: 'threat' },
-
-  { key: 'eezBoundaries', label: 'EEZ Boundaries', color: '#0ea5e9', defaultOn: false, group: 'maritime' },
-
-  { key: 'satelliteThermal', label: 'NASA FIRMS Active Fire', color: '#ff6b35', defaultOn: true, group: 'satellite' },
-  { key: 'thermalHeatmap', label: 'NASA FIRMS Heat Map', color: '#ff3300', defaultOn: true, group: 'satellite' },
-
-  { key: 'alertHeatmap', label: 'Alert Density Map', color: '#dc2626', defaultOn: true, group: 'operational' },
-  { key: 'aiHeatmap', label: 'AI Threat Heatmap', color: '#ff0000', defaultOn: false, group: 'operational' },
-  { key: 'countryZones', label: 'Country Threat Zones', color: '#f97316', defaultOn: true, group: 'operational' },
-];
-
-interface SearchItem {
-  name: string;
-  lat: number;
-  lng: number;
-  category: string;
-  detail: string;
-}
-
-const SEARCH_CATEGORY_ICONS: Record<string, string> = {
-  'Military Base': 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7',
-  'Nuclear Facility': 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
-  'Air Defense': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  'Drone Base': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  'Command Center': 'M3 3h18v18H3z M3 9h18 M9 21V9',
-  'Radar Site': 'M2 12a10 10 0 0 1 10-10 M2 12a10 10 0 0 0 10 10 M12 2v20',
-  'Ballistic Site': 'M12 19V5 M5 12l7-7 7 7',
-  'Arms Depot': 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z',
-  'Special Forces': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  'Anti-Ship Battery': 'M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3',
-  'Cyber Center': 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2',
-  'ELINT Site': 'M2 12a10 10 0 0 1 10-10',
-  'Airport': 'M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.4-.1.9.3 1.1l6.5 3.8-2.9 2.9L5 14c-.4 0-.8.2-1 .5l-.2.3c-.2.3-.1.8.2 1l3.2 2.2 2.2 3.2c.2.3.7.4 1 .2l.3-.2c.3-.2.5-.6.5-1l-.5-2.3 2.9-2.9 3.8 6.5c.2.4.7.5 1.1.3l.5-.3c.4-.2.6-.6.5-1.1z',
-  'Refinery': 'M14 2v6.172a2 2 0 0 0 .586 1.414l5.71 5.71a.5.5 0 0 1-.354.854H4.058a.5.5 0 0 1-.354-.854l5.71-5.71A2 2 0 0 0 10 8.172V2',
-  'Port': 'M22 17H2 M6 17V3 M10 17V9 M14 17V5 M18 17V9',
-  'Desalination': 'M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z',
-  'Power Plant': 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
-  'Telecom Hub': 'M2 12h6 M14 12h6 M12 2v6 M12 14v6',
-  'Oil/Gas Field': 'M14 2v6.172a2 2 0 0 0 .586 1.414l5.71 5.71a.5.5 0 0 1-.354.854H4.058',
-  'Refugee Camp': 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
-  'Border Crossing': 'M18 6L6 18 M6 6l12 12',
-  'UN Position': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  'Hospital': 'M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
-  'Embassy': 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z',
-  'Proxy Militia': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  'Tunnel Network': 'M12 22V8 M5 12H2a10 10 0 0 1 20 0h-3',
-  'Conflict Event': 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
-  'Default': 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+// ── Region presets ────────────────────────────────────────────────────────────
+const REGIONS: Record<string, { lng: number; lat: number; zoom: number }> = {
+  MENA:   { lng: 42,   lat: 28,  zoom: 4   },
+  LEVANT: { lng: 36,   lat: 32,  zoom: 6   },
+  GULF:   { lng: 52,   lat: 26,  zoom: 6   },
+  GLOBAL: { lng: 42,   lat: 26,  zoom: 3.5 },
 };
 
-const SEARCH_CATEGORY_COLORS: Record<string, string> = {
-  'Military Base': '#3b82f6',
-  'Nuclear Facility': '#a855f7',
-  'Air Defense': '#22d3ee',
-  'Drone Base': '#818cf8',
-  'Command Center': '#f472b6',
-  'Radar Site': '#34d399',
-  'Ballistic Site': '#f43f5e',
-  'Arms Depot': '#fb923c',
-  'Special Forces': '#a78bfa',
-  'Anti-Ship Battery': '#fb7185',
-  'Cyber Center': '#2dd4bf',
-  'ELINT Site': '#38bdf8',
-  'Airport': '#94a3b8',
-  'Refinery': '#f59e0b',
-  'Port': '#60a5fa',
-  'Desalination': '#67e8f9',
-  'Power Plant': '#fbbf24',
-  'Telecom Hub': '#a3e635',
-  'Oil/Gas Field': '#ca8a04',
-  'Refugee Camp': '#22c55e',
-  'Border Crossing': '#facc15',
-  'UN Position': '#60a5fa',
-  'Hospital': '#f87171',
-  'Embassy': '#c084fc',
-  'Proxy Militia': '#f43f5e',
-  'Tunnel Network': '#a3a3a3',
-  'Conflict Event': '#ef4444',
-  'Default': '#9ca3af',
+const VIEW_INIT: Record<string, { lng: number; lat: number; zoom: number }> = {
+  conflict: { lng: 47, lat: 31, zoom: 5 },
+  flights:  { lng: 48, lat: 32, zoom: 5 },
+  maritime: { lng: 56, lat: 26, zoom: 7 },
 };
 
-function buildSearchIndex(events: ConflictEvent[], redAlerts: RedAlert[]): SearchItem[] {
-  const items: SearchItem[] = [];
+// ── Tooltip ───────────────────────────────────────────────────────────────────
+interface TooltipState {
+  x: number; y: number;
+  title: string; sub: string; badge?: string; color?: string;
+}
 
-  for (const b of MILITARY_BASES) items.push({ name: b.name, lat: b.lat, lng: b.lng, category: 'Military Base', detail: `${b.operator} - ${b.country}` });
-  for (const n of NUCLEAR_FACILITIES) items.push({ name: n.name, lat: n.lat, lng: n.lng, category: 'Nuclear Facility', detail: `${n.type} - ${n.country}` });
-  for (const a of AIR_DEFENSE) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Air Defense', detail: `${a.system} - ${a.country}` });
-  for (const d of DRONE_BASES) items.push({ name: d.name, lat: d.lat, lng: d.lng, category: 'Drone Base', detail: `${d.type} - ${d.country}` });
-  for (const c of COMMAND_CENTERS) items.push({ name: c.name, lat: c.lat, lng: c.lng, category: 'Command Center', detail: `${c.type} - ${c.country}` });
-  for (const r of RADAR_SITES) items.push({ name: r.name, lat: r.lat, lng: r.lng, category: 'Radar Site', detail: `${r.system} - ${r.country}` });
-  for (const b of BALLISTIC_SITES) items.push({ name: b.name, lat: b.lat, lng: b.lng, category: 'Ballistic Site', detail: `${b.type} - ${b.country}` });
-  for (const a of ARMS_DEPOTS) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Arms Depot', detail: `${a.type} - ${a.country}` });
-  for (const s of SPECIAL_FORCES) items.push({ name: s.name, lat: s.lat, lng: s.lng, category: 'Special Forces', detail: `${s.type} - ${s.country}` });
-  for (const a of ANTI_SHIP_BATTERIES) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Anti-Ship Battery', detail: `${a.system} - ${a.country}` });
-  for (const c of CYBER_CENTERS) items.push({ name: c.name, lat: c.lat, lng: c.lng, category: 'Cyber Center', detail: `${c.type} - ${c.country}` });
-  for (const e of ELINT_SITES) items.push({ name: e.name, lat: e.lat, lng: e.lng, category: 'ELINT Site', detail: `${e.type} - ${e.country}` });
-  for (const a of AIRPORTS) items.push({ name: a.name, lat: a.lat, lng: a.lng, category: 'Airport', detail: `${a.type} - ${a.country}` });
-  for (const r of REFINERIES) items.push({ name: r.name, lat: r.lat, lng: r.lng, category: 'Refinery', detail: `${r.capacity} - ${r.country}` });
-  for (const p of PORTS) items.push({ name: p.name, lat: p.lat, lng: p.lng, category: 'Port', detail: `${p.type} - ${p.country}` });
-  for (const d of DESALINATION) items.push({ name: d.name, lat: d.lat, lng: d.lng, category: 'Desalination', detail: `${d.capacity} - ${d.country}` });
-  for (const p of POWER_PLANTS) items.push({ name: p.name, lat: p.lat, lng: p.lng, category: 'Power Plant', detail: `${p.type} - ${p.country}` });
-  for (const t of TELECOM_HUBS) items.push({ name: t.name, lat: t.lat, lng: t.lng, category: 'Telecom Hub', detail: `${t.type} - ${t.country}` });
-  for (const o of OIL_GAS_FIELDS) items.push({ name: o.name, lat: o.lat, lng: o.lng, category: 'Oil/Gas Field', detail: `${o.type} - ${o.country}` });
-  for (const r of REFUGEE_CAMPS) items.push({ name: r.name, lat: r.lat, lng: r.lng, category: 'Refugee Camp', detail: `Pop: ${r.population} - ${r.country}` });
-  for (const b of BORDER_CROSSINGS) items.push({ name: b.name, lat: b.lat, lng: b.lng, category: 'Border Crossing', detail: `${b.type} - ${b.country}` });
-  for (const u of UN_POSITIONS) items.push({ name: u.name, lat: u.lat, lng: u.lng, category: 'UN Position', detail: `${u.force} - ${u.country}` });
-  for (const h of HOSPITALS) items.push({ name: h.name, lat: h.lat, lng: h.lng, category: 'Hospital', detail: `${h.type} - ${h.country}` });
-  for (const e of EMBASSIES) items.push({ name: e.name, lat: e.lat, lng: e.lng, category: 'Embassy', detail: `${e.type} - ${e.country}` });
-  for (const p of PROXY_MILITIA) items.push({ name: p.name, lat: p.lat, lng: p.lng, category: 'Proxy Militia', detail: `${p.group} - ${p.country}` });
-  for (const t of TUNNEL_NETWORKS) items.push({ name: t.name, lat: t.lat, lng: t.lng, category: 'Tunnel Network', detail: `${t.type} - ${t.country}` });
-
-  for (const ev of events) {
-    items.push({ name: ev.title, lat: ev.lat, lng: ev.lng, category: 'Conflict Event', detail: `${ev.type} - ${ev.severity}` });
+function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'> | null {
+  if (!obj) return null;
+  // ConflictEvent
+  if ('severity' in obj && 'type' in obj && 'title' in obj) {
+    const e = obj as unknown as ConflictEvent;
+    const color = EVENT_COLORS[e.type];
+    return {
+      title: e.title,
+      sub: e.description,
+      badge: `${e.type.toUpperCase()} · ${e.severity.toUpperCase()}`,
+      color: color ? `rgb(${color.join(',')})` : '#ef4444',
+    };
   }
-  for (const ra of redAlerts) {
-    items.push({ name: `Red Alert: ${ra.city}`, lat: ra.lat, lng: ra.lng, category: 'Conflict Event', detail: `${ra.threatType} - ${ra.country}` });
+  // AdsbFlight
+  if ('callsign' in obj && 'aircraft' in obj) {
+    const f = obj as unknown as AdsbFlight;
+    const color = ADSB_COLORS[f.type];
+    return {
+      title: f.callsign || 'Unknown',
+      sub: `${f.aircraft || '?'} · Alt ${f.altitude?.toLocaleString() || '?'} ft · ${Math.round(f.groundSpeed || 0)} kt`,
+      badge: f.type?.toUpperCase(),
+      color: color ? `rgb(${color.join(',')})` : '#22d3ee',
+    };
   }
-
-  return items;
+  // RedAlert
+  if ('city' in obj && 'threatType' in obj) {
+    const a = obj as unknown as RedAlert;
+    return {
+      title: `🚨 ${a.city}`,
+      sub: `${a.threatType} · ${a.region} · ${a.country}`,
+      badge: `${a.countdown}s`,
+      color: '#ef4444',
+    };
+  }
+  // ThermalHotspot
+  if ('brightness' in obj && 'frp' in obj) {
+    const h = obj as unknown as ThermalHotspot;
+    return {
+      title: 'NASA FIRMS Thermal',
+      sub: `Brightness ${Math.round(h.brightness)}K · FRP ${h.frp.toFixed(1)} MW`,
+      badge: h.confidence.toUpperCase(),
+      color: '#f97316',
+    };
+  }
+  // Military base
+  if ('operator' in obj && 'country' in obj && 'name' in obj) {
+    return {
+      title: obj.name as string,
+      sub: `${obj.country} · ${obj.operator}`,
+      badge: 'MIL BASE',
+      color: '#3b82f6',
+    };
+  }
+  // Nuclear
+  if ('type' in obj && 'country' in obj && 'name' in obj) {
+    return {
+      title: obj.name as string,
+      sub: `${obj.country} · ${obj.type}`,
+      badge: '☢ NUCLEAR',
+      color: '#a855f7',
+    };
+  }
+  return null;
 }
 
-interface TooltipInfo {
-  x: number;
-  y: number;
-  text: string;
-  detail?: string;
-  category?: string;
-  accentColor?: string;
-  coords?: { lat: number; lng: number };
-  timestamp?: string;
-}
-
-interface MeasurePoint {
-  lng: number;
-  lat: number;
-}
-
+// ── Props ─────────────────────────────────────────────────────────────────────
 interface ConflictMapProps {
   events: ConflictEvent[];
   flights: FlightData[];
@@ -853,2405 +202,366 @@ interface ConflictMapProps {
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }
 
-export default function ConflictMap({ events, flights, adsbFlights = [], redAlerts = [], thermalHotspots = [], activeView, language = 'en', mapStyle = MAP_STYLE, focusLocation }: ConflictMapProps) {
+// ── Component ─────────────────────────────────────────────────────────────────
+export default function ConflictMap({
+  events, adsbFlights = [], redAlerts = [], thermalHotspots = [],
+  activeView, mapStyle = DEFAULT_STYLE, focusLocation,
+}: ConflictMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const deckContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<MapLibreMap | null>(null);
-  const deckRef = useRef<Deck | null>(null);
-  const isMountedStyle = useRef(true);
+  const mapRef       = useRef<MapLibreMap | null>(null);
+  const overlayRef   = useRef<MapboxOverlay | null>(null);
+  const pulseRef     = useRef(0);
 
-  const [viewState, setViewState] = useState<ViewState>(VIEW_CONFIG[activeView]);
-  const [isGlobe, setIsGlobe] = useState(false);
-  const [layerVisibility, setLayerVisibility] = useState<Record<LayerKey, boolean>>(() => {
-    const state: Record<string, boolean> = {};
-    for (const cfg of LAYER_CONFIGS) {
-      state[cfg.key] = cfg.defaultOn;
-    }
-    return state as Record<LayerKey, boolean>;
-  });
-  const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
-  const [panelOpen, setPanelOpen] = useState(true);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-    const g: Record<string, boolean> = {};
-    LAYER_GROUPS.forEach(lg => { g[lg.id] = lg.id === 'operational'; });
-    return g;
-  });
-  const [mapToolsOpen, setMapToolsOpen] = useState(false);
-  const [measureMode, setMeasureMode] = useState(false);
-  const [measureCenter, setMeasureCenter] = useState<MeasurePoint | null>(null);
-  const [measureCursor, setMeasureCursor] = useState<MeasurePoint | null>(null);
-  const [arcTime, setArcTime] = useState(0);
-  const arcAnimRef = useRef<number>(0);
-  const [pulseTime, setPulseTime] = useState(0);
-  const pulseAnimRef = useRef<number>(0);
+  const [vis, setVis] = useState<Record<LayerKey, boolean>>(
+    () => Object.fromEntries(ALL_LAYERS.map(l => [l.key, l.on])) as Record<LayerKey, boolean>
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(LAYER_GROUPS.map(g => [g.id, true]))
+  );
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [pulse, setPulse] = useState(0);
 
+  // Pulse animation (for alert rings)
   useEffect(() => {
-    if (focusLocation) {
-      setViewState(prev => ({
-        ...prev,
-        latitude: focusLocation.lat,
-        longitude: focusLocation.lng,
+    let raf: number;
+    const tick = () => {
+      pulseRef.current = Date.now();
+      setPulse(pulseRef.current);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // Fly to focused location
+  useEffect(() => {
+    if (focusLocation && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [focusLocation.lng, focusLocation.lat],
         zoom: focusLocation.zoom ?? 8,
-      }));
+        duration: 1000,
+      });
     }
   }, [focusLocation]);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
-  const [highlightedPoint, setHighlightedPoint] = useState<{ lat: number; lng: number } | null>(null);
-  const [highlightPulse, setHighlightPulse] = useState(0);
-  const highlightAnimRef = useRef<number>(0);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchDropdownRef = useRef<HTMLDivElement>(null);
-
-  const searchIndex = useMemo(() => buildSearchIndex(events, redAlerts), [events, redAlerts]);
-
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase().trim();
-    const matches: SearchItem[] = [];
-    for (const item of searchIndex) {
-      if (matches.length >= 8) break;
-      if (item.name.toLowerCase().includes(q) || item.category.toLowerCase().includes(q) || item.detail.toLowerCase().includes(q)) {
-        matches.push(item);
-      }
-    }
-    return matches;
-  }, [searchQuery, searchIndex]);
-
-  const selectSearchResult = useCallback((item: SearchItem) => {
-    setViewState({
-      longitude: item.lng,
-      latitude: item.lat,
-      zoom: 10,
-      pitch: 0,
-      bearing: 0,
-    });
-    setHighlightedPoint({ lat: item.lat, lng: item.lng });
-    setSearchQuery('');
-    setSearchOpen(false);
-    setSearchActiveIndex(-1);
-  }, []);
-
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSearchActiveIndex(prev => Math.min(prev + 1, searchResults.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSearchActiveIndex(prev => Math.max(prev - 1, -1));
-    } else if (e.key === 'Enter' && searchActiveIndex >= 0 && searchActiveIndex < searchResults.length) {
-      e.preventDefault();
-      selectSearchResult(searchResults[searchActiveIndex]);
-    } else if (e.key === 'Escape') {
-      setSearchOpen(false);
-      setSearchQuery('');
-      setSearchActiveIndex(-1);
-      searchInputRef.current?.blur();
-    }
-  }, [searchResults, searchActiveIndex, selectSearchResult]);
-
+  // Swap map style
   useEffect(() => {
-    if (!highlightedPoint) return;
-    let running = true;
-    const animate = () => {
-      if (!running) return;
-      setHighlightPulse(t => (t + 0.02) % 1);
-      highlightAnimRef.current = requestAnimationFrame(animate);
-    };
-    highlightAnimRef.current = requestAnimationFrame(animate);
-    const timeout = setTimeout(() => {
-      setHighlightedPoint(null);
-    }, 8000);
-    return () => {
-      running = false;
-      cancelAnimationFrame(highlightAnimRef.current);
-      clearTimeout(timeout);
-    };
-  }, [highlightedPoint]);
-
-  useEffect(() => {
-    const vs = VIEW_CONFIG[activeView];
-    setViewState(vs);
-  }, [activeView]);
-
-  useEffect(() => {
-    if (!layerVisibility.animatedArcs) return;
-    let running = true;
-    const animate = () => {
-      if (!running) return;
-      setArcTime(t => (t + 0.005) % 1);
-      arcAnimRef.current = requestAnimationFrame(animate);
-    };
-    arcAnimRef.current = requestAnimationFrame(animate);
-    return () => {
-      running = false;
-      cancelAnimationFrame(arcAnimRef.current);
-    };
-  }, [layerVisibility.animatedArcs]);
-
-  // Always-running pulse for red alerts and event markers
-  useEffect(() => {
-    let running = true;
-    const animate = () => {
-      if (!running) return;
-      setPulseTime(t => (t + 0.004) % 1);
-      pulseAnimRef.current = requestAnimationFrame(animate);
-    };
-    pulseAnimRef.current = requestAnimationFrame(animate);
-    return () => {
-      running = false;
-      cancelAnimationFrame(pulseAnimRef.current);
-    };
-  }, []);
-
-  const measureDistance = useMemo(() => {
-    if (!measureCenter || !measureCursor) return null;
-    return haversineDistance(measureCenter.lat, measureCenter.lng, measureCursor.lat, measureCursor.lng);
-  }, [measureCenter, measureCursor]);
-
-  const toggleMeasureMode = useCallback(() => {
-    setMeasureMode(prev => {
-      if (prev) {
-        setMeasureCenter(null);
-        setMeasureCursor(null);
-      }
-      return !prev;
-    });
-  }, []);
-
-  const handleMapClick = useCallback((info: { coordinate?: number[]; object?: Record<string, unknown>; layer?: { id: string }; x: number; y: number }) => {
-    if (measureMode && info.coordinate) {
-      const [lng, lat] = info.coordinate;
-      if (!measureCenter) {
-        setMeasureCenter({ lng, lat });
-        setMeasureCursor({ lng, lat });
-      } else {
-        setMeasureCenter(null);
-        setMeasureCursor(null);
-      }
-      return;
-    }
-    if (info.object && info.layer) {
-      const obj = info.object as Record<string, unknown>;
-      let text = '';
-      let detail = '';
-      const layerId = info.layer.id;
-
-      let category = '';
-      let accentColor = '#ef4444';
-      let coords: { lat: number; lng: number } | undefined;
-      let timestamp: string | undefined;
-
-      if (layerId === 'events-layer') {
-        const e = obj as unknown as ConflictEvent;
-        text = language === 'ar' && e.titleAr ? e.titleAr : e.title;
-        detail = `${e.type.toUpperCase()} · ${e.severity}`;
-        category = e.type;
-        const c = EVENT_COLORS[e.type] || [239, 68, 68];
-        accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
-        coords = { lat: e.lat, lng: e.lng };
-        timestamp = e.timestamp;
-      } else if (layerId === 'flights-layer') {
-        const f = obj as unknown as FlightData;
-        text = f.callsign;
-        detail = `${f.type} · Alt: ${f.altitude}ft · ${f.speed}kts`;
-        category = 'flight';
-        const c = FLIGHT_COLORS[f.type] || [34, 197, 94];
-        accentColor = `rgb(${c[0]},${c[1]},${c[2]})`;
-        coords = { lat: f.lat, lng: f.lng };
-      } else if (layerId === 'red-alert-dot') {
-        const a = obj as unknown as RedAlert;
-        text = `🔴 ${language === 'ar' && a.cityAr ? a.cityAr : a.city}`;
-        const typeLabels: Record<string, string> = { missiles: 'MISSILES', rockets: 'ROCKETS', hostile_aircraft_intrusion: 'HOSTILE AIRCRAFT', uav_intrusion: 'UAV INTRUSION' };
-        detail = `${typeLabels[a.threatType] || a.threatType} · ${a.region} · ${a.countdown}s shelter`;
-        category = 'RED ALERT';
-        accentColor = '#ff1e1e';
-        coords = { lat: a.lat, lng: a.lng };
-        timestamp = a.timestamp;
-      } else if (layerId === 'adsb-layer') {
-        const f = obj as unknown as AdsbFlight;
-        const POPUP_COLORS: Record<string, string> = { military: '#ff3c3c', surveillance: '#00d4ff', cargo: '#ffa81e', government: '#50a0ff', private: '#be64ff', commercial: '#32dc78' };
-        text = `${f.callsign} · ${f.hex}`;
-        const vr = f.verticalRate > 0 ? `↑${f.verticalRate}fpm` : f.verticalRate < 0 ? `↓${Math.abs(f.verticalRate)}fpm` : 'level';
-        detail = `${f.aircraft} · ${f.country}\nAlt: ${f.altitude.toLocaleString()}ft · ${f.groundSpeed}kts · ${vr}\nHdg: ${Math.round(f.heading)}° · Sqk: ${f.squawk}`;
-        category = f.type.toUpperCase();
-        accentColor = POPUP_COLORS[f.type] || '#22d3ee';
-        coords = { lat: f.lat as number, lng: f.lng as number };
-      } else {
-        text = (obj.name as string) || '';
-        const detailParts = [obj.type || obj.system || obj.capacity, obj.operator || obj.group || obj.force, obj.country].filter(Boolean);
-        detail = detailParts.join(' · ');
-        category = 'infrastructure';
-        accentColor = '#3b82f6';
-        if (obj.lat && obj.lng) coords = { lat: obj.lat as number, lng: obj.lng as number };
-      }
-
-      if (text) {
-        setTooltip(prev => prev?.text === text ? null : { x: info.x, y: info.y, text, detail, category, accentColor, coords, timestamp });
-      }
-    } else {
-      setTooltip(null);
-    }
-  }, [measureMode, measureCenter, language]);
-
-  const handleMapHover = useCallback((info: { coordinate?: number[] }) => {
-    if (measureMode && measureCenter && info.coordinate) {
-      const [lng, lat] = info.coordinate;
-      setMeasureCursor({ lng, lat });
-    }
-  }, [measureMode, measureCenter]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    try {
-      const map = new MapLibreMap({
-        container: containerRef.current,
-        style: mapStyle,
-        center: [viewState.longitude, viewState.latitude],
-        zoom: viewState.zoom,
-        pitch: viewState.pitch,
-        bearing: viewState.bearing,
-        interactive: false,
-        attributionControl: { compact: true, customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
-      });
-
-      map.on('style.load', () => {
-        const layers = map.getStyle()?.layers || [];
-        for (const layer of layers) {
-          if (layer.id.includes('boundary') || layer.id.includes('border') || layer.id.includes('admin')) {
-            try {
-              if (layer.type === 'line') {
-                map.setPaintProperty(layer.id, 'line-opacity', 0.35);
-                map.setPaintProperty(layer.id, 'line-color', '#2a3344');
-                map.setPaintProperty(layer.id, 'line-width', 0.6);
-              }
-            } catch {}
-          }
-          if (layer.id.includes('water') && layer.type === 'fill') {
-            try {
-              map.setPaintProperty(layer.id, 'fill-color', '#080c14');
-            } catch {}
-          }
-          if (layer.type === 'background') {
-            try {
-              map.setPaintProperty(layer.id, 'background-color', '#06090f');
-            } catch {}
-          }
-          if (layer.id.includes('landcover') || layer.id.includes('landuse')) {
-            try {
-              if (layer.type === 'fill') {
-                map.setPaintProperty(layer.id, 'fill-opacity', 0.06);
-              }
-            } catch {}
-          }
-          if (layer.id.includes('label') || layer.id.includes('place') || layer.id.includes('poi')) {
-            try {
-              if (layer.type === 'symbol') {
-                map.setPaintProperty(layer.id, 'text-opacity', 0.4);
-                map.setPaintProperty(layer.id, 'text-color', '#4a5568');
-              }
-            } catch {}
-          }
-          if (layer.id.includes('road') || layer.id.includes('highway') || layer.id.includes('tunnel') || layer.id.includes('bridge')) {
-            try {
-              if (layer.type === 'line') {
-                map.setPaintProperty(layer.id, 'line-opacity', 0.12);
-              }
-            } catch {}
-          }
-          if (layer.id.includes('building')) {
-            try {
-              if (layer.type === 'fill') {
-                map.setPaintProperty(layer.id, 'fill-opacity', 0.04);
-              }
-            } catch {}
-          }
-          if (layer.id.includes('land') && layer.type === 'fill' && !layer.id.includes('landcover') && !layer.id.includes('landuse')) {
-            try {
-              map.setPaintProperty(layer.id, 'fill-color', '#0c1018');
-            } catch {}
-          }
-        }
-      });
-
-      mapRef.current = map;
-
-      return () => {
-        map.remove();
-        mapRef.current = null;
-      };
-    } catch {
-      return;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (isMountedStyle.current) { isMountedStyle.current = false; return; }
-    if (!mapRef.current) return;
-    mapRef.current.setStyle(mapStyle);
+    if (mapRef.current) mapRef.current.setStyle(mapStyle);
   }, [mapStyle]);
 
+  // Hover handler
+  const onHover = useCallback(({ object, x, y }: { object: unknown; x: number; y: number }) => {
+    if (!object) { setTooltip(null); return; }
+    const parsed = parseObject(object as Record<string, unknown>);
+    if (parsed) setTooltip({ x, y, ...parsed });
+    else setTooltip(null);
+  }, []);
+
+  // Init MapLibre + deck.gl overlay
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.jumpTo({
-      center: [viewState.longitude, viewState.latitude],
-      zoom: viewState.zoom,
-      pitch: viewState.pitch,
-      bearing: viewState.bearing,
+    if (!containerRef.current) return;
+    const init = VIEW_INIT[activeView] || VIEW_INIT.conflict;
+    const map = new MapLibreMap({
+      container: containerRef.current,
+      style: mapStyle,
+      center: [init.lng, init.lat],
+      zoom: init.zoom,
+      attributionControl: false,
+      antialias: true,
+      fadeDuration: 0,
     });
-  }, [viewState]);
+    mapRef.current = map;
 
-  const handleHover = useCallback((info: { x: number; y: number; object?: Record<string, unknown>; layer?: { id: string } }) => {
-    if (info.object && info.layer) {
-      const obj = info.object as Record<string, unknown>;
-      let text = '';
-      let detail = '';
-      const layerId = info.layer.id;
+    const overlay = new MapboxOverlay({ interleaved: false, layers: [], onHover } as Parameters<typeof MapboxOverlay>[0]);
+    overlayRef.current = overlay;
+    map.addControl(overlay as Parameters<typeof map.addControl>[0]);
 
-      if (layerId === 'events-layer') {
-        const e = obj as unknown as ConflictEvent;
-        text = language === 'ar' && e.titleAr ? e.titleAr : e.title;
-        detail = `${e.type} | ${e.severity}`;
-      } else if (layerId === 'flights-layer') {
-        const f = obj as unknown as FlightData;
-        text = f.callsign;
-        detail = `${f.type} | Alt: ${f.altitude}ft | ${f.speed}kts`;
-      } else if (layerId === 'military-bases-layer') {
-        text = obj.name as string;
-        detail = `${obj.operator} | ${obj.country}`;
-      } else if (layerId === 'nuclear-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'air-defense-layer') {
-        text = obj.name as string;
-        detail = `${obj.system} | ${obj.country}`;
-      } else if (layerId === 'adsb-layer') {
-        text = `${obj.callsign} (${obj.hex})`;
-        detail = `${obj.aircraft} | ${obj.country} | ${obj.altitude}ft`;
-      } else if (layerId === 'drone-bases-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'command-centers-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'radar-sites-layer') {
-        text = obj.name as string;
-        detail = `${obj.system} | ${obj.country}`;
-      } else if (layerId === 'ballistic-sites-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'arms-depots-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'special-forces-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'anti-ship-layer') {
-        text = obj.name as string;
-        detail = `${obj.system} | ${obj.country}`;
-      } else if (layerId === 'cyber-centers-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'elint-sites-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'airports-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'refineries-layer') {
-        text = obj.name as string;
-        detail = `${obj.capacity} | ${obj.country}`;
-      } else if (layerId === 'ports-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'desal-layer') {
-        text = obj.name as string;
-        detail = `${obj.capacity} | ${obj.country}`;
-      } else if (layerId === 'power-plants-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'telecom-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'oil-gas-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'refugee-camps-layer') {
-        text = obj.name as string;
-        detail = `Pop: ${obj.population} | ${obj.country}`;
-      } else if (layerId === 'border-crossings-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'un-positions-layer') {
-        text = obj.name as string;
-        detail = `${obj.force} | ${obj.country}`;
-      } else if (layerId === 'hospitals-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'embassies-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'proxy-militia-layer') {
-        text = obj.name as string;
-        detail = `${obj.group} | ${obj.country}`;
-      } else if (layerId === 'tunnel-networks-layer') {
-        text = obj.name as string;
-        detail = `${obj.type} | ${obj.country}`;
-      } else if (layerId === 'eez-boundaries-layer') {
-        text = obj.name as string;
-        detail = 'Exclusive Economic Zone';
-      } else if (layerId === 'animated-arcs-layer') {
-        text = obj.label as string;
-        detail = `${obj.type} trajectory`;
-      }
+    // Attribution
+    map.addControl(
+      new (class { onAdd() { const d = document.createElement('div'); d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace'; d.textContent = '© Stadia Maps · © OpenStreetMap'; return d; } onRemove() {} })(),
+      'bottom-right'
+    );
 
-      if (text) {
-        setTooltip({ x: info.x, y: info.y, text, detail });
-      } else {
-        setTooltip(null);
-      }
-    } else {
-      setTooltip(null);
-    }
-    handleMapHover(info as { coordinate?: number[] });
-  }, [language, handleMapHover]);
-
-  const onViewStateChange = useCallback(({ viewState: vs }: { viewState: ViewState }) => {
-    setViewState(vs);
-  }, []);
-
-  const toggleLayer = useCallback((key: LayerKey) => {
-    setLayerVisibility(prev => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
-  const toggleGroup = useCallback((groupId: string) => {
-    setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
-  }, []);
-
-  const toggleAllInGroup = useCallback((groupId: string, on: boolean) => {
-    setLayerVisibility(prev => {
-      const next = { ...prev };
-      LAYER_CONFIGS.filter(c => c.group === groupId).forEach(c => { next[c.key] = on; });
-      return next;
-    });
-  }, []);
-
-  const setRegion = useCallback((region: keyof typeof REGION_PRESETS) => {
-    const preset = REGION_PRESETS[region];
-    if (preset) setViewState(preset);
-  }, []);
-
-  const toggleGlobe = useCallback(() => {
-    setIsGlobe(prev => {
-      const next = !prev;
-      setViewState(vs => ({
-        ...vs,
-        pitch: next ? 45 : 0,
-        bearing: next ? -15 : 0,
-      }));
-      return next;
-    });
-  }, []);
-
-  const activeLayerCount = useMemo(() => {
-    return Object.values(layerVisibility).filter(Boolean).length;
-  }, [layerVisibility]);
-
-  const heatmapData = useMemo(() => {
-    const points: { position: [number, number]; weight: number }[] = [];
-    for (const e of events) {
-      const w = e.severity === 'critical' ? 10 : e.severity === 'high' ? 7 : e.severity === 'medium' ? 4 : 2;
-      points.push({ position: [e.lng, e.lat], weight: w });
-    }
-    for (const a of redAlerts) {
-      const w = a.threatType === 'missiles' ? 8 : a.threatType === 'rockets' ? 6 : 4;
-      points.push({ position: [a.lng, a.lat], weight: w });
-    }
-    return points;
-  }, [events, redAlerts]);
-
-  const alertHeatmapData = useMemo(() => {
-    const now = Date.now();
-    return redAlerts.map(a => {
-      const age = now - new Date(a.timestamp).getTime();
-      const recencyWeight = Math.max(0.2, 1 - age / (3600000 * 6));
-      const severityWeight = a.threatType === 'missiles' ? 10 : a.threatType === 'rockets' ? 8 : a.threatType === 'hostile_aircraft_intrusion' ? 7 : 5;
-      return { position: [a.lng, a.lat] as [number, number], weight: severityWeight * recencyWeight };
-    });
-  }, [redAlerts]);
-
-  const layers = useMemo(() => {
-    const result: any[] = [];
-
-    if (layerVisibility.events) {
-      // Large outer glow (fixed)
-      result.push(
-        new ScatterplotLayer({
-          id: 'events-glow-layer',
-          data: events,
-          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 3000,
-          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 40] as [number, number, number, number],
-          stroked: false,
-          radiusMinPixels: 16,
-          radiusMaxPixels: 70,
-          pickable: false,
-        })
-      );
-      // Outer ring (fixed)
-      result.push(
-        new ScatterplotLayer({
-          id: 'events-ring-layer',
-          data: events,
-          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 2000,
-          getFillColor: [0, 0, 0, 0],
-          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 70] as [number, number, number, number],
-          stroked: true,
-          lineWidthMinPixels: 1.5,
-          radiusMinPixels: 10,
-          radiusMaxPixels: 50,
-          pickable: false,
-        })
-      );
-      // Core dot
-      result.push(
-        new ScatterplotLayer({
-          id: 'events-layer',
-          data: events,
-          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getRadius: (d: ConflictEvent) => (SEVERITY_RADIUS[d.severity] || 7) * 900,
-          getFillColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 220] as [number, number, number, number],
-          getLineColor: (d: ConflictEvent) => [...(EVENT_COLORS[d.type] || [239, 68, 68]), 255] as [number, number, number, number],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 20,
-          pickable: true,
-        })
-      );
-      // Event type labels for critical/high severity
-      const labeledEvents = events.filter(e => e.severity === 'critical' || e.severity === 'high');
-      if (labeledEvents.length > 0) {
-        result.push(
-          new TextLayer({
-            id: 'events-label-layer',
-            data: labeledEvents,
-            getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-            getText: (d: ConflictEvent) => d.type.toUpperCase(),
-            getSize: 13,
-            getColor: (d: ConflictEvent) => {
-              const c = EVENT_COLORS[d.type] || [239, 68, 68];
-              return [c[0], c[1], c[2], 220] as [number, number, number, number];
-            },
-            getPixelOffset: [0, -22],
-            fontFamily: 'monospace',
-            fontWeight: 'bold',
-            getTextAnchor: 'middle',
-            getAlignmentBaseline: 'bottom',
-            pickable: false,
-            outlineWidth: 3,
-            outlineColor: [0, 0, 0, 200],
-            fontSettings: { sdf: true },
-          })
-        );
-      }
-    }
-
-    if (layerVisibility.missileLines) {
-      const missiles = events.filter(e => e.type === 'missile');
-      if (missiles.length >= 2) {
-        const lineData = [];
-        for (let i = 0; i < missiles.length - 1; i++) {
-          lineData.push({
-            source: [missiles[i].lng, missiles[i].lat],
-            target: [missiles[i + 1].lng, missiles[i + 1].lat],
-          });
-        }
-        result.push(
-          new LineLayer({
-            id: 'missile-lines-layer',
-            data: lineData,
-            getSourcePosition: (d: { source: number[]; target: number[] }) => d.source as [number, number],
-            getTargetPosition: (d: { source: number[]; target: number[] }) => d.target as [number, number],
-            getColor: [239, 68, 68, 80],
-            getWidth: 2,
-            widthMinPixels: 1,
-          })
-        );
-      }
-    }
-
-    if (layerVisibility.flights) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'flights-glow-layer',
-          data: flights,
-          getPosition: (d: FlightData) => [d.lng, d.lat],
-          getRadius: 12000,
-          getFillColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 20] as [number, number, number, number],
-          stroked: false,
-          radiusMinPixels: 8,
-          radiusMaxPixels: 30,
-          pickable: false,
-        })
-      );
-      result.push(
-        new ScatterplotLayer({
-          id: 'flights-layer',
-          data: flights,
-          getPosition: (d: FlightData) => [d.lng, d.lat],
-          getRadius: 3000,
-          getFillColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 220] as [number, number, number, number],
-          getLineColor: (d: FlightData) => [...(FLIGHT_COLORS[d.type] || [34, 197, 94]), 255] as [number, number, number, number],
-          stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 3,
-          radiusMaxPixels: 10,
-          pickable: true,
-        })
-      );
-    }
-
-
-
-    if (layerVisibility.hormuzStrait) {
-      result.push(
-        new PathLayer({
-          id: 'hormuz-layer',
-          data: [{ path: STRAIT_OF_HORMUZ }],
-          getPath: (d: { path: number[][] }) => d.path as [number, number][],
-          getColor: [249, 115, 22, 120],
-          getWidth: 3,
-          widthMinPixels: 2,
-          getDashArray: [12, 6],
-          dashJustified: true,
-          extensions: [new PathStyleExtension({ dash: true })],
-        })
-      );
-    }
-
-    if (layerVisibility.militaryBases) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'military-bases-glow',
-          data: MILITARY_BASES,
-          getPosition: (d: (typeof MILITARY_BASES)[0]) => [d.lng, d.lat],
-          getRadius: 18000,
-          getFillColor: [59, 130, 246, 15],
-          stroked: false,
-          radiusMinPixels: 10,
-          radiusMaxPixels: 35,
-          pickable: false,
-        })
-      );
-      result.push(
-        new ScatterplotLayer({
-          id: 'military-bases-layer',
-          data: MILITARY_BASES,
-          getPosition: (d: (typeof MILITARY_BASES)[0]) => [d.lng, d.lat],
-          getRadius: 5000,
-          getFillColor: [59, 130, 246, 180],
-          getLineColor: [59, 130, 246, 255],
-          stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 10,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.nuclearFacilities) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'nuclear-layer',
-          data: NUCLEAR_FACILITIES,
-          getPosition: (d: (typeof NUCLEAR_FACILITIES)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [168, 85, 247, 180],
-          getLineColor: [168, 85, 247, 255],
-          stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.airDefense) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'air-defense-layer',
-          data: AIR_DEFENSE,
-          getPosition: (d: (typeof AIR_DEFENSE)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [34, 211, 238, 140],
-          getLineColor: [34, 211, 238, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.underseaCables) {
-      for (const cable of UNDERSEA_CABLES) {
-        result.push(
-          new PathLayer({
-            id: `cable-${cable.name}`,
-            data: [{ path: cable.path }],
-            getPath: (d: { path: number[][] }) => d.path as [number, number][],
-            getColor: [...cable.color, 120] as [number, number, number, number],
-            getWidth: 2,
-            widthMinPixels: 1,
-          })
-        );
-      }
-    }
-
-    if (layerVisibility.pipelines) {
-      for (const pipe of PIPELINES) {
-        result.push(
-          new PathLayer({
-            id: `pipeline-${pipe.name}`,
-            data: [{ path: pipe.path }],
-            getPath: (d: { path: number[][] }) => d.path as [number, number][],
-            getColor: [...pipe.color, 150] as [number, number, number, number],
-            getWidth: 3,
-            widthMinPixels: 2,
-          })
-        );
-      }
-    }
-
-    const ADSB_COLORS: Record<string, [number, number, number]> = {
-      military:    [255,  60,  60],   // vivid red
-      surveillance:[0,   220, 255],   // bright cyan
-      commercial:  [245, 195,  15],   // FR24 golden yellow
-      cargo:       [255, 165,  30],   // amber-orange
-      private:     [220, 200,  40],   // warm yellow
-      government:  [80,  160, 255],   // blue
+    return () => {
+      overlay.finalize();
+      map.remove();
+      mapRef.current = null;
+      overlayRef.current = null;
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (layerVisibility.adsbFlights && adsbFlights.length > 0) {
-      // -- glow layer (military + surveillance only) --
-      const flaggedFlights = adsbFlights.filter(f => f.flagged);
-      if (flaggedFlights.length > 0) {
-        result.push(
-          new ScatterplotLayer({
-            id: 'adsb-glow-layer',
-            data: flaggedFlights,
-            getPosition: (d: AdsbFlight) => [d.lng, d.lat],
-            getRadius: 20000,
-            getFillColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.military), 22] as [number, number, number, number],
-            stroked: false,
-            radiusMinPixels: 10,
-            radiusMaxPixels: 30,
-            pickable: false,
-          })
-        );
-      }
+  // Build deck.gl layers
+  const deckLayers = useMemo(() => {
+    const t = pulse / 1000;
+    const pulseAlpha = Math.round(30 + 28 * Math.sin(t * 2.5));
+    const layers = [];
 
-      // -- heading vector lines --
-      const flightsWithSpeed = adsbFlights.filter(f => f.groundSpeed > 30 && f.heading !== undefined);
-      if (flightsWithSpeed.length > 0) {
-        const HDG_DIST_M = 25000; // project ~25km ahead
-        result.push(
-          new LineLayer({
-            id: 'adsb-heading-layer',
-            data: flightsWithSpeed,
-            getSourcePosition: (d: AdsbFlight) => [d.lng, d.lat],
-            getTargetPosition: (d: AdsbFlight) => {
-              const rad = (d.heading * Math.PI) / 180;
-              const dLat = (HDG_DIST_M * Math.cos(rad)) / 111320;
-              const dLng = (HDG_DIST_M * Math.sin(rad)) / (111320 * Math.cos((d.lat * Math.PI) / 180));
-              return [d.lng + dLng, d.lat + dLat];
-            },
-            getColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 160 : 60] as [number, number, number, number],
-            getWidth: (d: AdsbFlight) => d.flagged ? 2 : 1,
-            widthMinPixels: 1,
-            widthMaxPixels: 3,
-            pickable: false,
-          })
-        );
-      }
-
-      // -- main plane icon layer --
-      result.push(
-        new IconLayer({
-          id: 'adsb-layer',
-          data: adsbFlights,
-          getPosition: (d: AdsbFlight) => [d.lng, d.lat],
-          getIcon: () => 'plane',
-          iconAtlas: PLANE_ICON_ATLAS,
-          iconMapping: PLANE_ICON_MAPPING,
-          getSize: (d: AdsbFlight) => d.flagged ? 32 : 22,
-          getAngle: (d: AdsbFlight) => 360 - (d.heading || 0),
-          getColor: (d: AdsbFlight) => [...(ADSB_COLORS[d.type] || ADSB_COLORS.commercial), d.flagged ? 255 : 220] as [number, number, number, number],
-          sizeMinPixels: 14,
-          sizeMaxPixels: 40,
-          billboard: false,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.droneBases) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'drone-bases-layer',
-          data: DRONE_BASES,
-          getPosition: (d: (typeof DRONE_BASES)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [129, 140, 248, 140],
-          getLineColor: [129, 140, 248, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.commandCenters) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'command-centers-layer',
-          data: COMMAND_CENTERS,
-          getPosition: (d: (typeof COMMAND_CENTERS)[0]) => [d.lng, d.lat],
-          getRadius: 9000,
-          getFillColor: [244, 114, 182, 160],
-          getLineColor: [244, 114, 182, 240],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 16,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.radarSites) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'radar-sites-layer',
-          data: RADAR_SITES,
-          getPosition: (d: (typeof RADAR_SITES)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [52, 211, 153, 140],
-          getLineColor: [52, 211, 153, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.ballisticSites) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'ballistic-sites-layer',
-          data: BALLISTIC_SITES,
-          getPosition: (d: (typeof BALLISTIC_SITES)[0]) => [d.lng, d.lat],
-          getRadius: 10000,
-          getFillColor: [244, 63, 94, 170],
-          getLineColor: [244, 63, 94, 250],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 18,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.armsDepots) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'arms-depots-layer',
-          data: ARMS_DEPOTS,
-          getPosition: (d: (typeof ARMS_DEPOTS)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [251, 146, 60, 150],
-          getLineColor: [251, 146, 60, 230],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.specialForces) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'special-forces-layer',
-          data: SPECIAL_FORCES,
-          getPosition: (d: (typeof SPECIAL_FORCES)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [167, 139, 250, 150],
-          getLineColor: [167, 139, 250, 230],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.antiShipBatteries) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'anti-ship-layer',
-          data: ANTI_SHIP_BATTERIES,
-          getPosition: (d: (typeof ANTI_SHIP_BATTERIES)[0]) => [d.lng, d.lat],
-          getRadius: 8000,
-          getFillColor: [251, 113, 133, 150],
-          getLineColor: [251, 113, 133, 230],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 15,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.cyberCenters) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'cyber-centers-layer',
-          data: CYBER_CENTERS,
-          getPosition: (d: (typeof CYBER_CENTERS)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [45, 212, 191, 140],
-          getLineColor: [45, 212, 191, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.elintSites) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'elint-sites-layer',
-          data: ELINT_SITES,
-          getPosition: (d: (typeof ELINT_SITES)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [56, 189, 248, 140],
-          getLineColor: [56, 189, 248, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.airports) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'airports-layer',
-          data: AIRPORTS,
-          getPosition: (d: (typeof AIRPORTS)[0]) => [d.lng, d.lat],
-          getRadius: 8000,
-          getFillColor: [148, 163, 184, 120],
-          getLineColor: [148, 163, 184, 200],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 16,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.refineries) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'refineries-layer',
-          data: REFINERIES,
-          getPosition: (d: (typeof REFINERIES)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [245, 158, 11, 150],
-          getLineColor: [245, 158, 11, 230],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.ports) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'ports-layer',
-          data: PORTS,
-          getPosition: (d: (typeof PORTS)[0]) => [d.lng, d.lat],
-          getRadius: 8000,
-          getFillColor: [96, 165, 250, 140],
-          getLineColor: [96, 165, 250, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 16,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.desalination) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'desal-layer',
-          data: DESALINATION,
-          getPosition: (d: (typeof DESALINATION)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [103, 232, 249, 130],
-          getLineColor: [103, 232, 249, 210],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.powerPlants) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'power-plants-layer',
-          data: POWER_PLANTS,
-          getPosition: (d: (typeof POWER_PLANTS)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [251, 191, 36, 140],
-          getLineColor: [251, 191, 36, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.telecomHubs) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'telecom-layer',
-          data: TELECOM_HUBS,
-          getPosition: (d: (typeof TELECOM_HUBS)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [163, 230, 53, 130],
-          getLineColor: [163, 230, 53, 210],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.oilGasFields) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'oil-gas-layer',
-          data: OIL_GAS_FIELDS,
-          getPosition: (d: (typeof OIL_GAS_FIELDS)[0]) => [d.lng, d.lat],
-          getRadius: 12000,
-          getFillColor: [202, 138, 4, 120],
-          getLineColor: [202, 138, 4, 200],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 20,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.refugeeCamps) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'refugee-camps-layer',
-          data: REFUGEE_CAMPS,
-          getPosition: (d: (typeof REFUGEE_CAMPS)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [34, 197, 94, 140],
-          getLineColor: [34, 197, 94, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.borderCrossings) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'border-crossings-layer',
-          data: BORDER_CROSSINGS,
-          getPosition: (d: (typeof BORDER_CROSSINGS)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [250, 204, 21, 140],
-          getLineColor: [250, 204, 21, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.unPositions) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'un-positions-layer',
-          data: UN_POSITIONS,
-          getPosition: (d: (typeof UN_POSITIONS)[0]) => [d.lng, d.lat],
-          getRadius: 7000,
-          getFillColor: [96, 165, 250, 140],
-          getLineColor: [96, 165, 250, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 14,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.hospitals) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'hospitals-layer',
-          data: HOSPITALS,
-          getPosition: (d: (typeof HOSPITALS)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [248, 113, 113, 140],
-          getLineColor: [248, 113, 113, 220],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.embassies) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'embassies-layer',
-          data: EMBASSIES,
-          getPosition: (d: (typeof EMBASSIES)[0]) => [d.lng, d.lat],
-          getRadius: 5000,
-          getFillColor: [192, 132, 252, 130],
-          getLineColor: [192, 132, 252, 210],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 3,
-          radiusMaxPixels: 10,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.proxyMilitia) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'proxy-militia-layer',
-          data: PROXY_MILITIA,
-          getPosition: (d: (typeof PROXY_MILITIA)[0]) => [d.lng, d.lat],
-          getRadius: 8000,
-          getFillColor: [244, 63, 94, 150],
-          getLineColor: [244, 63, 94, 230],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 5,
-          radiusMaxPixels: 16,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.tunnelNetworks) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'tunnel-networks-layer',
-          data: TUNNEL_NETWORKS,
-          getPosition: (d: (typeof TUNNEL_NETWORKS)[0]) => [d.lng, d.lat],
-          getRadius: 6000,
-          getFillColor: [163, 163, 163, 130],
-          getLineColor: [163, 163, 163, 210],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 12,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.eezBoundaries) {
-      result.push(
-        new PolygonLayer({
-          id: 'eez-boundaries-layer',
-          data: EEZ_ZONES,
-          getPolygon: (d: (typeof EEZ_ZONES)[0]) => d.polygon,
-          getFillColor: (d: (typeof EEZ_ZONES)[0]) => d.color,
-          getLineColor: (d: (typeof EEZ_ZONES)[0]) => d.borderColor,
-          lineWidthMinPixels: 1,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.supplyRoutes) {
-      for (const route of SUPPLY_ROUTES) {
-        result.push(
-          new PathLayer({
-            id: `supply-${route.name}`,
-            data: [{ path: route.path }],
-            getPath: (d: { path: number[][] }) => d.path as [number, number][],
-            getColor: [...route.color, 140] as [number, number, number, number],
-            getWidth: 3,
-            widthMinPixels: 2,
-            getDashArray: [8, 4],
-            dashJustified: true,
-            extensions: [new PathStyleExtension({ dash: true })],
-          })
-        );
-      }
-    }
-
-    if (layerVisibility.shippingLanes) {
-      for (const lane of SHIPPING_LANES) {
-        result.push(
-          new PathLayer({
-            id: `shipping-${lane.name}`,
-            data: [{ path: lane.path }],
-            getPath: (d: { path: number[][] }) => d.path as [number, number][],
-            getColor: [...lane.color, 100] as [number, number, number, number],
-            getWidth: 4,
-            widthMinPixels: 2,
-          })
-        );
-      }
-    }
-
-    if (layerVisibility.noFlyZones) {
-      for (const zone of NO_FLY_ZONES) {
-        result.push(
-          new PathLayer({
-            id: `nfz-${zone.name}`,
-            data: [{ path: zone.path }],
-            getPath: (d: { path: number[][] }) => d.path as [number, number][],
-            getColor: [...zone.color, 100] as [number, number, number, number],
-            getWidth: 2,
-            widthMinPixels: 1,
-            getDashArray: [6, 4],
-            dashJustified: true,
-            extensions: [new PathStyleExtension({ dash: true })],
-          })
-        );
-      }
-    }
-
-    if (layerVisibility.heatmap && heatmapData.length > 0) {
-      result.push(
-        new HeatmapLayer({
-          id: 'heatmap-layer',
-          data: heatmapData,
-          getPosition: (d: { position: [number, number] }) => d.position,
-          getWeight: (d: { weight: number }) => d.weight,
-          radiusPixels: 60,
-          intensity: 1.5,
-          threshold: 0.05,
-          colorRange: [
-            [255, 255, 178],
-            [254, 204, 92],
-            [253, 141, 60],
-            [240, 59, 32],
-            [189, 0, 38],
-            [128, 0, 38],
-          ],
-          aggregation: 'SUM',
-        })
-      );
-    }
-
-    if (layerVisibility.alertHeatmap && alertHeatmapData.length > 0) {
-      result.push(
-        new HeatmapLayer({
-          id: 'alert-heatmap-layer',
-          data: alertHeatmapData,
-          getPosition: (d: { position: [number, number] }) => d.position,
-          getWeight: (d: { weight: number }) => d.weight,
-          radiusPixels: 45,
-          intensity: 2,
-          threshold: 0.03,
-          colorRange: [
-            [75, 0, 0],
-            [139, 0, 0],
-            [200, 30, 30],
-            [239, 68, 68],
-            [251, 146, 60],
-            [253, 224, 71],
-          ],
-          aggregation: 'SUM',
-        })
-      );
-    }
-
-    if (layerVisibility.aiHeatmap) {
-      // Weight events by severity for AI risk heatmap
-      const severityWeight: Record<string, number> = { critical: 1.0, high: 0.7, medium: 0.4, low: 0.2 };
-      result.push(
-        new HeatmapLayer({
-          id: 'ai-threat-heatmap',
-          data: events,
-          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-          getWeight: (d: ConflictEvent) => severityWeight[d.severity] ?? 0.3,
-          radiusPixels: 80,
-          intensity: 1.5,
-          threshold: 0.03,
-          colorRange: [
-            [0, 0, 255, 0],
-            [0, 255, 255, 128],
-            [0, 255, 0, 180],
-            [255, 255, 0, 200],
-            [255, 128, 0, 220],
-            [255, 0, 0, 240],
-          ],
-        })
-      );
-    }
-
-    if (layerVisibility.animatedArcs) {
-      const ARC_COLORS: Record<string, [number, number, number]> = {
-        ballistic: [239, 68, 68],
-        cruise: [249, 115, 22],
-        rocket: [234, 179, 8],
-        antiship: [59, 130, 246],
-      };
-      result.push(
-        new ArcLayer({
-          id: 'animated-arcs-layer',
-          data: MISSILE_TRAJECTORIES,
-          getSourcePosition: (d: (typeof MISSILE_TRAJECTORIES)[0]) => d.source as [number, number],
-          getTargetPosition: (d: (typeof MISSILE_TRAJECTORIES)[0]) => d.target as [number, number],
-          getSourceColor: (d: (typeof MISSILE_TRAJECTORIES)[0]) => [...(ARC_COLORS[d.type] || [239, 68, 68]), 200] as [number, number, number, number],
-          getTargetColor: (d: (typeof MISSILE_TRAJECTORIES)[0]) => [...(ARC_COLORS[d.type] || [239, 68, 68]), 60] as [number, number, number, number],
-          getWidth: 3,
-          getHeight: 0.4,
-          tilt: Math.sin(arcTime * Math.PI * 2) * 15,
-          greatCircle: true,
-          widthMinPixels: 2,
-          pickable: true,
-        })
-      );
-      const headPositions = MISSILE_TRAJECTORIES.map(t => {
-        const srcLng = t.source[0];
-        const srcLat = t.source[1];
-        const tgtLng = t.target[0];
-        const tgtLat = t.target[1];
-        const progress = arcTime;
-        return {
-          position: [
-            srcLng + (tgtLng - srcLng) * progress,
-            srcLat + (tgtLat - srcLat) * progress,
-          ] as [number, number],
-          type: t.type,
-        };
-      });
-      result.push(
-        new ScatterplotLayer({
-          id: 'arc-heads-layer',
-          data: headPositions,
-          getPosition: (d: { position: [number, number] }) => d.position,
-          getRadius: 6000,
-          getFillColor: [255, 255, 255, 220],
-          getLineColor: [239, 68, 68, 255],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 4,
-          radiusMaxPixels: 8,
-        })
-      );
-    }
-
-    if (measureMode && measureCenter) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'measure-center-layer',
-          data: [{ position: [measureCenter.lng, measureCenter.lat] }],
-          getPosition: (d: { position: [number, number] }) => d.position,
-          getRadius: 3000,
-          getFillColor: [255, 255, 0, 200],
-          getLineColor: [255, 255, 0, 255],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 10,
-        })
-      );
-      if (measureCursor && measureDistance && measureDistance > 0) {
-        const segments = 64;
-        const R = 6371;
-        const angularDist = measureDistance / R;
-        const cLat = measureCenter.lat * Math.PI / 180;
-        const cLng = measureCenter.lng * Math.PI / 180;
-        const circlePoints: [number, number][] = [];
-        for (let i = 0; i <= segments; i++) {
-          const bearing = (2 * Math.PI * i) / segments;
-          const lat = Math.asin(Math.sin(cLat) * Math.cos(angularDist) + Math.cos(cLat) * Math.sin(angularDist) * Math.cos(bearing));
-          const lng = cLng + Math.atan2(Math.sin(bearing) * Math.sin(angularDist) * Math.cos(cLat), Math.cos(angularDist) - Math.sin(cLat) * Math.sin(lat));
-          circlePoints.push([lng * 180 / Math.PI, lat * 180 / Math.PI]);
-        }
-        result.push(
-          new PathLayer({
-            id: 'measure-radius-layer',
-            data: [{ path: circlePoints }],
-            getPath: (d: { path: [number, number][] }) => d.path,
-            getColor: [255, 255, 0, 150],
-            getWidth: 2,
-            widthMinPixels: 1,
-            getDashArray: [8, 4],
-            dashJustified: true,
-            extensions: [new PathStyleExtension({ dash: true })],
-          })
-        );
-        result.push(
-          new LineLayer({
-            id: 'measure-line-layer',
-            data: [{
-              source: [measureCenter.lng, measureCenter.lat] as [number, number],
-              target: [measureCursor.lng, measureCursor.lat] as [number, number],
-            }],
-            getSourcePosition: (d: { source: [number, number] }) => d.source,
-            getTargetPosition: (d: { target: [number, number] }) => d.target,
-            getColor: [255, 255, 0, 180],
-            getWidth: 2,
-            widthMinPixels: 1,
-          })
-        );
-      }
-    }
-
-    if (highlightedPoint) {
-      const pulseScale = 1 + Math.sin(highlightPulse * Math.PI * 2) * 0.5;
-      const pulseAlpha = Math.floor(120 + Math.sin(highlightPulse * Math.PI * 2) * 80);
-      result.push(
-        new ScatterplotLayer({
-          id: 'search-highlight-ring',
-          data: [{ position: [highlightedPoint.lng, highlightedPoint.lat] }],
-          getPosition: (d: { position: [number, number] }) => d.position,
-          getRadius: 15000 * pulseScale,
-          getFillColor: [59, 130, 246, 0],
-          getLineColor: [59, 130, 246, pulseAlpha] as [number, number, number, number],
-          stroked: true,
-          filled: false,
-          lineWidthMinPixels: 3,
-          radiusMinPixels: 12,
-          radiusMaxPixels: 40,
-        })
-      );
-      result.push(
-        new ScatterplotLayer({
-          id: 'search-highlight-center',
-          data: [{ position: [highlightedPoint.lng, highlightedPoint.lat] }],
-          getPosition: (d: { position: [number, number] }) => d.position,
-          getRadius: 4000,
-          getFillColor: [59, 130, 246, 200],
-          getLineColor: [255, 255, 255, 255],
-          stroked: true,
-          lineWidthMinPixels: 2,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 12,
-        })
-      );
-    }
-
-    if (layerVisibility.satelliteThermal && thermalHotspots.length > 0) {
-      result.push(
-        new ScatterplotLayer({
-          id: 'thermal-hotspots-layer',
-          data: thermalHotspots,
-          getPosition: (d: ThermalHotspot) => [d.lng, d.lat],
-          getRadius: (d: ThermalHotspot) => Math.max(2000, Math.min(d.frp * 150, 15000)),
-          getFillColor: (d: ThermalHotspot) => {
-            const intensity = Math.min(d.brightness / 400, 1);
-            if (d.confidence === 'high') return [255, Math.round(80 * (1 - intensity)), 0, Math.round(160 + 80 * intensity)] as [number, number, number, number];
-            if (d.confidence === 'nominal') return [255, Math.round(140 * (1 - intensity)), 20, Math.round(120 + 60 * intensity)] as [number, number, number, number];
-            return [255, 180, 60, 100] as [number, number, number, number];
-          },
-          getLineColor: (d: ThermalHotspot) => {
-            if (d.confidence === 'high') return [255, 60, 0, 220] as [number, number, number, number];
-            if (d.confidence === 'nominal') return [255, 120, 20, 180] as [number, number, number, number];
-            return [255, 160, 40, 140] as [number, number, number, number];
-          },
-          stroked: true,
-          lineWidthMinPixels: 1,
-          radiusMinPixels: 3,
-          radiusMaxPixels: 18,
-          pickable: true,
-        })
-      );
-    }
-
-    if (layerVisibility.thermalHeatmap && thermalHotspots.length > 0) {
-      result.push(
-        new HeatmapLayer({
-          id: 'thermal-heatmap-layer',
-          data: thermalHotspots,
-          getPosition: (d: ThermalHotspot) => [d.lng, d.lat],
-          getWeight: (d: ThermalHotspot) => d.frp || 1,
-          radiusPixels: 50,
-          intensity: 2,
-          threshold: 0.03,
-          colorRange: [
-            [20, 10, 0],
-            [80, 20, 0],
-            [160, 40, 0],
-            [220, 80, 0],
-            [255, 140, 0],
-            [255, 220, 100],
-          ],
-          aggregation: 'SUM',
-        })
-      );
-    }
-
-    // ── Red Alert live markers with animated pulsing threat rings ──
-    if (redAlerts.length > 0) {
-      const ALERT_COLORS: Record<string, [number, number, number]> = {
-        missiles:                   [255,  30,  30],
-        rockets:                    [255, 100,  30],
-        hostile_aircraft_intrusion: [255, 200,  30],
-        uav_intrusion:              [200, 100, 255],
-      };
-
-      // ── 3 animated pulsing threat rings at staggered phase offsets ──
-      [0, 0.33, 0.66].forEach((offset, i) => {
-        const phase = (pulseTime + offset) % 1;
-        const radius = 7000 + phase * 62000;          // expands 7km → 69km
-        const alpha  = Math.floor((1 - phase) * 210); // fades from 210→0
-        result.push(new ScatterplotLayer({
-          id: `threat-ring-pulse-${i}`,
-          data: redAlerts,
-          getPosition: (d: RedAlert) => [d.lng, d.lat],
-          getRadius: radius,
-          getFillColor: [0, 0, 0, 0],
-          getLineColor: (d: RedAlert) => {
-            const c = ALERT_COLORS[d.threatType] || [255, 30, 30];
-            return [c[0], c[1], c[2], alpha] as [number, number, number, number];
-          },
-          stroked: true,
-          filled: false,
-          lineWidthMinPixels: 1.5,
-          radiusUnits: 'meters',
-          pickable: false,
-        }));
-      });
-
-      // Static backing glow
-      result.push(new ScatterplotLayer({
-        id: 'red-alert-glow',
-        data: redAlerts,
-        getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 18000,
-        getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 30] as [number,number,number,number],
+    // ── Red alerts (pulsing rings + core) ──
+    const activeAlerts = redAlerts.filter(a => a.lat && a.lng);
+    if (vis.alerts && activeAlerts.length > 0) {
+      layers.push(new ScatterplotLayer({
+        id: 'alerts-ring',
+        data: activeAlerts,
+        getPosition: (d: RedAlert) => [d.lng!, d.lat!],
+        getRadius: 14000,
+        getFillColor: [239, 68, 68, pulseAlpha] as [number, number, number, number],
         stroked: false,
-        radiusMinPixels: 16,
-        radiusMaxPixels: 55,
+        radiusMinPixels: 10, radiusMaxPixels: 36,
         pickable: false,
+        updateTriggers: { getFillColor: pulseAlpha },
       }));
+      layers.push(new ScatterplotLayer({
+        id: 'alerts-core',
+        data: activeAlerts,
+        getPosition: (d: RedAlert) => [d.lng!, d.lat!],
+        getRadius: 4000,
+        getFillColor: [239, 68, 68, 230] as [number, number, number, number],
+        getLineColor: [255, 200, 200, 200] as [number, number, number, number],
+        stroked: true, lineWidthMinPixels: 1.5,
+        radiusMinPixels: 5, radiusMaxPixels: 11,
+        pickable: true,
+      }));
+    }
 
-      // Center dot
-      result.push(new ScatterplotLayer({
-        id: 'red-alert-dot',
-        data: redAlerts,
-        getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getRadius: 4500,
-        getFillColor: (d: RedAlert) => [...(ALERT_COLORS[d.threatType] || [255,30,30]), 255] as [number,number,number,number],
-        getLineColor: [255, 255, 255, 240],
-        stroked: true,
-        lineWidthMinPixels: 2,
-        radiusMinPixels: 6,
-        radiusMaxPixels: 14,
+    // ── Conflict events ──
+    if (vis.events && events.length > 0) {
+      layers.push(new ScatterplotLayer({
+        id: 'events',
+        data: events,
+        getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+        getRadius: (d: ConflictEvent) =>
+          ({ critical: 7000, high: 5500, medium: 4000, low: 2800 }[d.severity] ?? 4000),
+        getFillColor: (d: ConflictEvent) =>
+          [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), d.severity === 'critical' ? 220 : 170] as [number, number, number, number],
+        getLineColor: (d: ConflictEvent) =>
+          [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), 255] as [number, number, number, number],
+        stroked: true, lineWidthMinPixels: 1,
+        radiusMinPixels: 4, radiusMaxPixels: 13,
         pickable: true,
       }));
 
-      // City label
-      result.push(new TextLayer({
-        id: 'red-alert-label',
-        data: redAlerts,
-        getPosition: (d: RedAlert) => [d.lng, d.lat],
-        getText: (d: RedAlert) => `⚠ ${d.city}`,
-        getSize: 15,
-        getColor: (d: RedAlert) => {
-          const c = ALERT_COLORS[d.threatType] || [255,30,30];
-          return [c[0], c[1], c[2], 240] as [number,number,number,number];
-        },
-        getPixelOffset: [0, -20],
-        fontFamily: 'monospace',
-        fontWeight: 'bold',
-        getTextAnchor: 'middle',
-        getAlignmentBaseline: 'bottom',
-        pickable: false,
-        outlineWidth: 3,
-        outlineColor: [0, 0, 0, 200],
-        fontSettings: { sdf: true },
-      }));
-    }
-
-    // ── ADS-B military/flagged callsign labels ──
-    if (layerVisibility.adsbFlights && adsbFlights.length > 0) {
-      const labelFlights = adsbFlights.filter(f => f.flagged && f.callsign !== 'N/A');
-      if (labelFlights.length > 0) {
-        result.push(new TextLayer({
-          id: 'adsb-callsign-labels',
-          data: labelFlights,
-          getPosition: (d: AdsbFlight) => [d.lng, d.lat],
-          getText: (d: AdsbFlight) => d.callsign,
-          getSize: 14,
-          getColor: (d: AdsbFlight) => {
-            const C: Record<string, [number,number,number,number]> = {
-              military:    [255,  90,  90, 240],
-              surveillance:[0,   220, 255, 240],
-              government:  [80,  170, 255, 220],
-            };
-            return C[d.type] || [255, 255, 255, 200];
-          },
-          getPixelOffset: [0, -18],
-          fontFamily: 'monospace',
-          fontWeight: 'bold',
-          getTextAnchor: 'middle',
-          getAlignmentBaseline: 'bottom',
-          pickable: false,
-          outlineWidth: 3,
-          outlineColor: [0, 0, 0, 180],
+      const critical = events.filter(e => e.severity === 'critical');
+      if (critical.length > 0) {
+        layers.push(new TextLayer({
+          id: 'events-labels',
+          data: critical,
+          getPosition: (d: ConflictEvent) => [d.lng, d.lat],
+          getText: (d: ConflictEvent) => d.type.toUpperCase(),
+          getSize: 10,
+          getColor: (d: ConflictEvent) =>
+            [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), 200] as [number, number, number, number],
+          getPixelOffset: [0, -16] as [number, number],
+          fontFamily: 'monospace', fontWeight: 'bold',
+          outlineWidth: 3, outlineColor: [0, 0, 0, 200] as [number, number, number, number],
           fontSettings: { sdf: true },
+          getTextAnchor: 'middle' as const,
+          getAlignmentBaseline: 'bottom' as const,
+          pickable: false,
         }));
       }
     }
 
-    // ── Country Threat Zones ──
-    if (layerVisibility.countryZones) {
-      result.push(new PolygonLayer({
-        id: 'country-threat-zones-fill',
-        data: COUNTRY_THREAT_ZONES,
-        getPolygon: (d: typeof COUNTRY_THREAT_ZONES[number]) => d.polygon as [number, number][],
-        getFillColor: (d: typeof COUNTRY_THREAT_ZONES[number]) => d.color,
-        getLineColor: (d: typeof COUNTRY_THREAT_ZONES[number]) => d.border,
-        getLineWidth: 1.5,
-        lineWidthUnits: 'pixels',
-        filled: true,
-        stroked: true,
-        pickable: false,
+    // ── NASA FIRMS thermal hotspots ──
+    if (vis.thermal && thermalHotspots.length > 0) {
+      const conf = thermalHotspots.filter(h => h.confidence !== 'low');
+      layers.push(new ScatterplotLayer({
+        id: 'thermal',
+        data: conf,
+        getPosition: (d: ThermalHotspot) => [d.lng, d.lat],
+        getRadius: (d: ThermalHotspot) => Math.max(1500, Math.min(d.frp * 70, 7000)),
+        getFillColor: (d: ThermalHotspot) =>
+          d.confidence === 'high'
+            ? [255, 80, 0, 150] as [number, number, number, number]
+            : [255, 140, 20, 95] as [number, number, number, number],
+        getLineColor: [255, 80, 0, 160] as [number, number, number, number],
+        stroked: true, lineWidthMinPixels: 1,
+        radiusMinPixels: 2, radiusMaxPixels: 9,
+        pickable: true,
       }));
     }
 
-    return result;
-  }, [events, flights, adsbFlights, redAlerts, thermalHotspots, layerVisibility, heatmapData, alertHeatmapData, arcTime, pulseTime, measureMode, measureCenter, measureCursor, measureDistance, highlightedPoint, highlightPulse]);
+    // ── ADS-B live flights ──
+    if (vis.adsb && adsbFlights.length > 0) {
+      const moving = adsbFlights.filter(f => f.groundSpeed > 20 && f.heading != null);
+      if (moving.length > 0) {
+        layers.push(new LineLayer({
+          id: 'adsb-vectors',
+          data: moving,
+          getSourcePosition: (d: AdsbFlight) => [d.lng, d.lat],
+          getTargetPosition: (d: AdsbFlight) => {
+            const rad = (d.heading! * Math.PI) / 180;
+            const dist = 18000;
+            return [
+              d.lng + (dist * Math.sin(rad)) / (111320 * Math.cos((d.lat * Math.PI) / 180)),
+              d.lat + (dist * Math.cos(rad)) / 111320,
+            ];
+          },
+          getColor: (d: AdsbFlight) =>
+            [...(ADSB_COLORS[d.type] ?? ADSB_COLORS.commercial), d.flagged ? 130 : 45] as [number, number, number, number],
+          getWidth: 1, widthMinPixels: 1,
+          pickable: false,
+        }));
+      }
 
-  useEffect(() => {
-    if (!deckContainerRef.current) return;
-
-    const container = deckContainerRef.current;
-
-    let deck: Deck;
-    try {
-      deck = new Deck({
-        parent: container,
-        initialViewState: viewState,
-        controller: true,
-        layers: [],
-        onHover: handleHover as any,
-        onClick: handleMapClick as any,
-        onViewStateChange: onViewStateChange as any,
-        getTooltip: () => null,
-        style: { position: 'absolute', top: '0', left: '0', width: '100%', height: '100%' },
-      });
-    } catch (err) {
-      console.warn('[ConflictMap] Deck.gl WebGL init failed:', err);
-      return;
+      layers.push(new IconLayer({
+        id: 'adsb',
+        data: adsbFlights,
+        getPosition: (d: AdsbFlight) => [d.lng, d.lat],
+        getIcon: () => 'plane',
+        iconAtlas: PLANE_ATLAS,
+        iconMapping: PLANE_MAPPING,
+        getSize: (d: AdsbFlight) => d.flagged ? 22 : 15,
+        getAngle: (d: AdsbFlight) => 360 - (d.heading ?? 0),
+        getColor: (d: AdsbFlight) =>
+          [...(ADSB_COLORS[d.type] ?? ADSB_COLORS.commercial), d.flagged ? 255 : 185] as [number, number, number, number],
+        sizeMinPixels: 9, sizeMaxPixels: 26,
+        billboard: false, pickable: true,
+      }));
     }
 
-    deckRef.current = deck;
-
-    return () => {
-      deck.finalize();
-      deckRef.current = null;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (deckRef.current) {
-      deckRef.current.setProps({
-        layers,
-        viewState,
-      });
+    // ── Military bases ──
+    if (vis.bases) {
+      layers.push(new ScatterplotLayer({
+        id: 'bases',
+        data: MILITARY_BASES,
+        getPosition: (d: typeof MILITARY_BASES[0]) => [d.lng, d.lat],
+        getRadius: 5000,
+        getFillColor: [59, 130, 246, 160] as [number, number, number, number],
+        getLineColor: [59, 130, 246, 220] as [number, number, number, number],
+        stroked: true, lineWidthMinPixels: 1.5,
+        radiusMinPixels: 3, radiusMaxPixels: 9,
+        pickable: true,
+      }));
     }
-  }, [layers, viewState]);
 
+    // ── Nuclear sites ──
+    if (vis.nuclear) {
+      layers.push(new ScatterplotLayer({
+        id: 'nuclear',
+        data: NUCLEAR_SITES,
+        getPosition: (d: typeof NUCLEAR_SITES[0]) => [d.lng, d.lat],
+        getRadius: 5000,
+        getFillColor: [168, 85, 247, 160] as [number, number, number, number],
+        getLineColor: [168, 85, 247, 230] as [number, number, number, number],
+        stroked: true, lineWidthMinPixels: 1.5,
+        radiusMinPixels: 3, radiusMaxPixels: 9,
+        pickable: true,
+      }));
+    }
 
-  // Live stats for HUD
-  const milCount = adsbFlights.filter(f => f.type === 'military' || f.type === 'surveillance').length;
-  const civCount = adsbFlights.filter(f => f.type === 'commercial' || f.type === 'cargo').length;
-  const alertCount = redAlerts.length;
-  const eventCount = events.length;
-  const criticalEvents = events.filter(e => e.severity === 'critical').length;
+    return layers;
+  }, [vis, events, adsbFlights, redAlerts, thermalHotspots, pulse]);
 
-  const panelBg = 'rgba(20,26,38,0.92)';
-  const panelBorder = 'rgba(255,255,255,0.07)';
-  const panelShadow = '0 8px 32px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.04) inset';
+  // Push layers to overlay
+  useEffect(() => {
+    overlayRef.current?.setProps({ layers: deckLayers });
+  }, [deckLayers]);
+
+  const flyTo = (region: { lng: number; lat: number; zoom: number }) => {
+    mapRef.current?.flyTo({ center: [region.lng, region.lat], zoom: region.zoom, duration: 900 });
+  };
+
+  const toggleLayer = (key: string) =>
+    setVis(prev => ({ ...prev, [key]: !prev[key] }));
+
+  // Tooltip position clamping
+  const tipLeft = tooltip ? Math.min(tooltip.x + 14, window.innerWidth - 240) : 0;
+  const tipTop  = tooltip ? Math.max(tooltip.y - 10, 10) : 0;
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', fontFamily: "'JetBrains Mono', monospace" }}>
-      <style>{`
-        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.5)} }
-        @keyframes scanline { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
-        @keyframes cornerBlink { 0%,100%{opacity:0.6} 50%{opacity:0.15} }
-        @keyframes fadeInScale { from{opacity:0;transform:scale(0.97) translateY(4px)} to{opacity:1;transform:scale(1) translateY(0)} }
-        .cm-tool-btn { transition: background 0.15s, border-color 0.15s, color 0.15s; }
-        .cm-tool-btn:hover { background: rgba(255,255,255,0.06) !important; }
-        .cm-layer-row:hover { background: rgba(255,255,255,0.03) !important; }
-        .cm-zoom-btn:hover { background: rgba(30,220,180,0.08) !important; border-color: rgba(30,220,180,0.2) !important; color: #5ff0d0 !important; }
-      `}</style>
+    <div className="relative w-full h-full overflow-hidden bg-[#0a0c10]">
+      {/* MapLibre container */}
+      <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Map + deck canvases */}
-      <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }} />
-      <div ref={deckContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1, pointerEvents: 'auto' }} />
-
-      {/* Scanline overlay */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', left: 0, right: 0, height: '2px', background: 'linear-gradient(180deg, transparent, rgba(0,220,180,0.05), transparent)', animation: 'scanline 10s linear infinite' }} />
-      </div>
-
-      {/* Corner bracket accents */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
-        {[
-          { top: 8, left: 8, borderTop: '1.5px solid rgba(239,68,68,0.35)', borderLeft: '1.5px solid rgba(239,68,68,0.35)', animDelay: '0s' },
-          { top: 8, right: 8, borderTop: '1.5px solid rgba(239,68,68,0.35)', borderRight: '1.5px solid rgba(239,68,68,0.35)', animDelay: '0.5s' },
-          { bottom: 8, left: 8, borderBottom: '1.5px solid rgba(239,68,68,0.35)', borderLeft: '1.5px solid rgba(239,68,68,0.35)', animDelay: '1s' },
-          { bottom: 8, right: 8, borderBottom: '1.5px solid rgba(239,68,68,0.35)', borderRight: '1.5px solid rgba(239,68,68,0.35)', animDelay: '1.5s' },
-        ].map((s, i) => (
-          <div key={i} style={{ position: 'absolute', width: 18, height: 18, animation: `cornerBlink 3s ease-in-out infinite`, animationDelay: s.animDelay, ...s }} />
-        ))}
-      </div>
-
-      {/* ── TOP HUD BAR ── */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 15,
-        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6,
-        background: 'linear-gradient(180deg, rgba(20,26,38,0.95) 0%, rgba(20,26,38,0.0) 100%)',
-        padding: '10px 14px 16px',
-        pointerEvents: 'none',
-      }}>
-        {/* LIVE badge */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          padding: '5px 12px',
-          background: 'rgba(220,20,20,0.14)',
-          border: '1px solid rgba(220,40,40,0.4)',
-          borderRadius: 6,
-          boxShadow: '0 0 16px rgba(220,30,30,0.15), inset 0 1px 0 rgba(255,255,255,0.05)',
-          marginRight: 4,
-        }}>
-          <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#ff2020', boxShadow: '0 0 8px #ff2020, 0 0 18px rgba(255,30,30,0.4)', animation: 'pulse 1.6s ease-in-out infinite' }} />
-          <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.25em', color: '#ff5555' }}>LIVE</span>
-        </div>
-
-        {/* Stats chips */}
-        {[
-          { label: 'MIL/ISR', value: milCount, color: '#ff5555', bg: 'rgba(255,40,40,0.10)', border: 'rgba(255,60,60,0.28)', icon: '✈' },
-          { label: 'CIV', value: civCount, color: '#30d870', bg: 'rgba(48,216,112,0.08)', border: 'rgba(48,216,112,0.25)', icon: '✈' },
-          { label: 'ALERTS', value: alertCount, color: alertCount > 0 ? '#ff4444' : '#445', bg: alertCount > 0 ? 'rgba(255,30,30,0.12)' : 'rgba(255,255,255,0.03)', border: alertCount > 0 ? 'rgba(255,50,50,0.38)' : 'rgba(255,255,255,0.06)', icon: '⚠' },
-          { label: 'EVENTS', value: eventCount, color: '#f97316', bg: 'rgba(249,115,22,0.09)', border: 'rgba(249,115,22,0.26)', icon: '◉' },
-          { label: 'CRITICAL', value: criticalEvents, color: '#f43f5e', bg: 'rgba(244,63,94,0.10)', border: 'rgba(244,63,94,0.3)', icon: '●' },
-        ].map(({ label, value, color, bg, border, icon }) => (
-          <div key={label} style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '4px 10px 4px 8px',
-            background: bg,
-            border: `1px solid ${border}`,
-            borderRadius: 5,
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-          }}>
-            <span style={{ fontSize: 10, color, opacity: 0.7 }}>{icon}</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', fontWeight: 600 }}>{label}</span>
-            <span style={{ fontSize: 16, fontWeight: 900, color, lineHeight: 1, minWidth: 20, textAlign: 'right' }}>{value}</span>
-          </div>
-        ))}
-
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#1ee0b0', opacity: 0.6 }} />
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
-            {new Date().toUTCString().slice(17, 25)} UTC
-          </span>
-        </div>
-      </div>
-
-      {/* ── LEFT TOOLS PANEL ── */}
-      <div style={{ position: 'absolute', top: 52, left: 10, zIndex: 10 }}>
-        <div style={{
-          display: 'flex', flexDirection: 'column',
-          background: panelBg,
-          backdropFilter: 'blur(24px)',
-          border: `1px solid ${panelBorder}`,
-          borderRadius: 10,
-          overflow: 'hidden',
-          boxShadow: panelShadow,
-          minWidth: mapToolsOpen ? 188 : 'auto',
-          animation: 'fadeInScale 0.2s ease-out',
-        }}>
-          {/* Panel header */}
-          <button
-            data-testid="button-toggle-map-tools"
-            onClick={() => setMapToolsOpen(!mapToolsOpen)}
-            className="cm-tool-btn"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '8px 11px',
-              background: 'none', border: 'none',
-              borderBottom: mapToolsOpen ? `1px solid ${panelBorder}` : 'none',
-              cursor: 'pointer',
-              minHeight: IS_TOUCH ? 44 : 34,
-            }}
-          >
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#4a90d9', boxShadow: '0 0 6px rgba(74,144,217,0.5)' }} />
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', color: '#7a8898', textTransform: 'uppercase' }}>
-              {language === 'ar' ? 'أدوات' : 'TOOLS'}
-            </span>
-            <span style={{ fontSize: 8, color: '#3a4555', marginLeft: 'auto', opacity: 0.7 }}>{mapToolsOpen ? '▲' : '▼'}</span>
-          </button>
-
-          {mapToolsOpen && (
-            <div style={{ padding: '8px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-
-              {/* View + Measure + AI row */}
-              <div style={{ display: 'flex', gap: 4 }}>
-                {[
-                  {
-                    id: 'globe', label: isGlobe ? '3D ON' : '2D', active: isGlobe,
-                    activeColor: 'rgba(59,130,246,0.18)', activeBorder: 'rgba(59,130,246,0.4)', activeText: '#93c5fd',
-                    onClick: toggleGlobe, testId: 'button-toggle-globe',
-                    icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>,
-                  },
-                  {
-                    id: 'measure', label: measureMode ? 'MEAS ON' : 'MEAS', active: measureMode,
-                    activeColor: 'rgba(250,204,21,0.14)', activeBorder: 'rgba(250,204,21,0.4)', activeText: '#fde047',
-                    onClick: toggleMeasureMode, testId: 'button-measure-tool',
-                    icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>,
-                  },
-                  {
-                    id: 'ai', label: 'AI HEAT', active: layerVisibility.aiHeatmap,
-                    activeColor: 'rgba(239,68,68,0.16)', activeBorder: 'rgba(239,68,68,0.4)', activeText: '#f87171',
-                    onClick: () => setLayerVisibility(prev => ({ ...prev, aiHeatmap: !prev.aiHeatmap })), testId: 'button-ai-heat',
-                    icon: null,
-                  },
-                ].map(btn => (
-                  <button
-                    key={btn.id}
-                    data-testid={btn.testId}
-                    onClick={btn.onClick}
-                    className="cm-tool-btn"
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-                      padding: '5px 5px',
-                      fontSize: 9, fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.06em',
-                      borderRadius: 5,
-                      border: `1px solid ${btn.active ? btn.activeBorder : panelBorder}`,
-                      background: btn.active ? btn.activeColor : 'rgba(255,255,255,0.02)',
-                      color: btn.active ? btn.activeText : '#4a5565',
-                      cursor: 'pointer',
-                      minHeight: IS_TOUCH ? 34 : 26,
-                    }}
-                  >
-                    {btn.icon}
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Region presets */}
-              <div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.14em', marginBottom: 4, paddingLeft: 2 }}>REGION</div>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {(['global', 'mena', 'gulf', 'levant'] as const).map(region => (
-                    <button
-                      key={region}
-                      data-testid={`button-region-${region}`}
-                      onClick={() => setRegion(region)}
-                      className="cm-tool-btn"
-                      style={{
-                        flex: 1, padding: IS_TOUCH ? '7px 2px' : '4px 2px',
-                        fontSize: IS_TOUCH ? 10 : 8, fontWeight: 700, fontFamily: 'monospace',
-                        borderRadius: 4,
-                        border: `1px solid rgba(255,255,255,0.06)`,
-                        background: 'rgba(255,255,255,0.02)',
-                        color: '#4a5565', cursor: 'pointer',
-                        textTransform: 'uppercase', letterSpacing: '0.05em',
-                        minHeight: IS_TOUCH ? 34 : 22,
-                      }}
-                    >
-                      {region === 'global' ? 'ALL' : region === 'levant' ? 'LEV' : region.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Search */}
-              <div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.14em', marginBottom: 4, paddingLeft: 2 }}>SEARCH</div>
-                <div style={{ position: 'relative' }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a4555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}>
-                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                  </svg>
-                  <input
-                    ref={searchInputRef}
-                    data-testid="input-map-search"
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); setSearchActiveIndex(-1); }}
-                    onFocus={() => { if (searchQuery.trim()) setSearchOpen(true); }}
-                    onBlur={() => { setTimeout(() => setSearchOpen(false), 200); }}
-                    onKeyDown={handleSearchKeyDown}
-                    placeholder={language === 'ar' ? 'بحث...' : 'Search targets…'}
-                    style={{
-                      width: '100%', padding: '7px 28px 7px 26px',
-                      fontSize: 11, fontWeight: 500, fontFamily: 'monospace',
-                      borderRadius: 5,
-                      border: `1px solid rgba(255,255,255,0.09)`,
-                      background: 'rgba(255,255,255,0.03)',
-                      color: '#c0c8d4',
-                      outline: 'none',
-                      minHeight: IS_TOUCH ? 36 : 30,
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.15s',
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      data-testid="button-clear-search"
-                      onClick={() => { setSearchQuery(''); setSearchOpen(false); setSearchActiveIndex(-1); }}
-                      style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#3a4555', cursor: 'pointer', padding: '3px', lineHeight: 1, display: 'flex' }}
-                      aria-label="Clear search"
-                    >
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  )}
-
-                  {searchOpen && searchResults.length > 0 && (
-                    <div
-                      ref={searchDropdownRef}
-                      data-testid="search-results-dropdown"
-                      style={{
-                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                        background: 'rgba(20,26,40,0.97)', backdropFilter: 'blur(20px)',
-                        border: `1px solid ${panelBorder}`,
-                        borderRadius: 7, overflow: 'hidden', zIndex: 30,
-                        maxHeight: 220, overflowY: 'auto',
-                        boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
-                        animation: 'fadeInScale 0.15s ease-out',
-                      }}
-                    >
-                      {searchResults.map((item, idx) => {
-                        const iconPath = SEARCH_CATEGORY_ICONS[item.category] || SEARCH_CATEGORY_ICONS['Default'];
-                        const iconColor = SEARCH_CATEGORY_COLORS[item.category] || SEARCH_CATEGORY_COLORS['Default'];
-                        const isActive = idx === searchActiveIndex;
-                        return (
-                          <button
-                            key={`${item.name}-${item.lat}-${item.lng}-${idx}`}
-                            data-testid={`search-result-${idx}`}
-                            onClick={() => selectSearchResult(item)}
-                            onMouseEnter={() => setSearchActiveIndex(idx)}
-                            style={{
-                              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                              padding: '7px 10px',
-                              background: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
-                              border: 'none',
-                              borderBottom: idx < searchResults.length - 1 ? `1px solid rgba(255,255,255,0.04)` : 'none',
-                              cursor: 'pointer', textAlign: 'left', minHeight: 34,
-                              transition: 'background 0.1s',
-                            }}
-                          >
-                            <div style={{
-                              width: 22, height: 22, borderRadius: 4, flexShrink: 0,
-                              background: `${iconColor}18`, border: `1px solid ${iconColor}30`,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d={iconPath}/>
-                              </svg>
-                            </div>
-                            <div style={{ flex: 1, overflow: 'hidden' }}>
-                              <div style={{ color: '#dde4ee', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {item.name}
-                              </div>
-                              <div style={{ color: '#4a5565', fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
-                                {item.category} · {item.detail}
-                              </div>
-                            </div>
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#3a4555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                              <path d="M5 12h14M12 5l7 7-7 7"/>
-                            </svg>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {searchOpen && searchQuery.trim() && searchResults.length === 0 && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
-                      background: 'rgba(20,26,40,0.97)', backdropFilter: 'blur(20px)',
-                      border: `1px solid ${panelBorder}`, borderRadius: 7,
-                      padding: '10px', zIndex: 30, textAlign: 'center',
-                    }}>
-                      <span style={{ color: '#3a4555', fontSize: 10, fontFamily: 'monospace' }}>
-                        {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── ZOOM CONTROLS ── */}
-      <div style={{
-        position: 'absolute',
-        right: IS_TOUCH ? 14 : 10,
-        bottom: IS_TOUCH ? 72 : 56,
-        zIndex: 10,
-        display: 'flex', flexDirection: 'column',
-        background: panelBg, backdropFilter: 'blur(20px)',
-        border: `1px solid ${panelBorder}`,
-        borderRadius: 8,
-        overflow: 'hidden',
-        boxShadow: panelShadow,
-      }}>
-        {[
-          { id: 'in', label: '+', testId: 'button-zoom-in', onClick: () => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 1, 18) })) },
-          { id: 'out', label: '−', testId: 'button-zoom-out', onClick: () => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 1) })) },
-        ].map((btn, i) => (
-          <button
-            key={btn.id}
-            data-testid={btn.testId}
-            onClick={btn.onClick}
-            className="cm-zoom-btn"
-            style={{
-              width: IS_TOUCH ? 42 : 30, height: IS_TOUCH ? 42 : 30,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              borderTop: i > 0 ? `1px solid ${panelBorder}` : 'none',
-              color: '#4a5a6a', cursor: 'pointer',
-              fontSize: IS_TOUCH ? 20 : 16, fontWeight: 300, lineHeight: 1,
-              transition: 'all 0.15s',
-            }}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── LAYERS PANEL ── */}
-      <div style={{
-        position: 'absolute', top: 52, right: 10, zIndex: 10,
-        maxHeight: 'calc(100% - 70px)', display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          background: panelBg, backdropFilter: 'blur(24px)',
-          border: `1px solid ${panelBorder}`,
-          borderRadius: 10, boxShadow: panelShadow,
-          minWidth: panelOpen ? 210 : 'auto', maxWidth: 230,
-          animation: 'fadeInScale 0.2s ease-out',
-        }}>
-          {/* Panel header */}
-          <button
-            data-testid="button-toggle-layers-panel"
-            onClick={() => setPanelOpen(!panelOpen)}
-            className="cm-tool-btn"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '8px 11px', background: 'none', border: 'none',
-              borderBottom: panelOpen ? `1px solid ${panelBorder}` : 'none',
-              cursor: 'pointer', textAlign: 'left',
-              minHeight: IS_TOUCH ? 44 : 34,
-            }}
-          >
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22d3ee', boxShadow: '0 0 6px rgba(34,211,238,0.5)' }} />
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', color: '#7a8898', textTransform: 'uppercase' }}>
-              LAYERS
-            </span>
-            <span style={{
-              marginLeft: 6, fontSize: 10, fontWeight: 700, fontFamily: 'monospace',
-              color: '#22d3ee', background: 'rgba(34,211,238,0.12)', border: '1px solid rgba(34,211,238,0.2)',
-              borderRadius: 10, padding: '0px 6px', lineHeight: '16px',
-            }}>
-              {activeLayerCount}
-            </span>
-            <span style={{ fontSize: 8, color: '#3a4555', marginLeft: 'auto', opacity: 0.7 }}>{panelOpen ? '▲' : '▼'}</span>
-          </button>
-
-          {panelOpen && (
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 130px)', overscrollBehavior: 'contain' }}>
-              {LAYER_GROUPS.map(group => {
-                const groupLayers = LAYER_CONFIGS.filter(c => c.group === group.id);
-                const activeInGroup = groupLayers.filter(c => layerVisibility[c.key]).length;
-                const isExpanded = expandedGroups[group.id];
-                return (
-                  <div key={group.id} style={{ borderBottom: `1px solid rgba(255,255,255,0.035)` }}>
-                    {/* Group header */}
-                    <div style={{ display: 'flex', alignItems: 'center', padding: IS_TOUCH ? '5px 8px 5px 9px' : '3px 6px 3px 9px', gap: 4 }}>
-                      <button
-                        data-testid={`toggle-group-${group.id}`}
-                        onClick={() => toggleGroup(group.id)}
-                        style={{
-                          flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-                          background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-                          padding: IS_TOUCH ? '5px 0' : '2px 0',
-                          minHeight: IS_TOUCH ? 34 : 22,
-                        }}
-                      >
-                        <div style={{ width: 3, height: 14, borderRadius: 2, background: group.color, opacity: isExpanded ? 0.9 : 0.35, flexShrink: 0 }} />
-                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', color: isExpanded ? group.color : '#3a4555', textTransform: 'uppercase', transition: 'color 0.15s' }}>
-                          {group.label}
-                        </span>
-                        <span style={{ fontSize: 9, color: '#2a3545', fontFamily: 'monospace', marginLeft: 1 }}>
-                          {activeInGroup}/{groupLayers.length}
-                        </span>
-                      </button>
-                      <button
-                        data-testid={`toggle-all-${group.id}`}
-                        onClick={() => toggleAllInGroup(group.id, activeInGroup < groupLayers.length)}
-                        className="cm-tool-btn"
-                        style={{
-                          background: 'rgba(255,255,255,0.02)', border: `1px solid rgba(255,255,255,0.06)`,
-                          borderRadius: 4, color: '#3a4555', cursor: 'pointer',
-                          fontSize: IS_TOUCH ? 10 : 8, fontFamily: 'monospace', fontWeight: 700,
-                          padding: IS_TOUCH ? '3px 7px' : '1px 5px',
-                          letterSpacing: '0.05em', minHeight: IS_TOUCH ? 26 : 18,
-                        }}
-                      >
-                        {activeInGroup === groupLayers.length ? 'OFF' : 'ALL'}
-                      </button>
-                    </div>
-
-                    {/* Layer rows */}
-                    {isExpanded && (
-                      <div style={{ paddingBottom: 2 }}>
-                        {groupLayers.map(cfg => (
-                          <label
-                            key={cfg.key}
-                            data-testid={`toggle-layer-${cfg.key}`}
-                            className="cm-layer-row"
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: 7,
-                              padding: IS_TOUCH ? '6px 8px 6px 16px' : '3px 8px 3px 16px',
-                              cursor: 'pointer', userSelect: 'none',
-                              minHeight: IS_TOUCH ? 34 : 22,
-                              background: layerVisibility[cfg.key] ? 'rgba(255,255,255,0.02)' : 'transparent',
-                              transition: 'background 0.12s',
-                            }}
-                          >
-                            <input type="checkbox" checked={layerVisibility[cfg.key]} onChange={() => toggleLayer(cfg.key)} style={{ display: 'none' }} />
-                            <div style={{
-                              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                              background: layerVisibility[cfg.key] ? cfg.color : 'transparent',
-                              border: `1.5px solid ${layerVisibility[cfg.key] ? cfg.color : 'rgba(255,255,255,0.12)'}`,
-                              boxShadow: layerVisibility[cfg.key] ? `0 0 8px ${cfg.color}70` : 'none',
-                              transition: 'all 0.15s',
-                            }} />
-                            <span style={{
-                              fontSize: 11, fontFamily: 'monospace', lineHeight: 1.2,
-                              color: layerVisibility[cfg.key] ? '#c8d0dc' : '#303a4a',
-                              transition: 'color 0.15s',
-                            }}>
-                              {cfg.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── TOOLTIP POPUP ── */}
+      {/* ── Hover tooltip ──────────────────────────────────────── */}
       {tooltip && (
         <div
-          data-testid="map-popup-card"
-          onClick={() => setTooltip(null)}
-          style={{
-            position: 'absolute',
-            left: Math.min(tooltip.x + 18, (containerRef.current?.clientWidth || 400) - 310),
-            top: Math.max(tooltip.y - 8, 54),
-            zIndex: 20,
-            background: 'rgba(20,26,38,0.97)',
-            backdropFilter: 'blur(28px)',
-            border: `1px solid ${tooltip.accentColor || '#ef4444'}28`,
-            borderRadius: 12,
-            overflow: 'hidden',
-            pointerEvents: 'auto',
-            maxWidth: 300, minWidth: 210,
-            cursor: 'pointer',
-            boxShadow: `0 20px 60px rgba(0,0,0,0.85), 0 0 32px ${tooltip.accentColor || '#ef4444'}18, inset 0 1px 0 rgba(255,255,255,0.05)`,
-            display: 'flex', flexDirection: 'row',
-            animation: 'fadeInScale 0.18s ease-out',
-          }}
+          className="absolute z-50 pointer-events-none select-none"
+          style={{ left: tipLeft, top: tipTop }}
         >
-          {/* Accent bar */}
-          <div style={{
-            width: 3, minHeight: '100%', flexShrink: 0,
-            background: `linear-gradient(180deg, ${tooltip.accentColor || '#ef4444'} 0%, ${tooltip.accentColor || '#ef4444'}50 100%)`,
-            boxShadow: `2px 0 16px ${tooltip.accentColor || '#ef4444'}60`,
-          }} />
-          <div style={{ padding: '11px 14px', flex: 1, minWidth: 0 }}>
-            {/* Header row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              {tooltip.category && (
-                <span style={{
-                  fontSize: 9, fontWeight: 900, fontFamily: 'monospace',
-                  textTransform: 'uppercase', letterSpacing: '0.18em',
-                  color: tooltip.accentColor || '#ef4444',
-                  background: `${tooltip.accentColor || '#ef4444'}18`,
-                  border: `1px solid ${tooltip.accentColor || '#ef4444'}35`,
-                  padding: '2px 7px', borderRadius: 4,
-                }}>
-                  {tooltip.category}
-                </span>
-              )}
-              {tooltip.timestamp && (
-                <span style={{ fontSize: 10, color: '#3a4555', fontFamily: 'monospace', marginLeft: 'auto' }}>
-                  {new Date(tooltip.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); setTooltip(null); }}
-                style={{ background: 'none', border: 'none', color: '#3a4555', cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '0 0 0 4px', display: 'flex', marginLeft: tooltip.timestamp ? 0 : 'auto' }}
-              >✕</button>
-            </div>
-            {/* Title */}
-            <div style={{ color: '#eef1f6', fontSize: 14, fontWeight: 700, lineHeight: 1.4, marginBottom: 7, wordBreak: 'break-word' }}>
-              {tooltip.text}
-            </div>
-            {/* Detail lines */}
-            {tooltip.detail && tooltip.detail.split('\n').map((line, i) => (
-              <div key={i} style={{ color: '#5a6a7a', fontSize: 11, fontFamily: 'monospace', lineHeight: 1.65 }}>
-                {line}
-              </div>
-            ))}
-            {/* Coords + satellite link */}
-            {tooltip.coords && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                marginTop: 10, paddingTop: 8,
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <span style={{ fontSize: 10, color: '#3a4555', fontFamily: 'monospace' }}>
-                  {tooltip.coords.lat.toFixed(4)}° {tooltip.coords.lng.toFixed(4)}°
-                </span>
-                <a
-                  href={`https://www.google.com/maps?q=${tooltip.coords.lat},${tooltip.coords.lng}&z=12&t=k`}
-                  target="_blank" rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    fontSize: 9, color: '#4a90d9', textDecoration: 'none',
-                    fontFamily: 'monospace', fontWeight: 800, marginLeft: 'auto',
-                    letterSpacing: '0.12em',
-                    background: 'rgba(74,144,217,0.1)', border: '1px solid rgba(74,144,217,0.25)',
-                    padding: '2px 7px', borderRadius: 3,
-                  }}
-                >
-                  SAT ↗
-                </a>
-              </div>
+          <div className="bg-black/92 border border-white/10 rounded-md px-3 py-2 shadow-xl backdrop-blur-sm max-w-[230px]">
+            {tooltip.badge && (
+              <span
+                className="inline-block text-[9px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded mb-1.5"
+                style={{
+                  color: tooltip.color ?? '#22d3ee',
+                  background: `${tooltip.color ?? '#22d3ee'}18`,
+                  border: `1px solid ${tooltip.color ?? '#22d3ee'}35`,
+                }}
+              >
+                {tooltip.badge}
+              </span>
             )}
+            <p className="text-[11px] font-bold text-white/90 leading-snug">{tooltip.title}</p>
+            <p className="text-[10px] text-white/45 font-mono leading-relaxed mt-0.5">{tooltip.sub}</p>
           </div>
         </div>
       )}
 
-      {/* ── MEASURE READOUT ── */}
-      {measureMode && (
-        <div
-          data-testid="measure-readout"
-          style={{
-            position: 'absolute', bottom: 14, left: 14, zIndex: 20,
-            background: panelBg, backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(250,204,21,0.18)',
-            borderRadius: 8, padding: '10px 14px',
-            pointerEvents: 'none',
-            boxShadow: '0 8px 28px rgba(0,0,0,0.6), 0 0 20px rgba(250,204,21,0.06)',
-            animation: 'fadeInScale 0.18s ease-out',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#fbbf24', boxShadow: '0 0 6px rgba(251,191,36,0.6)' }} />
-            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.18em', color: '#7a6a30', textTransform: 'uppercase' }}>
-              {language === 'ar' ? 'القياس' : 'DISTANCE'}
+      {/* ── Region presets ─────────────────────────────────────── */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+        {Object.entries(REGIONS).map(([label, vs]) => (
+          <button
+            key={label}
+            onClick={() => flyTo(vs)}
+            className="text-[9px] font-mono font-bold uppercase px-2.5 py-1 rounded bg-black/70 border border-white/[0.08] text-white/35 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-black/80 transition-all"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Layer toggles ──────────────────────────────────────── */}
+      <div className="absolute bottom-6 left-3 z-10">
+        <div className="bg-black/80 border border-white/[0.07] rounded-lg p-2.5 flex flex-col gap-2 backdrop-blur-sm">
+          <p className="text-[8px] font-mono font-bold uppercase tracking-[0.2em] text-white/20 mb-0.5">Layers</p>
+          {ALL_LAYERS.map(cfg => (
+            <button
+              key={cfg.key}
+              onClick={() => toggleLayer(cfg.key)}
+              className="flex items-center gap-2.5 text-[9px] font-mono uppercase tracking-wider transition-opacity"
+              style={{ opacity: vis[cfg.key] ? 1 : 0.3 }}
+            >
+              <div
+                className="w-2 h-2 rounded-full shrink-0 transition-all"
+                style={{ background: vis[cfg.key] ? cfg.color : 'rgba(255,255,255,0.15)' }}
+              />
+              <span style={{ color: vis[cfg.key] ? cfg.color : 'rgba(255,255,255,0.25)' }}>
+                {cfg.label}
+              </span>
+              <span className="ml-auto text-white/15 font-mono">
+                {cfg.key === 'events'  ? events.length :
+                 cfg.key === 'alerts'  ? redAlerts.filter(a => a.lat && a.lng).length :
+                 cfg.key === 'adsb'    ? adsbFlights.length :
+                 cfg.key === 'thermal' ? thermalHotspots.filter(h => h.confidence !== 'low').length :
+                 cfg.key === 'bases'   ? MILITARY_BASES.length :
+                 cfg.key === 'nuclear' ? NUCLEAR_SITES.length : ''}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Live counts badge ──────────────────────────────────── */}
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
+        {redAlerts.filter(a => a.lat && a.lng).length > 0 && (
+          <div className="flex items-center gap-1.5 bg-red-950/80 border border-red-500/25 rounded px-2 py-1 backdrop-blur-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+            <span className="text-[9px] font-black font-mono text-red-300">
+              {redAlerts.filter(a => a.lat && a.lng).length} ALERT{redAlerts.filter(a => a.lat && a.lng).length !== 1 ? 'S' : ''}
             </span>
           </div>
-          {measureCenter && measureDistance !== null ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <div style={{ color: '#f0e8c0', fontSize: 18, fontWeight: 700, fontFamily: 'monospace', lineHeight: 1.1 }}>
-                {measureDistance < 1 ? `${(measureDistance * 1000).toFixed(0)} m` : `${measureDistance.toFixed(1)} km`}
-              </div>
-              <div style={{ color: '#4a5565', fontSize: 10, fontFamily: 'monospace' }}>
-                {(measureDistance * 0.539957).toFixed(1)} nm · {(measureDistance * 0.621371).toFixed(1)} mi
-              </div>
-              <div style={{ color: '#2a3545', fontSize: 9, marginTop: 2 }}>
-                {language === 'ar' ? 'انقر لمسح' : 'Click to clear'}
-              </div>
-            </div>
-          ) : (
-            <div style={{ color: '#4a5565', fontSize: 11, fontFamily: 'monospace' }}>
-              {language === 'ar' ? 'انقر على الخريطة' : 'Click map to set origin'}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {adsbFlights.filter(f => f.type === 'military').length > 0 && (
+          <div className="flex items-center gap-1.5 bg-black/70 border border-white/[0.07] rounded px-2 py-1 backdrop-blur-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span className="text-[9px] font-mono text-cyan-300/70">
+              {adsbFlights.filter(f => f.type === 'military').length} MIL
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

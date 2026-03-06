@@ -2282,7 +2282,7 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
       if (!containerRef.current) return;
       map = new MLMap({
         container: containerRef.current,
-        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        style: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
         center: [44, 30],
         zoom: 4,
         minZoom: 2,
@@ -4123,7 +4123,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="settings-overlay">
-      <div className="w-[90vw] max-w-[480px] max-h-[85vh] bg-background/95 backdrop-blur-xl border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px hsl(32 95% 50% / 0.1)'}}>
+      <div className="w-[95vw] max-w-[520px] max-h-[90dvh] bg-background/95 backdrop-blur-xl border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px hsl(32 95% 50% / 0.1)'}}>
         <div className={`px-4 ${isTouchDevice ? 'py-4' : 'py-3'} border-b border-primary/20 bg-primary/5 flex items-center gap-2 rounded-t-xl`}>
           <Settings className="w-4 h-4 text-primary" />
           <span className="text-xs font-bold font-mono text-primary tracking-wider">{t('SETTINGS', '\u0625\u0639\u062F\u0627\u062F\u0627\u062A')}</span>
@@ -4638,9 +4638,12 @@ function AlertMapPanel({
 }
 
 const MAP_STYLE_OPTIONS = [
-  { id: 'dark', label: 'Dark', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
-  { id: 'light', label: 'Light', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
-  { id: 'street', label: 'Street', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
+  { id: 'dark',      label: 'Dark',      provider: 'Stadia', dot: '#1e293b', url: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json' },
+  { id: 'satellite', label: 'Satellite', provider: 'Stadia', dot: '#065f46', url: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json' },
+  { id: 'outdoors',  label: 'Terrain',   provider: 'Stadia', dot: '#78350f', url: 'https://tiles.stadiamaps.com/styles/outdoors.json' },
+  { id: 'toner',     label: 'Toner',     provider: 'Stadia', dot: '#000000', url: 'https://tiles.stadiamaps.com/styles/stamen_toner.json' },
+  { id: 'light',     label: 'Light',     provider: 'Stadia', dot: '#e2e8f0', url: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json' },
+  { id: 'ofm',       label: 'Liberty',   provider: 'OFM',    dot: '#1d4ed8', url: 'https://tiles.openfreemap.org/styles/liberty' },
 ] as const;
 
 function MapSection({
@@ -4667,7 +4670,7 @@ function MapSection({
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
 }) {
   const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
-  const [mapStyleId, setMapStyleId] = useState<'dark' | 'light' | 'street'>('dark');
+  const [mapStyleId, setMapStyleId] = useState<typeof MAP_STYLE_OPTIONS[number]['id']>('dark');
   const mapStyleUrl = MAP_STYLE_OPTIONS.find(s => s.id === mapStyleId)!.url;
   const hasActiveThreats = redAlerts.length > 0;
 
@@ -4760,13 +4763,44 @@ function MapSection({
 
           <div style={{ flex: 1 }} />
 
-          {/* Map style */}
-          <div style={{ display: 'flex', gap: 1, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5, padding: 2, flexShrink: 0 }} data-no-drag>
-            {MAP_STYLE_OPTIONS.map(s => (
-              <button key={s.id} onClick={() => setMapStyleId(s.id)} data-testid={`button-map-style-${s.id}`}
-                style={{ padding: '2px 7px', fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', borderRadius: 3, border: 'none', cursor: 'pointer', background: mapStyleId === s.id ? 'rgba(34,211,238,0.12)' : 'transparent', color: mapStyleId === s.id ? '#22d3ee' : 'rgba(255,255,255,0.18)', transition: 'all 0.15s' }}
-              >{s.label.toUpperCase()}</button>
-            ))}
+          {/* Map provider picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5, padding: 2, flexShrink: 0 }} data-no-drag>
+            {(['Stadia', 'OFM'] as const).map(provider => {
+              const providerStyles = MAP_STYLE_OPTIONS.filter(s => s.provider === provider);
+              const isProviderActive = providerStyles.some(s => s.id === mapStyleId);
+              return (
+                <div key={provider} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {provider !== 'Stadia' && <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.06)', margin: '0 1px' }} />}
+                  <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.12em', color: isProviderActive ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.15)', padding: '0 3px', fontFamily: 'monospace' }}>
+                    {provider}
+                  </span>
+                  {providerStyles.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => setMapStyleId(s.id)}
+                      data-testid={`button-map-style-${s.id}`}
+                      title={`${s.provider} ${s.label}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 3,
+                        padding: '2px 6px', fontSize: 8, fontWeight: 700,
+                        letterSpacing: '0.06em', borderRadius: 3, border: 'none',
+                        cursor: 'pointer',
+                        background: mapStyleId === s.id ? 'rgba(34,211,238,0.12)' : 'transparent',
+                        color: mapStyleId === s.id ? '#22d3ee' : 'rgba(255,255,255,0.22)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <div style={{
+                        width: 7, height: 7, borderRadius: 2, flexShrink: 0,
+                        background: s.dot,
+                        border: mapStyleId === s.id ? '1px solid rgba(34,211,238,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                      }} />
+                      {s.label.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </div>
 
           {/* NASA FIRMS badge */}
@@ -5593,8 +5627,9 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
         zoomControl: false,
         attributionControl: false,
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
+      L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
       }).addTo(map);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -5697,6 +5732,7 @@ export default function Dashboard() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(() => typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false);
   const [mobileActivePanel, setMobileActivePanel] = useState<PanelId>('map');
   const [showMobilePanelPicker, setShowMobilePanelPicker] = useState(false);
   const swipeRef = useRef<{ x: number; y: number; locked: boolean } | null>(null);
@@ -5712,13 +5748,19 @@ export default function Dashboard() {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const w = window.innerWidth;
+        const h = window.innerHeight;
         setIsMobile(w < 768);
-        setIsTablet(w >= 768 && w < 1200);
+        setIsTablet(w >= 768 && w < 1400);
+        setIsLandscape(w > h);
       });
     };
     check();
     window.addEventListener('resize', check);
-    return () => { window.removeEventListener('resize', check); cancelAnimationFrame(raf); };
+    window.addEventListener('orientationchange', () => setTimeout(check, 100));
+    return () => {
+      window.removeEventListener('resize', check);
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   useEffect(() => {
@@ -6107,8 +6149,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} data-testid="dashboard">
-      <header className={`${isMobile ? 'h-12' : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 20% 17% / 0.97)', borderBottom:'1px solid hsl(185 30% 30% / 0.22)'}}>
+    <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: isMobile && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: isMobile && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
+      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'hsl(220 20% 17% / 0.97)', borderBottom:'1px solid hsl(185 30% 30% / 0.22)'}}>
         <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.12) 30%, hsl(185 100% 42% / 0.22) 50%, hsl(185 100% 42% / 0.12) 70%, transparent)'}} />
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-black tracking-[0.22em] text-primary font-mono select-none whitespace-nowrap`} style={{filter:'drop-shadow(0 0 6px hsl(185 100% 42% / 0.35))'}}>◈ WARROOM</span>
@@ -6118,15 +6160,15 @@ export default function Dashboard() {
             <span className="text-[8px] text-red-400/90 font-black tracking-[0.2em] uppercase font-mono">LIVE</span>
           </div>
           {isMobile && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.06), transparent)', border:'1px solid hsl(0 80% 50% / 0.12)'}}>
-              <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse-dot" />
-              <span className="text-[6px] text-red-400/70 font-black tracking-wider uppercase font-mono">LIVE</span>
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.08), transparent)', border:'1px solid hsl(0 80% 50% / 0.18)'}}>
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(239 68 68 / 0.6)'}} />
+              <span className="text-[8px] text-red-400/80 font-black tracking-wider uppercase font-mono">LIVE</span>
             </div>
           )}
           <div className="w-px h-4 bg-white/[0.06] hidden sm:block" />
           <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
-            <ShieldAlert className={`${isMobile ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} ${threatLevel.color}`} />
-            <span className={`${isMobile ? 'text-[6px]' : 'text-[8px]'} font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
+            <ShieldAlert className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${threatLevel.color}`} />
+            <span className={`text-[8px] font-black tracking-[0.15em] uppercase font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -6266,7 +6308,8 @@ export default function Dashboard() {
                     key={item.id}
                     onClick={item.action}
                     data-testid={`mobile-menu-${item.id}`}
-                    className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-[11px] font-medium transition-colors active:bg-white/[0.06] ${item.active ? 'text-primary' : 'text-foreground/60 hover:text-foreground/80'}`}
+                    className={`flex items-center gap-2.5 w-full px-3 py-3 rounded-lg text-[11px] font-medium transition-colors active:bg-white/[0.08] min-h-[48px] ${item.active ? 'text-primary' : 'text-foreground/60 hover:text-foreground/80'}`}
+                    style={{ touchAction: 'manipulation' }}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
@@ -6333,14 +6376,17 @@ export default function Dashboard() {
               {SWIPE_TABS.map(id => (
                 <button
                   key={id}
-                  className={`dot ${mobileActivePanel === id ? 'active' : ''}`}
+                  className="flex items-center justify-center p-2"
+                  style={{ touchAction: 'manipulation', minWidth: 32, minHeight: 32 }}
                   onClick={() => setMobileActivePanel(id)}
                   aria-label={`Switch to ${PANEL_CONFIG[id]?.label || id}`}
                   data-testid={`swipe-dot-${id}`}
-                />
+                >
+                  <span className={`dot ${mobileActivePanel === id ? 'active' : ''}`} style={{ pointerEvents: 'none' }} />
+                </button>
               ))}
             </div>
-            <div className="shrink-0 border-t border-white/[0.05] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} data-testid="mobile-tab-bar">
+            <div className="shrink-0 border-t border-white/[0.05] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }} data-testid="mobile-tab-bar">
               {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -6351,12 +6397,13 @@ export default function Dashboard() {
                   <button
                     key={id}
                     onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                    className={`flex-1 min-w-[52px] min-h-[52px] py-2.5 flex flex-col items-center gap-1 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/30 active:text-foreground/50'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
+                    className={`flex-1 min-w-[52px] min-h-[56px] py-2 flex flex-col items-center gap-1.5 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/30 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                     data-testid={`mobile-tab-${id}`}
                   >
                     {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" style={{ boxShadow: '0 2px 8px hsl(185 100% 42% / 0.3)' }} />}
-                    <Icon className={`w-[18px] h-[18px] transition-transform ${isActive ? 'scale-110' : ''}`} />
-                    <span className={`text-[8px] font-mono font-bold uppercase tracking-wider transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/25'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/30'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
                     {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.6)' }} />}
                     {hasTelegram && !isActive && <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />}
                   </button>
@@ -6364,11 +6411,12 @@ export default function Dashboard() {
               })}
               <button
                 onClick={() => setShowMobilePanelPicker(p => !p)}
-                className={`min-w-[52px] min-h-[52px] py-2.5 flex flex-col items-center gap-1 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/30'}`}
+                className={`min-w-[52px] min-h-[56px] py-2 flex flex-col items-center gap-1.5 transition-colors ${showMobilePanelPicker ? 'text-primary' : 'text-foreground/30 active:text-foreground/60'}`}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 data-testid="mobile-tab-more"
               >
-                <MoreHorizontal className="w-[18px] h-[18px]" />
-                <span className="text-[8px] font-mono font-bold uppercase tracking-wider">{language === 'ar' ? 'المزيد' : 'More'}</span>
+                <MoreHorizontal className="w-5 h-5" />
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wide">{language === 'ar' ? 'المزيد' : 'More'}</span>
               </button>
             </div>
             {/* Bottom Sheet Backdrop */}
@@ -6380,7 +6428,7 @@ export default function Dashboard() {
             )}
             <div
               className={`fixed left-0 right-0 bottom-0 z-50 warroom-bottom-sheet ${showMobilePanelPicker ? 'warroom-bottom-sheet--open' : ''}`}
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
               data-testid="mobile-panel-picker"
             >
               <div className="flex justify-center pt-2 pb-1">
@@ -6416,23 +6464,41 @@ export default function Dashboard() {
             </div>
           </div>
         ) : isTablet ? (
-          <div className="grid grid-cols-2 gap-1 p-1" style={{ gridAutoRows: 'minmax(320px, auto)', background: 'hsl(185 80% 42% / 0.04)' }}>
-            {allPanels.filter(id => visiblePanels[id]).map(id => (
-              <div
-                key={id}
-                className={`overflow-hidden rounded-md ${id === 'map' || id === 'alertmap' || id === 'alerts' ? 'col-span-2' : ''}`}
-                style={{
-                  minHeight: id === 'map' ? '420px' : id === 'alerts' ? '380px' : id === 'alertmap' ? '360px' : '320px',
-                  background: 'hsl(220 28% 13% / 0.82)',
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
-                  border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.35)' : '1px solid rgba(255,255,255,0.06)',
-                  boxShadow: id === 'alerts' ? '0 0 30px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
-                }}
-              >
-                {renderPanel(id)}
-              </div>
-            ))}
+          <div
+            className={`grid gap-1 p-1`}
+            style={{
+              gridTemplateColumns: isLandscape ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+              gridAutoRows: `minmax(${isLandscape ? '280px' : '320px'}, auto)`,
+              background: 'hsl(185 80% 42% / 0.04)',
+              paddingLeft: 'max(4px, env(safe-area-inset-left))',
+              paddingRight: 'max(4px, env(safe-area-inset-right))',
+            }}
+          >
+            {allPanels.filter(id => visiblePanels[id]).map(id => {
+              const isWide = id === 'map' || id === 'alertmap' || id === 'alerts';
+              const mapH = isLandscape ? '420px' : '480px';
+              const alertsH = isLandscape ? '320px' : '380px';
+              const alertmapH = isLandscape ? '300px' : '360px';
+              const defaultH = isLandscape ? '280px' : '320px';
+              return (
+                <div
+                  key={id}
+                  style={{
+                    gridColumn: isWide ? `1 / -1` : undefined,
+                    minHeight: id === 'map' ? mapH : id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
+                    background: 'hsl(220 28% 13% / 0.82)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.35)' : '1px solid rgba(255,255,255,0.06)',
+                    boxShadow: id === 'alerts' ? '0 0 30px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                  }}
+                >
+                  {renderPanel(id)}
+                </div>
+              );
+            })}
           </div>
         ) : maximizedPanel && visiblePanels[maximizedPanel] ? (
           <div style={{ height: 'calc(100vh - 120px)' }} className="flex flex-col overflow-hidden">
