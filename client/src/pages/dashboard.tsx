@@ -5669,69 +5669,7 @@ export default function Dashboard() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  // RGL swallows wheel events — forward them to the scroll container
-  useEffect(() => {
-    const el = panelsScrollRef.current;
-    if (!el) return;
-
-    // Convert wheel deltaMode to pixels
-    const toPixels = (delta: number, mode: number) => {
-      if (mode === WheelEvent.DOM_DELTA_LINE) return delta * 20;
-      if (mode === WheelEvent.DOM_DELTA_PAGE) return delta * el.clientHeight * 0.85;
-      return delta;
-    };
-
-    const overflowRe = /auto|scroll/;
-
-    const canScrollY = (node: HTMLElement, down: boolean) => {
-      if (node.scrollHeight <= node.clientHeight) return false;
-      const oy = node.style.overflowY || '';
-      if (!overflowRe.test(oy) && !node.classList.contains('overflow-y-auto') && !node.classList.contains('overflow-auto') && !node.hasAttribute('data-radix-scroll-area-viewport')) {
-        const computed = window.getComputedStyle(node).overflowY;
-        if (!overflowRe.test(computed)) return false;
-      }
-      return down
-        ? node.scrollTop + node.clientHeight < node.scrollHeight - 1
-        : node.scrollTop > 1;
-    };
-
-    const canScrollX = (node: HTMLElement, right: boolean) => {
-      if (node.scrollWidth <= node.clientWidth) return false;
-      const ox = node.style.overflowX || '';
-      if (!overflowRe.test(ox) && !node.classList.contains('overflow-x-auto') && !node.classList.contains('overflow-auto')) {
-        const computed = window.getComputedStyle(node).overflowX;
-        if (!overflowRe.test(computed)) return false;
-      }
-      return right
-        ? node.scrollLeft + node.clientWidth < node.scrollWidth - 1
-        : node.scrollLeft > 1;
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      const dy = toPixels(e.deltaY, e.deltaMode);
-      const dx = toPixels(e.deltaX, e.deltaMode);
-      const goingDown = dy > 0;
-      const goingRight = dx > 0;
-      const hasY = Math.abs(dy) >= Math.abs(dx);
-
-      let node = e.target as HTMLElement | null;
-      while (node && node !== el) {
-        if (hasY && canScrollY(node, goingDown)) return;
-        if (!hasY && canScrollX(node, goingRight)) return;
-        node = node.parentElement;
-      }
-
-      e.preventDefault();
-      if (hasY) {
-        el.scrollTop += dy;
-      } else {
-        el.scrollLeft += dx;
-      }
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, []);
+  
 
 
   const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false };
@@ -6308,7 +6246,7 @@ export default function Dashboard() {
 
       <div
         ref={panelsScrollRef}
-        className="flex-1 overflow-y-auto scroll-smooth"
+        className="flex-1 overflow-y-auto"
         style={{ minHeight: 0 }}
         data-testid="resizable-panels"
       >
@@ -6455,9 +6393,7 @@ export default function Dashboard() {
                   style={{
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'map' ? mapH : id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
-                    background: 'hsl(220 28% 13% / 0.88)',
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    background: 'hsl(220 28% 13% / 0.97)',
                     borderRadius: 10,
                     overflow: 'hidden',
                     border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.38)' : '1px solid rgba(255,255,255,0.07)',
@@ -6507,10 +6443,8 @@ export default function Dashboard() {
                     background: isFloating
                       ? 'rgba(8,12,22,0.35)'
                       : hasAlertGlow
-                        ? 'hsl(0 25% 11% / 0.94)'
-                        : 'hsl(220 28% 14% / 0.85)',
-                    backdropFilter: isFloating ? 'none' : 'blur(12px)',
-                    WebkitBackdropFilter: isFloating ? 'none' : 'blur(12px)',
+                        ? 'hsl(0 25% 11% / 0.97)'
+                        : 'hsl(220 28% 14% / 0.97)',
                     border: isFloating
                       ? '1px dashed rgba(255,255,255,0.06)'
                       : hasAlertGlow

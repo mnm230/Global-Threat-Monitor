@@ -270,7 +270,7 @@
 
   /* Scrollable panels container */
   [data-testid="resizable-panels"] {
-    contain: layout style;
+    contain: style;
   }
 
   /* Warroom header taller on desktop */
