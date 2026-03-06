@@ -21,7 +21,8 @@
       "Bash(printenv:*)",
       "Bash(ss:*)",
       "Bash(grep:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(ls:*)"
     ]
   }
 }

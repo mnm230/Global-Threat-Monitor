@@ -25,7 +25,8 @@ import type {
   AIBrief,
   AIDeduction,
   AdsbFlight,
-  CyberEvent,
+  EWEvent,
+  InfraEvent,
   ThermalHotspot,
   BreakingNewsItem,
 } from '@shared/schema';
@@ -243,7 +244,8 @@ interface SSEData {
   adsbFlights: AdsbFlight[];
   aiBrief: AIBrief | null;
   telegramMessages: TelegramMessage[];
-  cyberEvents: CyberEvent[];
+  ewEvents: EWEvent[];
+  infraEvents: InfraEvent[];
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
   connected: boolean;
@@ -260,7 +262,8 @@ function useSSE(): SSEData {
   const [adsbFlights, setAdsbFlights] = useState<AdsbFlight[]>([]);
   const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
-  const [cyberEvents, setCyberEvents] = useState<CyberEvent[]>([]);
+  const [ewEvents, setEwEvents] = useState<EWEvent[]>([]);
+  const [infraEvents, setInfraEvents] = useState<InfraEvent[]>([]);
   const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
   const [breakingNews, setBreakingNews] = useState<BreakingNewsItem[]>([]);
   const [connected, setConnected] = useState(false);
@@ -308,8 +311,11 @@ function useSSE(): SSEData {
       es.addEventListener('telegram', (e) => {
         try { setTelegramMessages(JSON.parse(e.data)); } catch {}
       });
-      es.addEventListener('cyber', (e) => {
-        try { setCyberEvents(JSON.parse(e.data)); } catch {}
+      es.addEventListener('ew', (e) => {
+        try { setEwEvents(JSON.parse(e.data)); } catch {}
+      });
+      es.addEventListener('infra', (e) => {
+        try { setInfraEvents(JSON.parse(e.data)); } catch {}
       });
       es.addEventListener('thermal', (e) => {
         try { setThermalHotspots(JSON.parse(e.data)); } catch {}
@@ -340,7 +346,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, breakingNews, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -534,7 +540,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'cyber' | 'livefeed' | 'alertmap' | 'analytics' | 'osint';
+type PanelId = 'map' | 'events' | 'radar' | 'adsb' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -545,7 +551,8 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   adsb: { icon: Radar, label: 'ADS-B', labelAr: '\u0645\u0631\u0627\u0642\u0628\u0629 \u062C\u0648\u064A\u0629' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
-  cyber: { icon: Cpu, label: 'Cyber', labelAr: '\u0633\u064A\u0628\u0631\u0627\u0646\u064A' },
+  ew: { icon: Radio, label: 'Elec. Warfare', labelAr: 'الحرب الإلكترونية' },
+  infra: { icon: Zap, label: 'Infrastructure', labelAr: 'البنية التحتية' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
@@ -553,14 +560,17 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-const touchBtnClass = isTouchDevice ? 'w-9 h-9' : 'w-5 h-5';
-const touchIconClass = isTouchDevice ? 'w-4 h-4' : 'w-3 h-3';
+const touchBtnClass = isTouchDevice ? 'w-9 h-9' : 'w-6 h-6';
+const touchIconClass = isTouchDevice ? 'w-4 h-4' : 'w-3.5 h-3.5';
 
 function PanelMinimizeButton({ onMinimize }: { onMinimize: () => void }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-      className={`${touchBtnClass} rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-all duration-150 warroom-panel-close`}
+      className={`${touchBtnClass} rounded flex items-center justify-center text-foreground/40 hover:text-red-400 hover:bg-red-500/15 active:bg-red-500/25 active:scale-95 transition-all duration-100 warroom-panel-close`}
+      style={{ border: '1px solid transparent' }}
+      onMouseEnter={e => (e.currentTarget.style.border = '1px solid hsl(0 80% 55% / 0.35)')}
+      onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
       title="Close panel"
       aria-label="Close panel"
       data-testid="button-panel-close"
@@ -574,7 +584,10 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
-      className={`${touchBtnClass} rounded flex items-center justify-center text-muted-foreground/30 hover:text-primary hover:bg-primary/10 active:bg-primary/20 transition-all duration-150 warroom-panel-maximize`}
+      className={`${touchBtnClass} rounded flex items-center justify-center text-foreground/40 hover:text-primary hover:bg-primary/15 active:bg-primary/25 active:scale-95 transition-all duration-100 warroom-panel-maximize`}
+      style={{ border: '1px solid transparent' }}
+      onMouseEnter={e => (e.currentTarget.style.border = '1px solid hsl(185 100% 42% / 0.35)')}
+      onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
       title={isMaximized ? "Restore panel" : "Maximize panel"}
       aria-label={isMaximized ? "Restore panel" : "Maximize panel"}
       data-testid="button-panel-maximize"
@@ -1032,26 +1045,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: true, analytics: true, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, cyber: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, adsb: 28, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, cyber: false, livefeed: false, alertmap: false, analytics: false, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, cyber: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, adsb: true, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, adsb: 40, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, cyber: false, livefeed: false, alertmap: true, analytics: false, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, cyber: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, adsb: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, adsb: 50, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, cyber: false, livefeed: true, alertmap: false, analytics: false, osint: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, cyber: 100, alertmap: 100, analytics: 100, osint: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, adsb: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, adsb: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100 },
     rowSplit: 50,
   },
 ];
@@ -1073,7 +1086,8 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'alertmap',  x: 4, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'markets',   x: 8, y: 14, w: 4, h: 4, minW: 2, minH: 2 },
   // Row 4 — Analysis  (y=18, h=4)
-  { i: 'cyber',     x: 0, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'ew',        x: 0, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
+  { i: 'infra',     x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'osint',     x: 8, y: 18, w: 4, h: 4, minW: 3, minH: 2 },
 ];
@@ -1273,7 +1287,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return history;
     const q = searchQuery.toLowerCase();
-    return history.filter(a => a.city.toLowerCase().includes(q) || a.country.toLowerCase().includes(q) || a.threatType.toLowerCase().includes(q));
+    return history.filter(a => (a.city || '').toLowerCase().includes(q) || (a.country || '').toLowerCase().includes(q) || (a.threatType || '').toLowerCase().includes(q));
   }, [history, searchQuery]);
 
   return (
@@ -1316,7 +1330,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
                   <span className="text-xs text-muted-foreground/40 font-mono ml-auto">{new Date(a.timestamp).toLocaleTimeString()}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground/60 font-mono uppercase">{a.threatType.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-muted-foreground/60 font-mono uppercase">{(a.threatType || 'unknown').replace(/_/g, ' ')}</span>
                   <span className="text-xs text-muted-foreground/40">{a.region}</span>
                 </div>
               </div>
@@ -1702,7 +1716,7 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
                   <Zap className="w-3 h-3 text-cyan-400 shrink-0" />
                 )}
                 <span className={`font-bold ${item.severity === 'critical' ? 'text-amber-300' : 'text-cyan-300'}`}>
-                  {item.headline.length > 100 ? item.headline.slice(0, 100) + '...' : item.headline}
+                  {(item.headline || '').length > 100 ? (item.headline || '').slice(0, 100) + '...' : (item.headline || '')}
                 </span>
                 <span className="text-foreground/20 text-[9px]">
                   {item.source === 'telegram' ? `TG/${item.channel?.replace('@', '')}` : item.source === 'x' ? `X/${item.channel}` : 'ALERT'}
@@ -1800,21 +1814,21 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
-      <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.2) 20%, hsl(185 100% 42% / 0.3) 50%, hsl(185 100% 42% / 0.2) 80%, transparent)'}} />
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 3px hsl(185 100% 42% / 0.2))'}}>{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{title}</span>
+    <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 relative cursor-grab active:cursor-grabbing select-none" style={{background:'hsl(220 26% 16% / 0.9)', borderBottom:'1px solid hsl(185 40% 36% / 0.12)'}}>
+      <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 100% 42% / 0.18) 20%, hsl(185 100% 42% / 0.28) 50%, hsl(185 100% 42% / 0.18) 80%, transparent)'}} />
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/55 shrink-0" style={{filter:'drop-shadow(0 0 4px hsl(185 100% 42% / 0.22))'}}>{icon}</span>
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-foreground/60 font-mono leading-none">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] font-mono text-foreground/35 tabular-nums leading-none bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">
+        <span className="text-[9px] font-mono text-foreground/30 tabular-nums leading-none bg-white/[0.05] px-1.5 py-0.5 rounded-full border border-white/[0.07]">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-emerald-500/[0.06] border border-emerald-500/[0.12]" style={{boxShadow:'0 0 8px hsl(152 80% 45% / 0.08)'}}>
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 6px hsl(152 80% 45% / 0.5)'}} />
-          <span className="text-[8px] uppercase tracking-widest text-emerald-400/60 font-mono font-bold">LIVE</span>
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 5px hsl(152 80% 45% / 0.55)'}} />
+          <span className="text-[8px] uppercase tracking-widest text-emerald-400/65 font-mono font-bold">LIVE</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -2282,7 +2296,7 @@ function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, 
       if (!containerRef.current) return;
       map = new MLMap({
         container: containerRef.current,
-        style: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
+        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
         center: [44, 30],
         zoom: 4,
         minZoom: 2,
@@ -3054,27 +3068,172 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
 const CYBER_TYPE_LABELS: Record<string, string> = { ddos: 'DDoS', intrusion: 'INTRU', malware: 'MALWR', phishing: 'PHISH', defacement: 'DEFAC', data_exfil: 'EXFIL', scada: 'SCADA' };
 const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-orange-950/40 border-orange-500/30', intrusion: 'text-red-400 bg-red-950/40 border-red-500/30', malware: 'text-purple-400 bg-purple-950/40 border-purple-500/30', phishing: 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30', defacement: 'text-blue-400 bg-blue-950/40 border-blue-500/30', data_exfil: 'text-red-400 bg-red-950/40 border-red-500/30', scada: 'text-red-400 bg-red-950/40 border-red-500/30' };
 
-function CyberPanel({ cyberEvents, language, onClose, onMaximize, isMaximized }: { cyberEvents: CyberEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const sorted = [...cyberEvents].sort((a, b) => { const o: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 }; return (o[a.severity] ?? 4) - (o[b.severity] ?? 4); });
-  const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.6)' : s === 'high' ? 'rgb(249 115 22 / 0.5)' : 'transparent';
-  const sevText = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
+// ── Electronic Warfare Panel ──────────────────────────────────────────────────
+const EW_TYPE_LABELS: Record<string, string> = {
+  gps_jamming:   'GPS JAM',
+  gps_spoofing:  'GPS SPOOF',
+  comms_jamming: 'COMMS JAM',
+  radar_spoofing:'RADAR SPOOF',
+  drone_ew:      'DRONE EW',
+};
+const EW_TYPE_COLORS: Record<string, string> = {
+  gps_jamming:   'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
+  gps_spoofing:  'text-orange-300 bg-orange-500/10 border-orange-500/30',
+  comms_jamming: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+  radar_spoofing:'text-purple-300 bg-purple-500/10 border-purple-500/30',
+  drone_ew:      'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+};
+
+function EWPanel({ ewEvents, language, onClose, onMaximize, isMaximized }: { ewEvents: EWEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.55)' : s === 'high' ? 'rgb(249 115 22 / 0.45)' : s === 'medium' ? 'rgb(234 179 8 / 0.35)' : 'transparent';
+  const sevText   = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
+  const active   = ewEvents.filter(e => e.active);
+  const inactive = ewEvents.filter(e => !e.active);
+  const sorted   = [...active, ...inactive];
+
   return (
     <div className="h-full flex flex-col min-h-0">
-      <PanelHeader title={language === 'en' ? 'Cyber Threats' : 'التهديدات السيبرانية'} icon={<Cpu className="w-3.5 h-3.5" />} live count={cyberEvents.length} onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized} />
-      {cyberEvents.length === 0 && <div className="px-3 py-6 text-center"><Cpu className="w-5 h-5 text-muted-foreground mx-auto mb-2" /><p className="text-[10px] text-foreground/25">No active threats</p></div>}
+      <PanelHeader
+        title={t('Elec. Warfare', 'الحرب الإلكترونية')}
+        icon={<Radio className="w-3.5 h-3.5" />}
+        live count={active.length}
+        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
+      />
+
+      {/* Summary strip */}
+      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(220 30% 16% / 0.6)' }}>
+        {[
+          { label: t('GPS JAM', 'تشويش GPS'), count: ewEvents.filter(e => e.type === 'gps_jamming').length, color: 'text-yellow-400' },
+          { label: t('GPS SPOOF', 'انتحال GPS'), count: ewEvents.filter(e => e.type === 'gps_spoofing').length, color: 'text-orange-400' },
+          { label: t('COMMS', 'اتصالات'), count: ewEvents.filter(e => e.type === 'comms_jamming').length, color: 'text-cyan-400' },
+          { label: t('ACTIVE', 'نشط'), count: active.length, color: 'text-red-400' },
+        ].map(s => (
+          <div key={s.label} className="flex flex-col items-center">
+            <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
+            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {ewEvents.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <Radio className="w-5 h-5 text-muted-foreground/20 mx-auto mb-2" />
+          <p className="text-[10px] text-foreground/25">{t('No EW events detected', 'لا توجد أحداث حرب إلكترونية')}</p>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
         {sorted.map((ev) => (
-          <div key={ev.id} className="px-3 py-3 hover-elevate animate-fade-in border-l-2" style={{ borderLeftColor: sevBorder(ev.severity) }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className={`text-[11px] px-1.5 py-0.5 rounded border font-bold font-mono shrink-0 ${CYBER_TYPE_COLORS[ev.type] || 'text-foreground/60 bg-muted border-border'}`}>{CYBER_TYPE_LABELS[ev.type] || ev.type.toUpperCase()}</span>
-              <span className="text-xs font-bold font-mono text-foreground truncate flex-1">{ev.target}</span>
-              <span className={`text-[10px] font-mono font-bold shrink-0 ${sevText(ev.severity)}`}>{ev.severity.toUpperCase()}</span>
+          <div key={ev.id} className="px-3 py-2.5 hover-elevate border-l-2 relative" style={{ borderLeftColor: sevBorder(ev.severity), opacity: ev.active ? 1 : 0.55 }}>
+            {ev.active && (
+              <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.7)' }} />
+            )}
+            <div className="flex items-center gap-1.5 mb-1 pr-4">
+              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 ${EW_TYPE_COLORS[ev.type] || 'text-foreground/50 bg-muted border-border'}`}>
+                {EW_TYPE_LABELS[ev.type] || ev.type.toUpperCase()}
+              </span>
+              <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{ev.country}</span>
+              <span className={`text-[9px] font-mono font-bold shrink-0 ${sevText(ev.severity)}`}>{ev.severity.toUpperCase()}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-1.5">{ev.description}</p>
-            <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
-              <span className="uppercase tracking-wider text-foreground/40">{ev.sector}</span>
-              <span className="text-foreground/20">·</span>
-              <span className="text-foreground/40">{ev.country}</span>
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-1.5">{ev.description}</p>
+            <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/30">
+              <span>{ev.radiusKm} km radius</span>
+              <span>·</span>
+              <span>{ev.affectedSystems.join(' / ')}</span>
+              <span className="ml-auto">{timeAgo(ev.timestamp)}</span>
+            </div>
+            <div className="text-[9px] font-mono text-foreground/20 mt-0.5">{t('SRC', 'مصدر')}: {ev.source}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Infrastructure Attacks Panel ──────────────────────────────────────────────
+const INFRA_TYPE_LABELS: Record<string, { en: string; ar: string; icon: string }> = {
+  power:    { en: 'POWER',    ar: 'طاقة',    icon: '⚡' },
+  water:    { en: 'WATER',    ar: 'مياه',    icon: '💧' },
+  hospital: { en: 'HOSPITAL', ar: 'مستشفى',  icon: '🏥' },
+  bridge:   { en: 'BRIDGE',   ar: 'جسر',     icon: '🌉' },
+  port:     { en: 'PORT',     ar: 'ميناء',   icon: '⚓' },
+  fuel:     { en: 'FUEL',     ar: 'وقود',    icon: '🛢' },
+  telecom:  { en: 'TELECOM',  ar: 'اتصالات', icon: '📡' },
+  airport:  { en: 'AIRPORT',  ar: 'مطار',    icon: '✈' },
+};
+const INFRA_TYPE_COLORS: Record<string, string> = {
+  power:    'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
+  water:    'text-blue-300   bg-blue-500/10   border-blue-500/30',
+  hospital: 'text-red-300    bg-red-500/10    border-red-500/30',
+  bridge:   'text-slate-300  bg-slate-500/10  border-slate-500/30',
+  port:     'text-cyan-300   bg-cyan-500/10   border-cyan-500/30',
+  fuel:     'text-orange-300 bg-orange-500/10 border-orange-500/30',
+  telecom:  'text-purple-300 bg-purple-500/10 border-purple-500/30',
+  airport:  'text-sky-300    bg-sky-500/10    border-sky-500/30',
+};
+
+function InfraPanel({ infraEvents, language, onClose, onMaximize, isMaximized }: { infraEvents: InfraEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.55)' : s === 'high' ? 'rgb(249 115 22 / 0.45)' : 'transparent';
+  const sevText   = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
+  const sorted    = [...infraEvents].sort((a, b) => {
+    const o: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (o[a.severity] ?? 4) - (o[b.severity] ?? 4);
+  });
+
+  const totalCasualties = infraEvents.reduce((s, e) => s + (e.casualties ?? 0), 0);
+
+  return (
+    <div className="h-full flex flex-col min-h-0">
+      <PanelHeader
+        title={t('Infrastructure', 'البنية التحتية')}
+        icon={<Zap className="w-3.5 h-3.5" />}
+        live count={infraEvents.length}
+        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
+      />
+
+      {/* Summary strip */}
+      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3 flex-wrap" style={{ background: 'hsl(220 30% 16% / 0.6)' }}>
+        {(['power','water','hospital','telecom'] as const).map(type => {
+          const count = infraEvents.filter(e => e.type === type).length;
+          const cfg = INFRA_TYPE_LABELS[type];
+          return (
+            <div key={type} className="flex flex-col items-center">
+              <span className="text-[11px] font-black font-mono text-foreground/80">{cfg.icon} {count}</span>
+              <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{t(cfg.en, cfg.ar)}</span>
+            </div>
+          );
+        })}
+        {totalCasualties > 0 && (
+          <div className="flex flex-col items-center ml-auto">
+            <span className="text-[11px] font-black font-mono text-red-400">{totalCasualties}</span>
+            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{t('CAS', 'ضحايا')}</span>
+          </div>
+        )}
+      </div>
+
+      {infraEvents.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <Zap className="w-5 h-5 text-muted-foreground/20 mx-auto mb-2" />
+          <p className="text-[10px] text-foreground/25">{t('No infrastructure events', 'لا توجد أحداث بنية تحتية')}</p>
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
+        {sorted.map((ev) => (
+          <div key={ev.id} className="px-3 py-2.5 hover-elevate border-l-2" style={{ borderLeftColor: sevBorder(ev.severity) }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 ${INFRA_TYPE_COLORS[ev.type] || 'text-foreground/50 bg-muted border-border'}`}>
+                {INFRA_TYPE_LABELS[ev.type]?.icon} {t(INFRA_TYPE_LABELS[ev.type]?.en || ev.type, INFRA_TYPE_LABELS[ev.type]?.ar || ev.type)}
+              </span>
+              <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{ev.region}, {ev.country}</span>
+              <span className={`text-[9px] font-mono font-bold shrink-0 ${sevText(ev.severity)}`}>{ev.severity.toUpperCase()}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-1.5">{ev.description}</p>
+            <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/30">
+              {ev.casualties !== undefined && ev.casualties > 0 && (
+                <span className="text-red-400/70">{ev.casualties} {t('cas.', 'ضحايا')}</span>
+              )}
+              <span className="text-foreground/20">{ev.source}</span>
               <span className="ml-auto">{timeAgo(ev.timestamp)}</span>
             </div>
           </div>
@@ -4638,12 +4797,11 @@ function AlertMapPanel({
 }
 
 const MAP_STYLE_OPTIONS = [
-  { id: 'dark',      label: 'Dark',      provider: 'Stadia', dot: '#1e293b', url: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json' },
-  { id: 'satellite', label: 'Satellite', provider: 'Stadia', dot: '#065f46', url: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json' },
-  { id: 'outdoors',  label: 'Terrain',   provider: 'Stadia', dot: '#78350f', url: 'https://tiles.stadiamaps.com/styles/outdoors.json' },
-  { id: 'toner',     label: 'Toner',     provider: 'Stadia', dot: '#000000', url: 'https://tiles.stadiamaps.com/styles/stamen_toner.json' },
-  { id: 'light',     label: 'Light',     provider: 'Stadia', dot: '#e2e8f0', url: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json' },
-  { id: 'ofm',       label: 'Liberty',   provider: 'OFM',    dot: '#1d4ed8', url: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'dark',    label: 'Dark',    provider: 'CARTO', dot: '#1e293b', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
+  { id: 'light',   label: 'Light',   provider: 'CARTO', dot: '#e2e8f0', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
+  { id: 'voyager', label: 'Voyager', provider: 'CARTO', dot: '#78350f', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
+  { id: 'ofm',     label: 'Liberty', provider: 'OFM',   dot: '#1d4ed8', url: 'https://tiles.openfreemap.org/styles/liberty' },
+  { id: 'bright',  label: 'Bright',  provider: 'OFM',   dot: '#065f46', url: 'https://tiles.openfreemap.org/styles/bright' },
 ] as const;
 
 function MapSection({
@@ -4765,12 +4923,12 @@ function MapSection({
 
           {/* Map provider picker */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5, padding: 2, flexShrink: 0 }} data-no-drag>
-            {(['Stadia', 'OFM'] as const).map(provider => {
+            {(['CARTO', 'OFM'] as const).map(provider => {
               const providerStyles = MAP_STYLE_OPTIONS.filter(s => s.provider === provider);
               const isProviderActive = providerStyles.some(s => s.id === mapStyleId);
               return (
                 <div key={provider} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {provider !== 'Stadia' && <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.06)', margin: '0 1px' }} />}
+                  {provider !== 'CARTO' && <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.06)', margin: '0 1px' }} />}
                   <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.12em', color: isProviderActive ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.15)', padding: '0 3px', fontFamily: 'monospace' }}>
                     {provider}
                   </span>
@@ -4839,6 +4997,7 @@ function MapSection({
                 adsbFlights={adsbFlights}
                 redAlerts={redAlerts}
                 thermalHotspots={thermalHotspots}
+                ewEvents={ewEvents}
                 activeView={activeView}
                 language={language}
                 mapStyle={mapStyleUrl}
@@ -5285,7 +5444,8 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         missile: 'bg-red-500/60', airstrike: 'bg-orange-500/55',
                         rocket: 'bg-amber-500/50', drone: 'bg-purple-500/55',
                         artillery: 'bg-yellow-500/50', ground_incursion: 'bg-emerald-500/50',
-                        cyber: 'bg-cyan-500/50',
+                        gps_jamming: 'bg-cyan-500/50', gps_spoofing: 'bg-cyan-400/50',
+                        power: 'bg-yellow-400/50', hospital: 'bg-rose-400/50',
                       };
                       return (
                         <div key={type} className="flex items-center gap-1.5">
@@ -5527,7 +5687,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'osint'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -5540,20 +5700,22 @@ function PanelSidebar({
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className={`w-full h-10 flex items-center gap-2.5 px-3 relative transition-all duration-150 border-r-2 group
+        className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-md relative group
           ${active
-            ? 'border-primary/80 text-foreground/90 bg-primary/[0.07]'
-            : 'border-transparent text-foreground/50 hover:text-foreground/75 hover:bg-white/[0.025] active:bg-white/[0.04]'
+            ? 'bg-primary/[0.1] text-foreground/90'
+            : 'text-foreground/45 hover:text-foreground/70 hover:bg-white/[0.03] active:bg-white/[0.05]'
           }`}
+        style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-primary/80' : 'text-foreground/40 group-hover:text-foreground/60'}`} />
-        <span className={`text-[11px] font-mono font-bold uppercase tracking-wider flex-1 text-left leading-none truncate transition-colors ${active ? 'text-foreground/90' : 'text-foreground/50 group-hover:text-foreground/70'}`}>
+        {active && <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-primary/70" style={{boxShadow:'0 0 6px hsl(185 100% 42% / 0.4)'}} />}
+        <Icon className={`w-3.5 h-3.5 shrink-0 ml-1 ${active ? 'text-primary/75' : 'text-foreground/35 group-hover:text-foreground/55'}`} style={{ transition: 'color 0.14s ease' }} />
+        <span className={`text-[11px] font-mono font-semibold uppercase tracking-wide flex-1 text-left leading-none truncate ${active ? 'text-foreground/85' : 'text-foreground/45 group-hover:text-foreground/65'}`} style={{ transition: 'color 0.14s ease' }}>
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[9px] font-mono tabular-nums shrink-0 px-1.5 py-0.5 rounded transition-colors ${active ? 'text-primary/70 bg-primary/10' : 'text-foreground/30'}`}>
+          <span className={`text-[9px] font-mono tabular-nums shrink-0 px-1.5 py-0.5 rounded-full ${active ? 'text-primary/65 bg-primary/[0.12]' : 'text-foreground/25 bg-white/[0.03]'}`} style={{ transition: 'all 0.14s ease' }}>
             {stat}
           </span>
         )}
@@ -5563,22 +5725,26 @@ function PanelSidebar({
 
   return (
     <div
-      className="flex flex-col shrink-0 border-r border-white/[0.06] overflow-y-auto overflow-x-hidden"
-      style={{ width: 220, background: 'hsl(220 28% 13% / 0.92)', borderRight: '1px solid hsl(185 50% 24% / 0.22)' }}
+      className="flex flex-col shrink-0 overflow-y-auto overflow-x-hidden"
+      style={{ width: 220, background: 'hsl(220 28% 12% / 0.94)', borderRight: '1px solid hsl(185 40% 22% / 0.18)' }}
     >
-      {/* PANELS section */}
-      <div className="px-3 pt-3 pb-1.5 flex items-center gap-2">
-        <div className="w-1 h-1 rounded-full bg-primary/30" />
-        <span className="text-[8px] font-mono font-bold text-foreground/25 tracking-[0.25em] uppercase">Panels</span>
+      {/* PRIMARY section */}
+      <div className="px-3 pt-3.5 pb-1 flex items-center gap-1.5">
+        <div className="w-1.5 h-px bg-primary/25" />
+        <span className="text-[8px] font-mono font-black text-foreground/20 tracking-[0.28em] uppercase">Primary</span>
       </div>
-      <div className="flex flex-col">
-        {topGroup.map(renderBtn)}
+      <div className="flex flex-col gap-px px-1.5 pb-1">
+        {topGroup.map(id => renderBtn(id))}
       </div>
-      <div className="mx-3 my-1.5 h-px bg-white/[0.04]" />
-      <div className="flex flex-col">
-        {bottomGroup.map(renderBtn)}
+      <div className="mx-3 my-2 h-px" style={{background:'linear-gradient(90deg, transparent, hsl(185 40% 30% / 0.15), transparent)'}} />
+      {/* INTELLIGENCE section */}
+      <div className="px-3 pb-1 flex items-center gap-1.5">
+        <div className="w-1.5 h-px bg-cyan-500/20" />
+        <span className="text-[8px] font-mono font-black text-foreground/20 tracking-[0.28em] uppercase">Intelligence</span>
       </div>
-
+      <div className="flex flex-col gap-px px-1.5 pb-2">
+        {bottomGroup.map(id => renderBtn(id))}
+      </div>
     </div>
   );
 }
@@ -5627,9 +5793,10 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
         zoomControl: false,
         attributionControl: false,
       });
-      L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 20,
-        attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>',
+        subdomains: 'abcd',
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
       }).addTo(map);
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -5749,8 +5916,10 @@ export default function Dashboard() {
       raf = requestAnimationFrame(() => {
         const w = window.innerWidth;
         const h = window.innerHeight;
+        const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
         setIsMobile(w < 768);
-        setIsTablet(w >= 768 && w < 1400);
+        // Tablet: touch devices up to 1400px (catches iPad Pro 12.9" landscape), or non-touch small screens up to 1200px
+        setIsTablet(w >= 768 && (isTouch ? w < 1400 : w < 1200));
         setIsLandscape(w > h);
       });
     };
@@ -5784,7 +5953,33 @@ export default function Dashboard() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, cyber: false, livefeed: true, alertmap: false, analytics: false, osint: true };
+  // RGL swallows wheel events — forward them to the scroll container
+  useEffect(() => {
+    const el = panelsScrollRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      // If a nested scrollable element can still scroll in that direction, let it
+      let node = e.target as HTMLElement | null;
+      while (node && node !== el) {
+        const oy = window.getComputedStyle(node).overflowY;
+        if (oy === 'auto' || oy === 'scroll') {
+          const goingDown = e.deltaY > 0;
+          const canScroll = goingDown
+            ? node.scrollTop + node.clientHeight < node.scrollHeight - 2
+            : node.scrollTop > 0;
+          if (canScroll) return;
+        }
+        node = node.parentElement;
+      }
+      e.preventDefault();
+      el.scrollTop += e.deltaY;
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -5833,7 +6028,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, cyberEvents, thermalHotspots, breakingNews, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' } | null>(null);
@@ -5998,7 +6193,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'cyber', 'alertmap', 'analytics', 'osint'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -6008,7 +6203,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, adsb: 28, markets: 28,
-    cyber: 22, alertmap: 28, analytics: 28, osint: 28,
+    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -6133,8 +6328,10 @@ export default function Dashboard() {
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'cyber':
-          return <CyberPanel cyberEvents={cyberEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'ew':
+          return <EWPanel ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'infra':
+          return <InfraPanel infraEvents={infraEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
           return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alertmap':
@@ -6280,7 +6477,8 @@ export default function Dashboard() {
               radar: flights.length > 0 ? `${flights.length}` : '',
               adsb: adsbFlights.length > 0 ? `${adsbFlights.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
-              cyber: cyberEvents.length > 0 ? `${cyberEvents.length}` : '',
+              ew: ewEvents.filter(e => e.active).length > 0 ? `${ewEvents.filter(e => e.active).length} ACTIVE` : '',
+              infra: infraEvents.length > 0 ? `${infraEvents.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
             }}
@@ -6319,7 +6517,7 @@ export default function Dashboard() {
             </div>
             <div className="border-t border-white/[0.05] px-3 py-2">
               <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
-                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
+                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
                 <span>·</span>
                 <span>EVT {events.length}</span>
                 <span>·</span>
@@ -6446,7 +6644,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'adsb' ? adsbFlights.length : id === 'cyber' ? cyberEvents.length : id === 'radar' ? flights.length : 0;
+                  const count = id === 'adsb' ? adsbFlights.length : id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : id === 'radar' ? flights.length : 0;
                   return (
                     <button
                       key={id}
@@ -6486,13 +6684,13 @@ export default function Dashboard() {
                   style={{
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'map' ? mapH : id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
-                    background: 'hsl(220 28% 13% / 0.82)',
+                    background: 'hsl(220 28% 13% / 0.88)',
                     backdropFilter: 'blur(16px)',
                     WebkitBackdropFilter: 'blur(16px)',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     overflow: 'hidden',
-                    border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.35)' : '1px solid rgba(255,255,255,0.06)',
-                    boxShadow: id === 'alerts' ? '0 0 30px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                    border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.38)' : '1px solid rgba(255,255,255,0.07)',
+                    boxShadow: id === 'alerts' ? '0 0 32px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)' : 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)',
                   }}
                 >
                   {renderPanel(id)}
@@ -6532,26 +6730,27 @@ export default function Dashboard() {
               return (
                 <div
                   key={id}
-                  className="group flex flex-col overflow-hidden rounded-[6px]"
+                  className="group flex flex-col overflow-hidden"
                   style={{
+                    borderRadius: 10,
                     background: isFloating
                       ? 'rgba(8,12,22,0.35)'
                       : hasAlertGlow
-                        ? 'hsl(0 25% 12% / 0.92)'
-                        : 'hsl(220 30% 14% / 0.78)',
-                    backdropFilter: isFloating ? 'none' : 'blur(10px)',
-                    WebkitBackdropFilter: isFloating ? 'none' : 'blur(10px)',
+                        ? 'hsl(0 25% 11% / 0.94)'
+                        : 'hsl(220 28% 14% / 0.85)',
+                    backdropFilter: isFloating ? 'none' : 'blur(12px)',
+                    WebkitBackdropFilter: isFloating ? 'none' : 'blur(12px)',
                     border: isFloating
-                      ? '1px dashed rgba(255,255,255,0.07)'
+                      ? '1px dashed rgba(255,255,255,0.06)'
                       : hasAlertGlow
-                        ? '1px solid hsl(0 80% 55% / 0.55)'
+                        ? '1px solid hsl(0 80% 55% / 0.5)'
                         : '1px solid rgba(255,255,255,0.07)',
                     boxShadow: isFloating
                       ? 'none'
                       : hasAlertGlow
-                        ? '0 0 40px rgb(239 68 68 / 0.22), 0 0 80px rgb(239 68 68 / 0.08), inset 0 0 24px rgb(239 68 68 / 0.06), inset 0 1px 0 rgba(255,255,255,0.08)'
-                        : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 10px rgba(0,0,0,0.28)',
-                    transition: 'border-color 0.25s, box-shadow 0.25s, background 0.25s',
+                        ? '0 0 40px rgb(239 68 68 / 0.20), 0 0 80px rgb(239 68 68 / 0.07), inset 0 0 24px rgb(239 68 68 / 0.05), inset 0 1px 0 rgba(255,255,255,0.07)'
+                        : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)',
+                    transition: 'border-color 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s cubic-bezier(0.4,0,0.2,1), background 0.22s cubic-bezier(0.4,0,0.2,1)',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,
                   }}
@@ -6669,7 +6868,7 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, cyberEvents.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
             <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>

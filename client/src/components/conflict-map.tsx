@@ -3,10 +3,16 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, IconLayer, LineLayer, TextLayer } from '@deck.gl/layers';
-import type { ConflictEvent, FlightData, AdsbFlight, RedAlert, ThermalHotspot } from '@shared/schema';
+import type { ConflictEvent, FlightData, AdsbFlight, RedAlert, ThermalHotspot, EWEvent } from '@shared/schema';
 
-// ── Map style ────────────────────────────────────────────────────────────────
-const DEFAULT_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json';
+// ── Map styles ────────────────────────────────────────────────────────────────
+const MAP_THEMES = {
+  dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+} as const;
+type MapTheme = keyof typeof MAP_THEMES;
+
+const DEFAULT_STYLE = MAP_THEMES.dark;
 
 // ── Colors ───────────────────────────────────────────────────────────────────
 const EVENT_COLORS: Record<string, [number, number, number]> = {
@@ -98,6 +104,12 @@ const LAYER_GROUPS = [
       { key: 'nuclear', label: 'Nuclear Sites',   color: '#a855f7', on: false },
     ],
   },
+  {
+    id: 'ew', label: 'ELEC. WARFARE', color: '#22d3ee',
+    layers: [
+      { key: 'ew', label: 'GPS/EW Jamming Zones', color: '#22d3ee', on: true },
+    ],
+  },
 ] as const;
 
 type LayerKey = typeof LAYER_GROUPS[number]['layers'][number]['key'];
@@ -177,6 +189,17 @@ function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'
       color: '#3b82f6',
     };
   }
+  // EWEvent (has radiusKm + affectedSystems + source)
+  if ('radiusKm' in obj && 'affectedSystems' in obj) {
+    const e = obj as unknown as EWEvent;
+    const isSpoof = e.type === 'gps_spoofing' || e.type === 'radar_spoofing';
+    return {
+      title: `${e.type.replace(/_/g, ' ').toUpperCase()} · ${e.country}`,
+      sub: e.description,
+      badge: `${e.radiusKm}km · ${e.active ? 'ACTIVE' : 'INACTIVE'}`,
+      color: isSpoof ? '#22d3ee' : '#8b5cf6',
+    };
+  }
   // Nuclear
   if ('type' in obj && 'country' in obj && 'name' in obj) {
     return {
@@ -196,6 +219,7 @@ interface ConflictMapProps {
   adsbFlights?: AdsbFlight[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
+  ewEvents?: EWEvent[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
   mapStyle?: string;
@@ -204,13 +228,15 @@ interface ConflictMapProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
-  events, adsbFlights = [], redAlerts = [], thermalHotspots = [],
+  events, adsbFlights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation,
 }: ConflictMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<MapLibreMap | null>(null);
-  const overlayRef   = useRef<MapboxOverlay | null>(null);
-  const pulseRef     = useRef(0);
+  const containerRef      = useRef<HTMLDivElement>(null);
+  const mapRef            = useRef<MapLibreMap | null>(null);
+  const overlayRef        = useRef<MapboxOverlay | null>(null);
+  const staticLayersRef   = useRef<unknown[]>([]);
+  const alertsRef         = useRef<RedAlert[]>([]);
+  const visAlertsRef      = useRef(true);
 
   const [vis, setVis] = useState<Record<LayerKey, boolean>>(
     () => Object.fromEntries(ALL_LAYERS.map(l => [l.key, l.on])) as Record<LayerKey, boolean>
@@ -219,20 +245,11 @@ export default function ConflictMap({
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     () => Object.fromEntries(LAYER_GROUPS.map(g => [g.id, true]))
   );
+  const [theme, setTheme] = useState<MapTheme>('dark');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-  const [pulse, setPulse] = useState(0);
 
-  // Pulse animation (for alert rings)
-  useEffect(() => {
-    let raf: number;
-    const tick = () => {
-      pulseRef.current = Date.now();
-      setPulse(pulseRef.current);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+  // Derive the active style URL from local theme (overrides parent prop)
+  const activeStyle = MAP_THEMES[theme];
 
   // Fly to focused location
   useEffect(() => {
@@ -245,10 +262,10 @@ export default function ConflictMap({
     }
   }, [focusLocation]);
 
-  // Swap map style
+  // Swap map style when theme changes
   useEffect(() => {
-    if (mapRef.current) mapRef.current.setStyle(mapStyle);
-  }, [mapStyle]);
+    if (mapRef.current) mapRef.current.setStyle(activeStyle);
+  }, [activeStyle]);
 
   // Hover handler
   const onHover = useCallback(({ object, x, y }: { object: unknown; x: number; y: number }) => {
@@ -264,7 +281,7 @@ export default function ConflictMap({
     const init = VIEW_INIT[activeView] || VIEW_INIT.conflict;
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: mapStyle,
+      style: activeStyle,
       center: [init.lng, init.lat],
       zoom: init.zoom,
       attributionControl: false,
@@ -279,7 +296,7 @@ export default function ConflictMap({
 
     // Attribution
     map.addControl(
-      new (class { onAdd() { const d = document.createElement('div'); d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace'; d.textContent = '© Stadia Maps · © OpenStreetMap'; return d; } onRemove() {} })(),
+      new (class { onAdd() { const d = document.createElement('div'); d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace'; d.textContent = '© CARTO · © OpenStreetMap'; return d; } onRemove() {} })(),
       'bottom-right'
     );
 
@@ -291,26 +308,13 @@ export default function ConflictMap({
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Build deck.gl layers
+  // Build deck.gl layers (no pulse dependency — animated ring handled separately)
   const deckLayers = useMemo(() => {
-    const t = pulse / 1000;
-    const pulseAlpha = Math.round(30 + 28 * Math.sin(t * 2.5));
     const layers = [];
 
-    // ── Red alerts (pulsing rings + core) ──
+    // ── Red alerts core dots (static, no pulse) ──
     const activeAlerts = redAlerts.filter(a => a.lat && a.lng);
     if (vis.alerts && activeAlerts.length > 0) {
-      layers.push(new ScatterplotLayer({
-        id: 'alerts-ring',
-        data: activeAlerts,
-        getPosition: (d: RedAlert) => [d.lng!, d.lat!],
-        getRadius: 14000,
-        getFillColor: [239, 68, 68, pulseAlpha] as [number, number, number, number],
-        stroked: false,
-        radiusMinPixels: 10, radiusMaxPixels: 36,
-        pickable: false,
-        updateTriggers: { getFillColor: pulseAlpha },
-      }));
       layers.push(new ScatterplotLayer({
         id: 'alerts-core',
         data: activeAlerts,
@@ -450,13 +454,89 @@ export default function ConflictMap({
       }));
     }
 
-    return layers;
-  }, [vis, events, adsbFlights, redAlerts, thermalHotspots, pulse]);
+    // ── EW / GPS Jamming zones ──
+    if (vis.ew && ewEvents.length > 0) {
+      // Outer translucent fill (zone radius)
+      layers.push(new ScatterplotLayer({
+        id: 'ew-fill',
+        data: ewEvents,
+        getPosition: (d: EWEvent) => [d.lng, d.lat],
+        getRadius: (d: EWEvent) => d.radiusKm * 1000,
+        getFillColor: (d: EWEvent) => {
+          const alpha = d.active ? 28 : 12;
+          if (d.type === 'gps_spoofing' || d.type === 'radar_spoofing') return [34, 211, 238, alpha];
+          return [139, 92, 246, alpha];
+        },
+        getLineColor: (d: EWEvent) => {
+          const alpha = d.active ? 160 : 60;
+          if (d.type === 'gps_spoofing' || d.type === 'radar_spoofing') return [34, 211, 238, alpha];
+          return [139, 92, 246, alpha];
+        },
+        stroked: true, lineWidthMinPixels: 1,
+        radiusMinPixels: 10, radiusMaxPixels: 220,
+        pickable: true,
+      }));
 
-  // Push layers to overlay
+      // Center dot
+      layers.push(new ScatterplotLayer({
+        id: 'ew-center',
+        data: ewEvents.filter(e => e.active),
+        getPosition: (d: EWEvent) => [d.lng, d.lat],
+        getRadius: 3000,
+        getFillColor: (d: EWEvent) =>
+          d.type === 'gps_spoofing' || d.type === 'radar_spoofing'
+            ? [34, 211, 238, 220] as [number, number, number, number]
+            : [139, 92, 246, 220] as [number, number, number, number],
+        getLineColor: [0, 0, 0, 80] as [number, number, number, number],
+        stroked: true, lineWidthMinPixels: 1,
+        radiusMinPixels: 4, radiusMaxPixels: 8,
+        pickable: false,
+      }));
+    }
+
+    return layers;
+  }, [vis, events, adsbFlights, redAlerts, thermalHotspots, ewEvents]);
+
+  // Keep refs current so the rAF loop can read latest data without closures
   useEffect(() => {
-    overlayRef.current?.setProps({ layers: deckLayers });
+    staticLayersRef.current = deckLayers;
   }, [deckLayers]);
+
+  useEffect(() => {
+    alertsRef.current = redAlerts.filter(a => a.lat && a.lng);
+  }, [redAlerts]);
+
+  useEffect(() => {
+    visAlertsRef.current = vis.alerts;
+  }, [vis.alerts]);
+
+  // rAF loop — only animates the pulsing ring, does NOT trigger any React re-renders
+  useEffect(() => {
+    let raf: number;
+    const tick = () => {
+      const t = Date.now() / 1000;
+      const alpha = Math.round(25 + 22 * Math.sin(t * 2.4));
+      const activeAlerts = alertsRef.current;
+
+      const ringLayer = visAlertsRef.current && activeAlerts.length > 0
+        ? [new ScatterplotLayer({
+            id: 'alerts-ring',
+            data: activeAlerts,
+            getPosition: (d: RedAlert) => [d.lng!, d.lat!],
+            getRadius: 14000,
+            getFillColor: [239, 68, 68, alpha] as [number, number, number, number],
+            stroked: false,
+            radiusMinPixels: 10, radiusMaxPixels: 36,
+            pickable: false,
+          })]
+        : [];
+
+      overlayRef.current?.setProps({ layers: [...ringLayer, ...staticLayersRef.current] });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const flyTo = (region: { lng: number; lat: number; zoom: number }) => {
     mapRef.current?.flyTo({ center: [region.lng, region.lat], zoom: region.zoom, duration: 900 });
@@ -480,83 +560,238 @@ export default function ConflictMap({
           className="absolute z-50 pointer-events-none select-none"
           style={{ left: tipLeft, top: tipTop }}
         >
-          <div className="bg-black/92 border border-white/10 rounded-md px-3 py-2 shadow-xl backdrop-blur-sm max-w-[230px]">
+          <div className="rounded-lg px-3 py-2.5 shadow-2xl backdrop-blur-md max-w-[240px]"
+            style={{
+              background: 'rgba(5,7,14,0.92)',
+              border: `1px solid ${tooltip.color ?? '#22d3ee'}28`,
+              boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), 0 2px 16px ${tooltip.color ?? '#22d3ee'}12`,
+            }}
+          >
             {tooltip.badge && (
               <span
-                className="inline-block text-[9px] font-black font-mono tracking-widest px-1.5 py-0.5 rounded mb-1.5"
+                className="inline-block text-[9px] font-black font-mono tracking-widest px-2 py-0.5 rounded-full mb-1.5"
                 style={{
                   color: tooltip.color ?? '#22d3ee',
-                  background: `${tooltip.color ?? '#22d3ee'}18`,
-                  border: `1px solid ${tooltip.color ?? '#22d3ee'}35`,
+                  background: `${tooltip.color ?? '#22d3ee'}15`,
+                  border: `1px solid ${tooltip.color ?? '#22d3ee'}30`,
                 }}
               >
                 {tooltip.badge}
               </span>
             )}
-            <p className="text-[11px] font-bold text-white/90 leading-snug">{tooltip.title}</p>
-            <p className="text-[10px] text-white/45 font-mono leading-relaxed mt-0.5">{tooltip.sub}</p>
+            <p className="text-[11px] font-bold text-white/88 leading-snug">{tooltip.title}</p>
+            <p className="text-[10px] text-white/42 font-mono leading-relaxed mt-1">{tooltip.sub}</p>
           </div>
         </div>
       )}
 
-      {/* ── Region presets ─────────────────────────────────────── */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-        {Object.entries(REGIONS).map(([label, vs]) => (
-          <button
-            key={label}
-            onClick={() => flyTo(vs)}
-            className="text-[9px] font-mono font-bold uppercase px-2.5 py-1 rounded bg-black/70 border border-white/[0.08] text-white/35 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-black/80 transition-all"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* ── Sidebar ─────────────────────────────────────────────── */}
+      {/* Tab button when closed */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="absolute top-1/2 -translate-y-1/2 left-0 z-20 flex flex-col items-center justify-center gap-1.5 hover:bg-black/85 active:scale-95"
+          style={{
+            background: 'rgba(6,8,14,0.82)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderLeft: 'none',
+            borderRadius: '0 6px 6px 0',
+            padding: '10px 6px',
+            transition: 'all 0.15s cubic-bezier(0.4,0,0.2,1)',
+          }}
+        >
+          <span className="text-white/35 text-[12px] leading-none">›</span>
+          <span className="font-mono font-bold uppercase text-white/20" style={{ fontSize: 7, letterSpacing: '0.2em', writingMode: 'vertical-rl' }}>Layers</span>
+        </button>
+      )}
 
-      {/* ── Layer toggles ──────────────────────────────────────── */}
-      <div className="absolute bottom-6 left-3 z-10">
-        <div className="bg-black/80 border border-white/[0.07] rounded-lg p-2.5 flex flex-col gap-2 backdrop-blur-sm">
-          <p className="text-[8px] font-mono font-bold uppercase tracking-[0.2em] text-white/20 mb-0.5">Layers</p>
-          {ALL_LAYERS.map(cfg => (
-            <button
-              key={cfg.key}
-              onClick={() => toggleLayer(cfg.key)}
-              className="flex items-center gap-2.5 text-[9px] font-mono uppercase tracking-wider transition-opacity"
-              style={{ opacity: vis[cfg.key] ? 1 : 0.3 }}
-            >
-              <div
-                className="w-2 h-2 rounded-full shrink-0 transition-all"
-                style={{ background: vis[cfg.key] ? cfg.color : 'rgba(255,255,255,0.15)' }}
-              />
-              <span style={{ color: vis[cfg.key] ? cfg.color : 'rgba(255,255,255,0.25)' }}>
-                {cfg.label}
-              </span>
-              <span className="ml-auto text-white/15 font-mono">
-                {cfg.key === 'events'  ? events.length :
-                 cfg.key === 'alerts'  ? redAlerts.filter(a => a.lat && a.lng).length :
-                 cfg.key === 'adsb'    ? adsbFlights.length :
-                 cfg.key === 'thermal' ? thermalHotspots.filter(h => h.confidence !== 'low').length :
-                 cfg.key === 'bases'   ? MILITARY_BASES.length :
-                 cfg.key === 'nuclear' ? NUCLEAR_SITES.length : ''}
-              </span>
-            </button>
+      {/* Sidebar panel */}
+      <div
+        className="absolute top-0 left-0 h-full z-20 flex flex-col transition-transform duration-300"
+        style={{
+          width: 210,
+          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+          background: 'rgba(6,8,14,0.88)',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-3 border-b border-white/[0.06] shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" style={{boxShadow:'0 0 5px rgba(34,211,238,0.6)'}} />
+            <span className="text-[10px] font-black font-mono uppercase tracking-[0.18em] text-white/55">Map Layers</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-white/25 hover:text-white/65 hover:bg-white/[0.06] transition-all text-[16px] leading-none"
+          >
+            ‹
+          </button>
+        </div>
+
+        {/* Region presets */}
+        <div className="px-3 py-3 border-b border-white/[0.05] shrink-0">
+          <p className="text-[8px] font-mono font-bold uppercase tracking-[0.2em] text-white/18 mb-2">Zoom to Region</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {Object.entries(REGIONS).map(([label, vs]) => (
+              <button
+                key={label}
+                onClick={() => flyTo(vs)}
+                className="text-[9px] font-mono font-bold uppercase px-2 py-2 rounded-md bg-white/[0.04] border border-white/[0.06] text-white/35 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-950/25 transition-all text-center"
+                style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Theme toggle */}
+        <div className="px-3 py-2.5 border-b border-white/[0.05] shrink-0">
+          <p className="text-[8px] font-mono font-bold uppercase tracking-[0.2em] text-white/18 mb-2">Map Style</p>
+          <div className="flex gap-1.5 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            {(['dark', 'light'] as MapTheme[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setTheme(t)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md"
+                style={{
+                  background: theme === t ? (t === 'dark' ? 'rgba(30,35,55,0.9)' : 'rgba(240,244,255,0.15)') : 'transparent',
+                  border: theme === t ? `1px solid ${t === 'dark' ? 'rgba(100,120,180,0.35)' : 'rgba(200,210,255,0.3)'}` : '1px solid transparent',
+                  transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
+                }}
+              >
+                <span style={{ fontSize: 12, lineHeight: 1 }}>{t === 'dark' ? '🌙' : '☀️'}</span>
+                <span
+                  className="text-[9px] font-mono font-bold uppercase"
+                  style={{
+                    color: theme === t ? (t === 'dark' ? 'rgba(180,200,255,0.85)' : 'rgba(60,80,140,1)') : 'rgba(255,255,255,0.25)',
+                    transition: 'color 0.15s ease',
+                  }}
+                >
+                  {t === 'dark' ? 'Dark' : 'Light'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Layer groups */}
+        <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2">
+          {LAYER_GROUPS.map(group => (
+            <div key={group.id}>
+              {/* Group header */}
+              <button
+                className="w-full flex items-center justify-between py-1.5 mb-0.5 rounded-md px-1 hover:bg-white/[0.03] transition-all"
+                onClick={() => setExpandedGroups(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
+                style={{ transition: 'all 0.14s ease' }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: group.color, boxShadow: `0 0 4px ${group.color}88` }} />
+                  <span className="text-[9px] font-mono font-black uppercase tracking-[0.16em]" style={{ color: group.color + '99' }}>
+                    {group.label}
+                  </span>
+                </div>
+                <span className="text-white/18 text-[10px]" style={{ transition: 'transform 0.15s ease', transform: expandedGroups[group.id] ? 'rotate(0deg)' : 'rotate(-90deg)', display: 'inline-block' }}>▾</span>
+              </button>
+
+              {/* Layer rows */}
+              {expandedGroups[group.id] && (
+                <div className="flex flex-col gap-0.5 pl-2.5">
+                  {group.layers.map(cfg => {
+                    const count =
+                      cfg.key === 'events'  ? events.length :
+                      cfg.key === 'alerts'  ? redAlerts.filter(a => a.lat && a.lng).length :
+                      cfg.key === 'adsb'    ? adsbFlights.length :
+                      cfg.key === 'thermal' ? thermalHotspots.filter(h => h.confidence !== 'low').length :
+                      cfg.key === 'bases'   ? MILITARY_BASES.length :
+                      cfg.key === 'nuclear' ? NUCLEAR_SITES.length : 0;
+                    const on = vis[cfg.key];
+                    return (
+                      <button
+                        key={cfg.key}
+                        onClick={() => toggleLayer(cfg.key)}
+                        className="flex items-center gap-2 py-1.5 px-1.5 rounded-md hover:bg-white/[0.04] group"
+                        style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
+                      >
+                        {/* Toggle pill */}
+                        <div
+                          className="relative w-7 h-3.5 rounded-full shrink-0"
+                          style={{
+                            background: on ? cfg.color + '50' : 'rgba(255,255,255,0.07)',
+                            transition: 'background 0.18s ease',
+                          }}
+                        >
+                          <div
+                            className="absolute top-0.5 bottom-0.5 aspect-square rounded-full shadow-sm"
+                            style={{
+                              background: on ? cfg.color : 'rgba(255,255,255,0.28)',
+                              left: on ? 'calc(100% - 11px)' : '2px',
+                              transition: 'left 0.18s cubic-bezier(0.4,0,0.2,1), background 0.18s ease',
+                            }}
+                          />
+                        </div>
+                        <span
+                          className="text-[9px] font-mono flex-1 text-left"
+                          style={{
+                            color: on ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.18)',
+                            transition: 'color 0.14s ease',
+                          }}
+                        >
+                          {cfg.label}
+                        </span>
+                        <span
+                          className="text-[8px] font-mono tabular-nums min-w-[20px] text-right"
+                          style={{
+                            color: on && count > 0 ? cfg.color + 'bb' : 'rgba(255,255,255,0.1)',
+                            transition: 'color 0.14s ease',
+                          }}
+                        >
+                          {count > 0 ? count : '—'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ))}
+        </div>
+
+        {/* Footer stats */}
+        <div className="px-3 py-3 border-t border-white/[0.06] shrink-0">
+          <div className="flex gap-0 divide-x divide-white/[0.06]">
+            {[
+              { label: 'Alerts', value: redAlerts.filter(a => a.lat && a.lng).length, color: '#f87171' },
+              { label: 'Mil AC', value: adsbFlights.filter(f => f.type === 'military').length, color: '#22d3ee' },
+              { label: 'Events', value: events.length, color: '#fb923c' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex flex-col items-center flex-1 px-2">
+                <span className="text-[8px] font-mono uppercase tracking-widest mb-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>{label}</span>
+                <span className="text-[13px] font-black font-mono tabular-nums" style={{ color: value > 0 ? color : 'rgba(255,255,255,0.15)' }}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ── Live counts badge ──────────────────────────────────── */}
-      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
         {redAlerts.filter(a => a.lat && a.lng).length > 0 && (
-          <div className="flex items-center gap-1.5 bg-red-950/80 border border-red-500/25 rounded px-2 py-1 backdrop-blur-sm">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-            <span className="text-[9px] font-black font-mono text-red-300">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full backdrop-blur-sm" style={{background:'rgba(127,17,17,0.75)', border:'1px solid rgba(239,68,68,0.3)', boxShadow:'0 2px 12px rgba(239,68,68,0.18)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" style={{boxShadow:'0 0 5px rgba(239,68,68,0.7)'}} />
+            <span className="text-[9px] font-black font-mono text-red-300 tracking-wide">
               {redAlerts.filter(a => a.lat && a.lng).length} ALERT{redAlerts.filter(a => a.lat && a.lng).length !== 1 ? 'S' : ''}
             </span>
           </div>
         )}
         {adsbFlights.filter(f => f.type === 'military').length > 0 && (
-          <div className="flex items-center gap-1.5 bg-black/70 border border-white/[0.07] rounded px-2 py-1 backdrop-blur-sm">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            <span className="text-[9px] font-mono text-cyan-300/70">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full backdrop-blur-sm" style={{background:'rgba(6,8,18,0.75)', border:'1px solid rgba(34,211,238,0.15)', boxShadow:'0 2px 10px rgba(0,0,0,0.3)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" style={{boxShadow:'0 0 4px rgba(34,211,238,0.6)'}} />
+            <span className="text-[9px] font-mono font-bold text-cyan-300/75 tracking-wide">
               {adsbFlights.filter(f => f.type === 'military').length} MIL
             </span>
           </div>

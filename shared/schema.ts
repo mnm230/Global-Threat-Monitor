@@ -268,6 +268,35 @@ export interface CyberEvent {
   description: string;
 }
 
+export interface EWEvent {
+  id: string;
+  type: 'gps_jamming' | 'gps_spoofing' | 'comms_jamming' | 'radar_spoofing' | 'drone_ew';
+  lat: number;
+  lng: number;
+  radiusKm: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  country: string;
+  affectedSystems: string[];
+  timestamp: string;
+  description: string;
+  source: string;
+  active: boolean;
+}
+
+export interface InfraEvent {
+  id: string;
+  type: 'power' | 'water' | 'hospital' | 'bridge' | 'port' | 'fuel' | 'telecom' | 'airport';
+  lat: number;
+  lng: number;
+  country: string;
+  region: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  timestamp: string;
+  description: string;
+  source: string;
+  casualties?: number;
+}
+
 export interface ThermalHotspot {
   id: string;
   lat: number;
