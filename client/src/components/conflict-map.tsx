@@ -170,7 +170,7 @@ function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface ConflictMapProps {
   events: ConflictEvent[];
-  flights: FlightData[];
+  flights?: FlightData[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
   ewEvents?: EWEvent[];
@@ -185,7 +185,7 @@ const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
-  events, redAlerts = [], thermalHotspots = [], ewEvents = [],
+  events, flights = [], adsbFlights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation,
 }: ConflictMapProps) {
   const containerRef      = useRef<HTMLDivElement>(null);
