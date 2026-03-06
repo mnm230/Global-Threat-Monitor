@@ -3,12 +3,12 @@ import { useEffect, useRef, useMemo } from 'react';
 import { Map as MapLibreMap, Popup, LngLatBounds } from 'maplibre-gl';
 import type { RedAlert } from '@shared/schema';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// OSM-based bright/light basemap (Carto Positron)
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
-// Constrain the alert map to Middle East / MENA only — no Ukraine, no Europe
 const ME_BOUNDS: [[number, number], [number, number]] = [
-  [24.0, 10.0],  // SW: western Egypt / Sudan
-  [65.0, 42.0],  // NE: Iran / Afghanistan border
+  [24.0, 10.0],
+  [65.0, 42.0],
 ];
 
 const MIDDLE_EAST_COUNTRIES = new Set([
@@ -18,45 +18,39 @@ const MIDDLE_EAST_COUNTRIES = new Set([
 ]);
 
 const THREAT_COLORS: Record<string, string> = {
-  rockets: '#ef4444',
-  missiles: '#f97316',
-  uav_intrusion: '#22d3ee',
-  hostile_aircraft_intrusion: '#a855f7',
+  rockets: '#dc2626',
+  missiles: '#ea580c',
+  uav_intrusion: '#0891b2',
+  hostile_aircraft_intrusion: '#7c3aed',
 };
 
-export default function AlertMap({
-  alerts,
-  language,
-}: {
-  alerts: RedAlert[];
-  language: 'en' | 'ar';
-}) {
+export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; language: 'en' | 'ar' }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const layersAddedRef = useRef(false);
+  const hasFittedRef = useRef(false);
   const popupRef = useRef<Popup | null>(null);
-  const markersLayerAdded = useRef(false);
 
   const geoJson = useMemo(() => {
+    const now = Date.now();
     const features = alerts
       .filter(a => {
         if (!a.lat || !a.lng) return false;
-        // Keep only Middle East / MENA coordinates
         if (a.lng < ME_BOUNDS[0][0] || a.lng > ME_BOUNDS[1][0]) return false;
         if (a.lat < ME_BOUNDS[0][1] || a.lat > ME_BOUNDS[1][1]) return false;
         if (a.country && !MIDDLE_EAST_COUNTRIES.has(a.country)) return false;
         return true;
       })
       .map(a => {
-        const elapsed = (Date.now() - new Date(a.timestamp).getTime()) / 1000;
+        const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
         const isActive = elapsed < a.countdown || a.countdown === 0;
-        const color = THREAT_COLORS[a.threatType] || '#ef4444';
+        const color = THREAT_COLORS[a.threatType] || '#dc2626';
         return {
           type: 'Feature' as const,
           geometry: { type: 'Point' as const, coordinates: [a.lng, a.lat] },
           properties: {
             id: a.id,
             city: language === 'ar' ? a.cityAr : a.city,
-            cityHe: a.cityHe,
             country: a.country,
             threatType: a.threatType,
             color,
@@ -79,10 +73,11 @@ export default function AlertMap({
       map = new MapLibreMap({
         container: containerRef.current,
         style: MAP_STYLE,
-        center: [35.2, 31.5],
-        zoom: 7,
+        center: [35.5, 32.0],
+        zoom: 6,
         maxBounds: ME_BOUNDS,
-        attributionControl: { compact: true, customAttribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' },
+        attributionControl: false,
+        fadeDuration: 0,
       });
     } catch (err) {
       console.warn('[AlertMap] WebGL init failed:', err);
@@ -92,173 +87,198 @@ export default function AlertMap({
     mapRef.current = map;
 
     map.on('load', () => {
+      // Clustered source — groups nearby dots instead of piling them up
       map.addSource('alerts', {
         type: 'geojson',
-        data: geoJson as any,
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 9,
+        clusterRadius: 38,
       });
 
+      // Cluster bubble
       map.addLayer({
-        id: 'alerts-heatmap',
-        type: 'heatmap',
+        id: 'clusters',
+        type: 'circle',
         source: 'alerts',
+        filter: ['has', 'point_count'],
         paint: {
-          'heatmap-weight': 1,
-          'heatmap-intensity': 0.8,
-          'heatmap-radius': 30,
-          'heatmap-opacity': 0.6,
-          'heatmap-color': [
-            'interpolate', ['linear'], ['heatmap-density'],
-            0, 'rgba(0,0,0,0)',
-            0.2, 'rgba(239,68,68,0.2)',
-            0.4, 'rgba(239,68,68,0.4)',
-            0.6, 'rgba(249,115,22,0.6)',
-            0.8, 'rgba(234,179,8,0.8)',
-            1, 'rgba(255,255,255,0.9)',
+          'circle-color': [
+            'step', ['get', 'point_count'],
+            '#ef4444', 5, '#dc2626', 15, '#b91c1c',
           ],
-        },
-      });
-
-      map.addLayer({
-        id: 'alerts-glow',
-        type: 'circle',
-        source: 'alerts',
-        paint: {
-          'circle-radius': 18,
-          'circle-color': ['get', 'color'],
-          'circle-opacity': 0.15,
-          'circle-blur': 1,
-        },
-      });
-
-      map.addLayer({
-        id: 'alerts-points',
-        type: 'circle',
-        source: 'alerts',
-        paint: {
-          'circle-radius': 7,
-          'circle-color': ['get', 'color'],
-          'circle-opacity': 0.9,
+          'circle-radius': [
+            'step', ['get', 'point_count'],
+            14, 5, 18, 15, 22,
+          ],
+          'circle-opacity': 0.92,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
-          'circle-stroke-opacity': 0.4,
+          'circle-stroke-opacity': 0.7,
         },
       });
 
+      // Cluster count label
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'alerts',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['Open Sans Bold'],
+          'text-size': 12,
+        },
+        paint: {
+          'text-color': '#ffffff',
+        },
+      });
+
+      // Individual inactive dots (history)
+      map.addLayer({
+        id: 'alerts-inactive',
+        type: 'circle',
+        source: 'alerts',
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'isActive'], false]],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.55,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': 0.5,
+        },
+      });
+
+      // Individual active dots — larger, full opacity
+      map.addLayer({
+        id: 'alerts-active',
+        type: 'circle',
+        source: 'alerts',
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'isActive'], true]],
+        paint: {
+          'circle-radius': 9,
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 1,
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-opacity': 0.9,
+        },
+      });
+
+      // City labels for active unclustered alerts only
       map.addLayer({
         id: 'alerts-labels',
         type: 'symbol',
         source: 'alerts',
+        filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'isActive'], true]],
         layout: {
           'text-field': ['get', 'city'],
           'text-size': 11,
-          'text-offset': [0, 1.5],
+          'text-offset': [0, 1.4],
           'text-anchor': 'top',
           'text-allow-overlap': false,
-          'text-font': ['Open Sans Regular'],
+          'text-font': ['Open Sans Bold'],
         },
         paint: {
-          'text-color': '#ffffff',
-          'text-opacity': 0.8,
-          'text-halo-color': '#000000',
+          'text-color': '#111111',
+          'text-halo-color': '#ffffff',
           'text-halo-width': 1.5,
+          'text-opacity': 0.9,
         },
       });
 
-      markersLayerAdded.current = true;
+      layersAddedRef.current = true;
 
-      map.on('click', 'alerts-points', (e) => {
-        if (!e.features || e.features.length === 0) return;
-        const f = e.features[0];
-        const coords = (f.geometry as any).coordinates.slice();
-        const props = f.properties;
+      // Push current data right away
+      const src = map.getSource('alerts') as any;
+      if (src) src.setData(geoJson);
 
-        if (popupRef.current) popupRef.current.remove();
-
-        const elapsed = Math.floor((Date.now() - new Date(props.timestamp).getTime()) / 1000);
-        const remaining = Math.max(0, props.countdown - elapsed);
-        const mins = Math.floor(remaining / 60);
-        const secs = remaining % 60;
-
-        const container = document.createElement('div');
-        Object.assign(container.style, { fontFamily: 'monospace', fontSize: '12px', color: '#fff', background: '#1a1a2e', padding: '8px', borderRadius: '6px' });
-
-        const cityEl = document.createElement('div');
-        Object.assign(cityEl.style, { fontWeight: '900', fontSize: '13px', color: props.color, marginBottom: '4px' });
-        cityEl.textContent = props.city;
-        container.appendChild(cityEl);
-
-        const regionEl = document.createElement('div');
-        Object.assign(regionEl.style, { color: '#aaa', fontSize: '10px', marginBottom: '2px' });
-        regionEl.textContent = `${props.region} · ${props.country}`;
-        container.appendChild(regionEl);
-
-        const badgeRow = document.createElement('div');
-        Object.assign(badgeRow.style, { display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' });
-        const threatBadge = document.createElement('span');
-        Object.assign(threatBadge.style, { background: `${props.color}22`, color: props.color, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', border: `1px solid ${props.color}44` });
-        threatBadge.textContent = (props.threatType || '').replace(/_/g, ' ');
-        badgeRow.appendChild(threatBadge);
-        if (props.source === 'live') {
-          const apiBadge = document.createElement('span');
-          Object.assign(apiBadge.style, { background: '#10b98122', color: '#10b981', padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', border: '1px solid #10b98144' });
-          apiBadge.textContent = 'API';
-          badgeRow.appendChild(apiBadge);
-        }
-        container.appendChild(badgeRow);
-
-        if (remaining > 0) {
-          const timerEl = document.createElement('div');
-          Object.assign(timerEl.style, { marginTop: '6px', fontSize: '11px', color: '#ef4444', fontWeight: '700' });
-          timerEl.textContent = `⏱ ${mins}:${secs.toString().padStart(2, '0')} remaining`;
-          container.appendChild(timerEl);
-        }
-
-        const popup = new Popup({ closeButton: true, maxWidth: '220px' })
-          .setLngLat(coords)
-          .setDOMContent(container)
-          .addTo(map);
-        popupRef.current = popup;
+      // Zoom into cluster on click
+      map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        if (!features.length) return;
+        const clusterId = features[0].properties?.cluster_id;
+        (map.getSource('alerts') as any).getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+          if (err) return;
+          map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
+        });
       });
 
-      map.on('mouseenter', 'alerts-points', () => {
-        map.getCanvas().style.cursor = 'pointer';
+      // Popup for individual points
+      const pointLayers = ['alerts-active', 'alerts-inactive'];
+      pointLayers.forEach(layer => {
+        map.on('click', layer, (e) => {
+          if (!e.features?.length) return;
+          const f = e.features[0];
+          const coords = (f.geometry as any).coordinates.slice();
+          const props = f.properties;
+          popupRef.current?.remove();
+
+          const elapsed = Math.floor((Date.now() - new Date(props.timestamp).getTime()) / 1000);
+          const remaining = Math.max(0, props.countdown - elapsed);
+          const mins = Math.floor(remaining / 60);
+          const secs = remaining % 60;
+          const threatLabel = (props.threatType || '').replace(/_/g, ' ').toUpperCase();
+
+          const html = `
+            <div style="font-family:monospace;font-size:12px;color:#1a1a1a;background:#ffffff;padding:10px 12px;border-radius:8px;min-width:175px;border:2px solid ${props.color};box-shadow:0 4px 20px rgba(0,0,0,0.15)">
+              <div style="font-weight:900;font-size:14px;color:${props.color};margin-bottom:3px">${props.city || '—'}</div>
+              <div style="color:#888;font-size:10px;margin-bottom:8px">${[props.region, props.country].filter(Boolean).join(' · ')}</div>
+              <span style="background:${props.color};color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:800">${threatLabel}</span>
+              ${props.source === 'live' ? '<span style="margin-left:5px;background:#dcfce7;color:#16a34a;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:900;border:1px solid #bbf7d0">LIVE</span>' : ''}
+              ${remaining > 0 ? `<div style="margin-top:7px;font-size:11px;color:#dc2626;font-weight:700">⏱ ${mins > 0 ? `${mins}m ` : ''}${secs}s left</div>` : ''}
+            </div>`;
+
+          popupRef.current = new Popup({ closeButton: false, maxWidth: '260px' })
+            .setLngLat(coords)
+            .setHTML(html)
+            .addTo(map);
+        });
+
+        map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
       });
-      map.on('mouseleave', 'alerts-points', () => {
-        map.getCanvas().style.cursor = '';
+
+      map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+
+      // Dismiss popup on blank map click
+      map.on('click', (e) => {
+        const hit = map.queryRenderedFeatures(e.point, { layers: [...pointLayers, 'clusters'] });
+        if (!hit.length) popupRef.current?.remove();
       });
     });
 
     return () => {
+      popupRef.current?.remove();
       map.remove();
       mapRef.current = null;
+      layersAddedRef.current = false;
+      hasFittedRef.current = false;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !markersLayerAdded.current) return;
+    if (!map || !layersAddedRef.current) return;
 
-    const source = map.getSource('alerts') as any;
-    if (source) {
-      source.setData(geoJson);
-    }
+    const src = map.getSource('alerts') as any;
+    if (src) src.setData(geoJson);
 
-    if (geoJson.features.length > 0) {
+    // Auto-fit only on first data load
+    if (!hasFittedRef.current && geoJson.features.length > 0) {
+      hasFittedRef.current = true;
       const bounds = new LngLatBounds();
       geoJson.features.forEach(f => {
         const [lng, lat] = f.geometry.coordinates as [number, number];
-        // Only extend bounds if coordinate is within Middle East region
-        if (lng >= ME_BOUNDS[0][0] && lng <= ME_BOUNDS[1][0] && lat >= ME_BOUNDS[0][1] && lat <= ME_BOUNDS[1][1]) {
-          bounds.extend([lng, lat]);
-        }
+        bounds.extend([lng, lat]);
       });
       if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, { padding: 60, maxZoom: 10, minZoom: 5, duration: 1000 });
+        map.fitBounds(bounds, { padding: 50, maxZoom: 10, minZoom: 5, duration: 600 });
       }
     }
   }, [geoJson]);
 
-  return (
-    <div ref={containerRef} className="w-full h-full" data-testid="alert-map-container" />
-  );
+  return <div ref={containerRef} className="w-full h-full" data-testid="alert-map-container" />;
 }

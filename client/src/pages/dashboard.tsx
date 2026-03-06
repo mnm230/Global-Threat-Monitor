@@ -4676,64 +4676,43 @@ function AlertMapPanel({
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-1.5 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/30" />
-        <MapPin className="w-3.5 h-3.5 text-red-400/70 shrink-0" />
-        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/60 font-mono">
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-red-500/40" />
+        <div className={`w-2 h-2 rounded-full shrink-0 ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500/70'}`} />
+        <MapPin className="w-3 h-3 text-foreground/40 shrink-0" />
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/55 font-mono">
           {language === 'en' ? 'Alert Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}
         </span>
         {activeAlerts.length > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 font-mono font-black bg-red-500/20 text-red-300 rounded-full border border-red-500/30 animate-pulse">
+          <span className="text-[9px] px-1.5 py-0.5 font-mono font-black bg-red-500/20 text-red-300 rounded border border-red-500/30 animate-pulse">
             {activeAlerts.length} ACTIVE
           </span>
         )}
         <div className="flex-1" />
-        <div className="flex items-center gap-1.5">
-          <div className={`w-2 h-2 rounded-full ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
-          <span className={`text-[10px] uppercase tracking-[0.15em] font-black ${activeAlerts.length > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-            {activeAlerts.length > 0 ? 'UNDER FIRE' : 'CLEAR'}
-          </span>
+        {/* Compact threat pills */}
+        <div className="flex items-center gap-1">
+          {Object.entries(ALERT_THREAT_META).map(([key, meta]) => {
+            const count = byThreat[key] || 0;
+            if (count === 0) return null;
+            return (
+              <span key={key} className={`text-[9px] font-black px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor} font-mono`}>
+                {meta.icon}{count}
+              </span>
+            );
+          })}
         </div>
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      {/* Stats bar */}
-      <div className="shrink-0 px-2 py-1.5 flex items-center gap-2 flex-wrap" style={{background:'hsl(220 28% 11%)', borderBottom:'1px solid hsl(185 28% 22% / 0.4)'}}>
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/10 border border-red-500/25">
-          <span className="text-[11px] font-black text-red-300 font-mono">{meAlerts.length}</span>
-          <span className="text-[9px] uppercase text-red-400/70 font-bold tracking-wide">Total</span>
-        </div>
-        {Object.entries(ALERT_THREAT_META).map(([key, meta]) => {
-          const count = byThreat[key] || 0;
-          if (count === 0) return null;
-          return (
-            <div key={key} className={`flex items-center gap-1 px-2 py-0.5 rounded ${meta.bgColor} border ${meta.borderColor}`}>
-              <span className="text-[11px]">{meta.icon}</span>
-              <span className={`text-[11px] font-black ${meta.textColor} font-mono`}>{count}</span>
-              <span className={`text-[9px] uppercase font-bold ${meta.textColor} opacity-70 tracking-wide`}>{meta.label}</span>
-            </div>
-          );
-        })}
-        {countriesAffected > 0 && (
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/25 ml-auto">
-            <span className="text-[11px] font-black text-cyan-300 font-mono">{countriesAffected}</span>
-            <span className="text-[9px] uppercase text-cyan-400/70 font-bold tracking-wide">Countries</span>
-          </div>
-        )}
-      </div>
-
-      {/* Map area */}
+      {/* Map area — takes all remaining space */}
       <div className="flex-1 relative min-h-0">
         <div className="absolute inset-0">
           <MapErrorBoundary>
             <Suspense
               fallback={
                 <div className="w-full h-full flex items-center justify-center bg-card/20">
-                  <div className="text-center">
-                    <MapPin className="w-8 h-8 text-red-400 mx-auto mb-2 animate-pulse" />
-                    <p className="text-[11px] text-muted-foreground">Loading alert map...</p>
-                  </div>
+                  <MapPin className="w-6 h-6 text-red-400 animate-pulse" />
                 </div>
               }
             >
@@ -4741,55 +4720,54 @@ function AlertMapPanel({
             </Suspense>
           </MapErrorBoundary>
         </div>
-        {/* Legend overlay */}
+
+        {/* Compact legend — bottom-left */}
         <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-          <div className="flex flex-col gap-1 p-1.5 rounded" style={{background:'rgba(20,26,38,0.85)', border:'1px solid rgba(0,200,255,0.12)'}}>
+          <div className="flex flex-col gap-0.5 p-1.5 rounded" style={{background:'rgba(255,255,255,0.88)', border:'1px solid rgba(0,0,0,0.1)', boxShadow:'0 1px 6px rgba(0,0,0,0.12)'}}>
             {Object.entries(ALERT_THREAT_META).map(([key, meta]) => (
               <div key={key} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full shrink-0" style={{background: meta.dotColor}} />
-                <span className="text-[9px] text-white/70 font-mono uppercase tracking-wide">{meta.label}</span>
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{background: meta.dotColor}} />
+                <span className="text-[8px] font-mono uppercase tracking-wide" style={{color:'#444'}}>{meta.label}</span>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Stats overlay — top-right */}
+        {meAlerts.length > 0 && (
+          <div className="absolute top-2 right-2 z-10 pointer-events-none">
+            <div className="text-[9px] font-black font-mono px-1.5 py-0.5 rounded" style={{background:'rgba(255,255,255,0.88)', border:'1px solid rgba(0,0,0,0.1)', boxShadow:'0 1px 6px rgba(0,0,0,0.12)', color:'#444'}}>
+              {meAlerts.length} alerts · {countriesAffected} {countriesAffected === 1 ? 'country' : 'countries'}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Recent alerts strip */}
+      {/* Recent alerts strip — compact */}
       {recentAlerts.length > 0 && (
-        <div className="shrink-0 flex flex-col" style={{background:'hsl(220 28% 10%)', borderTop:'1px solid hsl(185 28% 22% / 0.4)'}}>
-          <div className="px-2 pt-1 pb-0.5 flex items-center gap-1">
-            <Clock className="w-3 h-3 text-foreground/30" />
-            <span className="text-[9px] uppercase tracking-[0.15em] text-foreground/30 font-bold font-mono">Recent Alerts</span>
-          </div>
-          <div className="flex flex-col divide-y divide-white/[0.04]">
-            {recentAlerts.map(alert => {
-              const meta = ALERT_THREAT_META[alert.threatType] || ALERT_THREAT_META.rockets;
-              const elapsed = Math.floor((now - new Date(alert.timestamp).getTime()) / 1000);
-              const remaining = Math.max(0, alert.countdown - elapsed);
-              const mins = Math.floor(remaining / 60);
-              const secs = remaining % 60;
-              const isActive = elapsed < alert.countdown || alert.countdown === 0;
-              const city = language === 'ar' ? alert.cityAr : alert.city;
-              return (
-                <div key={alert.id} className="px-2 py-1 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{background: meta.dotColor, boxShadow: isActive ? `0 0 6px ${meta.dotColor}` : undefined}} />
-                  <span className="text-[11px] font-bold text-foreground/90 font-mono truncate flex-1 min-w-0">{city}</span>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className={`text-[9px] font-black uppercase px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor}`}>{meta.icon} {meta.label}</span>
-                    {alert.source === 'live' && (
-                      <span className="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">API</span>
-                    )}
-                  </div>
-                  <span className="text-[9px] font-mono shrink-0">
-                    {isActive && remaining > 0
-                      ? <span className="text-red-400 font-bold">{mins > 0 ? `${mins}m ${secs}s` : `${secs}s`} left</span>
-                      : <span className="text-foreground/40">{timeAgo(alert.timestamp)}</span>
-                    }
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+        <div className="shrink-0 divide-y divide-white/[0.04]" style={{background:'hsl(220 28% 10%)', borderTop:'1px solid hsl(185 28% 20% / 0.35)'}}>
+          {recentAlerts.map(alert => {
+            const meta = ALERT_THREAT_META[alert.threatType] || ALERT_THREAT_META.rockets;
+            const elapsed = Math.floor((now - new Date(alert.timestamp).getTime()) / 1000);
+            const remaining = Math.max(0, alert.countdown - elapsed);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            const isActive = elapsed < alert.countdown || alert.countdown === 0;
+            const city = language === 'ar' ? alert.cityAr : alert.city;
+            return (
+              <div key={alert.id} className="px-2 py-1 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{background: meta.dotColor, boxShadow: isActive ? `0 0 5px ${meta.dotColor}` : undefined}} />
+                <span className="text-[11px] font-bold text-foreground/85 font-mono truncate flex-1 min-w-0">{city}</span>
+                <span className={`text-[8px] font-black uppercase px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor} shrink-0`}>{meta.label}</span>
+                <span className="text-[9px] font-mono shrink-0 w-14 text-right">
+                  {isActive && remaining > 0
+                    ? <span className="text-red-400 font-bold">{mins > 0 ? `${mins}m${secs}s` : `${secs}s`}</span>
+                    : <span className="text-foreground/35">{timeAgo(alert.timestamp)}</span>
+                  }
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -4810,6 +4788,7 @@ function MapSection({
   adsbFlights,
   redAlerts,
   thermalHotspots,
+  ewEvents = [],
   language,
   onClose,
   onMaximize,
@@ -4821,6 +4800,7 @@ function MapSection({
   adsbFlights: AdsbFlight[];
   redAlerts: RedAlert[];
   thermalHotspots: ThermalHotspot[];
+  ewEvents?: EWEvent[];
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -6315,7 +6295,7 @@ export default function Dashboard() {
         case 'intel':
           return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
         case 'map':
-          return <MapSection events={events} flights={flights} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
+          return <MapSection events={events} flights={flights} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'radar':

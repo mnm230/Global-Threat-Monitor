@@ -2221,23 +2221,15 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
   let liveAlerts: RedAlert[] = [];
   let historyAlerts: RedAlert[] = [];
 
-  // 1. Try Tzevaadom live notifications (active sirens right now)
-  try {
-    liveAlerts = await fetchFromTzevaadom();
-    if (liveAlerts.length > 0) console.log(`[RED-ALERTS] Tzevaadom live: ${liveAlerts.length} active alerts`);
-  } catch (err) {
-    console.log(`[RED-ALERTS] Tzevaadom live failed: ${(err as Error).message}`);
-  }
-
-  // 2. Always fetch Tzevaadom history (recent 6h) for context
-  try {
-    historyAlerts = await fetchTzevaadomHistory();
-    if (historyAlerts.length > 0) {
-      historyAlerts.forEach(a => { a.active = false; a.countdown = 0; });
-      console.log(`[RED-ALERTS] Tzevaadom history: ${historyAlerts.length} alerts (last 6h)`);
-    }
-  } catch (err) {
-    console.log(`[RED-ALERTS] Tzevaadom history failed: ${(err as Error).message}`);
+  // 1 & 2. Fetch live + history in parallel to halve latency
+  [liveAlerts, historyAlerts] = await Promise.all([
+    fetchFromTzevaadom().catch(err => { console.log(`[RED-ALERTS] Tzevaadom live failed: ${(err as Error).message}`); return []; }),
+    fetchTzevaadomHistory().catch(err => { console.log(`[RED-ALERTS] Tzevaadom history failed: ${(err as Error).message}`); return []; }),
+  ]);
+  if (liveAlerts.length > 0) console.log(`[RED-ALERTS] Tzevaadom live: ${liveAlerts.length} active alerts`);
+  if (historyAlerts.length > 0) {
+    historyAlerts.forEach(a => { a.active = false; a.countdown = 0; });
+    console.log(`[RED-ALERTS] Tzevaadom history: ${historyAlerts.length} alerts (last 6h)`);
   }
 
   // 3. Merge WebSocket push alerts (real-time, highest priority)
@@ -4516,7 +4508,7 @@ export async function registerRoutes(
       send('sirens', activeSirens);
       const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
       send('breaking-news', breaking);
-    }), 3000));
+    }), 1500));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then(async (events) => {
         const adsbFlights = await fetchLiveAdsbFlights();
