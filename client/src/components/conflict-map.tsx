@@ -185,7 +185,7 @@ const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
-  events, flights = [], adsbFlights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
+  events, flights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation,
 }: ConflictMapProps) {
   const containerRef      = useRef<HTMLDivElement>(null);

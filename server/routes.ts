@@ -2983,6 +2983,177 @@ Assess current threat level, provide 5-7 key developments, and complete all fiel
   return fallback;
 }
 
+// --- SITREP Generation ---
+const sitrepCaches: Partial<Record<SitrepWindow, { data: Sitrep; fetchedAt: number }>> = {};
+const SITREP_CACHE_TTL = 5 * 60_000;
+
+function formatDTG(date: Date): string {
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mm = String(date.getUTCMinutes()).padStart(2, '0');
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const mon = months[date.getUTCMonth()];
+  const yy = String(date.getUTCFullYear()).slice(-2);
+  return `${dd}${hh}${mm}Z ${mon} ${yy}`;
+}
+
+async function generateSitrep(window: SitrepWindow): Promise<Sitrep> {
+  const cached = sitrepCaches[window];
+  if (cached && Date.now() - cached.fetchedAt < SITREP_CACHE_TTL) return cached.data;
+
+  const windowMs = window === '1h' ? 3_600_000 : window === '6h' ? 21_600_000 : 86_400_000;
+  const cutoff = Date.now() - windowMs;
+  const windowLabel = window === '1h' ? 'last 1 hour' : window === '6h' ? 'last 6 hours' : 'last 24 hours';
+
+  const windowAlerts = alertHistory.filter(a => new Date(a.timestamp).getTime() >= cutoff);
+  const windowMessages = classifiedMessageCache.filter(m => new Date(m.timestamp).getTime() >= cutoff);
+
+  const [conflictEvents, cyberEvents, ewEvents, infraEvents] = await Promise.all([
+    fetchGDELTConflictEvents(),
+    fetchCyberEvents(),
+    fetchEWEvents(),
+    fetchInfraEvents(),
+  ]);
+
+  const windowConflicts = conflictEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
+  const windowCyber = cyberEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
+  const windowEW = ewEvents.filter(e => e.active);
+  const windowInfra = infraEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
+
+  const alertSummary = windowAlerts.length > 0
+    ? `${windowAlerts.length} alerts in ${[...new Set(windowAlerts.map(a => a.country))].join(', ')}. Threat types: ${[...new Set(windowAlerts.map(a => a.threatType))].join(', ')}. Locations: ${windowAlerts.slice(0, 10).map(a => `${a.city} (${a.countdown}s)`).join(', ')}.`
+    : 'No active alerts in this period.';
+
+  const conflictSummary = windowConflicts.slice(0, 15)
+    .map(e => `[${e.type.toUpperCase()}/${e.severity.toUpperCase()}] ${e.title}: ${e.description}`)
+    .join('\n') || 'No mapped conflict events.';
+
+  const cyberSummary = windowCyber.slice(0, 8)
+    .map(e => `[CYBER/${e.severity.toUpperCase()}] ${e.type} on ${e.target} (${e.country}, sector: ${e.sector}): ${e.description}`)
+    .join('\n') || 'No cyber events.';
+
+  const ewSummary = windowEW.slice(0, 6)
+    .map(e => `[EW/${e.severity.toUpperCase()}] ${e.type} in ${e.country} (r=${e.radiusKm}km): ${e.description}`)
+    .join('\n') || 'No EW activity.';
+
+  const infraSummary = windowInfra.slice(0, 6)
+    .map(e => `[INFRA/${e.severity.toUpperCase()}] ${e.type} in ${e.region}, ${e.country}: ${e.description}`)
+    .join('\n') || 'No infrastructure events.';
+
+  const intelDigest = windowMessages.slice(0, 12)
+    .map(m => `[${m.channel || 'OSINT'}] ${m.text.slice(0, 200)}`)
+    .join('\n') || 'No OSINT in this window.';
+
+  const dtg = formatDTG(new Date());
+
+  const systemPrompt = `You are a senior military intelligence officer producing a classified SITREP (Situation Report) for a joint operations center covering the Middle East theater. Write with precision, brevity, and military style. Use specific unit names, weapon systems, and place names where data supports it. Return ONLY valid JSON.`;
+
+  const userPrompt = `Generate a SITREP for the ${windowLabel}. Current DTG: ${dtg}
+
+=== RED ALERTS / OREF (${windowAlerts.length} events) ===
+${alertSummary}
+
+=== CONFLICT EVENTS (${windowConflicts.length} events) ===
+${conflictSummary}
+
+=== CYBER DOMAIN (${windowCyber.length} events) ===
+${cyberSummary}
+
+=== ELECTRONIC WARFARE (${windowEW.length} active) ===
+${ewSummary}
+
+=== INFRASTRUCTURE (${windowInfra.length} events) ===
+${infraSummary}
+
+=== OSINT INTELLIGENCE (${windowMessages.length} messages) ===
+${intelDigest}
+
+Return this exact JSON schema (all fields required, write in military prose — terse, specific, no fluff):
+{
+  "riskLevel": "EXTREME|HIGH|ELEVATED|MODERATE",
+  "situation": "2-3 sentence executive overview of the overall theater situation for this period",
+  "opfor": "2-3 sentences on enemy forces: what OPFOR (IRGC, Hezbollah, Hamas, Houthis, etc.) has done or indicated in this window",
+  "blufor": "2-3 sentences on friendly/coalition forces: IDF posture, CENTCOM assets, air defense activations",
+  "keyEvents": [
+    {"dtg":"DDHHMMZ MON YY","location":"city or grid","event":"1-sentence description","significance":"critical|high|medium"}
+  ],
+  "intelligence": "2-3 sentences: pattern-of-life analysis, launch cycles, observed intent indicators, notable SIGINT/OSINT",
+  "infrastructure": "1-2 sentences on infrastructure status: power, ports, hospitals, airports affected",
+  "ewCyber": "1-2 sentences on EW jamming activity and cyber domain incidents",
+  "commandersAssessment": "2-3 sentences strategic assessment: escalation trajectory, red lines, recommended posture",
+  "outlook": "2-3 sentences forecast for the next period (next 1h if window=1h, next 6h if window=6h, next 24h if window=24h)"
+}`;
+
+  try {
+    const resp = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      let parsed: Record<string, unknown>;
+      try { parsed = JSON.parse(jsonMatch[0]); }
+      catch { parsed = JSON.parse(jsonMatch[0].replace(/[\x00-\x1f]/g, ' ')); }
+
+      const sitrep: Sitrep = {
+        id: `sitrep-${window}-${Date.now()}`,
+        window,
+        dtg,
+        riskLevel: (['EXTREME','HIGH','ELEVATED','MODERATE'].includes(parsed.riskLevel as string) ? parsed.riskLevel : 'HIGH') as Sitrep['riskLevel'],
+        situation: (parsed.situation as string) || '',
+        opfor: (parsed.opfor as string) || '',
+        blufor: (parsed.blufor as string) || '',
+        keyEvents: Array.isArray(parsed.keyEvents) ? (parsed.keyEvents as Record<string, unknown>[]).map(e => ({
+          dtg: (e.dtg as string) || dtg,
+          location: (e.location as string) || '',
+          event: (e.event as string) || '',
+          significance: (['critical','high','medium'].includes(e.significance as string) ? e.significance : 'medium') as 'critical' | 'high' | 'medium',
+        })) : [],
+        intelligence: (parsed.intelligence as string) || '',
+        infrastructure: (parsed.infrastructure as string) || '',
+        ewCyber: (parsed.ewCyber as string) || '',
+        commandersAssessment: (parsed.commandersAssessment as string) || '',
+        outlook: (parsed.outlook as string) || '',
+        alertCount: windowAlerts.length,
+        eventCount: windowConflicts.length,
+        generatedAt: new Date().toISOString(),
+        model: 'claude-sonnet-4-6',
+      };
+      sitrepCaches[window] = { data: sitrep, fetchedAt: Date.now() };
+      console.log(`[SITREP] Generated window=${window} riskLevel=${sitrep.riskLevel} events=${sitrep.keyEvents.length}`);
+      return sitrep;
+    }
+  } catch (err) {
+    console.error('[SITREP] Error:', (err as Error).message);
+  }
+
+  // Fallback
+  const fallback: Sitrep = {
+    id: `sitrep-fallback-${Date.now()}`,
+    window,
+    dtg,
+    riskLevel: 'HIGH',
+    situation: 'SITREP generation temporarily unavailable.',
+    opfor: 'Data unavailable.',
+    blufor: 'Data unavailable.',
+    keyEvents: [],
+    intelligence: 'Assessment pending.',
+    infrastructure: 'No data.',
+    ewCyber: 'No data.',
+    commandersAssessment: 'Unable to generate at this time.',
+    outlook: 'Monitor and retry.',
+    alertCount: windowAlerts.length,
+    eventCount: windowConflicts.length,
+    generatedAt: new Date().toISOString(),
+    model: 'fallback',
+  };
+  sitrepCaches[window] = { data: fallback, fetchedAt: Date.now() };
+  return fallback;
+}
+
 async function generateDeductionLive(query: string, alerts: RedAlert[], messages: ClassifiedMessage[]): Promise<AIDeduction> {
   const alertContext = alerts.slice(0, 10).map(a => `${a.city} (${a.threatType}) at ${a.timestamp}`).join('; ');
   const intelContext = messages.slice(0, 5).map(m => `[${m.channel}] ${m.text.slice(0, 150)}`).join('\n');
@@ -3843,6 +4014,17 @@ export async function registerRoutes(
       res.json(brief);
     } catch {
       res.status(503).json({ error: 'AI brief unavailable' });
+    }
+  });
+
+  app.get('/api/sitrep', async (req, res) => {
+    const raw = (req.query.window as string) || '1h';
+    const window: SitrepWindow = (['1h', '6h', '24h'].includes(raw) ? raw : '1h') as SitrepWindow;
+    try {
+      const sitrep = await generateSitrep(window);
+      res.json(sitrep);
+    } catch {
+      res.status(503).json({ error: 'SITREP generation unavailable' });
     }
   });
 

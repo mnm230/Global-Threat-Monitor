@@ -28,6 +28,8 @@ import type {
   InfraEvent,
   ThermalHotspot,
   BreakingNewsItem,
+  Sitrep,
+  SitrepWindow,
 } from '@shared/schema';
 import {
   Radio,
@@ -534,7 +536,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint';
+type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -550,6 +552,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
   osint: { icon: Activity, label: 'OSINT Feed', labelAr: 'تغذية OSINT' },
+  sitrep: { icon: FileDown, label: 'SITREP', labelAr: 'تقرير الوضع' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1038,26 +1041,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, sitrep: false },
+    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false, sitrep: false },
+    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28 },
+    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, sitrep: false },
+    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100 },
+    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false, sitrep: false },
+    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, sitrep: 100 },
     rowSplit: 50,
   },
 ];
@@ -2098,11 +2101,8 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
     }
     let cancelled = false;
     setRouteLoading(true);
-    fetch(`/api/adsb/route/${encodeURIComponent(cs)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (!cancelled) setFlightRoute(data || { origin: null, destination: null, airline: null }); })
-      .catch(() => { if (!cancelled) setFlightRoute({ origin: null, destination: null, airline: null }); })
-      .finally(() => { if (!cancelled) setRouteLoading(false); });
+    setFlightRoute({ origin: null, destination: null, airline: null });
+    setRouteLoading(false);
     return () => { cancelled = true; };
   }, [selectedFlight?.callsign]);
   const sorted = [...flights].sort((a, b) => {
@@ -2224,594 +2224,6 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
   );
 }
 
-const ADSB_TYPE_STYLES: Record<string, { color: string; bg: string; dot: string; label: string }> = {
-  military:     { color: 'text-red-300',     bg: 'bg-red-950/60 border-red-400/50',       dot: 'bg-red-400',     label: 'MIL' },
-  surveillance: { color: 'text-cyan-300',    bg: 'bg-cyan-950/60 border-cyan-400/50',     dot: 'bg-cyan-400',    label: 'ISR' },
-  commercial:   { color: 'text-emerald-300', bg: 'bg-emerald-950/50 border-emerald-500/35', dot: 'bg-emerald-400', label: 'CIV' },
-  cargo:        { color: 'text-amber-300',   bg: 'bg-amber-950/50 border-amber-400/40',   dot: 'bg-amber-400',   label: 'CGO' },
-  private:      { color: 'text-violet-300',  bg: 'bg-violet-950/50 border-violet-400/40', dot: 'bg-violet-400',  label: 'PVT' },
-  government:   { color: 'text-sky-300',     bg: 'bg-sky-950/50 border-sky-400/40',       dot: 'bg-sky-400',     label: 'GOV' },
-};
-
-
-const ADSB_PLANE_COLORS: Record<string, string> = {
-  military: '#f87171', surveillance: '#22d3ee', government: '#38bdf8',
-  commercial: '#4ade80', cargo: '#fbbf24', private: '#c4b5fd',
-};
-
-function AdsbMapView({ flights, interpPos, selectedFlight, hoveredId, onSelect, onHover }: {
-  flights: AdsbFlight[];
-  interpPos: Map<string, { lat: number; lng: number }>;
-  selectedFlight: AdsbFlight | null;
-  hoveredId: string | null;
-  onSelect: (f: AdsbFlight | null) => void;
-  onHover: (id: string | null) => void;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mapRef = useRef<any>(null);
-  const animRef = useRef<number>(0);
-  const flightsRef = useRef(flights);
-  const interpPosRef = useRef(interpPos);
-  const selectedRef = useRef(selectedFlight);
-  const hoveredRef = useRef(hoveredId);
-
-  useEffect(() => { flightsRef.current = flights; }, [flights]);
-  useEffect(() => { interpPosRef.current = interpPos; }, [interpPos]);
-  useEffect(() => { selectedRef.current = selectedFlight; }, [selectedFlight]);
-  useEffect(() => { hoveredRef.current = hoveredId; }, [hoveredId]);
-
-  const getFlightAtPoint = useCallback((px: number, py: number) => {
-    if (!mapRef.current) return null;
-    let closest: AdsbFlight | null = null;
-    let minDist = 22;
-    for (const f of flightsRef.current) {
-      const pos = interpPosRef.current.get(f.id) || { lat: f.lat, lng: f.lng };
-      if (!pos.lat || !pos.lng) continue;
-      const pt = mapRef.current.project([pos.lng, pos.lat]);
-      const d = Math.hypot(pt.x - px, pt.y - py);
-      if (d < minDist) { minDist = d; closest = f; }
-    }
-    return closest;
-  }, []);
-
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    let map: any;
-    import('maplibre-gl').then(({ Map: MLMap }) => {
-      if (!containerRef.current) return;
-      map = new MLMap({
-        container: containerRef.current,
-        style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-        center: [44, 30],
-        zoom: 4,
-        minZoom: 2,
-        maxZoom: 14,
-        attributionControl: false,
-        pitchWithRotate: false,
-        dragRotate: false,
-        touchZoomRotate: true,
-        touchPitch: false,
-      });
-      mapRef.current = map;
-
-      map.on('click', (e: any) => {
-        const f = getFlightAtPoint(e.point.x, e.point.y);
-        onSelect(f?.id === selectedRef.current?.id ? null : f);
-      });
-
-      map.on('mousemove', (e: any) => {
-        const f = getFlightAtPoint(e.point.x, e.point.y);
-        onHover(f?.id ?? null);
-        map.getCanvas().style.cursor = f ? 'pointer' : '';
-      });
-
-      map.on('mouseout', () => {
-        onHover(null);
-      });
-
-      const startDraw = () => {
-        const draw = () => {
-          const canvas = canvasRef.current;
-          if (!canvas || !mapRef.current) return;
-          const rect = canvas.getBoundingClientRect();
-          const dpr = window.devicePixelRatio || 1;
-          if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
-            canvas.width = Math.round(rect.width * dpr);
-            canvas.height = Math.round(rect.height * dpr);
-          }
-          const ctx = canvas.getContext('2d')!;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          ctx.clearRect(0, 0, rect.width, rect.height);
-
-          const fls = flightsRef.current;
-          const ipos = interpPosRef.current;
-          const sel = selectedRef.current;
-          const hov = hoveredRef.current;
-
-          for (const f of fls) {
-            const pos = ipos.get(f.id) || { lat: f.lat, lng: f.lng };
-            if (!pos.lat || !pos.lng) continue;
-            const pt = mapRef.current.project([pos.lng, pos.lat]);
-            const x = pt.x; const y = pt.y;
-            if (x < -30 || x > rect.width + 30 || y < -30 || y > rect.height + 30) continue;
-
-            const color = ADSB_PLANE_COLORS[f.type] || '#9ca3af';
-            const isSel = sel?.id === f.id;
-            const isHov = hov === f.id;
-            const isAlert = f.flagged && (f.squawk === '7700' || f.squawk === '7500');
-            const headingRad = (f.heading * Math.PI) / 180;
-
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(headingRad);
-
-            if (f.type === 'military' || f.type === 'surveillance' || f.flagged) {
-              ctx.beginPath();
-              ctx.arc(0, 0, 14, 0, Math.PI * 2);
-              ctx.strokeStyle = isAlert ? '#ef4444' : color;
-              ctx.lineWidth = 0.8;
-              ctx.globalAlpha = 0.3;
-              ctx.stroke();
-              ctx.globalAlpha = 1;
-            }
-
-            if (isSel || isHov) {
-              ctx.beginPath();
-              ctx.arc(0, 0, 18, 0, Math.PI * 2);
-              ctx.strokeStyle = 'rgba(255,255,255,0.65)';
-              ctx.lineWidth = 1.2;
-              ctx.stroke();
-            }
-
-            ctx.beginPath();
-            ctx.moveTo(0, -10);
-            ctx.lineTo(6, 7);
-            ctx.lineTo(0, 2.5);
-            ctx.lineTo(-6, 7);
-            ctx.closePath();
-            ctx.fillStyle = color;
-            ctx.globalAlpha = isSel || isHov ? 1 : 0.9;
-            ctx.fill();
-            if (isAlert) {
-              ctx.strokeStyle = '#ef4444';
-              ctx.lineWidth = 1;
-              ctx.stroke();
-            }
-
-            ctx.restore();
-
-            ctx.globalAlpha = 1;
-            if (isSel || isHov || f.type === 'military' || f.type === 'surveillance') {
-              ctx.font = 'bold 10px "JetBrains Mono", monospace';
-              ctx.fillStyle = color;
-              ctx.shadowColor = 'rgba(0,0,0,0.8)';
-              ctx.shadowBlur = 3;
-              ctx.fillText(f.callsign, x + 13, y - 4);
-            }
-            if (isSel || isHov) {
-              ctx.font = '9px "JetBrains Mono", monospace';
-              ctx.fillStyle = 'rgba(255,255,255,0.65)';
-              const alt = f.altitude > 0 ? `${Math.round(f.altitude / 100) * 100}ft` : 'GND';
-              ctx.fillText(`${alt}  ${f.groundSpeed}kt`, x + 13, y + 9);
-            }
-            ctx.shadowBlur = 0;
-          }
-          animRef.current = requestAnimationFrame(draw);
-        };
-        animRef.current = requestAnimationFrame(draw);
-      };
-
-      map.on('load', startDraw);
-    });
-
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      if (map) { map.remove(); mapRef.current = null; }
-    };
-  }, []);
-
-  const fitToFlights = useCallback(() => {
-    if (!mapRef.current || flightsRef.current.length === 0) return;
-    const fls = flightsRef.current;
-    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (const f of fls) {
-      if (!f.lat || !f.lng) continue;
-      minLat = Math.min(minLat, f.lat);
-      maxLat = Math.max(maxLat, f.lat);
-      minLng = Math.min(minLng, f.lng);
-      maxLng = Math.max(maxLng, f.lng);
-    }
-    if (minLat < maxLat && minLng < maxLng) {
-      mapRef.current.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 30, maxZoom: 8, duration: 600 });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedFlight && mapRef.current) {
-      const pos = interpPosRef.current.get(selectedFlight.id) || { lat: selectedFlight.lat, lng: selectedFlight.lng };
-      if (pos.lat && pos.lng) {
-        mapRef.current.easeTo({ center: [pos.lng, pos.lat], duration: 400 });
-      }
-    }
-  }, [selectedFlight]);
-
-  return (
-    <div className="relative w-full h-full">
-      <div ref={containerRef} className="absolute inset-0" style={{ touchAction: 'none' }} />
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        style={{ pointerEvents: 'none' }}
-      />
-      <div className="absolute top-2 right-2 flex flex-col gap-1">
-        <button
-          onClick={() => mapRef.current?.zoomIn({ duration: 200 })}
-          className="w-7 h-7 rounded bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 flex items-center justify-center text-sm font-bold transition-all"
-          data-testid="adsb-zoom-in"
-        >+</button>
-        <button
-          onClick={() => mapRef.current?.zoomOut({ duration: 200 })}
-          className="w-7 h-7 rounded bg-black/60 border border-white/10 text-white/60 hover:text-white hover:bg-black/80 flex items-center justify-center text-sm font-bold transition-all"
-          data-testid="adsb-zoom-out"
-        >−</button>
-        <button
-          onClick={fitToFlights}
-          className="w-7 h-7 rounded bg-black/60 border border-white/10 text-cyan-400/60 hover:text-cyan-300 hover:bg-black/80 flex items-center justify-center transition-all"
-          title="Fit to all aircraft"
-          data-testid="adsb-fit-bounds"
-        >
-          <Maximize2 className="w-3 h-3" />
-        </button>
-      </div>
-      <div className="absolute bottom-2 left-2 flex gap-2 pointer-events-none">
-        {(['military','surveillance','commercial','cargo'] as const).map(t => (
-          <div key={t} className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-mono font-bold" style={{ background: 'rgba(0,0,0,0.55)', color: ADSB_PLANE_COLORS[t] }}>
-            <span style={{ width: 6, height: 6, display: 'inline-block', borderRadius: 1, background: ADSB_PLANE_COLORS[t], opacity: 0.8 }} />
-            {t === 'military' ? 'MIL' : t === 'surveillance' ? 'ISR' : t === 'commercial' ? 'CIV' : 'CGO'}
-          </div>
-        ))}
-      </div>
-      <div className="absolute top-2 left-2 text-[8px] font-mono text-white/25 pointer-events-none" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-        ME AIRSPACE · airplanes.live
-      </div>
-    </div>
-  );
-}
-
-function AdsbPanel({ language, onClose, onMaximize, isMaximized, adsbFlights = [], onLocateFlight }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; adsbFlights?: AdsbFlight[]; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
-  const [filter, setFilter] = useState<string>('all');
-  const [view, setView] = useState<'radar' | 'list'>('radar');
-  const [selectedFlight, setSelectedFlight] = useState<AdsbFlight | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const interpPosRef2 = useRef<Map<string, { lat: number; lng: number }>>(new Map());
-  const lastDataRef = useRef<{ flights: AdsbFlight[]; time: number }>({ flights: [], time: Date.now() });
-  const animFrameRef = useRef<number>(0);
-  const isLoading = adsbFlights.length === 0;
-
-  const [flightRoute, setFlightRoute] = useState<{ origin: { name: string; iata: string; icao: string; country: string } | null; destination: { name: string; iata: string; icao: string; country: string } | null; airline: string | null } | null>(null);
-  const [routeLoading, setRouteLoading] = useState(false);
-
-  useEffect(() => {
-    if (!selectedFlight) { setFlightRoute(null); return; }
-    const cs = selectedFlight.callsign?.trim();
-    if (!cs || selectedFlight.type === 'military') {
-      setFlightRoute({ origin: null, destination: null, airline: null });
-      return;
-    }
-    let cancelled = false;
-    setRouteLoading(true);
-    fetch(`/api/adsb/route/${encodeURIComponent(cs)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (!cancelled) setFlightRoute(data || { origin: null, destination: null, airline: null }); })
-      .catch(() => { if (!cancelled) setFlightRoute({ origin: null, destination: null, airline: null }); })
-      .finally(() => { if (!cancelled) setRouteLoading(false); });
-    return () => { cancelled = true; };
-  }, [selectedFlight?.callsign]);
-
-  useEffect(() => {
-    lastDataRef.current = { flights: adsbFlights, time: Date.now() };
-  }, [adsbFlights]);
-
-  useEffect(() => {
-    if (view !== 'radar') return;
-    const animate = () => {
-      const { flights, time } = lastDataRef.current;
-      const deltaT = Math.min((Date.now() - time) / 1000, 30);
-      const next = new Map<string, { lat: number; lng: number }>();
-      for (const f of flights) {
-        if (f.groundSpeed > 10 && f.lat !== 0 && f.lng !== 0) {
-          const speedMs = f.groundSpeed * 0.514444;
-          const hRad = (f.heading * Math.PI) / 180;
-          const R = 6371000;
-          const dLat = (speedMs * deltaT * Math.cos(hRad)) / R * (180 / Math.PI);
-          const dLng = (speedMs * deltaT * Math.sin(hRad)) / (R * Math.cos(f.lat * Math.PI / 180)) * (180 / Math.PI);
-          const pLat = f.lat + dLat; const pLng = f.lng + dLng;
-          next.set(f.id, (pLat > -80 && pLat < 80 && pLng > -180 && pLng < 180)
-            ? { lat: pLat, lng: pLng } : { lat: f.lat, lng: f.lng });
-        } else {
-          next.set(f.id, { lat: f.lat, lng: f.lng });
-        }
-      }
-      interpPosRef2.current = next;
-      animFrameRef.current = requestAnimationFrame(animate);
-    };
-    animFrameRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [view]);
-
-  const filtered = useMemo(() => {
-    if (filter === 'all') return adsbFlights;
-    if (filter === 'flagged') return adsbFlights.filter(f => f.flagged);
-    return adsbFlights.filter(f => f.type === filter);
-  }, [adsbFlights, filter]);
-
-  const sorted = useMemo(() =>
-    [...filtered].sort((a, b) => {
-      if (a.flagged && !b.flagged) return -1;
-      if (!a.flagged && b.flagged) return 1;
-      const order: Record<string, number> = { military: 0, surveillance: 1, government: 2, cargo: 3, commercial: 4, private: 5 };
-      return (order[a.type] ?? 6) - (order[b.type] ?? 6);
-    }),
-  [filtered]);
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { all: adsbFlights.length, flagged: 0 };
-    for (const f of adsbFlights) {
-      c[f.type] = (c[f.type] || 0) + 1;
-      if (f.flagged) c.flagged++;
-    }
-    return c;
-  }, [adsbFlights]);
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="adsb-panel">
-      {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-cyan-400/20" />
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-cyan-400/50 via-cyan-400/20 to-transparent" />
-        <Radar className="w-3.5 h-3.5 text-cyan-400/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">ADS-B</span>
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.04] rounded border border-white/[0.07] tabular-nums leading-none">{adsbFlights.length}</span>
-        {/* View toggle */}
-        <div className="flex items-center gap-0.5 ml-1 bg-white/[0.04] rounded border border-white/[0.07] p-0.5">
-          <button onClick={() => setView('radar')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'radar' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>MAP</button>
-          <button onClick={() => setView('list')} className={`text-[8px] px-1.5 py-0.5 rounded font-bold font-mono transition-all ${view === 'list' ? 'bg-cyan-500/20 text-cyan-300' : 'text-foreground/30 hover:text-foreground/55'}`}>LIST</button>
-        </div>
-        <div className="flex-1" />
-        {(() => {
-          const isLive = adsbFlights.length > 0 && adsbFlights[0]?.id?.startsWith('live-');
-          return (
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm ${isLive ? 'bg-emerald-500/[0.06] border border-emerald-500/[0.12]' : 'bg-amber-500/[0.06] border border-amber-500/[0.12]'}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse-dot`} style={{boxShadow: isLive ? '0 0 4px rgb(34 197 94 / 0.6)' : '0 0 4px rgb(245 158 11 / 0.6)'}} />
-              <span className={`text-[8px] uppercase tracking-widest font-bold font-mono ${isLive ? 'text-emerald-400/60' : 'text-amber-400/60'}`}>{isLive ? 'LIVE' : 'SIM'}</span>
-            </div>
-          );
-        })()}
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
-
-      {/* Filter bar */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04] flex gap-1 flex-wrap shrink-0 bg-black/10">
-        {[
-          { key: 'all',         label: 'All',     activeClass: 'bg-white/[0.08] border-white/20 text-white/80' },
-          { key: 'flagged',     label: '⚑ Alert', activeClass: 'bg-amber-950/60 border-amber-400/40 text-amber-300' },
-          { key: 'military',    label: 'MIL',     activeClass: 'bg-red-950/60 border-red-400/50 text-red-300' },
-          { key: 'surveillance',label: 'ISR',     activeClass: 'bg-cyan-950/60 border-cyan-400/50 text-cyan-300' },
-          { key: 'commercial',  label: 'CIV',     activeClass: 'bg-emerald-950/50 border-emerald-500/35 text-emerald-300' },
-          { key: 'cargo',       label: 'CGO',     activeClass: 'bg-amber-950/50 border-amber-400/35 text-amber-300' },
-          { key: 'government',  label: 'GOV',     activeClass: 'bg-sky-950/50 border-sky-400/35 text-sky-300' },
-          { key: 'private',     label: 'PVT',     activeClass: 'bg-violet-950/50 border-violet-400/35 text-violet-300' },
-        ].map(({ key, label, activeClass }) => (
-          <button key={key} data-testid={`adsb-filter-${key}`} onClick={() => setFilter(key)}
-            className={`text-[9px] px-1.5 py-0.5 rounded font-bold font-mono border transition-all ${filter === key ? activeClass : 'bg-white/[0.02] border-white/[0.06] text-foreground/35 hover:text-foreground/55 hover:bg-white/[0.04]'}`}>
-            {label}{counts[key] ? ` ${counts[key]}` : ''}
-          </button>
-        ))}
-      </div>
-
-      {/* ── RADAR VIEW ── */}
-      {view === 'radar' && (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-          {isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <Radar className="w-8 h-8 text-cyan-400/30 mx-auto mb-2 animate-pulse" />
-                <p className="text-[10px] text-foreground/20 font-mono">Scanning ADS-B feeds…</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 relative">
-              <AdsbMapView
-                flights={sorted}
-                interpPos={interpPosRef2.current}
-                selectedFlight={selectedFlight}
-                hoveredId={hoveredId}
-                onSelect={setSelectedFlight}
-                onHover={setHoveredId}
-              />
-            </div>
-          )}
-          {/* Selected flight detail strip */}
-          {selectedFlight && (
-            <div className="shrink-0 px-3 py-2 border-t border-cyan-500/15 bg-cyan-950/10">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign} · {selectedFlight.aircraft}</span>
-                <div className="flex gap-1.5">
-                  <button onClick={() => onLocateFlight?.(selectedFlight.lat, selectedFlight.lng, selectedFlight.callsign, selectedFlight.heading, selectedFlight.altitude, selectedFlight.groundSpeed, selectedFlight.type)}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[9px] font-mono text-cyan-300">
-                    <Target className="w-2.5 h-2.5"/>Map
-                  </button>
-                  <button onClick={() => setSelectedFlight(null)} className="text-foreground/30 hover:text-foreground/60"><X className="w-3 h-3"/></button>
-                </div>
-              </div>
-              {flightRoute && (flightRoute.origin || flightRoute.destination || flightRoute.airline) && (
-                <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-mono" data-testid="flight-route-strip">
-                  {flightRoute.airline && <span className="text-cyan-400/60">{flightRoute.airline}</span>}
-                  {flightRoute.airline && (flightRoute.origin || flightRoute.destination) && <span className="text-foreground/20">·</span>}
-                  {flightRoute.origin && <span className="text-foreground/80" data-testid="flight-route-origin">{flightRoute.origin.iata || flightRoute.origin.icao}{flightRoute.origin.name ? ` ${flightRoute.origin.name}` : ''}</span>}
-                  {flightRoute.origin && flightRoute.destination && <span className="text-cyan-400/50">→</span>}
-                  {flightRoute.destination && <span className="text-foreground/80" data-testid="flight-route-dest">{flightRoute.destination.iata || flightRoute.destination.icao}{flightRoute.destination.name ? ` ${flightRoute.destination.name}` : ''}</span>}
-                </div>
-              )}
-              {routeLoading && <div className="text-[9px] font-mono text-foreground/25 mb-1">Loading route...</div>}
-              {flightRoute && !flightRoute.origin && !flightRoute.destination && !routeLoading && selectedFlight.type !== 'military' && (
-                <div className="text-[9px] font-mono text-foreground/20 mb-1">Route unknown</div>
-              )}
-              {selectedFlight.type === 'military' && !routeLoading && (
-                <div className="text-[9px] font-mono text-red-400/40 mb-1">Military — route classified</div>
-              )}
-              <div className="grid grid-cols-4 gap-1 text-[9px] font-mono">
-                <span><span className="text-foreground/30">ALT </span><span className="text-foreground/70">{selectedFlight.altitude > 0 ? `${Math.round(selectedFlight.altitude/100)*100}ft` : 'GND'}</span></span>
-                <span><span className="text-foreground/30">GS </span><span className="text-foreground/70">{selectedFlight.groundSpeed}kt</span></span>
-                <span><span className="text-foreground/30">HDG </span><span className="text-foreground/70">{Math.round(selectedFlight.heading)}°</span></span>
-                <span><span className="text-foreground/30">SQK </span><span className={selectedFlight.squawk==='7700'||selectedFlight.squawk==='7500'||selectedFlight.squawk==='7600' ? 'text-red-400 font-bold' : 'text-foreground/70'}>{selectedFlight.squawk}</span></span>
-                <span><span className="text-foreground/30">HEX </span><span className="text-foreground/70">{selectedFlight.hex}</span></span>
-                <span><span className="text-foreground/30">REG </span><span className="text-foreground/70">{selectedFlight.registration||'—'}</span></span>
-                <span><span className="text-foreground/30">CTRY </span><span className="text-foreground/70">{selectedFlight.country}</span></span>
-                <span><span className="text-foreground/30">VR </span><span className={selectedFlight.verticalRate>0?'text-green-400':selectedFlight.verticalRate<0?'text-red-400':'text-foreground/70'}>{selectedFlight.verticalRate>0?'+':''}{selectedFlight.verticalRate}fpm</span></span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── LIST VIEW ── */}
-      {view === 'list' && <ScrollArea className="flex-1 min-h-0">
-        {isLoading && (
-          <div className="px-3 py-8 text-center">
-            <Radar className="w-6 h-6 text-cyan-400/40 mx-auto mb-2 animate-pulse" />
-            <p className="text-[10px] text-foreground/25">Scanning ADS-B feeds...</p>
-          </div>
-        )}
-
-        {selectedFlight && (
-          <div className="px-3 py-2 bg-cyan-950/20 border-b border-cyan-500/20 animate-fade-in">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold font-mono text-cyan-300">{selectedFlight.callsign}</span>
-              <button
-                onClick={() => setSelectedFlight(null)}
-                className="text-foreground/25 text-[10px]"
-                data-testid="adsb-close-detail"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            {flightRoute && (flightRoute.origin || flightRoute.destination || flightRoute.airline) && (
-              <div className="flex items-center gap-1.5 mb-1.5 px-2 py-1 rounded bg-cyan-500/[0.06] border border-cyan-500/10 text-[10px] font-mono" data-testid="flight-route-list">
-                {flightRoute.airline && <span className="text-cyan-400/70 font-bold">{flightRoute.airline}</span>}
-                {flightRoute.airline && (flightRoute.origin || flightRoute.destination) && <span className="text-foreground/20">·</span>}
-                {flightRoute.origin && <span className="text-foreground/80" data-testid="flight-route-list-origin">{flightRoute.origin.iata || flightRoute.origin.icao}{flightRoute.origin.name ? ` ${flightRoute.origin.name}` : ''}</span>}
-                {flightRoute.origin && flightRoute.destination && <span className="text-cyan-400/50 font-bold">→</span>}
-                {flightRoute.destination && <span className="text-foreground/80" data-testid="flight-route-list-dest">{flightRoute.destination.iata || flightRoute.destination.icao}{flightRoute.destination.name ? ` ${flightRoute.destination.name}` : ''}</span>}
-              </div>
-            )}
-            {routeLoading && <div className="text-[9px] font-mono text-foreground/25 mb-1.5">Loading route...</div>}
-            {flightRoute && !flightRoute.origin && !flightRoute.destination && !routeLoading && selectedFlight.type !== 'military' && (
-              <div className="text-[9px] font-mono text-foreground/20 mb-1.5">Route unknown</div>
-            )}
-            {selectedFlight.type === 'military' && !routeLoading && (
-              <div className="text-[9px] font-mono text-red-400/40 mb-1.5">Military — route classified</div>
-            )}
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs font-mono">
-              <div><span className="text-foreground/30">HEX</span> <span className="text-foreground/70">{selectedFlight.hex}</span></div>
-              <div><span className="text-foreground/30">REG</span> <span className="text-foreground/70">{selectedFlight.registration}</span></div>
-              <div><span className="text-foreground/30">ACFT</span> <span className="text-foreground/70">{selectedFlight.aircraft}</span></div>
-              <div><span className="text-foreground/30">CTRY</span> <span className="text-foreground/70">{selectedFlight.country}</span></div>
-              <div><span className="text-foreground/30">ALT</span> <span className="text-foreground/70">{selectedFlight.altitude.toLocaleString()}ft</span></div>
-              <div><span className="text-foreground/30">GS</span> <span className="text-foreground/70">{selectedFlight.groundSpeed}kts</span></div>
-              <div><span className="text-foreground/30">VR</span> <span className={selectedFlight.verticalRate > 0 ? 'text-green-400' : selectedFlight.verticalRate < 0 ? 'text-red-400' : 'text-foreground/70'}>{selectedFlight.verticalRate > 0 ? '+' : ''}{selectedFlight.verticalRate}fpm</span></div>
-              <div><span className="text-foreground/30">HDG</span> <span className="text-foreground/70">{Math.round(selectedFlight.heading)}{'\u00B0'} {headingToCompass(selectedFlight.heading)}</span></div>
-              <div><span className="text-foreground/30">SQK</span> <span className={selectedFlight.squawk === '7700' || selectedFlight.squawk === '7600' || selectedFlight.squawk === '7500' ? 'text-red-400 font-bold' : 'text-foreground/70'}>{selectedFlight.squawk}</span></div>
-              <div><span className="text-foreground/30">RSSI</span> <span className="text-foreground/70">{selectedFlight.rssi}dBm</span></div>
-              <div><span className="text-foreground/30">POS</span> <span className="text-foreground/70">{selectedFlight.lat.toFixed(3)}, {selectedFlight.lng.toFixed(3)}</span></div>
-              <div><span className="text-foreground/30">SEEN</span> <span className="text-foreground/70">{selectedFlight.seen}s ago</span></div>
-            </div>
-            <div className="flex gap-2 mt-2 pt-1.5 border-t border-cyan-500/15">
-              <button
-                className="flex items-center gap-1.5 px-2 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-[10px] font-mono font-bold text-cyan-300 transition-colors"
-                data-testid={`adsb-locate-${selectedFlight.id}`}
-                onClick={(e) => { e.stopPropagation(); onLocateFlight?.(selectedFlight.lat, selectedFlight.lng, selectedFlight.callsign, selectedFlight.heading, selectedFlight.altitude, selectedFlight.groundSpeed, selectedFlight.type); }}
-              >
-                <Target className="w-3 h-3" />
-                Locate on Map
-              </button>
-              <a
-                href={`https://globe.adsbexchange.com/?icao=${selectedFlight.hex.toLowerCase()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-[10px] font-mono font-bold text-foreground/50 transition-colors"
-                data-testid={`adsb-adsbx-${selectedFlight.id}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ExternalLink className="w-3 h-3" />
-                ADSBx
-              </a>
-            </div>
-          </div>
-        )}
-
-        <div className="divide-y divide-white/[0.03]">
-          {sorted.map((f) => {
-            const style = ADSB_TYPE_STYLES[f.type] || ADSB_TYPE_STYLES.commercial;
-            const isMil = f.type === 'military' || f.type === 'surveillance';
-            return (
-              <div
-                key={f.id}
-                className={`px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-white/[0.025] ${
-                  selectedFlight?.id === f.id
-                    ? 'bg-white/[0.04]'
-                    : ''
-                } ${isMil
-                    ? 'border-l-2 border-l-red-500/70'
-                    : f.flagged
-                    ? 'border-l-2 border-l-amber-400/60'
-                    : 'border-l-2 border-l-transparent'
-                }`}
-                onClick={() => setSelectedFlight(f)}
-                data-testid={`adsb-flight-${f.id}`}
-              >
-                <div className="flex items-center gap-2 mb-0.5">
-                  {/* heading arrow */}
-                  <span
-                    className={`shrink-0 inline-block ${style.color}`}
-                    style={{ transform: `rotate(${f.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
-                  >▲</span>
-                  <span className="text-[12px] font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
-                  {/* type badge */}
-                  <span className={`text-[9px] px-1.5 py-[2px] rounded border font-bold font-mono tracking-wider ${style.color} ${style.bg}`}>
-                    {style.label}
-                  </span>
-                  {/* emergency / flag indicator */}
-                  {f.flagged && (f.squawk === '7700' || f.squawk === '7600' || f.squawk === '7500') && (
-                    <span className="text-[9px] px-1 py-[2px] rounded bg-red-900/60 border border-red-400/50 text-red-300 font-bold font-mono animate-pulse">{f.squawk}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-[10px] font-mono">
-                  <span className="text-foreground/45 truncate max-w-[80px]">{f.aircraft || '—'}</span>
-                  <span className="text-foreground/30">{f.country}</span>
-                  <span className="ml-auto flex items-center gap-2 text-foreground/45">
-                    <span className="tabular-nums">{f.altitude > 0 ? `${Math.round(f.altitude / 100) * 100}ft` : 'GND'}</span>
-                    <span className="tabular-nums">{f.groundSpeed > 0 ? `${f.groundSpeed}kt` : '—'}</span>
-                    <button
-                      className="w-4 h-4 flex items-center justify-center rounded hover:bg-cyan-500/20 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); onLocateFlight?.(f.lat, f.lng, f.callsign, f.heading, f.altitude, f.groundSpeed, f.type); }}
-                      title="Locate on map"
-                      data-testid={`adsb-locate-row-${f.id}`}
-                    >
-                      <Target className="w-2.5 h-2.5 text-cyan-400/50 hover:text-cyan-400" />
-                    </button>
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </ScrollArea>}
-    </div>
-  );
-}
 
 const SEVERITY_STYLES: Record<string, { color: string; bg: string; dot: string }> = {
   critical: { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    dot: 'bg-red-500' },
@@ -4621,6 +4033,223 @@ const ALERT_THREAT_META: Record<string, { label: string; icon: string; dotColor:
   uav_intrusion:              { label: 'UAV',      icon: '🔺', dotColor: '#22d3ee', textColor: 'text-cyan-300',   bgColor: 'bg-cyan-500/15',   borderColor: 'border-cyan-500/30' },
 };
 
+const SIG_STYLES: Record<string, string> = {
+  critical: 'text-red-400 border-red-500/40 bg-red-950/30',
+  high: 'text-orange-400 border-orange-500/40 bg-orange-950/30',
+  medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-950/30',
+};
+
+function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const [activeWindow, setActiveWindow] = useState<SitrepWindow>('1h');
+  const [sitreps, setSitreps] = useState<Partial<Record<SitrepWindow, Sitrep>>>({});
+  const [loading, setLoading] = useState<Partial<Record<SitrepWindow, boolean>>>({});
+  const [copied, setCopied] = useState(false);
+
+  const fetchSitrep = async (window: SitrepWindow) => {
+    setLoading(p => ({ ...p, [window]: true }));
+    try {
+      const res = await fetch(`/api/sitrep?window=${window}`);
+      if (res.ok) {
+        const data: Sitrep = await res.json();
+        setSitreps(p => ({ ...p, [window]: data }));
+      }
+    } catch {}
+    setLoading(p => ({ ...p, [window]: false }));
+  };
+
+  useEffect(() => {
+    if (!sitreps[activeWindow] && !loading[activeWindow]) {
+      fetchSitrep(activeWindow);
+    }
+  }, [activeWindow]);
+
+  const sitrep = sitreps[activeWindow];
+  const isLoading = loading[activeWindow];
+
+  const handleCopy = () => {
+    if (!sitrep) return;
+    const lines = [
+      `CLASSIFICATION: UNCLASSIFIED // FOR OFFICIAL USE ONLY`,
+      `DTG: ${sitrep.dtg}`,
+      `PERIOD: ${activeWindow.toUpperCase()} SITREP`,
+      `RISK LEVEL: ${sitrep.riskLevel}`,
+      ``,
+      `1. SITUATION`,
+      sitrep.situation,
+      ``,
+      `2. ENEMY FORCES (OPFOR)`,
+      sitrep.opfor,
+      ``,
+      `3. FRIENDLY FORCES (BLUFOR)`,
+      sitrep.blufor,
+      ``,
+      `4. KEY EVENTS`,
+      ...sitrep.keyEvents.map(e => `  ${e.dtg} | ${e.location} | [${e.significance.toUpperCase()}] ${e.event}`),
+      ``,
+      `5. INTELLIGENCE`,
+      sitrep.intelligence,
+      ``,
+      `6. INFRASTRUCTURE`,
+      sitrep.infrastructure,
+      ``,
+      `7. EW / CYBER`,
+      sitrep.ewCyber,
+      ``,
+      `8. COMMANDER'S ASSESSMENT`,
+      sitrep.commandersAssessment,
+      ``,
+      `9. OUTLOOK`,
+      sitrep.outlook,
+      ``,
+      `Generated: ${new Date(sitrep.generatedAt).toUTCString()} | Model: ${sitrep.model}`,
+    ];
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="h-full flex flex-col min-h-0">
+      <div className="panel-drag-handle h-9 px-3 border-b flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing" style={{ background: 'hsl(220 30% 17% / 0.88)', borderBottom: '1px solid hsl(185 40% 40% / 0.1)' }}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-amber-400/20" />
+        <FileDown className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">
+          {language === 'en' ? 'SITREP' : 'تقرير الوضع'}
+        </span>
+        <div className="flex-1" />
+        {sitrep && (
+          <Badge className={`text-[9px] px-1.5 py-0.5 font-bold border ${RISK_COLORS[sitrep.riskLevel] || ''}`}>
+            {sitrep.riskLevel}
+          </Badge>
+        )}
+        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+      </div>
+
+      {/* Window selector + actions */}
+      <div className="flex items-center gap-1 px-3 py-2 border-b shrink-0" style={{ borderColor: 'hsl(185 40% 40% / 0.08)' }}>
+        {(['1h', '6h', '24h'] as SitrepWindow[]).map(w => (
+          <button
+            key={w}
+            onClick={() => setActiveWindow(w)}
+            className={`text-[9px] font-bold font-mono px-2 py-1 rounded border transition-colors ${activeWindow === w ? 'text-amber-300 bg-amber-950/40 border-amber-500/30' : 'text-foreground/30 bg-white/[0.02] border-white/[0.05] hover:text-foreground/50'}`}
+          >
+            {w.toUpperCase()}
+          </button>
+        ))}
+        <div className="flex-1" />
+        {sitrep && (
+          <button
+            onClick={handleCopy}
+            className="text-[9px] font-mono px-2 py-1 rounded border border-white/[0.06] text-foreground/40 hover:text-foreground/70 hover:bg-white/[0.04] transition-colors"
+            title="Copy SITREP to clipboard"
+          >
+            {copied ? 'COPIED' : 'COPY'}
+          </button>
+        )}
+        <button
+          onClick={() => fetchSitrep(activeWindow)}
+          disabled={!!isLoading}
+          className="text-[9px] font-bold font-mono px-3 py-1 rounded border transition-colors disabled:opacity-40 text-amber-300 bg-amber-950/30 border-amber-500/25 hover:bg-amber-950/50"
+        >
+          {isLoading ? 'GENERATING…' : sitrep ? 'REFRESH' : 'GENERATE SITREP'}
+        </button>
+      </div>
+
+      <ScrollArea className="flex-1 min-h-0">
+        {!sitrep && !isLoading && (
+          <div className="px-3 py-10 text-center">
+            <FileDown className="w-7 h-7 text-amber-400/20 mx-auto mb-3" />
+            <p className="text-[11px] text-foreground/25 mb-1 font-mono">No SITREP generated</p>
+            <p className="text-[10px] text-foreground/15">Select a time window and click Generate SITREP</p>
+          </div>
+        )}
+        {isLoading && (
+          <div className="px-3 py-10 text-center">
+            <Loader2 className="w-6 h-6 text-amber-400/40 mx-auto mb-2 animate-spin" />
+            <p className="text-[10px] text-foreground/25 font-mono">Synthesizing situation report…</p>
+          </div>
+        )}
+        {sitrep && !isLoading && (
+          <div className="divide-y divide-white/[0.03]">
+            {/* Header block */}
+            <div className="px-3 py-2 bg-amber-950/10">
+              <div className="font-mono text-[9px] text-foreground/30 space-y-0.5">
+                <div>CLASSIFICATION: UNCLASSIFIED // FOUO</div>
+                <div>DTG: {sitrep.dtg} &nbsp;|&nbsp; PERIOD: LAST {activeWindow.toUpperCase()} &nbsp;|&nbsp; ALERTS: {sitrep.alertCount} &nbsp;|&nbsp; EVENTS: {sitrep.eventCount}</div>
+              </div>
+            </div>
+
+            {/* 1. Situation */}
+            <SitrepSection number="1" title="SITUATION" content={sitrep.situation} />
+
+            {/* 2. OPFOR */}
+            <SitrepSection number="2" title="ENEMY FORCES (OPFOR)" content={sitrep.opfor} />
+
+            {/* 3. BLUFOR */}
+            <SitrepSection number="3" title="FRIENDLY FORCES (BLUFOR)" content={sitrep.blufor} />
+
+            {/* 4. Key Events */}
+            <div className="px-3 py-2.5">
+              <span className="text-[9px] font-bold font-mono text-amber-400/50 uppercase tracking-wider block mb-2">4. KEY EVENTS</span>
+              {sitrep.keyEvents.length === 0 ? (
+                <p className="text-[11px] text-foreground/30 font-mono">No significant events recorded.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {sitrep.keyEvents.map((ev, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <Badge className={`text-[9px] px-1 py-0 font-bold border shrink-0 mt-0.5 ${SIG_STYLES[ev.significance] || ''}`}>
+                        {ev.significance.toUpperCase()}
+                      </Badge>
+                      <div className="min-w-0">
+                        <span className="text-[9px] font-mono text-foreground/30">{ev.dtg} &bull; {ev.location}</span>
+                        <p className="text-[11px] text-foreground/75 leading-snug">{ev.event}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 5. Intelligence */}
+            <SitrepSection number="5" title="INTELLIGENCE" content={sitrep.intelligence} />
+
+            {/* 6. Infrastructure */}
+            <SitrepSection number="6" title="INFRASTRUCTURE" content={sitrep.infrastructure} />
+
+            {/* 7. EW / Cyber */}
+            <SitrepSection number="7" title="EW / CYBER" content={sitrep.ewCyber} />
+
+            {/* 8. Commander's Assessment */}
+            <div className="px-3 py-2.5 bg-amber-950/[0.06]">
+              <span className="text-[9px] font-bold font-mono text-amber-400/60 uppercase tracking-wider block mb-1.5">8. COMMANDER'S ASSESSMENT</span>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.commandersAssessment}</p>
+            </div>
+
+            {/* 9. Outlook */}
+            <SitrepSection number="9" title="OUTLOOK / NEXT PERIOD" content={sitrep.outlook} />
+
+            {/* Footer */}
+            <div className="px-3 py-2 text-[9px] font-mono text-foreground/20">
+              Generated {new Date(sitrep.generatedAt).toUTCString()} &bull; {sitrep.model}
+            </div>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
+function SitrepSection({ number, title, content }: { number: string; title: string; content: string }) {
+  return (
+    <div className="px-3 py-2.5">
+      <span className="text-[9px] font-bold font-mono text-amber-400/50 uppercase tracking-wider block mb-1">{number}. {title}</span>
+      <p className="text-[11px] text-foreground/75 leading-relaxed">{content}</p>
+    </div>
+  );
+}
+
 function AlertMapPanel({
   alerts,
   language,
@@ -4771,7 +4400,6 @@ const MAP_STYLE_OPTIONS = [
 function MapSection({
   events,
   flights,
-  adsbFlights,
   redAlerts,
   thermalHotspots,
   ewEvents = [],
@@ -4783,7 +4411,6 @@ function MapSection({
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
-  adsbFlights: AdsbFlight[];
   redAlerts: RedAlert[];
   thermalHotspots: ThermalHotspot[];
   ewEvents?: EWEvent[];
@@ -4808,7 +4435,7 @@ function MapSection({
   const statRow = [
     { label: 'EVT',  value: events.length,                        color: '#f97316',                              pulse: false },
     { label: 'ALR',  value: redAlerts.length,                     color: hasActiveThreats ? '#ef4444' : '#3a4555', pulse: hasActiveThreats },
-    { label: 'AIR',  value: flights.length + adsbFlights.length,  color: '#22d3ee',                              pulse: false },
+    { label: 'AIR',  value: flights.length,                       color: '#22d3ee',                              pulse: false },
     { label: 'FIRE', value: thermalHotspots.length,               color: '#ff6b35',                              pulse: false },
   ];
 
@@ -4960,7 +4587,6 @@ function MapSection({
               <ConflictMap
                 events={events}
                 flights={flights}
-                adsbFlights={adsbFlights}
                 redAlerts={redAlerts}
                 thermalHotspots={thermalHotspots}
                 ewEvents={ewEvents}
@@ -5653,7 +5279,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint'];
+  const bottomGroup: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -5718,7 +5344,7 @@ function PanelSidebar({
 declare const L: any;
 
 function LiveFlightTracker({ flight, allFlights, language, onClose }: {
-  flight: { callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' };
+  flight: { callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' };
   allFlights: any[];
   language: 'en' | 'ar';
   onClose: () => void;
@@ -5945,7 +5571,7 @@ export default function Dashboard() {
   }, []);
 
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, adsb: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -5994,10 +5620,10 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, adsbFlights, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
-  const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' | 'adsb' } | null>(null);
+  const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
 
   const anomalies = useAnomalyDetection(redAlerts, sirens, flights, commodities, telegramMessages);
   const [escalationDismissed, setEscalationDismissed] = useState(false);
@@ -6159,7 +5785,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'adsb', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -6168,8 +5794,8 @@ export default function Dashboard() {
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
-    events: 22, radar: 22, adsb: 28, markets: 28,
-    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28,
+    events: 22, radar: 22, markets: 28,
+    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -6219,7 +5845,7 @@ export default function Dashboard() {
   }, [savedPresets]);
 
   const handleExport = useCallback(() => {
-    const html = generateExportReport(events, flights, ships, redAlerts, sirens, commodities, adsbFlights, threatLevel, language);
+    const html = generateExportReport(events, flights, ships, redAlerts, sirens, commodities, threatLevel, language);
     const win = window.open('', '_blank');
     if (win) {
       win.document.write(html);
@@ -6233,7 +5859,7 @@ export default function Dashboard() {
       a.click();
       URL.revokeObjectURL(url);
     }
-  }, [events, flights, ships, redAlerts, sirens, commodities, adsbFlights, threatLevel, language]);
+  }, [events, flights, ships, redAlerts, sirens, commodities, threatLevel, language]);
 
   const computeWidths = useCallback((panels: PanelId[]) => {
     const raw = panels.map(id => colWidths[id]);
@@ -6281,13 +5907,11 @@ export default function Dashboard() {
         case 'intel':
           return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
         case 'map':
-          return <MapSection events={events} flights={flights} adsbFlights={adsbFlights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
+          return <MapSection events={events} flights={flights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'radar':
           return <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'radar' }); }} />;
-        case 'adsb':
-          return <AdsbPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} adsbFlights={adsbFlights} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'adsb' }); }} />;
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':
@@ -6306,6 +5930,8 @@ export default function Dashboard() {
           return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'osint':
           return <OsintTimelinePanel alerts={redAlerts} messages={telegramMessages} events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'sitrep':
+          return <SitrepPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;
@@ -6441,12 +6067,12 @@ export default function Dashboard() {
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
               radar: flights.length > 0 ? `${flights.length}` : '',
-              adsb: adsbFlights.length > 0 ? `${adsbFlights.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
               ew: ewEvents.filter(e => e.active).length > 0 ? `${ewEvents.filter(e => e.active).length} ACTIVE` : '',
               infra: infraEvents.length > 0 ? `${infraEvents.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
+              sitrep: '',
             }}
           />
         )}
@@ -6483,11 +6109,9 @@ export default function Dashboard() {
             </div>
             <div className="border-t border-white/[0.05] px-3 py-2">
               <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
-                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
+                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
                 <span>·</span>
                 <span>EVT {events.length}</span>
-                <span>·</span>
-                <span>ADS {adsbFlights.length}</span>
                 <span className="ml-auto"><LiveClock /></span>
               </div>
             </div>
@@ -6610,7 +6234,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'adsb' ? adsbFlights.length : id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : id === 'radar' ? flights.length : 0;
+                  const count = id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : id === 'radar' ? flights.length : 0;
                   return (
                     <button
                       key={id}
@@ -6834,10 +6458,9 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, adsbFlights.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
-            <span className="text-foreground/15"><span className="text-cyan-400/25 mr-0.5 font-semibold">ADS</span>{adsbFlights.length}</span>
 
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">MKT</span>{commodities.length}</span>
           </div>
@@ -6876,7 +6499,7 @@ export default function Dashboard() {
       {popupTrackFlight && (
         <LiveFlightTracker
           flight={popupTrackFlight}
-          allFlights={popupTrackFlight.source === 'adsb' ? adsbFlights : flights}
+          allFlights={flights}
           language={language}
           onClose={() => setPopupTrackFlight(null)}
         />
