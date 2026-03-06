@@ -367,6 +367,35 @@ export interface SatelliteImage {
   changeType?: 'construction' | 'destruction' | 'military_activity' | 'fire' | 'flooding' | 'none';
 }
 
+export interface RocketCorridor {
+  origin: string;
+  originCountry: string;
+  target: string;
+  targetCountry: string;
+  totalLaunches: number;
+  rockets: number;
+  missiles: number;
+  drones: number;
+  intercepted: number;
+  lastLaunch: string;
+  threatTypes: string[];
+  active: boolean;
+}
+
+export interface RocketStats {
+  corridors: RocketCorridor[];
+  totalByOrigin: Record<string, number>;
+  totalByTarget: Record<string, number>;
+  totalLaunches: number;
+  totalIntercepted: number;
+  interceptRate: number;
+  peakHour: string;
+  activeFronts: number;
+  last24h: number;
+  last1h: number;
+  generatedAt: string;
+}
+
 export type SitrepWindow = '1h' | '6h' | '24h';
 
 export interface SitrepKeyEvent {

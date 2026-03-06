@@ -30,6 +30,8 @@ import type {
   BreakingNewsItem,
   Sitrep,
   SitrepWindow,
+  RocketStats,
+  RocketCorridor,
 } from '@shared/schema';
 import {
   Radio,
@@ -92,6 +94,9 @@ import {
   Video,
   MoreHorizontal,
   Users,
+  Rocket,
+  ArrowRight,
+  Flame,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -275,6 +280,7 @@ interface SSEData {
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
   attackPrediction: AttackPrediction | null;
+  rocketStats: RocketStats | null;
   connected: boolean;
 }
 
@@ -293,6 +299,7 @@ function useSSE(): SSEData {
   const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
   const [breakingNews, setBreakingNews] = useState<BreakingNewsItem[]>([]);
   const [attackPrediction, setAttackPrediction] = useState<AttackPrediction | null>(null);
+  const [rocketStats, setRocketStats] = useState<RocketStats | null>(null);
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
@@ -353,6 +360,9 @@ function useSSE(): SSEData {
       es.addEventListener('attack-prediction', (e) => {
         try { setAttackPrediction(JSON.parse(e.data)); } catch {}
       });
+      es.addEventListener('rocket-stats', (e) => {
+        try { setRocketStats(JSON.parse(e.data)); } catch {}
+      });
 
       es.onerror = () => {
         setConnected(false);
@@ -373,7 +383,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -567,7 +577,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep' | 'attackpred';
+type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep' | 'attackpred' | 'rocketstats';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
@@ -585,6 +595,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   osint: { icon: Activity, label: 'OSINT Feed', labelAr: 'تغذية OSINT' },
   sitrep: { icon: FileDown, label: 'SITREP', labelAr: 'تقرير الوضع' },
   attackpred: { icon: Crosshair, label: 'Attack Predictor', labelAr: 'توقع الهجوم' },
+  rocketstats: { icon: Rocket, label: 'Rocket Stats', labelAr: 'إحصائيات الصواريخ' },
 };
 
 const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -1118,6 +1129,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'analytics', x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'osint',     x: 8, y: 18, w: 4, h: 4, minW: 3, minH: 2 },
   { i: 'attackpred', x: 0, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
+  { i: 'rocketstats', x: 4, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
 ];
 
 interface Correlation {
@@ -5422,6 +5434,209 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
   );
 }
 
+function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; stats: RocketStats | null }) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  const originEntries = stats ? Object.entries(stats.totalByOrigin).sort(([, a], [, b]) => b - a) : [];
+  const targetEntries = stats ? Object.entries(stats.totalByTarget).sort(([, a], [, b]) => b - a).slice(0, 8) : [];
+  const maxOrigin = originEntries.length > 0 ? Math.max(...originEntries.map(e => e[1])) : 1;
+  const maxTarget = targetEntries.length > 0 ? Math.max(...targetEntries.map(e => e[1])) : 1;
+
+  const corridorsToIsrael = stats?.corridors.filter(c => c.targetCountry === 'Israel') || [];
+  const corridorsFromIsrael = stats?.corridors.filter(c => c.originCountry === 'Israel') || [];
+  const totalToIsrael = corridorsToIsrael.reduce((s, c) => s + c.totalLaunches, 0);
+  const totalFromIsrael = corridorsFromIsrael.reduce((s, c) => s + c.totalLaunches, 0);
+
+  const getCountryIcon = (country: string) => {
+    if (country === 'Israel') return <Shield className="w-3 h-3 text-blue-400" />;
+    if (country === 'Lebanon') return <Target className="w-3 h-3 text-green-400" />;
+    if (country === 'Palestine') return <Flame className="w-3 h-3 text-orange-400" />;
+    if (country === 'Iran') return <AlertTriangle className="w-3 h-3 text-red-400" />;
+    if (country === 'Yemen') return <Crosshair className="w-3 h-3 text-yellow-400" />;
+    if (country === 'Syria') return <Radio className="w-3 h-3 text-purple-400" />;
+    if (country === 'Iraq') return <Zap className="w-3 h-3 text-amber-400" />;
+    if (country === 'United States') return <Globe className="w-3 h-3 text-cyan-400" />;
+    return <Globe className="w-3 h-3 text-gray-400" />;
+  };
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="panel-rocketstats">
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
+        <Rocket className="w-3.5 h-3.5 text-orange-400" />
+        <span className="text-[10px] font-bold tracking-wider text-foreground/90 uppercase font-mono flex-1">{t('Rocket / Missile Stats', 'إحصائيات الصواريخ')}</span>
+        <span className="text-[7px] text-yellow-500/70 font-mono px-1 py-0.5 rounded" style={{background:'hsl(45 80% 30% / 0.15)', border:'1px solid hsl(45 60% 40% / 0.2)'}} data-testid="badge-estimated">{t('EST.', 'تقدير')}</span>
+        {stats && (
+          <span className="text-[8px] text-primary/60 font-mono">{new Date(stats.generatedAt).toLocaleTimeString()}</span>
+        )}
+        <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={() => onMaximize?.()} />
+        <PanelMinimizeButton onMinimize={() => onClose?.()} />
+      </div>
+
+      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2" style={{background:'hsl(220 28% 14% / 0.97)'}}>
+        {!stats ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-5 h-5 animate-spin text-primary/50" />
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-1.5" data-testid="stats-summary">
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(185 30% 25% / 0.3)'}}>
+                <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-launches">{stats.totalLaunches.toLocaleString()}</div>
+                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Total Launches', 'إجمالي')}</div>
+              </div>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(120 30% 25% / 0.3)'}}>
+                <div className="text-[15px] font-black text-emerald-400 font-mono" data-testid="text-intercepted">{stats.totalIntercepted.toLocaleString()}</div>
+                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Intercepted', 'اعتراض')}</div>
+              </div>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(0 30% 25% / 0.3)'}}>
+                <div className="text-[15px] font-black text-orange-400 font-mono" data-testid="text-last-24h">{stats.last24h}</div>
+                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Last 24h', 'آخر 24 ساعة')}</div>
+              </div>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(45 30% 25% / 0.3)'}}>
+                <div className="text-[15px] font-black text-yellow-400 font-mono" data-testid="text-active-fronts">{stats.activeFronts}</div>
+                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Active Fronts', 'جبهات')}</div>
+              </div>
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Intercept Rate', 'نسبة الاعتراض')}</span>
+                </div>
+                <span className="text-[11px] font-black text-emerald-400 font-mono" data-testid="text-intercept-rate">{(stats.interceptRate * 100).toFixed(1)}%</span>
+              </div>
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
+                <div className="h-full rounded-full transition-all duration-700" style={{width:`${stats.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
+              </div>
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(0 30% 16% / 0.4)', border:'1px solid hsl(0 40% 30% / 0.3)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <ArrowRight className="w-3 h-3 text-red-400" />
+                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`Launched Towards Israel (${totalToIsrael})`, `أُطلقت نحو إسرائيل (${totalToIsrael})`)}</span>
+              </div>
+              <div className="space-y-1" data-testid="corridors-to-israel">
+                {corridorsToIsrael.slice(0, 6).map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[9px]" data-testid={`corridor-to-${i}`}>
+                    {getCountryIcon(c.originCountry)}
+                    <span className="text-foreground/70 font-mono w-[70px] truncate">{c.origin}</span>
+                    <ArrowRight className="w-2.5 h-2.5 text-red-400/50 shrink-0" />
+                    <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{background:'hsl(220 25% 12%)'}}>
+                      <div className="h-full rounded-full" style={{width:`${Math.max(5, (c.totalLaunches / Math.max(corridorsToIsrael[0]?.totalLaunches || 1, 1)) * 100)}%`, background: c.active ? 'hsl(0 70% 50%)' : 'hsl(0 40% 35%)'}} />
+                    </div>
+                    <span className="text-foreground/80 font-mono font-bold w-[30px] text-right">{c.totalLaunches}</span>
+                    {c.active && <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-1.5 pt-1 border-t border-red-500/10">
+                <span className="text-[8px] text-foreground/40 font-mono">
+                  {t('Rockets', 'صواريخ')}: <span className="text-orange-400">{corridorsToIsrael.reduce((s, c) => s + c.rockets, 0)}</span>
+                </span>
+                <span className="text-[8px] text-foreground/40 font-mono">
+                  {t('Missiles', 'قذائف')}: <span className="text-red-400">{corridorsToIsrael.reduce((s, c) => s + c.missiles, 0)}</span>
+                </span>
+                <span className="text-[8px] text-foreground/40 font-mono">
+                  {t('Drones', 'طائرات مسيّرة')}: <span className="text-yellow-400">{corridorsToIsrael.reduce((s, c) => s + c.drones, 0)}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(210 30% 16% / 0.4)', border:'1px solid hsl(210 40% 30% / 0.3)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <ArrowRight className="w-3 h-3 text-blue-400" />
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t(`Launched From Israel (${totalFromIsrael})`, `أُطلقت من إسرائيل (${totalFromIsrael})`)}</span>
+              </div>
+              <div className="space-y-1" data-testid="corridors-from-israel">
+                {corridorsFromIsrael.slice(0, 6).map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[9px]" data-testid={`corridor-from-${i}`}>
+                    <Shield className="w-3 h-3 text-blue-400" />
+                    <span className="text-foreground/70 font-mono w-[70px] truncate">{c.origin}</span>
+                    <ArrowRight className="w-2.5 h-2.5 text-blue-400/50 shrink-0" />
+                    {getCountryIcon(c.targetCountry === 'Palestine' ? 'Palestine' : c.targetCountry)}
+                    <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{background:'hsl(220 25% 12%)'}}>
+                      <div className="h-full rounded-full" style={{width:`${Math.max(5, (c.totalLaunches / Math.max(corridorsFromIsrael[0]?.totalLaunches || 1, 1)) * 100)}%`, background: c.active ? 'hsl(210 70% 50%)' : 'hsl(210 40% 35%)'}} />
+                    </div>
+                    <span className="text-foreground/80 font-mono font-bold w-[30px] text-right">{c.totalLaunches}</span>
+                    {c.active && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-1.5 pt-1 border-t border-blue-500/10">
+                <span className="text-[8px] text-foreground/40 font-mono">
+                  {t('Missiles', 'قذائف')}: <span className="text-blue-400">{corridorsFromIsrael.reduce((s, c) => s + c.missiles, 0)}</span>
+                </span>
+                <span className="text-[8px] text-foreground/40 font-mono">
+                  {t('Drones', 'طائرات مسيّرة')}: <span className="text-cyan-400">{corridorsFromIsrael.reduce((s, c) => s + c.drones, 0)}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <Rocket className="w-3 h-3 text-primary/70" />
+                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('By Launch Origin', 'حسب مصدر الإطلاق')}</span>
+              </div>
+              <div className="space-y-1" data-testid="origin-chart">
+                {originEntries.map(([origin, count], i) => (
+                  <div key={origin} className="flex items-center gap-1.5" data-testid={`origin-bar-${i}`}>
+                    <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{origin}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
+                      <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(185 100% 42%)' : 'hsl(185 60% 35%)'}} />
+                    </div>
+                    <span className="text-[8px] text-foreground/70 font-mono w-[28px] text-right">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <Target className="w-3 h-3 text-red-400/70" />
+                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Top Targets', 'الأهداف الرئيسية')}</span>
+              </div>
+              <div className="space-y-1" data-testid="target-chart">
+                {targetEntries.map(([target, count], i) => (
+                  <div key={target} className="flex items-center gap-1.5" data-testid={`target-bar-${i}`}>
+                    <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{target}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
+                      <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
+                    </div>
+                    <span className="text-[8px] text-foreground/70 font-mono w-[28px] text-right">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="rounded p-1.5" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+                <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Peak Hour', 'ساعة الذروة')}</div>
+                <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats.peakHour} UTC</div>
+              </div>
+              <div className="rounded p-1.5" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+                <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Last Hour', 'الساعة الأخيرة')}</div>
+                <div className="text-[12px] font-bold font-mono" data-testid="text-last-1h">
+                  <span className={stats.last1h > 5 ? 'text-red-400' : stats.last1h > 0 ? 'text-orange-400' : 'text-green-400'}>{stats.last1h}</span>
+                  <span className="text-[8px] text-foreground/40 ml-1">{t('launches', 'إطلاقات')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[7px] text-foreground/30 text-center font-mono space-y-0.5" data-testid="text-rocket-generated-at">
+              <div>{t('Origins inferred from target geography. Intercepts estimated.', 'المصادر مستنتجة من الجغرافيا. الاعتراضات تقديرية.')}</div>
+              <div>{t('Generated', 'تم الإنشاء')}: {new Date(stats.generatedAt).toLocaleTimeString()}</div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, prediction }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; prediction: AttackPrediction | null }) {
   const threatColors: Record<string, string> = {
     EXTREME: 'text-red-400',
@@ -5875,7 +6090,7 @@ export default function Dashboard() {
   
 
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false, attackpred: true };
+  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false, attackpred: true, rocketstats: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -5924,7 +6139,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -6089,7 +6304,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep', 'attackpred'];
+  const bottomRow: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep', 'attackpred', 'rocketstats'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -6099,7 +6314,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
     events: 22, radar: 22, markets: 28,
-    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22,
+    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22, rocketstats: 22,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -6238,6 +6453,8 @@ export default function Dashboard() {
           return <SitrepPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'attackpred':
           return <AttackPredictorPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} />;
+        case 'rocketstats':
+          return <RocketStatsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} stats={rocketStats} />;
       }
     })();
     return panel ?? null;
