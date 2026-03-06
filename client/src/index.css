@@ -150,7 +150,6 @@
 
   html {
     font-size: 15px;
-    scroll-behavior: smooth;
   }
 
   body {
@@ -219,8 +218,8 @@
     );
     background-size: 32px 32px;
     pointer-events: none;
-    z-index: 9998;
-    will-change: auto;
+    z-index: 1;
+    backface-visibility: hidden;
   }
 
   @media (max-width: 767px) {
@@ -255,7 +254,6 @@
 
   /* Allow wheel scroll to reach the parent scroll container through RGL panels */
   [data-testid="resizable-panels"] > .react-grid-layout > div {
-    will-change: transform;
     transition: box-shadow 0.15s ease;
   }
 
@@ -272,7 +270,7 @@
 
   /* Scrollable panels container */
   [data-testid="resizable-panels"] {
-    will-change: scroll-position;
+    contain: layout style;
   }
 
   /* Warroom header taller on desktop */
@@ -329,7 +327,6 @@
 
   .dark [data-testid="resizable-panels"] {
     background: hsl(220 25% 10% / 0.7);
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: auto;
   }
@@ -359,7 +356,6 @@
   }
 
   .dark [data-testid="resizable-panels"] .overflow-y-auto {
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
   }
@@ -608,6 +604,13 @@
 }
 
 @media (max-width: 767px) {
+  /* Disable panel entrance animations — saves GPU composite layers on mobile */
+  .warroom-panel-surface,
+  .react-grid-item > .group {
+    animation: none !important;
+    will-change: auto !important;
+  }
+
   html, body, #root {
     height: 100%;
     height: 100dvh;
@@ -624,7 +627,7 @@
 
   /* Reduce paint cost on mobile panel transitions */
   .warroom-mobile-panel-transition {
-    will-change: opacity, transform;
+    will-change: opacity;
     contain: layout style paint;
   }
 
@@ -752,12 +755,12 @@
   }
 
   .warroom-mobile-panel-transition {
-    animation: mobileSlideIn 0.16s ease-out;
+    animation: mobileFadeIn 0.12s ease-out;
   }
 
-  @keyframes mobileSlideIn {
-    from { opacity: 0.75; transform: translateX(6px); }
-    to { opacity: 1; transform: translateX(0); }
+  @keyframes mobileFadeIn {
+    from { opacity: 0.8; }
+    to { opacity: 1; }
   }
 }
 
@@ -821,7 +824,6 @@
 
   [data-testid="resizable-panels"] {
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
     scrollbar-width: none;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

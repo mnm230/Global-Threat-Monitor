@@ -178,6 +178,7 @@ interface ConflictMapProps {
   language?: 'en' | 'ar';
   mapStyle?: string;
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
+  isVisible?: boolean;
 }
 
 // ── Mobile detection (module-level, stable across renders) ───────────────────
@@ -186,7 +187,7 @@ const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
   events, flights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
-  activeView, mapStyle = DEFAULT_STYLE, focusLocation,
+  activeView, mapStyle = DEFAULT_STYLE, focusLocation, isVisible = true,
 }: ConflictMapProps) {
   const containerRef      = useRef<HTMLDivElement>(null);
   const mapRef            = useRef<MapLibreMap | null>(null);
@@ -194,6 +195,7 @@ export default function ConflictMap({
   const staticLayersRef   = useRef<unknown[]>([]);
   const alertsRef         = useRef<RedAlert[]>([]);
   const visAlertsRef      = useRef(true);
+  const isVisibleRef      = useRef(isVisible);
 
   const [vis, setVis] = useState<Record<LayerKey, boolean>>(
     () => Object.fromEntries(ALL_LAYERS.map(l => [l.key, l.on])) as Record<LayerKey, boolean>
@@ -432,14 +434,27 @@ export default function ConflictMap({
     visAlertsRef.current = vis.alerts;
   }, [vis.alerts]);
 
+  useEffect(() => {
+    isVisibleRef.current = isVisible;
+    // When becoming visible again, trigger a map resize in case the container size changed
+    if (isVisible && mapRef.current) {
+      requestAnimationFrame(() => mapRef.current?.resize());
+    }
+  }, [isVisible]);
+
   // rAF loop — only animates the pulsing ring, does NOT trigger any React re-renders
   // On mobile: throttle to ~20fps (every 3rd frame) to reduce GPU pressure
+  // When not visible (another tab active): skip overlay updates entirely
   useEffect(() => {
     let raf: number;
     let frame = 0;
     const MOBILE_SKIP = 3; // render every Nth frame on mobile (~20fps)
     const tick = () => {
       frame++;
+      if (!isVisibleRef.current) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       if (IS_MOBILE && frame % MOBILE_SKIP !== 0) {
         raf = requestAnimationFrame(tick);
         return;

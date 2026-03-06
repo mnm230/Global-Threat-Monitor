@@ -4033,10 +4033,24 @@ const ALERT_THREAT_META: Record<string, { label: string; icon: string; dotColor:
   uav_intrusion:              { label: 'UAV',      icon: '🔺', dotColor: '#22d3ee', textColor: 'text-cyan-300',   bgColor: 'bg-cyan-500/15',   borderColor: 'border-cyan-500/30' },
 };
 
-const SIG_STYLES: Record<string, string> = {
-  critical: 'text-red-400 border-red-500/40 bg-red-950/30',
-  high: 'text-orange-400 border-orange-500/40 bg-orange-950/30',
-  medium: 'text-yellow-400 border-yellow-500/40 bg-yellow-950/30',
+const SIG_STYLES: Record<string, { badge: string; bar: string; dot: string }> = {
+  critical: { badge: 'text-red-300 border-red-500/50 bg-red-950/50', bar: 'border-l-red-500/70 bg-red-950/20', dot: 'bg-red-400' },
+  high:     { badge: 'text-orange-300 border-orange-500/50 bg-orange-950/50', bar: 'border-l-orange-500/70 bg-orange-950/20', dot: 'bg-orange-400' },
+  medium:   { badge: 'text-yellow-300 border-yellow-500/50 bg-yellow-950/40', bar: 'border-l-yellow-500/60 bg-yellow-950/10', dot: 'bg-yellow-400' },
+};
+
+const RISK_BG: Record<string, string> = {
+  EXTREME:  'from-red-950/40 to-red-950/10 border-red-500/30',
+  HIGH:     'from-orange-950/40 to-orange-950/10 border-orange-500/30',
+  ELEVATED: 'from-yellow-950/40 to-yellow-950/10 border-yellow-500/30',
+  MODERATE: 'from-emerald-950/30 to-emerald-950/5 border-emerald-500/20',
+};
+
+const RISK_PULSE: Record<string, string> = {
+  EXTREME: 'bg-red-400',
+  HIGH: 'bg-orange-400',
+  ELEVATED: 'bg-yellow-400',
+  MODERATE: 'bg-emerald-400',
 };
 
 function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
@@ -4044,6 +4058,7 @@ function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language:
   const [sitreps, setSitreps] = useState<Partial<Record<SitrepWindow, Sitrep>>>({});
   const [loading, setLoading] = useState<Partial<Record<SitrepWindow, boolean>>>({});
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ '1': true, '2': true, '3': true, '4': true, '5': false, '6': false, '7': false, '8': true, '9': true });
 
   const fetchSitrep = async (window: SitrepWindow) => {
     setLoading(p => ({ ...p, [window]: true }));
@@ -4065,6 +4080,7 @@ function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language:
 
   const sitrep = sitreps[activeWindow];
   const isLoading = loading[activeWindow];
+  const toggleSection = (key: string) => setExpanded(p => ({ ...p, [key]: !p[key] }));
 
   const handleCopy = () => {
     if (!sitrep) return;
@@ -4074,33 +4090,16 @@ function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language:
       `PERIOD: ${activeWindow.toUpperCase()} SITREP`,
       `RISK LEVEL: ${sitrep.riskLevel}`,
       ``,
-      `1. SITUATION`,
-      sitrep.situation,
-      ``,
-      `2. ENEMY FORCES (OPFOR)`,
-      sitrep.opfor,
-      ``,
-      `3. FRIENDLY FORCES (BLUFOR)`,
-      sitrep.blufor,
-      ``,
+      `1. SITUATION`, sitrep.situation, ``,
+      `2. ENEMY FORCES (OPFOR)`, sitrep.opfor, ``,
+      `3. FRIENDLY FORCES (BLUFOR)`, sitrep.blufor, ``,
       `4. KEY EVENTS`,
-      ...sitrep.keyEvents.map(e => `  ${e.dtg} | ${e.location} | [${e.significance.toUpperCase()}] ${e.event}`),
-      ``,
-      `5. INTELLIGENCE`,
-      sitrep.intelligence,
-      ``,
-      `6. INFRASTRUCTURE`,
-      sitrep.infrastructure,
-      ``,
-      `7. EW / CYBER`,
-      sitrep.ewCyber,
-      ``,
-      `8. COMMANDER'S ASSESSMENT`,
-      sitrep.commandersAssessment,
-      ``,
-      `9. OUTLOOK`,
-      sitrep.outlook,
-      ``,
+      ...sitrep.keyEvents.map(e => `  ${e.dtg} | ${e.location} | [${e.significance.toUpperCase()}] ${e.event}`), ``,
+      `5. INTELLIGENCE`, sitrep.intelligence, ``,
+      `6. INFRASTRUCTURE`, sitrep.infrastructure, ``,
+      `7. EW / CYBER`, sitrep.ewCyber, ``,
+      `8. COMMANDER'S ASSESSMENT`, sitrep.commandersAssessment, ``,
+      `9. OUTLOOK`, sitrep.outlook, ``,
       `Generated: ${new Date(sitrep.generatedAt).toUTCString()} | Model: ${sitrep.model}`,
     ];
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
@@ -4110,129 +4109,231 @@ function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language:
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0">
-      <div className="panel-drag-handle h-9 px-3 border-b flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing" style={{ background: 'hsl(220 30% 17% / 0.88)', borderBottom: '1px solid hsl(185 40% 40% / 0.1)' }}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-amber-400/20" />
-        <FileDown className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">
+    <div className="h-full flex flex-col min-h-0 bg-[hsl(220_25%_10%)]">
+      {/* Header */}
+      <div className="panel-drag-handle relative px-3 h-9 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing overflow-hidden" style={{ background: 'hsl(220 30% 14% / 0.95)', borderBottom: '1px solid hsl(40 60% 40% / 0.12)' }}>
+        <div className="absolute inset-0 opacity-20" style={{ background: 'linear-gradient(90deg, hsl(40 80% 30% / 0.3), transparent 60%)' }} />
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(40 80% 50% / 0.4) 40%, hsl(40 80% 50% / 0.4) 60%, transparent)' }} />
+        <FileDown className="w-3.5 h-3.5 text-amber-400/70 shrink-0 relative z-10" />
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300/70 font-mono relative z-10">
           {language === 'en' ? 'SITREP' : 'تقرير الوضع'}
         </span>
+        {sitrep && (
+          <div className="flex items-center gap-1.5 relative z-10">
+            <span className="text-foreground/20 text-[9px]">—</span>
+            <span className="text-[9px] font-mono text-foreground/35">{sitrep.dtg}</span>
+          </div>
+        )}
         <div className="flex-1" />
         {sitrep && (
-          <Badge className={`text-[9px] px-1.5 py-0.5 font-bold border ${RISK_COLORS[sitrep.riskLevel] || ''}`}>
+          <div className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-black font-mono relative z-10 ${RISK_COLORS[sitrep.riskLevel] || ''}`}>
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${RISK_PULSE[sitrep.riskLevel] || 'bg-gray-400'}`} />
             {sitrep.riskLevel}
-          </Badge>
+          </div>
         )}
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      {/* Window selector + actions */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b shrink-0" style={{ borderColor: 'hsl(185 40% 40% / 0.08)' }}>
-        {(['1h', '6h', '24h'] as SitrepWindow[]).map(w => (
-          <button
-            key={w}
-            onClick={() => setActiveWindow(w)}
-            className={`text-[9px] font-bold font-mono px-2 py-1 rounded border transition-colors ${activeWindow === w ? 'text-amber-300 bg-amber-950/40 border-amber-500/30' : 'text-foreground/30 bg-white/[0.02] border-white/[0.05] hover:text-foreground/50'}`}
-          >
-            {w.toUpperCase()}
-          </button>
-        ))}
+      {/* Controls bar */}
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 shrink-0" style={{ background: 'hsl(220 25% 12% / 0.8)', borderBottom: '1px solid hsl(185 30% 30% / 0.08)' }}>
+        {/* Time window pills */}
+        <div className="flex items-center gap-1 p-0.5 rounded-md" style={{ background: 'hsl(220 25% 8% / 0.6)', border: '1px solid hsl(185 30% 30% / 0.1)' }}>
+          {(['1h', '6h', '24h'] as SitrepWindow[]).map(w => (
+            <button
+              key={w}
+              onClick={() => setActiveWindow(w)}
+              className={`relative text-[9px] font-bold font-mono px-2.5 py-0.5 rounded transition-all duration-150 ${activeWindow === w
+                ? 'text-amber-200 bg-amber-900/50 shadow-sm'
+                : 'text-foreground/25 hover:text-foreground/50'
+              }`}
+            >
+              {w.toUpperCase()}
+              {sitreps[w] && w !== activeWindow && (
+                <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-amber-400/50" />
+              )}
+            </button>
+          ))}
+        </div>
         <div className="flex-1" />
         {sitrep && (
           <button
             onClick={handleCopy}
-            className="text-[9px] font-mono px-2 py-1 rounded border border-white/[0.06] text-foreground/40 hover:text-foreground/70 hover:bg-white/[0.04] transition-colors"
-            title="Copy SITREP to clipboard"
+            className={`flex items-center gap-1 text-[9px] font-mono px-2 py-1 rounded transition-all ${copied ? 'text-emerald-400 bg-emerald-950/30 border border-emerald-500/30' : 'text-foreground/35 hover:text-foreground/60 border border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.03]'}`}
           >
-            {copied ? 'COPIED' : 'COPY'}
+            {copied ? '✓ COPIED' : 'COPY'}
           </button>
         )}
         <button
           onClick={() => fetchSitrep(activeWindow)}
           disabled={!!isLoading}
-          className="text-[9px] font-bold font-mono px-3 py-1 rounded border transition-colors disabled:opacity-40 text-amber-300 bg-amber-950/30 border-amber-500/25 hover:bg-amber-950/50"
+          className="flex items-center gap-1.5 text-[9px] font-black font-mono px-2.5 py-1 rounded border transition-all disabled:opacity-40 text-amber-200 border-amber-500/30 bg-amber-950/30 hover:bg-amber-950/50 hover:border-amber-500/50"
         >
-          {isLoading ? 'GENERATING…' : sitrep ? 'REFRESH' : 'GENERATE SITREP'}
+          {isLoading ? (
+            <><Loader2 className="w-2.5 h-2.5 animate-spin" /> GENERATING</>
+          ) : sitrep ? (
+            <><Activity className="w-2.5 h-2.5" /> REFRESH</>
+          ) : (
+            <><FileDown className="w-2.5 h-2.5" /> GENERATE</>
+          )}
         </button>
       </div>
 
+      {/* Stats strip — shown when data available */}
+      {sitrep && !isLoading && (
+        <div className={`flex items-center gap-0 shrink-0 bg-gradient-to-r ${RISK_BG[sitrep.riskLevel] || ''} border-b`} style={{ borderBottomColor: 'hsl(185 30% 30% / 0.08)' }}>
+          {[
+            { icon: AlertOctagon, label: 'ALERTS', value: sitrep.alertCount, color: sitrep.alertCount > 0 ? 'text-red-400' : 'text-foreground/30' },
+            { icon: Target, label: 'EVENTS', value: sitrep.eventCount, color: sitrep.eventCount > 0 ? 'text-orange-400' : 'text-foreground/30' },
+            { icon: Clock, label: 'PERIOD', value: activeWindow.toUpperCase(), color: 'text-amber-400/70' },
+            { icon: Brain, label: 'SRC', value: sitrep.model === 'claude-sonnet-4-6' ? 'AI' : sitrep.model === 'data-driven' ? 'DATA' : 'FALLBACK', color: sitrep.model === 'claude-sonnet-4-6' ? 'text-cyan-400' : 'text-foreground/40' },
+          ].map(({ icon: Icon, label, value, color }) => (
+            <div key={label} className="flex-1 flex flex-col items-center py-1.5 border-r border-white/[0.04] last:border-r-0">
+              <Icon className={`w-2.5 h-2.5 mb-0.5 ${color}`} />
+              <span className={`text-[10px] font-black font-mono ${color}`}>{value}</span>
+              <span className="text-[8px] font-mono text-foreground/20 uppercase tracking-wide">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <ScrollArea className="flex-1 min-h-0">
-        {!sitrep && !isLoading && (
-          <div className="px-3 py-10 text-center">
-            <FileDown className="w-7 h-7 text-amber-400/20 mx-auto mb-3" />
-            <p className="text-[11px] text-foreground/25 mb-1 font-mono">No SITREP generated</p>
-            <p className="text-[10px] text-foreground/15">Select a time window and click Generate SITREP</p>
-          </div>
-        )}
+        {/* Loading state */}
         {isLoading && (
-          <div className="px-3 py-10 text-center">
-            <Loader2 className="w-6 h-6 text-amber-400/40 mx-auto mb-2 animate-spin" />
-            <p className="text-[10px] text-foreground/25 font-mono">Synthesizing situation report…</p>
+          <div className="flex flex-col items-center justify-center py-14 gap-4">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full border border-amber-500/20 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-amber-400/50 animate-spin" />
+              </div>
+              <div className="absolute inset-0 rounded-full border border-amber-400/10 animate-ping" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-[11px] font-bold font-mono text-amber-300/50 tracking-widest uppercase">Synthesizing…</p>
+              <p className="text-[10px] font-mono text-foreground/20">Aggregating intelligence feeds</p>
+            </div>
           </div>
         )}
+
+        {/* Empty state */}
+        {!sitrep && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-14 gap-3">
+            <div className="w-12 h-12 rounded-xl border border-amber-500/10 bg-amber-950/10 flex items-center justify-center">
+              <FileDown className="w-5 h-5 text-amber-400/25" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-[11px] font-bold font-mono text-foreground/25 uppercase tracking-widest">Awaiting Generation</p>
+              <p className="text-[10px] font-mono text-foreground/15">Select time window · Click Generate</p>
+            </div>
+          </div>
+        )}
+
+        {/* SITREP content */}
         {sitrep && !isLoading && (
-          <div className="divide-y divide-white/[0.03]">
-            {/* Header block */}
-            <div className="px-3 py-2 bg-amber-950/10">
-              <div className="font-mono text-[9px] text-foreground/30 space-y-0.5">
-                <div>CLASSIFICATION: UNCLASSIFIED // FOUO</div>
-                <div>DTG: {sitrep.dtg} &nbsp;|&nbsp; PERIOD: LAST {activeWindow.toUpperCase()} &nbsp;|&nbsp; ALERTS: {sitrep.alertCount} &nbsp;|&nbsp; EVENTS: {sitrep.eventCount}</div>
-              </div>
+          <div className="pb-2">
+            {/* Classification banner */}
+            <div className="mx-2.5 mt-2.5 mb-2 px-3 py-1.5 rounded border border-amber-500/15 bg-amber-950/15 flex items-center justify-between">
+              <span className="text-[8px] font-black font-mono text-amber-300/40 tracking-[0.2em]">UNCLASSIFIED // FOUO</span>
+              <span className="text-[8px] font-mono text-foreground/20">{sitrep.dtg}</span>
             </div>
 
-            {/* 1. Situation */}
-            <SitrepSection number="1" title="SITUATION" content={sitrep.situation} />
+            {/* Sections */}
+            <SitrepAccordion number="1" title="SITUATION" icon={Globe} expanded={!!expanded['1']} onToggle={() => toggleSection('1')}>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.situation}</p>
+            </SitrepAccordion>
 
-            {/* 2. OPFOR */}
-            <SitrepSection number="2" title="ENEMY FORCES (OPFOR)" content={sitrep.opfor} />
+            <SitrepAccordion number="2" title="ENEMY FORCES (OPFOR)" icon={AlertTriangle} expanded={!!expanded['2']} onToggle={() => toggleSection('2')} accent="red">
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.opfor}</p>
+            </SitrepAccordion>
 
-            {/* 3. BLUFOR */}
-            <SitrepSection number="3" title="FRIENDLY FORCES (BLUFOR)" content={sitrep.blufor} />
+            <SitrepAccordion number="3" title="FRIENDLY FORCES (BLUFOR)" icon={Shield} expanded={!!expanded['3']} onToggle={() => toggleSection('3')} accent="blue">
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.blufor}</p>
+            </SitrepAccordion>
 
-            {/* 4. Key Events */}
-            <div className="px-3 py-2.5">
-              <span className="text-[9px] font-bold font-mono text-amber-400/50 uppercase tracking-wider block mb-2">4. KEY EVENTS</span>
-              {sitrep.keyEvents.length === 0 ? (
-                <p className="text-[11px] text-foreground/30 font-mono">No significant events recorded.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {sitrep.keyEvents.map((ev, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                      <Badge className={`text-[9px] px-1 py-0 font-bold border shrink-0 mt-0.5 ${SIG_STYLES[ev.significance] || ''}`}>
-                        {ev.significance.toUpperCase()}
-                      </Badge>
-                      <div className="min-w-0">
-                        <span className="text-[9px] font-mono text-foreground/30">{ev.dtg} &bull; {ev.location}</span>
-                        <p className="text-[11px] text-foreground/75 leading-snug">{ev.event}</p>
-                      </div>
+            {/* Key Events — special layout */}
+            <div className="mx-2.5 mb-1.5 rounded-lg overflow-hidden border border-white/[0.04]" style={{ background: 'hsl(220 25% 11% / 0.6)' }}>
+              <button
+                onClick={() => toggleSection('4')}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors"
+              >
+                <span className="text-[8px] font-black font-mono text-amber-400/40 w-4">4.</span>
+                <Target className="w-3 h-3 text-amber-400/50 shrink-0" />
+                <span className="text-[9px] font-black font-mono text-foreground/45 uppercase tracking-wider flex-1 text-left">Key Events</span>
+                {sitrep.keyEvents.length > 0 && (
+                  <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-amber-950/40 border border-amber-500/20 text-amber-300/50">{sitrep.keyEvents.length}</span>
+                )}
+                {expanded['4'] ? <ChevronDown className="w-3 h-3 text-foreground/25" /> : <ChevronRight className="w-3 h-3 text-foreground/25" />}
+              </button>
+              {expanded['4'] && (
+                <div className="px-3 pb-2.5">
+                  {sitrep.keyEvents.length === 0 ? (
+                    <p className="text-[10px] text-foreground/25 font-mono py-1">— No significant events recorded —</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {sitrep.keyEvents.map((ev, i) => {
+                        const s = SIG_STYLES[ev.significance] || SIG_STYLES.medium;
+                        return (
+                          <div key={i} className={`flex gap-2.5 items-start pl-2.5 py-1.5 rounded-r border-l-2 ${s.bar}`}>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                <span className={`text-[8px] font-black font-mono px-1.5 py-0.5 rounded border ${s.badge}`}>
+                                  {ev.significance.toUpperCase()}
+                                </span>
+                                <span className="text-[8px] font-mono text-foreground/30">{ev.location}</span>
+                              </div>
+                              <p className="text-[10px] text-foreground/75 leading-snug">{ev.event}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
 
-            {/* 5. Intelligence */}
-            <SitrepSection number="5" title="INTELLIGENCE" content={sitrep.intelligence} />
+            <SitrepAccordion number="5" title="INTELLIGENCE" icon={Brain} expanded={!!expanded['5']} onToggle={() => toggleSection('5')}>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.intelligence}</p>
+            </SitrepAccordion>
 
-            {/* 6. Infrastructure */}
-            <SitrepSection number="6" title="INFRASTRUCTURE" content={sitrep.infrastructure} />
+            <SitrepAccordion number="6" title="INFRASTRUCTURE" icon={Zap} expanded={!!expanded['6']} onToggle={() => toggleSection('6')}>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.infrastructure}</p>
+            </SitrepAccordion>
 
-            {/* 7. EW / Cyber */}
-            <SitrepSection number="7" title="EW / CYBER" content={sitrep.ewCyber} />
+            <SitrepAccordion number="7" title="EW / CYBER" icon={Cpu} expanded={!!expanded['7']} onToggle={() => toggleSection('7')}>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.ewCyber}</p>
+            </SitrepAccordion>
 
-            {/* 8. Commander's Assessment */}
-            <div className="px-3 py-2.5 bg-amber-950/[0.06]">
-              <span className="text-[9px] font-bold font-mono text-amber-400/60 uppercase tracking-wider block mb-1.5">8. COMMANDER'S ASSESSMENT</span>
-              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.commandersAssessment}</p>
+            {/* Commander's Assessment — highlighted */}
+            <div className="mx-2.5 mb-1.5 rounded-lg border overflow-hidden" style={{ borderColor: 'hsl(40 60% 50% / 0.2)', background: 'linear-gradient(135deg, hsl(40 30% 10% / 0.8), hsl(220 25% 10% / 0.5))' }}>
+              <button
+                onClick={() => toggleSection('8')}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors"
+              >
+                <span className="text-[8px] font-black font-mono text-amber-400/50 w-4">8.</span>
+                <Star className="w-3 h-3 text-amber-400/60 shrink-0" />
+                <span className="text-[9px] font-black font-mono text-amber-300/60 uppercase tracking-wider flex-1 text-left">Commander's Assessment</span>
+                {expanded['8'] ? <ChevronDown className="w-3 h-3 text-amber-400/30" /> : <ChevronRight className="w-3 h-3 text-amber-400/30" />}
+              </button>
+              {expanded['8'] && (
+                <div className="px-3 pb-3">
+                  <div className="h-px mb-2" style={{ background: 'linear-gradient(90deg, hsl(40 60% 50% / 0.2), transparent)' }} />
+                  <p className="text-[11px] text-amber-100/75 leading-relaxed">{sitrep.commandersAssessment}</p>
+                </div>
+              )}
             </div>
 
-            {/* 9. Outlook */}
-            <SitrepSection number="9" title="OUTLOOK / NEXT PERIOD" content={sitrep.outlook} />
+            <SitrepAccordion number="9" title="OUTLOOK / NEXT PERIOD" icon={Clock} expanded={!!expanded['9']} onToggle={() => toggleSection('9')}>
+              <p className="text-[11px] text-foreground/80 leading-relaxed">{sitrep.outlook}</p>
+            </SitrepAccordion>
 
             {/* Footer */}
-            <div className="px-3 py-2 text-[9px] font-mono text-foreground/20">
-              Generated {new Date(sitrep.generatedAt).toUTCString()} &bull; {sitrep.model}
+            <div className="mx-2.5 mt-1 mb-0.5 px-3 py-1.5 rounded border border-white/[0.03] flex items-center justify-between">
+              <span className="text-[8px] font-mono text-foreground/15">
+                {new Date(sitrep.generatedAt).toUTCString()}
+              </span>
+              <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded ${sitrep.model === 'claude-sonnet-4-6' ? 'text-cyan-400/50 bg-cyan-950/20' : 'text-foreground/20 bg-white/[0.02]'}`}>
+                {sitrep.model}
+              </span>
             </div>
           </div>
         )}
@@ -4241,11 +4342,31 @@ function SitrepPanel({ language, onClose, onMaximize, isMaximized }: { language:
   );
 }
 
-function SitrepSection({ number, title, content }: { number: string; title: string; content: string }) {
+function SitrepAccordion({
+  number, title, icon: Icon, expanded, onToggle, accent, children,
+}: {
+  number: string; title: string; icon: typeof FileDown; expanded: boolean;
+  onToggle: () => void; accent?: 'red' | 'blue'; children: React.ReactNode;
+}) {
+  const titleColor = accent === 'red' ? 'text-red-400/50' : accent === 'blue' ? 'text-sky-400/50' : 'text-foreground/45';
+  const iconColor = accent === 'red' ? 'text-red-400/40' : accent === 'blue' ? 'text-sky-400/40' : 'text-amber-400/40';
   return (
-    <div className="px-3 py-2.5">
-      <span className="text-[9px] font-bold font-mono text-amber-400/50 uppercase tracking-wider block mb-1">{number}. {title}</span>
-      <p className="text-[11px] text-foreground/75 leading-relaxed">{content}</p>
+    <div className="mx-2.5 mb-1.5 rounded-lg overflow-hidden border border-white/[0.04]" style={{ background: 'hsl(220 25% 11% / 0.6)' }}>
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors"
+      >
+        <span className="text-[8px] font-black font-mono text-amber-400/30 w-4">{number}.</span>
+        <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
+        <span className={`text-[9px] font-black font-mono uppercase tracking-wider flex-1 text-left ${titleColor}`}>{title}</span>
+        {expanded ? <ChevronDown className="w-3 h-3 text-foreground/20" /> : <ChevronRight className="w-3 h-3 text-foreground/20" />}
+      </button>
+      {expanded && (
+        <div className="px-3 pb-2.5 pt-0.5">
+          <div className="h-px mb-2 opacity-30" style={{ background: 'linear-gradient(90deg, hsl(185 40% 40% / 0.3), transparent)' }} />
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -4408,6 +4529,7 @@ function MapSection({
   onMaximize,
   isMaximized,
   focusLocation,
+  isVisible,
 }: {
   events: ConflictEvent[];
   flights: FlightData[];
@@ -4419,6 +4541,7 @@ function MapSection({
   onMaximize?: () => void;
   isMaximized?: boolean;
   focusLocation?: { lat: number; lng: number; zoom?: number } | null;
+  isVisible?: boolean;
 }) {
   const [activeView, setActiveView] = useState<'conflict' | 'flights' | 'maritime'>('conflict');
   const [mapStyleId, setMapStyleId] = useState<typeof MAP_STYLE_OPTIONS[number]['id']>('dark');
@@ -4594,6 +4717,7 @@ function MapSection({
                 language={language}
                 mapStyle={mapStyleUrl}
                 focusLocation={focusLocation}
+                isVisible={isVisible}
               />
             </Suspense>
           </MapErrorBoundary>
@@ -5549,23 +5673,62 @@ export default function Dashboard() {
   useEffect(() => {
     const el = panelsScrollRef.current;
     if (!el) return;
+
+    // Convert wheel deltaMode to pixels
+    const toPixels = (delta: number, mode: number) => {
+      if (mode === WheelEvent.DOM_DELTA_LINE) return delta * 20;
+      if (mode === WheelEvent.DOM_DELTA_PAGE) return delta * el.clientHeight * 0.85;
+      return delta;
+    };
+
+    const overflowRe = /auto|scroll/;
+
+    const canScrollY = (node: HTMLElement, down: boolean) => {
+      if (node.scrollHeight <= node.clientHeight) return false;
+      const oy = node.style.overflowY || '';
+      if (!overflowRe.test(oy) && !node.classList.contains('overflow-y-auto') && !node.classList.contains('overflow-auto') && !node.hasAttribute('data-radix-scroll-area-viewport')) {
+        const computed = window.getComputedStyle(node).overflowY;
+        if (!overflowRe.test(computed)) return false;
+      }
+      return down
+        ? node.scrollTop + node.clientHeight < node.scrollHeight - 1
+        : node.scrollTop > 1;
+    };
+
+    const canScrollX = (node: HTMLElement, right: boolean) => {
+      if (node.scrollWidth <= node.clientWidth) return false;
+      const ox = node.style.overflowX || '';
+      if (!overflowRe.test(ox) && !node.classList.contains('overflow-x-auto') && !node.classList.contains('overflow-auto')) {
+        const computed = window.getComputedStyle(node).overflowX;
+        if (!overflowRe.test(computed)) return false;
+      }
+      return right
+        ? node.scrollLeft + node.clientWidth < node.scrollWidth - 1
+        : node.scrollLeft > 1;
+    };
+
     const handleWheel = (e: WheelEvent) => {
-      // If a nested scrollable element can still scroll in that direction, let it
+      const dy = toPixels(e.deltaY, e.deltaMode);
+      const dx = toPixels(e.deltaX, e.deltaMode);
+      const goingDown = dy > 0;
+      const goingRight = dx > 0;
+      const hasY = Math.abs(dy) >= Math.abs(dx);
+
       let node = e.target as HTMLElement | null;
       while (node && node !== el) {
-        const oy = window.getComputedStyle(node).overflowY;
-        if (oy === 'auto' || oy === 'scroll') {
-          const goingDown = e.deltaY > 0;
-          const canScroll = goingDown
-            ? node.scrollTop + node.clientHeight < node.scrollHeight - 2
-            : node.scrollTop > 0;
-          if (canScroll) return;
-        }
+        if (hasY && canScrollY(node, goingDown)) return;
+        if (!hasY && canScrollX(node, goingRight)) return;
         node = node.parentElement;
       }
+
       e.preventDefault();
-      el.scrollTop += e.deltaY;
+      if (hasY) {
+        el.scrollTop += dy;
+      } else {
+        el.scrollLeft += dx;
+      }
     };
+
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
   }, []);
@@ -6151,14 +6314,32 @@ export default function Dashboard() {
       >
         {isMobile ? (
           <div className="flex flex-col h-full min-h-0">
+            {/* Outer touch container — stable ref for swipe detection */}
             <div
               ref={panelWrapperRef}
-              key={mobileActivePanel}
-              className="flex-1 min-h-0 overflow-hidden warroom-mobile-panel-transition"
+              className="relative flex-1 min-h-0 overflow-hidden"
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
-              {renderPanel(mobileActivePanel)}
+              {/* Map: always mounted to avoid expensive MapLibre reinit on every tab switch */}
+              <div className={`absolute inset-0 flex flex-col ${mobileActivePanel === 'map' ? 'z-10' : 'z-0 pointer-events-none'}`}>
+                <MapSection
+                  events={events}
+                  flights={flights}
+                  redAlerts={redAlerts}
+                  thermalHotspots={thermalHotspots}
+                  ewEvents={ewEvents}
+                  language={language}
+                  focusLocation={mapFocusLocation}
+                  isVisible={mobileActivePanel === 'map'}
+                />
+              </div>
+              {/* Other panels: only render the active one to save memory */}
+              {mobileActivePanel !== 'map' && (
+                <div className="absolute inset-0 z-10 flex flex-col warroom-mobile-panel-transition">
+                  {renderPanel(mobileActivePanel)}
+                </div>
+              )}
             </div>
             <div className="warroom-mobile-swipe-dots shrink-0" data-testid="mobile-swipe-dots">
               {SWIPE_TABS.map(id => (
