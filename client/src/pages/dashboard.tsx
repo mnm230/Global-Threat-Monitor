@@ -6100,7 +6100,7 @@ function PanelSidebar({
   language: 'en' | 'ar';
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
-  const topGroup: PanelId[] = ['map', 'alerts', 'telegram', 'livefeed'];
+  const topGroup: PanelId[] = ['map', 'alerts', 'telegram', 'livefeed', 'aiprediction'];
   const bottomGroup: PanelId[] = ['events', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep'];
 
 
@@ -6110,26 +6110,27 @@ function PanelSidebar({
     const Icon = cfg.icon;
     const active = visiblePanels[id];
     const stat = panelStats[id];
+    const isAI = id === 'aiprediction';
     return (
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
         className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-md relative group
           ${active
-            ? 'bg-primary/[0.1] text-foreground/90'
+            ? (isAI ? 'bg-violet-500/[0.1] text-foreground/90' : 'bg-primary/[0.1] text-foreground/90')
             : 'text-foreground/45 hover:text-foreground/70 hover:bg-white/[0.03] active:bg-white/[0.05]'
           }`}
         style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        {active && <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-primary/70" style={{boxShadow:'0 0 6px hsl(185 100% 42% / 0.4)'}} />}
-        <Icon className={`w-3.5 h-3.5 shrink-0 ml-1 ${active ? 'text-primary/75' : 'text-foreground/35 group-hover:text-foreground/55'}`} style={{ transition: 'color 0.14s ease' }} />
+        {active && <div className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r ${isAI ? 'bg-violet-400/70' : 'bg-primary/70'}`} style={{boxShadow: isAI ? '0 0 6px hsl(260 80% 65% / 0.4)' : '0 0 6px hsl(185 100% 42% / 0.4)'}} />}
+        <Icon className={`w-3.5 h-3.5 shrink-0 ml-1 ${active ? (isAI ? 'text-violet-400/75' : 'text-primary/75') : 'text-foreground/35 group-hover:text-foreground/55'}`} style={{ transition: 'color 0.14s ease' }} />
         <span className={`text-[11px] font-mono font-semibold uppercase tracking-wide flex-1 text-left leading-none truncate ${active ? 'text-foreground/85' : 'text-foreground/45 group-hover:text-foreground/65'}`} style={{ transition: 'color 0.14s ease' }}>
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[9px] font-mono tabular-nums shrink-0 px-1.5 py-0.5 rounded-full ${active ? 'text-primary/65 bg-primary/[0.12]' : 'text-foreground/25 bg-white/[0.03]'}`} style={{ transition: 'all 0.14s ease' }}>
+          <span className={`text-[9px] font-mono tabular-nums shrink-0 px-1.5 py-0.5 rounded-full ${active ? (isAI ? 'text-violet-400/65 bg-violet-500/[0.12]' : 'text-primary/65 bg-primary/[0.12]') : 'text-foreground/25 bg-white/[0.03]'}`} style={{ transition: 'all 0.14s ease' }}>
             {stat}
           </span>
         )}
@@ -7022,23 +7023,24 @@ export default function Dashboard() {
               ))}
             </div>
             <div className="shrink-0 border-t border-white/[0.05] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }} data-testid="mobile-tab-bar">
-              {(['map', 'alerts', 'telegram', 'events', 'markets'] as PanelId[]).map(id => {
+              {(['map', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
                 const isActive = mobileActivePanel === id;
                 const hasAlert = id === 'alerts' && redAlerts.length > 0;
                 const hasTelegram = id === 'telegram' && telegramMessages.length > 0;
+                const isAI = id === 'aiprediction';
                 return (
                   <button
                     key={id}
                     onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                    className={`flex-1 min-w-[52px] min-h-[56px] py-2 flex flex-col items-center gap-1.5 transition-all relative ${isActive ? 'text-primary' : 'text-foreground/30 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
+                    className={`flex-1 min-w-[52px] min-h-[56px] py-2 flex flex-col items-center gap-1.5 transition-all relative ${isActive ? (isAI ? 'text-violet-400' : 'text-primary') : 'text-foreground/30 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
                     style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                     data-testid={`mobile-tab-${id}`}
                   >
-                    {isActive && <div className="absolute top-0 left-2 right-2 h-[2px] bg-primary rounded-b" style={{ boxShadow: '0 2px 8px hsl(185 100% 42% / 0.3)' }} />}
+                    {isActive && <div className={`absolute top-0 left-2 right-2 h-[2px] rounded-b ${isAI ? 'bg-violet-400' : 'bg-primary'}`} style={{ boxShadow: isAI ? '0 2px 8px hsl(260 80% 65% / 0.4)' : '0 2px 8px hsl(185 100% 42% / 0.3)' }} />}
                     <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? 'text-primary/90' : 'text-foreground/30'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? (isAI ? 'text-violet-300/90' : 'text-primary/90') : 'text-foreground/30'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
                     {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.6)' }} />}
                     {hasTelegram && !isActive && <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />}
                   </button>
@@ -7078,7 +7080,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-4 gap-2.5 p-3">
-                {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'markets'] as PanelId[]).includes(id)).map(id => {
+                {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
                   const count = id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : 0;
