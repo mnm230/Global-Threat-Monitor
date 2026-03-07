@@ -2711,52 +2711,41 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   const isImmediate = alert.countdown === 0;
   const tier = getAlertUrgencyTier(remaining, alert.countdown);
 
-  const tierStyles: Record<string, React.CSSProperties> = {
-    critical: {
-      background: 'linear-gradient(135deg, rgba(220,20,20,0.45) 0%, rgba(180,10,10,0.35) 100%)',
-      border: '1.5px solid rgba(239,68,68,0.85)',
-      color: '#fff',
-      boxShadow: '0 0 18px rgba(239,68,68,0.5), inset 0 1px 0 rgba(255,120,120,0.15)',
-    },
-    urgent: {
-      background: 'linear-gradient(135deg, rgba(200,40,20,0.32) 0%, rgba(160,20,10,0.24) 100%)',
-      border: '1.5px solid rgba(239,68,68,0.55)',
-      color: '#fca5a5',
-      boxShadow: '0 0 10px rgba(239,68,68,0.25)',
-    },
-    warning: {
-      background: 'linear-gradient(135deg, rgba(140,70,0,0.28) 0%, rgba(100,50,0,0.20) 100%)',
-      border: '1.5px solid rgba(245,158,11,0.45)',
-      color: '#fcd34d',
-      boxShadow: '0 0 8px rgba(245,158,11,0.2)',
-    },
-    standard: {
-      background: 'rgba(100,10,10,0.18)',
-      border: '1px solid rgba(239,68,68,0.22)',
-      color: 'rgba(255,255,255,0.75)',
-    },
-    expired: {
-      background: 'transparent',
-      border: '1px solid rgba(239,68,68,0.08)',
-      color: 'rgba(239,68,68,0.22)',
-    },
+  const tierBg: Record<string, string> = {
+    critical: '#dc2626',
+    urgent:   '#ea580c',
+    warning:  '#d97706',
+    standard: '#991b1b',
+    expired:  'transparent',
+  };
+  const tierText: Record<string, string> = {
+    critical: '#fff',
+    urgent:   '#fff',
+    warning:  '#fff',
+    standard: 'rgba(255,255,255,0.8)',
+    expired:  'rgba(239,68,68,0.25)',
   };
 
   const isCritical = tier === 'critical';
-  const isUrgent = tier === 'urgent';
-  const numSize = isCritical ? 24 : isUrgent ? 21 : 19;
+  const numSize = isCritical ? 22 : 19;
 
   return (
     <div
-      className={isCritical ? 'alert-critical-glow alert-countdown-flash' : ''}
-      style={{ ...tierStyles[tier], minWidth: 56, borderRadius: 9, padding: '7px 10px', textAlign: 'center', flexShrink: 0, transition: 'all 0.3s ease' }}
+      className={isCritical ? 'eas-countdown-pulse' : ''}
+      style={{
+        minWidth: 52, borderRadius: 4, padding: '5px 8px', textAlign: 'center', flexShrink: 0,
+        background: tierBg[tier],
+        color: tierText[tier],
+        border: tier === 'expired' ? '2px solid rgba(239,68,68,0.12)' : '2px solid rgba(0,0,0,0.3)',
+        boxShadow: isCritical ? '0 2px 8px rgba(220,38,38,0.5)' : 'none',
+      }}
       data-testid={`red-alert-countdown-${alert.id}`}
     >
-      <div style={{ fontSize: numSize, fontWeight: 900, lineHeight: 1, fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif", letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
-        {isImmediate ? '⚡' : remaining > 0 ? `${remaining}` : '—'}
+      <div style={{ fontSize: numSize, fontWeight: 900, lineHeight: 1, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+        {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
       </div>
-      <div style={{ fontSize: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800, opacity: isCritical ? 0.85 : 0.5 }}>
-        {isImmediate ? 'NOW' : remaining > 0 ? 'SEC' : 'EXP'}
+      <div style={{ fontSize: 8, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 800, opacity: 0.75 }}>
+        {isImmediate ? 'IMM' : remaining > 0 ? 'SEC' : 'EXP'}
       </div>
     </div>
   );
@@ -2895,41 +2884,25 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
 const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [threatFilter, setThreatFilter] = useState<string>('all');
-
   const [countryFilter, setCountryFilter] = useState<string>('ALL');
 
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    alerts.forEach(a => {
-      const c = a.country || 'Unknown';
-      counts[c] = (counts[c] || 0) + 1;
-    });
+    alerts.forEach(a => { const c = a.country || 'Unknown'; counts[c] = (counts[c] || 0) + 1; });
     return counts;
   }, [alerts]);
 
   const countryOrder = ['Israel', 'Lebanon', 'Iran', 'Syria', 'Iraq', 'Saudi Arabia', 'Yemen', 'UAE', 'Jordan', 'Kuwait', 'Bahrain', 'Qatar'];
 
-  const activeCountries = useMemo(() => {
-    return countryOrder.filter(c => countryCounts[c]);
-  }, [countryCounts]);
+  const activeCountries = useMemo(() => countryOrder.filter(c => countryCounts[c]), [countryCounts]);
 
   const filteredAlerts = useMemo(() => {
     let filtered = alerts;
-    if (threatFilter !== 'all') {
-      filtered = filtered.filter(a => a.threatType === threatFilter);
-    }
-    if (countryFilter !== 'ALL') {
-      filtered = filtered.filter(a => a.country === countryFilter);
-    }
+    if (threatFilter !== 'all') filtered = filtered.filter(a => a.threatType === threatFilter);
+    if (countryFilter !== 'ALL') filtered = filtered.filter(a => a.country === countryFilter);
     if (!searchQuery.trim()) return filtered;
     const q = searchQuery.toLowerCase();
-    return filtered.filter(a =>
-      a.city.toLowerCase().includes(q) ||
-      a.cityHe.includes(q) ||
-      a.cityAr.includes(q) ||
-      a.region.toLowerCase().includes(q) ||
-      a.country.toLowerCase().includes(q)
-    );
+    return filtered.filter(a => a.city.toLowerCase().includes(q) || a.cityHe.includes(q) || a.cityAr.includes(q) || a.region.toLowerCase().includes(q) || a.country.toLowerCase().includes(q));
   }, [alerts, searchQuery, countryFilter, threatFilter]);
 
   const sortedAlerts = useMemo(() => {
@@ -2971,114 +2944,120 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   });
 
   const liveCount = alerts.filter(a => a.source === 'live').length;
-  const simCount = alerts.filter(a => a.source === 'sim').length;
-
   const hasActiveAlerts = alerts.length > 0;
 
-  const FLAG_MAP: Record<string, string> = { Israel: '🇮🇱', Lebanon: '🇱🇧', Iran: '🇮🇷', Syria: '🇸🇾', Iraq: '🇮🇶', 'Saudi Arabia': '🇸🇦', Yemen: '🇾🇪', UAE: '🇦🇪', Jordan: '🇯🇴', Kuwait: '🇰🇼', Bahrain: '🇧🇭', Qatar: '🇶🇦' };
+  const FLAG_MAP: Record<string, string> = { Israel: '\u{1F1EE}\u{1F1F1}', Lebanon: '\u{1F1F1}\u{1F1E7}', Iran: '\u{1F1EE}\u{1F1F7}', Syria: '\u{1F1F8}\u{1F1FE}', Iraq: '\u{1F1EE}\u{1F1F6}', 'Saudi Arabia': '\u{1F1F8}\u{1F1E6}', Yemen: '\u{1F1FE}\u{1F1EA}', UAE: '\u{1F1E6}\u{1F1EA}', Jordan: '\u{1F1EF}\u{1F1F4}', Kuwait: '\u{1F1F0}\u{1F1FC}', Bahrain: '\u{1F1E7}\u{1F1ED}', Qatar: '\u{1F1F6}\u{1F1E6}' };
   const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
 
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel" style={{ fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif" }}>
+  const TIER_BAND: Record<string, { bg: string; text: string; label: string }> = {
+    critical: { bg: '#dc2626', text: '#fff', label: 'CRITICAL' },
+    urgent:   { bg: '#ea580c', text: '#fff', label: 'URGENT' },
+    warning:  { bg: '#d97706', text: '#fff', label: 'WARNING' },
+    standard: { bg: '#991b1b', text: '#fecaca', label: 'ACTIVE' },
+    expired:  { bg: 'transparent', text: 'rgba(255,255,255,0.25)', label: 'EXPIRED' },
+  };
 
-      {/* ── HEADER ── */}
-      <div
-        className={hasActiveAlerts ? 'alert-critical-glow' : ''}
-        style={{
-          padding: '10px 14px 10px 12px',
-          borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.35)' : 'rgba(239,68,68,0.12)'}`,
-          background: hasActiveAlerts
-            ? 'linear-gradient(90deg, rgba(140,0,0,0.6) 0%, rgba(60,0,0,0.45) 60%, rgba(10,0,0,0.35) 100%)'
-            : 'rgba(20,5,5,0.5)',
-          borderLeft: hasActiveAlerts ? '4px solid #ef4444' : '4px solid rgba(239,68,68,0.15)',
-          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
-          transition: 'background 0.4s ease, border-color 0.3s ease',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertOctagon
-              className={hasActiveAlerts ? 'animate-pulse' : ''}
-              style={{ width: 17, height: 17, color: hasActiveAlerts ? '#f87171' : 'rgba(239,68,68,0.3)', flexShrink: 0, filter: hasActiveAlerts ? 'drop-shadow(0 0 5px rgba(239,68,68,0.6))' : 'none' }}
-            />
-            <span style={{ fontSize: 14, fontWeight: 900, letterSpacing: '0.18em', color: hasActiveAlerts ? '#fecaca' : 'rgba(239,68,68,0.4)', textTransform: 'uppercase' }}>
-              {language === 'ar' ? 'الإنذار الأحمر' : 'RED ALERT'}
-            </span>
-            {hasActiveAlerts && (
-              <span style={{
-                fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
-                padding: '1px 8px', borderRadius: 6,
-                background: 'rgba(239,68,68,0.35)',
-                border: '1.5px solid rgba(239,68,68,0.7)',
-                boxShadow: '0 0 10px rgba(239,68,68,0.4)',
-              }}>{alerts.length}</span>
-            )}
-            {liveCount > 0 && (
-              <span style={{ fontSize: 9, padding: '2px 7px', fontWeight: 800, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderRadius: 4, border: '1px solid rgba(16,185,129,0.35)', letterSpacing: '0.12em' }}>● LIVE</span>
-            )}
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel" style={{ background: '#0c0000' }}>
+
+      {/* ── EBS HEADER — Warning stripes + bold title ── */}
+      <div className="shrink-0">
+        {hasActiveAlerts && (
+          <div className="eas-stripes" style={{ height: 6, background: '#dc2626' }} />
+        )}
+        <div
+          className={hasActiveAlerts ? 'eas-pulse-border' : ''}
+          style={{
+            padding: '10px 12px',
+            background: hasActiveAlerts ? '#7f1d1d' : 'rgba(127,29,29,0.3)',
+            borderBottom: '2px solid',
+            borderColor: hasActiveAlerts ? '#dc2626' : 'rgba(220,38,38,0.15)',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertOctagon
+                className={hasActiveAlerts ? 'eas-flash' : ''}
+                style={{ width: 20, height: 20, color: hasActiveAlerts ? '#fca5a5' : 'rgba(239,68,68,0.3)', flexShrink: 0 }}
+              />
+              <span style={{ fontSize: 16, fontWeight: 900, letterSpacing: '0.14em', color: hasActiveAlerts ? '#fff' : 'rgba(239,68,68,0.35)', textTransform: 'uppercase', fontFamily: 'var(--font-display)' }}>
+                {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'EMERGENCY ALERT'}
+              </span>
+              {hasActiveAlerts && (
+                <span style={{
+                  fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                  padding: '2px 10px', borderRadius: 3, fontFamily: 'var(--font-mono)',
+                  background: '#dc2626', border: '2px solid rgba(0,0,0,0.3)',
+                  boxShadow: '0 2px 8px rgba(220,38,38,0.5)',
+                }} data-testid="text-alert-count">{alerts.length}</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 9, color: hasActiveAlerts ? 'rgba(254,202,202,0.6)' : 'rgba(239,68,68,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                OREF HOME FRONT COMMAND
+              </span>
+              {liveCount > 0 && (
+                <span style={{ fontSize: 9, padding: '1px 6px', fontWeight: 800, background: '#15803d', color: '#fff', borderRadius: 2, letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>LIVE {liveCount}</span>
+              )}
+            </div>
           </div>
-          <span style={{ fontSize: 9, color: 'rgba(239,68,68,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Oref · Home Front Command</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {onShowHistory && (
+              <button onClick={onShowHistory} style={{ width: 30, height: 30, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }} title="Alert History" data-testid="button-alert-history">
+                <History style={{ width: 14, height: 14 }} />
+              </button>
+            )}
+            {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+            {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {onShowHistory && (
-            <button onClick={onShowHistory} style={{ width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: 'rgba(239,68,68,0.5)', cursor: 'pointer' }} title="Alert History" data-testid="button-alert-history">
-              <History style={{ width: 13, height: 13 }} />
-            </button>
-          )}
-          {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-        </div>
+        {hasActiveAlerts && (
+          <div className="eas-stripes" style={{ height: 4, background: '#dc2626' }} />
+        )}
       </div>
 
-      {/* ── FILTERS (only when alerts exist) ── */}
+      {/* ── FILTERS ── */}
       {hasActiveAlerts && (
-        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(239,68,68,0.12)', background: 'rgba(30,5,5,0.5)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* Search */}
+        <div style={{ flexShrink: 0, borderBottom: '2px solid rgba(220,38,38,0.2)', background: '#1a0505', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ position: 'relative' }}>
             <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search city, region…'}
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                padding: '6px 10px 6px 32px',
-                fontSize: 12, fontFamily: 'inherit',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(239,68,68,0.18)',
-                borderRadius: 6, color: '#fca5a5', outline: 'none',
-              }}
+              type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city, region...'}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 32px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(220,38,38,0.25)', borderRadius: 3, color: '#fca5a5', outline: 'none', fontWeight: 600 }}
               data-testid="input-red-alert-search"
             />
-            <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.3 }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <Search style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'rgba(220,38,38,0.4)' }} />
           </div>
-          {/* Threat type pills */}
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             {([['all','ALL'],['rockets','ROCKETS'],['missiles','MISSILES'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','AIRCRAFT']] as [string,string][]).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setThreatFilter(key)}
-                style={{
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5, letterSpacing: '0.08em',
-                  cursor: 'pointer', transition: 'all 0.15s', border: '1px solid',
-                  background: threatFilter === key ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.06)',
-                  borderColor: threatFilter === key ? 'rgba(239,68,68,0.6)' : 'rgba(239,68,68,0.12)',
-                  color: threatFilter === key ? '#fecaca' : 'rgba(239,68,68,0.45)',
+              <button key={key} onClick={() => setThreatFilter(key)}
+                style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, letterSpacing: '0.1em', cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
+                  background: threatFilter === key ? '#dc2626' : 'transparent',
+                  borderColor: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.2)',
+                  color: threatFilter === key ? '#fff' : 'rgba(220,38,38,0.5)',
                 }}
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
             ))}
           </div>
-          {/* Country pills (only when multiple countries) */}
           {activeCountries.length > 1 && (
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setCountryFilter('ALL')}
-                style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5, cursor: 'pointer', border: '1px solid', background: countryFilter === 'ALL' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.04)', borderColor: countryFilter === 'ALL' ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.08)', color: countryFilter === 'ALL' ? '#fecaca' : 'rgba(255,255,255,0.3)' }}
+            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              <button onClick={() => setCountryFilter('ALL')}
+                style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
+                  background: countryFilter === 'ALL' ? '#991b1b' : 'transparent',
+                  borderColor: countryFilter === 'ALL' ? '#991b1b' : 'rgba(255,255,255,0.1)',
+                  color: countryFilter === 'ALL' ? '#fff' : 'rgba(255,255,255,0.35)',
+                }}
                 data-testid="button-country-filter-all"
               >ALL ({alerts.length})</button>
               {activeCountries.map(c => (
                 <button key={c} onClick={() => setCountryFilter(c)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5, cursor: 'pointer', border: '1px solid', background: countryFilter === c ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.03)', borderColor: countryFilter === c ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.07)', color: countryFilter === c ? '#fecaca' : 'rgba(255,255,255,0.35)' }}
+                  style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
+                    background: countryFilter === c ? '#991b1b' : 'transparent',
+                    borderColor: countryFilter === c ? '#991b1b' : 'rgba(255,255,255,0.08)',
+                    color: countryFilter === c ? '#fff' : 'rgba(255,255,255,0.35)',
+                  }}
                   data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
                 >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
               ))}
@@ -3089,16 +3068,16 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── EMPTY STATE ── */}
       {!hasActiveAlerts && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
-          <div style={{ position: 'relative', marginBottom: 16 }}>
-            <Shield style={{ width: 40, height: 40, color: 'rgba(16,185,129,0.45)', filter: 'drop-shadow(0 0 8px rgba(16,185,129,0.3))' }} />
-          </div>
-          <p style={{ fontSize: 15, fontWeight: 800, color: 'rgba(52,211,153,0.8)', marginBottom: 5, letterSpacing: '0.05em' }}>
-            {language === 'ar' ? 'لا تنبيهات نشطة' : 'No Active Alerts'}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center', background: '#0c0000' }}>
+          <Shield style={{ width: 44, height: 44, color: '#15803d', marginBottom: 14 }} />
+          <p style={{ fontSize: 16, fontWeight: 900, color: '#22c55e', marginBottom: 4, letterSpacing: '0.1em', fontFamily: 'var(--font-display)' }}>
+            {language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'ALL CLEAR'}
           </p>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>All monitored areas clear</p>
-          <div style={{ marginTop: 16, padding: '4px 14px', borderRadius: 20, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)', fontSize: 10, color: 'rgba(52,211,153,0.5)', letterSpacing: '0.1em' }}>
-            ● MONITORING
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+            No active threats detected
+          </p>
+          <div style={{ marginTop: 14, padding: '5px 16px', borderRadius: 2, background: '#14532d', border: '2px solid #15803d', fontSize: 10, color: '#4ade80', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
+            MONITORING ACTIVE
           </div>
         </div>
       )}
@@ -3112,112 +3091,90 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             const showCountryHeader = country !== prevCountry;
             const countryAlertCount = sortedRegions.filter(([, g]) => g.country === country).reduce((sum, [, g]) => sum + g.alerts.length, 0);
 
-            const COUNTRY_BG: Record<string, string> = { Israel: 'rgba(59,130,246,0.15)', Lebanon: 'rgba(16,185,129,0.12)', Iran: 'rgba(168,85,247,0.13)', Syria: 'rgba(234,179,8,0.12)', Iraq: 'rgba(249,115,22,0.12)', 'Saudi Arabia': 'rgba(34,197,94,0.12)', Yemen: 'rgba(244,63,94,0.12)', UAE: 'rgba(14,165,233,0.12)', Jordan: 'rgba(245,158,11,0.12)', Kuwait: 'rgba(20,184,166,0.12)', Bahrain: 'rgba(236,72,153,0.12)', Qatar: 'rgba(99,102,241,0.12)' };
-            const COUNTRY_BORDER: Record<string, string> = { Israel: 'rgba(59,130,246,0.35)', Lebanon: 'rgba(16,185,129,0.3)', Iran: 'rgba(168,85,247,0.3)', Syria: 'rgba(234,179,8,0.3)', Iraq: 'rgba(249,115,22,0.3)', 'Saudi Arabia': 'rgba(34,197,94,0.3)', Yemen: 'rgba(244,63,94,0.3)', UAE: 'rgba(14,165,233,0.3)', Jordan: 'rgba(245,158,11,0.3)', Kuwait: 'rgba(20,184,166,0.3)', Bahrain: 'rgba(236,72,153,0.3)', Qatar: 'rgba(99,102,241,0.3)' };
-            const COUNTRY_TEXT: Record<string, string> = { Israel: '#93c5fd', Lebanon: '#6ee7b7', Iran: '#d8b4fe', Syria: '#fde68a', Iraq: '#fdba74', 'Saudi Arabia': '#86efac', Yemen: '#fda4af', UAE: '#7dd3fc', Jordan: '#fcd34d', Kuwait: '#5eead4', Bahrain: '#f9a8d4', Qatar: '#a5b4fc' };
+            const COUNTRY_ACCENT: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
 
             return (
               <div key={compositeKey}>
-                {/* Country header */}
                 {showCountryHeader && (
                   <div style={{
-                    padding: '8px 14px', position: 'sticky', top: 0, zIndex: 110,
-                    background: COUNTRY_BG[country] || 'rgba(239,68,68,0.1)',
-                    borderBottom: `1px solid ${COUNTRY_BORDER[country] || 'rgba(239,68,68,0.2)'}`,
-                    borderTop: idx > 0 ? `1px solid ${COUNTRY_BORDER[country] || 'rgba(239,68,68,0.15)'}` : 'none',
+                    padding: '7px 12px', position: 'sticky', top: 0, zIndex: 110,
+                    background: '#1c1917',
+                    borderBottom: `2px solid ${COUNTRY_ACCENT[country] || '#dc2626'}`,
+                    borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                     display: 'flex', alignItems: 'center', gap: 8,
+                    borderLeft: `4px solid ${COUNTRY_ACCENT[country] || '#dc2626'}`,
                   }}>
-                    <span style={{ fontSize: 16 }}>{FLAG_MAP[country] || '🌍'}</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: COUNTRY_TEXT[country] || '#fca5a5' }}>{country}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.55, color: COUNTRY_TEXT[country] || '#fca5a5', fontVariantNumeric: 'tabular-nums' }}>({countryAlertCount})</span>
+                    <span style={{ fontSize: 15 }}>{FLAG_MAP[country]}</span>
+                    <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', fontFamily: 'var(--font-display)' }}>{country}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: COUNTRY_ACCENT[country] || '#fca5a5', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.3)', padding: '1px 6px', borderRadius: 2 }}>{countryAlertCount}</span>
                   </div>
                 )}
-                {/* Region sub-header */}
-                <div style={{ padding: '5px 14px', background: 'rgba(239,68,68,0.05)', borderBottom: '1px solid rgba(239,68,68,0.1)', position: 'sticky', top: showCountryHeader ? 37 : 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(252,165,165,0.7)' }}>{regionName}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(239,68,68,0.35)', fontVariantNumeric: 'tabular-nums' }}>{regionAlerts.length}</span>
+                <div style={{ padding: '4px 12px', background: 'rgba(220,38,38,0.06)', borderBottom: '1px solid rgba(220,38,38,0.12)', position: 'sticky', top: showCountryHeader ? 37 : 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid rgba(220,38,38,0.25)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(254,202,202,0.65)', fontFamily: 'var(--font-mono)' }}>{regionName}</span>
+                  <span style={{ fontSize: 10, color: 'rgba(220,38,38,0.4)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{regionAlerts.length}</span>
                 </div>
-                {/* Alert items */}
                 {regionAlerts.map((alert) => {
                   const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
-                  const threatColor = RED_ALERT_THREAT_COLORS[alert.threatType] || RED_ALERT_THREAT_COLORS.rockets;
                   const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
                   const remaining = Math.max(0, alert.countdown - elapsed);
                   const isActive = elapsed < alert.countdown || alert.countdown === 0;
                   const tier = getAlertUrgencyTier(remaining, alert.countdown);
                   const isLive = alert.source === 'live';
-
-                  const cardBg: Record<string, string> = {
-                    critical: 'rgba(120,0,0,0.35)',
-                    urgent:   'rgba(80,0,0,0.25)',
-                    warning:  'rgba(60,20,0,0.2)',
-                    standard: 'rgba(40,0,0,0.15)',
-                    expired:  'transparent',
-                  };
-                  const accentBorder: Record<string, string> = {
-                    critical: '#f87171',
-                    urgent:   '#fb923c',
-                    warning:  '#fbbf24',
-                    standard: 'rgba(239,68,68,0.4)',
-                    expired:  'rgba(239,68,68,0.1)',
-                  };
+                  const band = TIER_BAND[tier];
+                  const isCrit = tier === 'critical';
+                  const isExpired = tier === 'expired';
 
                   return (
                     <div
                       key={alert.id}
                       data-testid={`red-alert-${alert.id}`}
-                      className={`alert-slide-in${tier === 'critical' ? ' alert-critical-glow' : ''}`}
+                      className={`alert-slide-in${isCrit ? ' eas-pulse-border' : ''}`}
                       style={{
-                        padding: '10px 14px',
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        borderBottom: '1px solid rgba(239,68,68,0.08)',
-                        borderLeft: `3px solid ${accentBorder[tier]}`,
-                        background: cardBg[tier],
+                        padding: '0',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderLeft: `4px solid ${isCrit ? '#dc2626' : tier === 'urgent' ? '#ea580c' : tier === 'warning' ? '#d97706' : isExpired ? 'rgba(220,38,38,0.1)' : '#991b1b'}`,
+                        background: isCrit ? 'rgba(127,29,29,0.5)' : isExpired ? 'transparent' : 'rgba(127,29,29,0.15)',
                         cursor: 'pointer',
-                        transition: 'background 0.2s ease',
+                        transition: 'background 0.15s ease',
                       }}
                     >
-                      {/* Status dot with ripple */}
-                      <div style={{ position: 'relative', width: 12, height: 12, flexShrink: 0 }}>
-                        <div style={{
-                          width: 10, height: 10, borderRadius: '50%', position: 'absolute', top: 1, left: 1,
-                          background: isActive ? (tier === 'critical' ? '#f87171' : '#ef4444') : 'rgba(239,68,68,0.2)',
-                          boxShadow: isActive ? `0 0 ${tier === 'critical' ? 12 : 7}px rgba(239,68,68,${tier === 'critical' ? 0.9 : 0.6})` : 'none',
-                        }} />
-                        {isActive && (
-                          <div style={{
-                            width: 12, height: 12, borderRadius: '50%', position: 'absolute', top: 0, left: 0,
-                            background: '#ef4444',
-                          }} className="alert-dot-ping" />
-                        )}
-                      </div>
-
-                      {/* Main content */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* City name row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                          <span style={{ fontSize: 15, fontWeight: 800, color: isActive ? '#fff' : 'rgba(252,165,165,0.4)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {language === 'ar' ? alert.cityAr : alert.city}
-                          </span>
-                          {isLive ? (
-                            <span style={{ fontSize: 9, padding: '2px 6px', fontWeight: 800, background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', borderRadius: 4, border: '1px solid rgba(16,185,129,0.3)', letterSpacing: '0.1em', flexShrink: 0, textTransform: 'uppercase' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
-                          ) : (
-                            <span style={{ fontSize: 9, padding: '2px 6px', fontWeight: 700, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.25)', borderRadius: 4, border: '1px solid rgba(255,255,255,0.08)', letterSpacing: '0.1em', flexShrink: 0, textTransform: 'uppercase' }} data-testid={`source-badge-${alert.id}`}>SIM</span>
-                          )}
+                      {isCrit && <div className="eas-stripes" style={{ height: 3, background: '#dc2626' }} />}
+                      <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <span style={{
+                              fontSize: isCrit ? 16 : 14, fontWeight: 900, color: isExpired ? 'rgba(255,255,255,0.2)' : '#fff',
+                              lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              fontFamily: 'var(--font-display)', letterSpacing: '0.02em',
+                            }}>
+                              {language === 'ar' ? alert.cityAr : alert.city}
+                            </span>
+                            {isLive && (
+                              <span style={{ fontSize: 8, padding: '2px 5px', fontWeight: 900, background: '#15803d', color: '#fff', borderRadius: 2, letterSpacing: '0.12em', flexShrink: 0, fontFamily: 'var(--font-mono)' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{
+                              fontSize: 9, fontWeight: 900, padding: '2px 7px', borderRadius: 2, letterSpacing: '0.1em', textTransform: 'uppercase',
+                              background: isActive ? band.bg : 'transparent',
+                              color: isActive ? band.text : 'rgba(255,255,255,0.2)',
+                              border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                              fontFamily: 'var(--font-mono)',
+                            }}>
+                              {language === 'ar' ? threat.ar : threat.en}
+                            </span>
+                            {isActive && !isExpired && (
+                              <span style={{ fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 2, letterSpacing: '0.1em', background: band.bg, color: band.text, opacity: 0.7, fontFamily: 'var(--font-mono)' }}>
+                                {band.label}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 10, color: isExpired ? 'rgba(255,255,255,0.12)' : 'rgba(254,202,202,0.45)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                              {timeAgo(alert.timestamp)}
+                            </span>
+                          </div>
                         </div>
-                        {/* Threat + time row */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span className={isActive ? threatColor : ''} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, border: '1px solid', letterSpacing: '0.06em', textTransform: 'uppercase', ...(isActive ? { boxShadow: '0 0 6px rgba(239,68,68,0.2)' } : { color: 'rgba(239,68,68,0.25)', borderColor: 'rgba(239,68,68,0.1)', background: 'transparent' }) }}>
-                            {language === 'ar' ? threat.ar : threat.en}
-                          </span>
-                          <span style={{ fontSize: 11, color: isActive ? 'rgba(252,165,165,0.5)' : 'rgba(239,68,68,0.2)', fontVariantNumeric: 'tabular-nums' }}>
-                            {timeAgo(alert.timestamp)}
-                          </span>
-                        </div>
+                        <RedAlertCountdown alert={alert} />
                       </div>
-
-                      {/* Countdown */}
-                      <RedAlertCountdown alert={alert} />
                     </div>
                   );
                 })}
@@ -3229,26 +3186,25 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── SIRENS ── */}
       {sirens.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: '1px solid rgba(245,158,11,0.2)', background: 'rgba(40,20,0,0.4)' }}>
-          <div style={{ padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Siren style={{ width: 14, height: 14, color: 'rgba(245,158,11,0.7)' }} />
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(253,211,77,0.8)' }}>
-              {language === 'ar' ? 'صفارات' : 'SIRENS'}
+        <div style={{ flexShrink: 0, borderTop: '2px solid #d97706', background: '#451a03' }}>
+          <div className="eas-stripes-static" style={{ height: 3, background: '#d97706' }} />
+          <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Siren style={{ width: 15, height: 15, color: '#fbbf24' }} />
+            <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', fontFamily: 'var(--font-display)' }}>
+              {language === 'ar' ? '\u0635\u0641\u0627\u0631\u0627\u062A' : 'SIRENS'}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(245,158,11,0.55)', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 4, padding: '1px 7px', fontVariantNumeric: 'tabular-nums' }}>{sirens.length}</span>
-            <div style={{ flex: 1 }} />
-            <div className="animate-pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 8px rgba(245,158,11,0.6)' }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', background: '#d97706', borderRadius: 2, padding: '1px 7px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{sirens.length}</span>
           </div>
-          <div style={{ maxHeight: 120, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 100, overflowY: 'auto' }}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
-                <div key={s.id} style={{ padding: '7px 14px', display: 'flex', alignItems: 'center', gap: 10, borderTop: '1px solid rgba(245,158,11,0.08)' }} data-testid={`siren-panel-${s.id}`}>
-                  <div className="animate-pulse-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245,158,11,0.5)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(253,211,77,0.8)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div key={s.id} style={{ padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(217,119,6,0.15)' }} data-testid={`siren-panel-${s.id}`}>
+                  <div className="eas-flash" style={{ width: 8, height: 8, borderRadius: 2, background: '#fbbf24', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fef3c7', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)' }}>
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span style={{ fontSize: 10, color: 'rgba(245,158,11,0.4)', letterSpacing: '0.05em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span style={{ fontSize: 9, color: 'rgba(251,191,36,0.6)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
@@ -3257,10 +3213,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       )}
 
       {/* ── FOOTER ── */}
-      <div style={{ flexShrink: 0, padding: '6px 14px', borderTop: '1px solid rgba(239,68,68,0.12)', background: 'rgba(10,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 10, color: 'rgba(239,68,68,0.3)', letterSpacing: '0.05em' }}>tzevaadom.co.il · Oref</span>
-        <span style={{ fontSize: 10, color: 'rgba(239,68,68,0.3)', fontVariantNumeric: 'tabular-nums' }}>
-          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length} / ${alerts.length}` : `${alerts.length} alerts`) : 'monitoring'} · 3s
+      <div style={{ flexShrink: 0, padding: '5px 12px', borderTop: '2px solid rgba(220,38,38,0.2)', background: '#0a0000', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 9, color: 'rgba(220,38,38,0.35)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>TZEVAADOM.CO.IL</span>
+        <span style={{ fontSize: 9, color: 'rgba(220,38,38,0.35)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} ALERTS`) : 'STANDBY'} | 3s
         </span>
       </div>
     </div>
@@ -4433,7 +4389,7 @@ const MapSection = memo(function MapSection({
           </div>
 
           {hasActiveThreats && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 4, animation: 'alert-critical-glow 1.1s ease-in-out infinite', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 4, animation: 'eas-pulse-border 1.2s ease-in-out infinite', flexShrink: 0 }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 7px rgba(239,68,68,0.8)', animation: 'pulse 0.8s ease-in-out infinite' }} />
               <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.18em', color: '#ef4444' }}>ACTIVE THREAT</span>
             </div>
