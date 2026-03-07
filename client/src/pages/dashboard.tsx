@@ -2011,7 +2011,7 @@ function SectionLabel({ label }: { label: string }) {
   );
 }
 
-function CommoditiesPanel({
+const CommoditiesPanel = memo(function CommoditiesPanel({
   commodities,
   language,
   onClose,
@@ -2059,7 +2059,7 @@ function CommoditiesPanel({
       </div>
     </div>
   );
-}
+});
 
 const THREAT_COLORS: Record<string, string> = {
   rocket: 'text-red-400 border-red-500/40 bg-red-950/30',
@@ -2132,7 +2132,7 @@ function headingToCompass(deg: number): string {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized, onLocateFlight }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
+const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized, onLocateFlight }: { flights: FlightData[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onLocateFlight?: (lat: number, lng: number, callsign: string, heading: number, altitude: number, speed: number, type: string) => void }) {
   const [selectedFlight, setSelectedFlight] = useState<FlightData | null>(null);
   const [flightRoute, setFlightRoute] = useState<{ origin: { name: string; iata: string; icao: string; country: string } | null; destination: { name: string; iata: string; icao: string; country: string } | null; airline: string | null } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -2267,7 +2267,7 @@ function FlightRadarPanel({ flights, language, onClose, onMaximize, isMaximized,
       </div>
     </div>
   );
-}
+});
 
 
 const SEVERITY_STYLES: Record<string, { color: string; bg: string; dot: string }> = {
@@ -2295,7 +2295,7 @@ const AI_EVENT_ASSESSMENTS: Record<string, string> = {
   nuclear: 'Strategic asset activity — immediate escalation risk',
 };
 
-function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximized }: { events: ConflictEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximized }: { events: ConflictEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -2397,7 +2397,7 @@ function ConflictEventsPanel({ events, language, onClose, onMaximize, isMaximize
       </div>
     </div>
   );
-}
+});
 
 const SHIP_TYPE_STYLES: Record<string, { color: string; bg: string; label: string }> = {
   military: { color: 'text-red-400',    bg: 'bg-red-950/40 border-red-500/30',    label: 'NAV' },
@@ -2527,7 +2527,7 @@ const EW_TYPE_COLORS: Record<string, string> = {
   drone_ew:      'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
 };
 
-function EWPanel({ ewEvents, language, onClose, onMaximize, isMaximized }: { ewEvents: EWEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+const EWPanel = memo(function EWPanel({ ewEvents, language, onClose, onMaximize, isMaximized }: { ewEvents: EWEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.55)' : s === 'high' ? 'rgb(249 115 22 / 0.45)' : s === 'medium' ? 'rgb(234 179 8 / 0.35)' : 'transparent';
   const sevText   = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
@@ -2591,7 +2591,7 @@ function EWPanel({ ewEvents, language, onClose, onMaximize, isMaximized }: { ewE
       </div>
     </div>
   );
-}
+});
 
 // ── Infrastructure Attacks Panel ──────────────────────────────────────────────
 const INFRA_TYPE_LABELS: Record<string, { en: string; ar: string; icon: string }> = {
@@ -2615,7 +2615,7 @@ const INFRA_TYPE_COLORS: Record<string, string> = {
   airport:  'text-sky-300    bg-sky-500/10    border-sky-500/30',
 };
 
-function InfraPanel({ infraEvents, language, onClose, onMaximize, isMaximized }: { infraEvents: InfraEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+const InfraPanel = memo(function InfraPanel({ infraEvents, language, onClose, onMaximize, isMaximized }: { infraEvents: InfraEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.55)' : s === 'high' ? 'rgb(249 115 22 / 0.45)' : 'transparent';
   const sevText   = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
@@ -2684,7 +2684,7 @@ function InfraPanel({ infraEvents, language, onClose, onMaximize, isMaximized }:
       </div>
     </div>
   );
-}
+});
 
 const RED_ALERT_THREAT_LABELS: Record<string, { en: string; ar: string; he: string }> = {
   rockets: { en: 'Rocket Fire', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', he: '\u05D9\u05E8\u05D9 \u05E8\u05E7\u05D8\u05D5\u05EA' },
@@ -2794,7 +2794,7 @@ const LIVE_CHANNELS = [
   { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: '' },
 ] as const;
 
-function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const [activeChannel, setActiveChannel] = useState<typeof LIVE_CHANNELS[number]['id']>('aje');
   const [customUrl, setCustomUrl] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -2914,9 +2914,9 @@ function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { languag
       </div>
     </div>
   );
-}
+});
 
-function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
+const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [threatFilter, setThreatFilter] = useState<string>('all');
 
@@ -3289,7 +3289,7 @@ function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isM
       </div>
     </div>
   );
-}
+});
 
 const DEFAULT_CHANNELS = ['@bintjbeilnews', '@wfwitness', '@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@rnintel', '@lebaborim', '@almanarnews', '@AlAhedNews', '@lebanonnews2', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews'];
 
@@ -3851,7 +3851,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
   );
 }
 
-function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, briefLoading, anomalies = [] }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; brief?: AIBrief | null; briefLoading?: boolean; anomalies?: Anomaly[] }) {
+const AIIntelPanel = memo(function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, briefLoading, anomalies = [] }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; brief?: AIBrief | null; briefLoading?: boolean; anomalies?: Anomaly[] }) {
   const [deductQuery, setDeductQuery] = useState('');
   const [deductResult, setDeductResult] = useState<AIDeduction | null>(null);
 
@@ -4067,7 +4067,7 @@ function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, brief
       </ScrollArea>
     </div>
   );
-}
+});
 
 const AlertMapComponent = lazy(() => import('@/components/alert-map'));
 
@@ -4563,7 +4563,7 @@ const MAP_STYLE_OPTIONS = [
   { id: 'bright',  label: 'Bright',  provider: 'OFM',   dot: '#065f46', url: 'https://tiles.openfreemap.org/styles/bright' },
 ] as const;
 
-function MapSection({
+const MapSection = memo(function MapSection({
   events,
   flights,
   redAlerts,
@@ -4771,7 +4771,7 @@ function MapSection({
       </div>
     </div>
   );
-}
+});
 
 function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar' }) {
   if (!news.length) return null;
@@ -5436,6 +5436,11 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
 
 function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; stats: RocketStats | null }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const [activeTab, setActiveTab] = useState<'overview' | 'gcc' | 'lebanon' | 'live'>('overview');
+  const [liveFeed, setLiveFeed] = useState<any[]>([]);
+  const [liveFeedLoading, setLiveFeedLoading] = useState(false);
+  const [liveFeedError, setLiveFeedError] = useState(false);
+  const liveFetchedRef = useRef(false);
 
   const originEntries = stats ? Object.entries(stats.totalByOrigin).sort(([, a], [, b]) => b - a) : [];
   const targetEntries = stats ? Object.entries(stats.totalByTarget).sort(([, a], [, b]) => b - a).slice(0, 8) : [];
@@ -6031,8 +6036,13 @@ export default function Dashboard() {
   const [settings, setSettings] = useState<WARROOMSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isTablet, setIsTablet] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const w = window.innerWidth;
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    return w >= 768 && (isTouch ? w < 1400 : w < 1200);
+  });
   const [isLandscape, setIsLandscape] = useState(() => typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false);
   const [mobileActivePanel, setMobileActivePanel] = useState<PanelId>('map');
   const [showMobilePanelPicker, setShowMobilePanelPicker] = useState(false);
@@ -6681,8 +6691,8 @@ export default function Dashboard() {
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
-              {/* Map: always mounted to avoid expensive MapLibre reinit on every tab switch */}
-              <div className={`absolute inset-0 flex flex-col ${mobileActivePanel === 'map' ? 'z-10' : 'z-0 pointer-events-none'}`}>
+              {/* All SWIPE_TABS panels always mounted — prevents unmount/remount flicker on tab switch */}
+              <div className={`absolute inset-0 flex flex-col ${mobileActivePanel === 'map' ? 'z-10' : 'z-0 mobile-panel-hidden'}`}>
                 <MapSection
                   events={events}
                   flights={flights}
@@ -6694,12 +6704,11 @@ export default function Dashboard() {
                   isVisible={mobileActivePanel === 'map'}
                 />
               </div>
-              {/* Other panels: only render the active one to save memory */}
-              {mobileActivePanel !== 'map' && (
-                <div className="absolute inset-0 z-10 flex flex-col warroom-mobile-panel-transition">
-                  {renderPanel(mobileActivePanel)}
+              {(['alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => (
+                <div key={id} className={`absolute inset-0 flex flex-col ${mobileActivePanel === id ? 'z-10' : 'z-0 mobile-panel-hidden'}`}>
+                  {renderPanel(id)}
                 </div>
-              )}
+              ))}
             </div>
             <div className="warroom-mobile-swipe-dots shrink-0" data-testid="mobile-swipe-dots">
               {SWIPE_TABS.map(id => (

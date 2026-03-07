@@ -755,12 +755,13 @@
   }
 
   .warroom-mobile-panel-transition {
-    animation: mobileFadeIn 0.12s ease-out;
+    /* animation removed — instant panel switch prevents flicker */
   }
 
-  @keyframes mobileFadeIn {
-    from { opacity: 0.8; }
-    to { opacity: 1; }
+  /* Hidden mobile panels: pull off compositor to save GPU memory */
+  .mobile-panel-hidden {
+    visibility: hidden;
+    pointer-events: none;
   }
 }
 

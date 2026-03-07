@@ -384,6 +384,8 @@ export interface RocketCorridor {
 
 export interface RocketStats {
   corridors: RocketCorridor[];
+  gccCorridors: RocketCorridor[];
+  lebanonCorridors: RocketCorridor[];
   totalByOrigin: Record<string, number>;
   totalByTarget: Record<string, number>;
   totalLaunches: number;
@@ -394,6 +396,17 @@ export interface RocketStats {
   last24h: number;
   last1h: number;
   generatedAt: string;
+}
+
+export interface ConflictFeedItem {
+  id: string;
+  title: string;
+  source: string;
+  url?: string;
+  timestamp: string;
+  region: string;
+  attackType: 'rocket' | 'missile' | 'drone' | 'airstrike' | 'ground' | 'naval' | 'other';
+  relevance: 'gcc' | 'lebanon' | 'both' | 'general';
 }
 
 export type SitrepWindow = '1h' | '6h' | '24h';

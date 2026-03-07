@@ -734,6 +734,22 @@ export default function ConflictMap({
           </div>
         )}
       </div>
+
+      {/* ── Zoom controls ──────────────────────────────────────── */}
+      <div className="absolute bottom-6 right-3 z-10 flex flex-col gap-1" style={{ pointerEvents: 'auto' }}>
+        <button
+          onClick={() => mapRef.current?.zoomIn()}
+          className="w-8 h-8 flex items-center justify-center rounded-md font-bold text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+          style={{ background: 'rgba(6,8,14,0.82)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 18, lineHeight: 1 }}
+          title="Zoom in"
+        >+</button>
+        <button
+          onClick={() => mapRef.current?.zoomOut()}
+          className="w-8 h-8 flex items-center justify-center rounded-md font-bold text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+          style={{ background: 'rgba(6,8,14,0.82)', border: '1px solid rgba(255,255,255,0.1)', fontSize: 18, lineHeight: 1 }}
+          title="Zoom out"
+        >−</button>
+      </div>
     </div>
   );
 }
