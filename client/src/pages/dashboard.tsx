@@ -3077,28 +3077,35 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               >{label}</button>
             ))}
           </div>
-          {activeCountries.length > 1 && (
-            <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <button onClick={() => setCountryFilter('ALL')}
-                style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
-                  background: countryFilter === 'ALL' ? '#991b1b' : 'transparent',
-                  borderColor: countryFilter === 'ALL' ? '#991b1b' : 'rgba(255,255,255,0.1)',
-                  color: countryFilter === 'ALL' ? '#fff' : 'rgba(255,255,255,0.35)',
-                }}
-                data-testid="button-country-filter-all"
-              >ALL ({alerts.length})</button>
-              {activeCountries.map(c => (
-                <button key={c} onClick={() => setCountryFilter(c)}
-                  style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
-                    background: countryFilter === c ? '#991b1b' : 'transparent',
-                    borderColor: countryFilter === c ? '#991b1b' : 'rgba(255,255,255,0.08)',
-                    color: countryFilter === c ? '#fff' : 'rgba(255,255,255,0.35)',
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <button onClick={() => setCountryFilter('ALL')}
+              style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
+                background: countryFilter === 'ALL' ? '#991b1b' : 'transparent',
+                borderColor: countryFilter === 'ALL' ? '#991b1b' : 'rgba(255,255,255,0.1)',
+                color: countryFilter === 'ALL' ? '#fff' : 'rgba(255,255,255,0.35)',
+              }}
+              data-testid="button-country-filter-all"
+            >ALL ({alerts.length})</button>
+            {countryOrder.map(c => {
+              const count = countryCounts[c] || 0;
+              const isActive = count > 0;
+              const isSelected = countryFilter === c;
+              const accent: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
+              const color = accent[c] || '#dc2626';
+              return (
+                <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
+                  style={{
+                    fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
+                    background: isSelected ? color : isActive ? color + '20' : 'transparent',
+                    borderColor: isSelected ? color : isActive ? color + '55' : 'rgba(255,255,255,0.06)',
+                    color: isSelected ? '#fff' : isActive ? color : 'rgba(255,255,255,0.18)',
+                    opacity: isActive || isSelected ? 1 : 0.6,
                   }}
                   data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
-                >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
-              ))}
-            </div>
-          )}
+                >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c}{isActive ? ` (${count})` : ''}</button>
+              );
+            })}
+          </div>
         </div>
       )}
 
