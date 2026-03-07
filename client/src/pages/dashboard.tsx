@@ -6380,16 +6380,17 @@ export default function Dashboard() {
       const target = e.target as HTMLElement | null;
       if (!target) return;
       const scrollable = target.closest('.overflow-y-auto, .overflow-auto, [data-radix-scroll-area-viewport]') as HTMLElement | null;
-      if (!scrollable) return;
+      if (!scrollable || scrollable === container) return;
       const { scrollTop, scrollHeight, clientHeight } = scrollable;
-      const canScroll = scrollHeight > clientHeight + 1;
+      const canScroll = scrollHeight > clientHeight + 2;
       if (!canScroll) return;
-      const atTop = scrollTop <= 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+      const atTop = scrollTop <= 1;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
       const scrollingDown = e.deltaY > 0;
       const scrollingUp = e.deltaY < 0;
       if ((scrollingDown && !atBottom) || (scrollingUp && !atTop)) {
-        e.stopPropagation();
+        e.preventDefault();
+        scrollable.scrollTop += e.deltaY;
       }
     };
     container.addEventListener('wheel', handler, { passive: false });
@@ -6977,7 +6978,7 @@ export default function Dashboard() {
       <div
         ref={panelsScrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ minHeight: 0, overscrollBehavior: 'none' }}
+        style={{ minHeight: 0, overscrollBehavior: 'contain', scrollBehavior: 'auto' }}
         data-testid="resizable-panels"
       >
         {isMobile ? (
