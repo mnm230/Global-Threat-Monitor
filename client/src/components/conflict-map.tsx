@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Map as MapLibreMap } from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+import { MapPin } from 'lucide-react';
 import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot, EWEvent } from '@shared/schema';
 
 // ── Map styles ────────────────────────────────────────────────────────────────
@@ -235,38 +236,47 @@ export default function ConflictMap({
     else setTooltip(null);
   }, []);
 
+  const [mapInitError, setMapInitError] = useState(false);
+  const [mapRetryCount, setMapRetryCount] = useState(0);
+
   // Init MapLibre + deck.gl overlay
   useEffect(() => {
-    if (!containerRef.current) return;
-    const init = VIEW_INIT[activeView] || VIEW_INIT.conflict;
-    const map = new MapLibreMap({
-      container: containerRef.current,
-      style: activeStyle,
-      center: [init.lng, init.lat],
-      zoom: init.zoom,
-      attributionControl: false,
-      antialias: !IS_MOBILE,   // antialias is GPU-expensive; skip on mobile
-      fadeDuration: 0,
-    });
-    mapRef.current = map;
+    if (!containerRef.current || mapInitError) return;
+    try {
+      const init = VIEW_INIT[activeView] || VIEW_INIT.conflict;
+      const map = new MapLibreMap({
+        container: containerRef.current,
+        style: activeStyle,
+        center: [init.lng, init.lat],
+        zoom: init.zoom,
+        attributionControl: false,
+        antialias: !IS_MOBILE,
+        fadeDuration: 0,
+      });
+      mapRef.current = map;
 
-    const overlay = new MapboxOverlay({ interleaved: false, layers: [], onHover } as Parameters<typeof MapboxOverlay>[0]);
-    overlayRef.current = overlay;
-    map.addControl(overlay as Parameters<typeof map.addControl>[0]);
+      const overlay = new MapboxOverlay({ interleaved: false, layers: [], onHover } as Parameters<typeof MapboxOverlay>[0]);
+      overlayRef.current = overlay;
+      map.addControl(overlay as Parameters<typeof map.addControl>[0]);
 
-    // Attribution
-    map.addControl(
-      new (class { onAdd() { const d = document.createElement('div'); d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace'; d.textContent = '© CARTO · © OpenStreetMap'; return d; } onRemove() {} })(),
-      'bottom-right'
-    );
+      map.addControl(
+        new (class { onAdd() { const d = document.createElement('div'); d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace'; d.textContent = '© CARTO · © OpenStreetMap'; return d; } onRemove() {} })(),
+        'bottom-right'
+      );
 
-    return () => {
-      overlay.finalize();
-      map.remove();
+      return () => {
+        overlay.finalize();
+        map.remove();
+        mapRef.current = null;
+        overlayRef.current = null;
+      };
+    } catch (err) {
+      console.warn('[ConflictMap] Failed to initialize:', err);
       mapRef.current = null;
       overlayRef.current = null;
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      setMapInitError(true);
+    }
+  }, [mapRetryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build deck.gl layers (no pulse dependency — animated ring handled separately)
   const deckLayers = useMemo(() => {
@@ -493,6 +503,25 @@ export default function ConflictMap({
   // Tooltip position clamping
   const tipLeft = tooltip ? Math.min(tooltip.x + 14, window.innerWidth - 240) : 0;
   const tipTop  = tooltip ? Math.max(tooltip.y - 10, 10) : 0;
+
+  if (mapInitError) {
+    return (
+      <div className="relative w-full h-full overflow-hidden bg-[#0a0c10] flex items-center justify-center">
+        <div className="text-center p-6">
+          <MapPin className="w-10 h-10 mx-auto mb-3 text-primary/30" />
+          <p className="text-xs font-mono text-foreground/40">Map unavailable</p>
+          <p className="text-[10px] font-mono text-foreground/20 mt-1">WebGL initialization failed</p>
+          <button
+            onClick={() => { setMapInitError(false); setMapRetryCount(c => c + 1); }}
+            className="mt-3 px-3 py-1.5 text-[10px] font-mono bg-primary/10 border border-primary/30 rounded hover:bg-primary/20 text-primary transition-colors"
+            data-testid="button-retry-map"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0a0c10]">

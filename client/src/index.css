@@ -979,3 +979,7 @@
     position: relative;
   }
 }
+
+vite-error-overlay {
+  display: none !important;
+}
