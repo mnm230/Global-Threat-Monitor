@@ -5565,102 +5565,61 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-5 h-5 animate-spin text-primary/50" />
           </div>
-        ) : (
+        ) : activeTab === 'overview' ? (
           <>
             <div className="grid grid-cols-4 gap-1.5" data-testid="stats-summary">
               <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(185 30% 25% / 0.3)'}}>
-                <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-launches">{stats.totalLaunches.toLocaleString()}</div>
+                <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-launches">{stats!.totalLaunches.toLocaleString()}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Total Launches', 'إجمالي')}</div>
               </div>
               <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(120 30% 25% / 0.3)'}}>
-                <div className="text-[15px] font-black text-emerald-400 font-mono" data-testid="text-intercepted">{stats.totalIntercepted.toLocaleString()}</div>
+                <div className="text-[15px] font-black text-emerald-400 font-mono" data-testid="text-intercepted">{stats!.totalIntercepted.toLocaleString()}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Intercepted', 'اعتراض')}</div>
               </div>
               <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(0 30% 25% / 0.3)'}}>
-                <div className="text-[15px] font-black text-orange-400 font-mono" data-testid="text-last-24h">{stats.last24h}</div>
+                <div className="text-[15px] font-black text-orange-400 font-mono" data-testid="text-last-24h">{stats!.last24h}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Last 24h', 'آخر 24 ساعة')}</div>
               </div>
               <div className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:'1px solid hsl(45 30% 25% / 0.3)'}}>
-                <div className="text-[15px] font-black text-yellow-400 font-mono" data-testid="text-active-fronts">{stats.activeFronts}</div>
+                <div className="text-[15px] font-black text-yellow-400 font-mono" data-testid="text-active-fronts">{stats!.activeFronts}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Active Fronts', 'جبهات')}</div>
               </div>
             </div>
 
             <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Intercept Rate', 'نسبة الاعتراض')}</span>
-                </div>
-                <span className="text-[11px] font-black text-emerald-400 font-mono" data-testid="text-intercept-rate">{(stats.interceptRate * 100).toFixed(1)}%</span>
+                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Intercept Rate', 'نسبة الاعتراض')}</span>
+                <span className="text-[11px] font-black text-emerald-400 font-mono" data-testid="text-intercept-rate">{(stats!.interceptRate * 100).toFixed(1)}%</span>
               </div>
               <div className="w-full h-2 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
-                <div className="h-full rounded-full transition-all duration-700" style={{width:`${stats.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
+                <div className="h-full rounded-full transition-all duration-700" style={{width:`${stats!.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
               </div>
             </div>
 
             <div className="rounded p-2" style={{background:'hsl(0 30% 16% / 0.4)', border:'1px solid hsl(0 40% 30% / 0.3)'}}>
               <div className="flex items-center gap-1 mb-1.5">
                 <ArrowRight className="w-3 h-3 text-red-400" />
-                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`Launched Towards Israel (${totalToIsrael})`, `أُطلقت نحو إسرائيل (${totalToIsrael})`)}</span>
+                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`→ Israel (${corridorsToIsrael.reduce((s,c)=>s+c.totalLaunches,0).toLocaleString()})`, `نحو إسرائيل`)}</span>
               </div>
-              <div className="space-y-1" data-testid="corridors-to-israel">
-                {corridorsToIsrael.slice(0, 6).map((c, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[9px]" data-testid={`corridor-to-${i}`}>
-                    {getCountryIcon(c.originCountry)}
-                    <span className="text-foreground/70 font-mono w-[70px] truncate">{c.origin}</span>
-                    <ArrowRight className="w-2.5 h-2.5 text-red-400/50 shrink-0" />
-                    <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{background:'hsl(220 25% 12%)'}}>
-                      <div className="h-full rounded-full" style={{width:`${Math.max(5, (c.totalLaunches / Math.max(corridorsToIsrael[0]?.totalLaunches || 1, 1)) * 100)}%`, background: c.active ? 'hsl(0 70% 50%)' : 'hsl(0 40% 35%)'}} />
-                    </div>
-                    <span className="text-foreground/80 font-mono font-bold w-[30px] text-right">{c.totalLaunches}</span>
-                    {c.active && <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
-                  </div>
+              <div className="space-y-0.5" data-testid="corridors-to-israel">
+                {corridorsToIsrael.slice(0, 7).map((c, i) => (
+                  <CorridorRow key={i} c={c} barColor="#ef4444" maxLaunches={corridorsToIsrael[0]?.totalLaunches || 1} />
                 ))}
               </div>
-              <div className="flex gap-2 mt-1.5 pt-1 border-t border-red-500/10">
-                <span className="text-[8px] text-foreground/40 font-mono">
-                  {t('Rockets', 'صواريخ')}: <span className="text-orange-400">{corridorsToIsrael.reduce((s, c) => s + c.rockets, 0)}</span>
-                </span>
-                <span className="text-[8px] text-foreground/40 font-mono">
-                  {t('Missiles', 'قذائف')}: <span className="text-red-400">{corridorsToIsrael.reduce((s, c) => s + c.missiles, 0)}</span>
-                </span>
-                <span className="text-[8px] text-foreground/40 font-mono">
-                  {t('Drones', 'طائرات مسيّرة')}: <span className="text-yellow-400">{corridorsToIsrael.reduce((s, c) => s + c.drones, 0)}</span>
-                </span>
-              </div>
+              <TypeBreakdown corridors={corridorsToIsrael} color="#ef4444" />
             </div>
 
             <div className="rounded p-2" style={{background:'hsl(210 30% 16% / 0.4)', border:'1px solid hsl(210 40% 30% / 0.3)'}}>
               <div className="flex items-center gap-1 mb-1.5">
                 <ArrowRight className="w-3 h-3 text-blue-400" />
-                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t(`Launched From Israel (${totalFromIsrael})`, `أُطلقت من إسرائيل (${totalFromIsrael})`)}</span>
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t(`From Israel (${corridorsFromIsrael.reduce((s,c)=>s+c.totalLaunches,0).toLocaleString()})`, `من إسرائيل`)}</span>
               </div>
-              <div className="space-y-1" data-testid="corridors-from-israel">
-                {corridorsFromIsrael.slice(0, 6).map((c, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[9px]" data-testid={`corridor-from-${i}`}>
-                    <Shield className="w-3 h-3 text-blue-400" />
-                    <span className="text-foreground/70 font-mono w-[70px] truncate">{c.origin}</span>
-                    <ArrowRight className="w-2.5 h-2.5 text-blue-400/50 shrink-0" />
-                    {getCountryIcon(c.targetCountry === 'Palestine' ? 'Palestine' : c.targetCountry)}
-                    <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{background:'hsl(220 25% 12%)'}}>
-                      <div className="h-full rounded-full" style={{width:`${Math.max(5, (c.totalLaunches / Math.max(corridorsFromIsrael[0]?.totalLaunches || 1, 1)) * 100)}%`, background: c.active ? 'hsl(210 70% 50%)' : 'hsl(210 40% 35%)'}} />
-                    </div>
-                    <span className="text-foreground/80 font-mono font-bold w-[30px] text-right">{c.totalLaunches}</span>
-                    {c.active && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-                  </div>
+              <div className="space-y-0.5" data-testid="corridors-from-israel">
+                {corridorsFromIsrael.slice(0, 7).map((c, i) => (
+                  <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={corridorsFromIsrael[0]?.totalLaunches || 1} />
                 ))}
               </div>
-              <div className="flex gap-2 mt-1.5 pt-1 border-t border-blue-500/10">
-                <span className="text-[8px] text-foreground/40 font-mono">
-                  {t('Missiles', 'قذائف')}: <span className="text-blue-400">{corridorsFromIsrael.reduce((s, c) => s + c.missiles, 0)}</span>
-                </span>
-                <span className="text-[8px] text-foreground/40 font-mono">
-                  {t('Drones', 'طائرات مسيّرة')}: <span className="text-cyan-400">{corridorsFromIsrael.reduce((s, c) => s + c.drones, 0)}</span>
-                </span>
-              </div>
+              <TypeBreakdown corridors={corridorsFromIsrael} color="#60a5fa" />
             </div>
 
             <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
@@ -5675,7 +5634,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
                       <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(185 100% 42%)' : 'hsl(185 60% 35%)'}} />
                     </div>
-                    <span className="text-[8px] text-foreground/70 font-mono w-[28px] text-right">{count}</span>
+                    <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -5693,7 +5652,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
                       <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
                     </div>
-                    <span className="text-[8px] text-foreground/70 font-mono w-[28px] text-right">{count}</span>
+                    <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -5702,22 +5661,245 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
             <div className="grid grid-cols-2 gap-1.5">
               <div className="rounded p-1.5" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Peak Hour', 'ساعة الذروة')}</div>
-                <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats.peakHour} UTC</div>
+                <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats!.peakHour} UTC</div>
               </div>
               <div className="rounded p-1.5" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Last Hour', 'الساعة الأخيرة')}</div>
                 <div className="text-[12px] font-bold font-mono" data-testid="text-last-1h">
-                  <span className={stats.last1h > 5 ? 'text-red-400' : stats.last1h > 0 ? 'text-orange-400' : 'text-green-400'}>{stats.last1h}</span>
+                  <span className={stats!.last1h > 5 ? 'text-red-400' : stats!.last1h > 0 ? 'text-orange-400' : 'text-green-400'}>{stats!.last1h}</span>
                   <span className="text-[8px] text-foreground/40 ml-1">{t('launches', 'إطلاقات')}</span>
                 </div>
               </div>
             </div>
 
-            <div className="text-[7px] text-foreground/30 text-center font-mono space-y-0.5" data-testid="text-rocket-generated-at">
-              <div>{t('Origins inferred from target geography. Intercepts estimated.', 'المصادر مستنتجة من الجغرافيا. الاعتراضات تقديرية.')}</div>
-              <div>{t('Generated', 'تم الإنشاء')}: {new Date(stats.generatedAt).toLocaleTimeString()}</div>
+            <div className="text-[7px] text-foreground/30 text-center font-mono" data-testid="text-rocket-generated-at">
+              {t('Origins inferred from geography. Intercepts estimated. Sources: ACLED, UN PoE, IDF, MOFA.', 'المصادر مستنتجة. تقديرية. ACLED، فريق خبراء الأمم المتحدة.')}
             </div>
           </>
+        ) : activeTab === 'gcc' ? (
+          <>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { label: t('GCC Attacks Total','هجمات الخليج'), value: totalGCCHits.toLocaleString(), color: '#f97316' },
+                { label: t('Intercepted','اعتراض'), value: totalGCCIntercepted.toLocaleString(), color: '#34d399' },
+                { label: t('Intercept Rate','نسبة اعتراض'), value: totalGCCHits > 0 ? `${((totalGCCIntercepted/totalGCCHits)*100).toFixed(0)}%` : '—', color: '#60a5fa' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:`1px solid ${color}28`}}>
+                  <div className="text-[14px] font-black font-mono" style={{ color }}>{value}</div>
+                  <div className="text-[7px] text-foreground/50 uppercase tracking-wider leading-tight mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded p-2 text-[8px] font-mono text-foreground/50 leading-relaxed" style={{background:'hsl(45 30% 15% / 0.3)', border:'1px solid hsl(45 40% 25% / 0.3)'}}>
+              <span className="text-yellow-400 font-bold">{t('CONTEXT','السياق')}: </span>
+              {t('Houthi forces have fired 4,000+ ballistic missiles, cruise missiles, and UAVs at Saudi Arabia since 2015 (UN Panel of Experts). UAE directly attacked Jan 2022. Red Sea shipping attacks began late 2023 targeting 70+ vessels.','الحوثيون أطلقوا 4,000+ صاروخ وطائرة مسيّرة على السعودية منذ 2015. هجمات البحر الأحمر استهدفت 70+ سفينة منذ أواخر 2023.')}
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(25 30% 15% / 0.5)', border:'1px solid hsl(25 40% 28% / 0.4)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <ArrowRight className="w-3 h-3 text-orange-400" />
+                <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wider">{t(`Attacks on GCC States (${totalGCCHits.toLocaleString()})`,`هجمات على الخليج`)}</span>
+              </div>
+              <div className="space-y-0.5">
+                {gccIncoming.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#f97316" maxLaunches={gccIncoming[0]?.totalLaunches || 1} />)}
+              </div>
+              <TypeBreakdown corridors={gccIncoming} color="#f97316" />
+            </div>
+
+            {gccOutgoing.length > 0 && (
+              <div className="rounded p-2" style={{background:'hsl(200 30% 14% / 0.5)', border:'1px solid hsl(200 40% 25% / 0.4)'}}>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <ArrowRight className="w-3 h-3 text-cyan-400" />
+                  <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">{t('Saudi/Coalition Strikes on Yemen','ضربات التحالف على اليمن')}</span>
+                </div>
+                <div className="space-y-0.5">
+                  {gccOutgoing.map((c, i) => <CorridorRow key={i} c={c} barColor="#22d3ee" maxLaunches={gccOutgoing[0]?.totalLaunches || 1} />)}
+                </div>
+              </div>
+            )}
+
+            {(() => {
+              const usYemen = (stats?.corridors || []).filter(c => c.originCountry === 'United States' && c.targetCountry === 'Yemen');
+              if (!usYemen.length) return null;
+              return (
+                <div className="rounded p-2" style={{background:'hsl(220 30% 14% / 0.5)', border:'1px solid hsl(220 40% 25% / 0.4)'}}>
+                  <div className="flex items-center gap-1 mb-1.5">
+                    <Globe className="w-3 h-3 text-blue-400" />
+                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t('US/Coalition → Yemen','الولايات المتحدة ← اليمن')}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {usYemen.map((c, i) => <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={usYemen[0]?.totalLaunches || 1} />)}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('GCC Target Breakdown','توزيع الهجمات')}</div>
+              {(['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'] as const).map(country => {
+                const total = gccIncoming.filter(c => c.targetCountry === country).reduce((s, c) => s + c.totalLaunches, 0);
+                if (!total) return null;
+                const allTotals = ['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'].map(c2 => gccIncoming.filter(c => c.targetCountry === c2).reduce((s, c) => s + c.totalLaunches, 0));
+                const maxT = Math.max(...allTotals, 1);
+                return (
+                  <div key={country} className="flex items-center gap-1.5 mb-0.5">
+                    {getCountryIcon(country)}
+                    <span className="text-[8px] text-foreground/60 font-mono w-[90px] truncate">{country}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(220 25% 12%)'}}>
+                      <div className="h-full rounded-full" style={{width:`${(total/maxT)*100}%`, background:'#f97316'}} />
+                    </div>
+                    <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{total.toLocaleString()}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-[7px] text-foreground/30 text-center font-mono">{t('Sources: UN PoE on Yemen 2015–2024, ACLED, Saudi MOFA, Bellingcat, CSIS Missile Defense Project.','المصادر: فريق الخبراء الأممي، ACLED، CSIS.')}</div>
+          </>
+        ) : activeTab === 'lebanon' ? (
+          <>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { label: t('Hezbollah → Israel','حزب الله ← إسرائيل'), value: totalLblFired.toLocaleString(), color: '#f97316', sub: t('Since Oct 7, 2023','منذ 7 أكتوبر 2023') },
+                { label: t('Israel → Lebanon','إسرائيل ← لبنان'), value: totalLblReceived.toLocaleString(), color: '#60a5fa', sub: t('Since Oct 7, 2023','منذ 7 أكتوبر 2023') },
+              ].map(({ label, value, color, sub }) => (
+                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(220 30% 18% / 0.7)', border:`1px solid ${color}28`}}>
+                  <div className="text-[16px] font-black font-mono" style={{ color }}>{value}</div>
+                  <div className="text-[7px] text-foreground/60 font-bold uppercase tracking-wider">{label}</div>
+                  <div className="text-[6px] text-foreground/30 font-mono mt-0.5">{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded p-2 text-[8px] font-mono text-foreground/50 leading-relaxed" style={{background:'hsl(120 20% 12% / 0.4)', border:'1px solid hsl(120 30% 20% / 0.3)'}}>
+              <span className="text-green-400 font-bold">{t('CONTEXT','السياق')}: </span>
+              {t('Since Oct 7 2023, Hezbollah fired ~9,500 rockets, missiles & drones at northern Israel. Israel launched 3,000+ airstrikes on Lebanon in Sep–Oct 2024. Hezbollah arsenal estimated at 150,000+ total projectiles.','منذ 7 أكتوبر 2023 أطلق حزب الله ~9,500 صاروخ وطائرة. إسرائيل نفّذت 3,000+ غارة في سبتمبر-أكتوبر 2024.')}
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(0 25% 15% / 0.5)', border:'1px solid hsl(0 40% 28% / 0.4)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <ArrowRight className="w-3 h-3 text-red-400" />
+                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`Hezbollah → Israel (${totalLblFired.toLocaleString()})`,`حزب الله → إسرائيل`)}</span>
+              </div>
+              <div className="space-y-0.5">
+                {lblToIsrael.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#ef4444" maxLaunches={lblToIsrael[0]?.totalLaunches || 1} />)}
+              </div>
+              <TypeBreakdown corridors={lblToIsrael} color="#ef4444" />
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(210 25% 14% / 0.5)', border:'1px solid hsl(210 40% 25% / 0.4)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <ArrowRight className="w-3 h-3 text-blue-400" />
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t(`IDF → Lebanon (${totalLblReceived.toLocaleString()})`,`الجيش الإسرائيلي → لبنان`)}</span>
+              </div>
+              <div className="space-y-0.5">
+                {lblFromIsrael.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={lblFromIsrael[0]?.totalLaunches || 1} />)}
+              </div>
+              <TypeBreakdown corridors={lblFromIsrael} color="#60a5fa" />
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('Hezbollah Arsenal Estimate','تقديرات ترسانة حزب الله')}</div>
+              {[
+                { label: t('Short-range rockets (< 40km)','قصيرة المدى'), value: '100,000+', color: '#f97316' },
+                { label: t('Medium-range rockets (40–200km)','متوسطة المدى'), value: '45,000+', color: '#ef4444' },
+                { label: t('Long-range / precision (> 200km)','دقيقة بعيدة المدى'), value: '5,000+', color: '#dc2626' },
+                { label: t('UAVs / Drones','طائرات مسيّرة'), value: '2,000+', color: '#facc15' },
+                { label: t('Anti-tank missiles (Kornet etc.)','مضادة للدروع'), value: '10,000+', color: '#a78bfa' },
+                { label: t('Anti-ship missiles (Yakhont/C-802)','مضادة للسفن'), value: '~100', color: '#7c3aed' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-center justify-between py-0.5">
+                  <span className="text-[8px] text-foreground/50 font-mono flex-1 truncate pr-2">{label}</span>
+                  <span className="text-[9px] font-bold font-mono" style={{ color }}>{value}</span>
+                </div>
+              ))}
+              <div className="text-[7px] text-foreground/25 font-mono mt-1.5">{t("Source: IDF, CSIS, IISS Military Balance, Jane's Defence","المصدر: الجيش الإسرائيلي، CSIS، IISS")}</div>
+            </div>
+
+            <div className="rounded p-2" style={{background:'hsl(220 30% 18% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('Key Escalation Points','نقاط التصعيد الرئيسية')}</div>
+              {[
+                { date: 'Oct 8 2023', event: t('Hezbollah opens northern front in solidarity with Gaza','حزب الله يفتح الجبهة الشمالية'), color: '#ef4444' },
+                { date: 'Jan 2–3 2024', event: t('IDF kills Saleh Arouri (Hamas) in Beirut strike','الجيش الإسرائيلي يقتل صالح العاروري في بيروت'), color: '#f97316' },
+                { date: 'Apr 13 2024', event: t('Iran direct attack on Israel: 300+ drones/missiles','إيران تهاجم إسرائيل مباشرة بـ 300+ صاروخ'), color: '#dc2626' },
+                { date: 'Jul 30 2024', event: t('IDF kills Fuad Shukr (Hezbollah cmdr) in Beirut','مقتل فؤاد شكر في بيروت'), color: '#f97316' },
+                { date: 'Sep 17 2024', event: t('Pager/walkie-talkie attacks: 1,000+ Hezbollah casualties','هجمات أجهزة النداء: 1000+ إصابة'), color: '#facc15' },
+                { date: 'Sep 27 2024', event: t('IDF kills Nasrallah (Hezbollah SG) in Dahieh','مقتل نصر الله في ضاحية بيروت'), color: '#dc2626' },
+                { date: 'Oct 1 2024', event: t('Iran fires 181 ballistic missiles at Israel','إيران تطلق 181 صاروخاً باليستياً'), color: '#dc2626' },
+                { date: 'Nov 27 2024', event: t('Lebanon–Israel ceasefire agreement','اتفاق وقف إطلاق النار لبنان-إسرائيل'), color: '#34d399' },
+              ].map(({ date, event, color }) => (
+                <div key={date} className="flex gap-2 mb-1 last:mb-0">
+                  <span className="text-[7px] font-mono text-foreground/35 shrink-0 pt-0.5 w-[68px]">{date}</span>
+                  <div className="w-px shrink-0 rounded-full self-stretch" style={{ background: color + '50' }} />
+                  <span className="text-[8px] font-mono text-foreground/60 leading-tight">{event}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-[7px] text-foreground/30 text-center font-mono">{t('Sources: IDF, UNIFIL, NowLebanon, LBCI, Alma Research, CSIS.','المصادر: الجيش الإسرائيلي، يونيفيل، ناو لبنان، LBCI، Alma.')}</div>
+          </>
+        ) : (
+          /* Live Feed */
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 mb-0.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[9px] font-mono font-bold text-foreground/60 uppercase tracking-wider">{t('Live Conflict Intelligence','مصدر الاستخبارات المباشر')}</span>
+            </div>
+            <div className="text-[7px] font-mono text-foreground/30 mb-2">{t('Filtered for GCC & Lebanon attack events · GDELT + NewsAPI + GNews','مُرشَّح · GDELT + NewsAPI + GNews')}</div>
+
+            {liveFeedLoading && (
+              <div className="flex items-center justify-center py-8 gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary/50" />
+                <span className="text-[9px] font-mono text-foreground/40">{t('Fetching live data…','جلب البيانات…')}</span>
+              </div>
+            )}
+            {liveFeedError && (
+              <div className="rounded p-3 text-center" style={{background:'hsl(0 30% 14% / 0.5)', border:'1px solid hsl(0 40% 25% / 0.3)'}}>
+                <AlertTriangle className="w-4 h-4 text-red-400 mx-auto mb-1" />
+                <div className="text-[8px] font-mono text-red-400">{t('Failed to fetch live feed. API keys may be required.','فشل في جلب البيانات. قد تحتاج مفاتيح API.')}</div>
+              </div>
+            )}
+            {!liveFeedLoading && !liveFeedError && liveFeed.length === 0 && (
+              <div className="rounded p-3 text-center" style={{background:'hsl(220 30% 16% / 0.4)', border:'1px solid hsl(185 20% 20% / 0.3)'}}>
+                <div className="text-[8px] font-mono text-foreground/40">{t('No recent conflict events found. Feed refreshes every 30s.','لا أحداث حديثة. يتجدد كل 30 ثانية.')}</div>
+              </div>
+            )}
+            {liveFeed.map((item: any) => {
+              const color = attackTypeColor(item.attackType);
+              const label = attackTypeLabel(item.attackType);
+              const ageMin = Math.floor((Date.now() - new Date(item.timestamp).getTime()) / 60000);
+              const ageStr = ageMin < 60 ? `${ageMin}m ago` : `${Math.floor(ageMin / 60)}h ago`;
+              const relevanceBadge = item.relevance === 'gcc' ? { text: 'GCC', color: '#f97316' }
+                : item.relevance === 'lebanon' ? { text: 'LBN', color: '#34d399' }
+                : item.relevance === 'both' ? { text: 'MULTI', color: '#facc15' } : null;
+              return (
+                <div key={item.id} className="rounded p-2" style={{background:'hsl(220 28% 16% / 0.7)', border:`1px solid ${color}20`}}>
+                  <div className="flex items-start gap-1.5">
+                    <div className="flex flex-col gap-1 shrink-0 pt-0.5">
+                      <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded" style={{background: color + '20', color, border:`1px solid ${color}35`}}>{label}</span>
+                      {relevanceBadge && <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded text-center" style={{background: relevanceBadge.color + '20', color: relevanceBadge.color, border:`1px solid ${relevanceBadge.color}35`}}>{relevanceBadge.text}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {item.url
+                        ? <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-[9px] font-mono text-foreground/80 leading-tight hover:text-primary transition-colors line-clamp-2 block">{item.title}</a>
+                        : <p className="text-[9px] font-mono text-foreground/80 leading-tight line-clamp-2">{item.title}</p>}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[7px] font-mono text-foreground/35">{item.source}</span>
+                        <span className="text-[7px] font-mono text-foreground/25">{ageStr}</span>
+                        {item.url && <ExternalLink className="w-2.5 h-2.5 text-foreground/20" />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {liveFeed.length > 0 && (
+              <button className="w-full py-1.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider transition-all hover:bg-white/5"
+                style={{border:'1px solid hsl(185 20% 22% / 0.5)', color:'hsl(185 60% 45%)'}}
+                onClick={() => { liveFetchedRef.current = false; setLiveFeed([]); setActiveTab('overview'); setTimeout(() => setActiveTab('live'), 50); }}>
+                {t('Refresh Feed','تحديث')}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
