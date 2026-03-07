@@ -7372,7 +7372,7 @@ export default function Dashboard() {
       <div
         ref={panelsScrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ minHeight: 0, overscrollBehavior: 'contain', willChange: 'scroll-position', contain: 'layout style paint' }}
+        style={{ minHeight: 0, overscrollBehavior: 'contain' }}
         data-testid="resizable-panels"
       >
         {isMobile ? (
