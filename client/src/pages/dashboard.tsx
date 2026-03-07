@@ -5452,6 +5452,28 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   const totalToIsrael = corridorsToIsrael.reduce((s, c) => s + c.totalLaunches, 0);
   const totalFromIsrael = corridorsFromIsrael.reduce((s, c) => s + c.totalLaunches, 0);
 
+  const gccCorridors = stats?.gccCorridors || [];
+  const gccIncoming = gccCorridors.filter(c => ['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'].includes(c.targetCountry));
+  const gccOutgoing = gccCorridors.filter(c => ['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman'].includes(c.originCountry));
+  const totalGCCHits = gccIncoming.reduce((s, c) => s + c.totalLaunches, 0);
+  const totalGCCIntercepted = gccIncoming.reduce((s, c) => s + c.intercepted, 0);
+  const lblCorridors = stats?.lebanonCorridors || [];
+  const lblToIsrael = lblCorridors.filter(c => c.originCountry === 'Lebanon');
+  const lblFromIsrael = lblCorridors.filter(c => c.originCountry === 'Israel' && c.targetCountry === 'Lebanon');
+  const totalLblFired = lblToIsrael.reduce((s, c) => s + c.totalLaunches, 0);
+  const totalLblReceived = lblFromIsrael.reduce((s, c) => s + c.totalLaunches, 0);
+
+  useEffect(() => {
+    if (activeTab !== 'live' || liveFetchedRef.current) return;
+    liveFetchedRef.current = true;
+    setLiveFeedLoading(true);
+    setLiveFeedError(false);
+    fetch('/api/live-conflict-feed')
+      .then(r => r.json())
+      .then(data => { setLiveFeed(Array.isArray(data) ? data : []); setLiveFeedLoading(false); })
+      .catch(() => { setLiveFeedError(true); setLiveFeedLoading(false); });
+  }, [activeTab]);
+
   const getCountryIcon = (country: string) => {
     if (country === 'Israel') return <Shield className="w-3 h-3 text-blue-400" />;
     if (country === 'Lebanon') return <Target className="w-3 h-3 text-green-400" />;
@@ -5461,25 +5483,85 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
     if (country === 'Syria') return <Radio className="w-3 h-3 text-purple-400" />;
     if (country === 'Iraq') return <Zap className="w-3 h-3 text-amber-400" />;
     if (country === 'United States') return <Globe className="w-3 h-3 text-cyan-400" />;
+    if (['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman'].includes(country)) return <Shield className="w-3 h-3 text-emerald-400" />;
     return <Globe className="w-3 h-3 text-gray-400" />;
   };
 
+  const attackTypeColor = (at: string) => {
+    if (at === 'rocket') return '#f97316';
+    if (at === 'missile') return '#ef4444';
+    if (at === 'drone') return '#facc15';
+    if (at === 'airstrike') return '#60a5fa';
+    if (at === 'naval') return '#34d399';
+    return '#94a3b8';
+  };
+  const attackTypeLabel = (at: string) => ({'rocket':'ROCKET','missile':'MISSILE','drone':'DRONE','airstrike':'AIRSTRIKE','naval':'NAVAL'}[at] || 'EVENT');
+
+  const CorridorRow = ({ c, barColor, maxLaunches }: { c: RocketCorridor; barColor: string; maxLaunches: number }) => (
+    <div className="flex items-center gap-1.5 text-[9px] py-0.5">
+      {getCountryIcon(c.originCountry)}
+      <span className="text-foreground/70 font-mono w-[60px] truncate">{c.origin}</span>
+      <ArrowRight className="w-2.5 h-2.5 shrink-0" style={{ color: barColor + '80' }} />
+      {getCountryIcon(c.targetCountry)}
+      <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{ background: 'hsl(220 25% 12%)' }}>
+        <div className="h-full rounded-full" style={{ width: `${Math.max(4, (c.totalLaunches / Math.max(maxLaunches, 1)) * 100)}%`, background: c.active ? barColor : barColor + '55' }} />
+      </div>
+      <span className="text-foreground/80 font-mono font-bold w-[36px] text-right">{c.totalLaunches.toLocaleString()}</span>
+      {c.active && <div className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: barColor }} />}
+    </div>
+  );
+
+  const TypeBreakdown = ({ corridors, color }: { corridors: RocketCorridor[]; color: string }) => {
+    const rockets = corridors.reduce((s, c) => s + c.rockets, 0);
+    const missiles = corridors.reduce((s, c) => s + c.missiles, 0);
+    const drones = corridors.reduce((s, c) => s + c.drones, 0);
+    const intercepted = corridors.reduce((s, c) => s + c.intercepted, 0);
+    const total = corridors.reduce((s, c) => s + c.totalLaunches, 0);
+    return (
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${color}18` }}>
+        {rockets > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Rockets','صواريخ')}: <span className="text-orange-400 font-bold">{rockets.toLocaleString()}</span></span>}
+        {missiles > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Missiles','قذائف')}: <span className="text-red-400 font-bold">{missiles.toLocaleString()}</span></span>}
+        {drones > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Drones','مسيّرات')}: <span className="text-yellow-400 font-bold">{drones.toLocaleString()}</span></span>}
+        {total > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Intercept','اعتراض')}: <span className="text-emerald-400 font-bold">{intercepted.toLocaleString()} ({total > 0 ? ((intercepted/total)*100).toFixed(0) : 0}%)</span></span>}
+      </div>
+    );
+  };
+
+  const TABS = [
+    { id: 'overview', label: t('Overview','نظرة') },
+    { id: 'gcc',      label: t('GCC','الخليج') },
+    { id: 'lebanon',  label: t('Lebanon','لبنان') },
+    { id: 'live',     label: t('Live','مباشر') },
+  ] as const;
+
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-rocketstats">
+      {/* Header */}
       <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <Rocket className="w-3.5 h-3.5 text-orange-400" />
-        <span className="text-[10px] font-bold tracking-wider text-foreground/90 uppercase font-mono flex-1">{t('Rocket / Missile Stats', 'إحصائيات الصواريخ')}</span>
+        <span className="text-[10px] font-bold tracking-wider text-foreground/90 uppercase font-mono flex-1">{t('Launch Statistics', 'إحصائيات الإطلاق')}</span>
         <span className="text-[7px] text-yellow-500/70 font-mono px-1 py-0.5 rounded" style={{background:'hsl(45 80% 30% / 0.15)', border:'1px solid hsl(45 60% 40% / 0.2)'}} data-testid="badge-estimated">{t('EST.', 'تقدير')}</span>
-        {stats && (
-          <span className="text-[8px] text-primary/60 font-mono">{new Date(stats.generatedAt).toLocaleTimeString()}</span>
-        )}
+        {stats && <span className="text-[8px] text-primary/60 font-mono">{new Date(stats.generatedAt).toLocaleTimeString()}</span>}
         <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={() => onMaximize?.()} />
         <PanelMinimizeButton onMinimize={() => onClose?.()} />
       </div>
 
+      {/* Tab bar */}
+      <div className="flex shrink-0 border-b" style={{background:'hsl(220 28% 15%)', borderColor:'hsl(185 20% 20% / 0.3)'}}>
+        {TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className="flex-1 py-1.5 text-[8px] font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1"
+            style={{ color: activeTab === tab.id ? 'hsl(185 100% 55%)' : 'hsl(220 10% 45%)', borderBottom: activeTab === tab.id ? '2px solid hsl(185 100% 42%)' : '2px solid transparent', background: activeTab === tab.id ? 'hsl(185 40% 18% / 0.25)' : 'transparent' }}>
+            {tab.id === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2" style={{background:'hsl(220 28% 14% / 0.97)'}}>
-        {!stats ? (
+        {!stats && activeTab !== 'live' ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-5 h-5 animate-spin text-primary/50" />
           </div>

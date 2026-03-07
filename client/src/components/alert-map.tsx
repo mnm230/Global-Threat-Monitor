@@ -80,6 +80,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
 
   // Separate helper — adds all sources/layers/events to a freshly styled map
   const setupLayers = (map: MapLibreMap) => {
+    if (map.getSource('alerts')) return;
     map.addSource('alerts', {
       type: 'geojson',
       data: geoJsonRef.current ?? { type: 'FeatureCollection', features: [] },
