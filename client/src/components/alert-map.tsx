@@ -56,6 +56,8 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
 
   const [theme, setTheme] = useState<MapTheme>('light');
   const [activeRegion, setActiveRegion] = useState<string>('all');
+  const [showPanel, setShowPanel] = useState(false);
+  const [panelTab, setPanelTab] = useState<'stats' | 'prediction'>('stats');
 
   const geoJson = useMemo(() => {
     const now = Date.now();
@@ -345,6 +347,100 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
     return counts;
   }, [geoJson]);
 
+  // Stats derived from alerts prop
+  const statsData = useMemo(() => {
+    const now = Date.now();
+    const total = alerts.length;
+    const active = alerts.filter(a => {
+      const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
+      return a.countdown === 0 || elapsed < a.countdown;
+    }).length;
+    const past = total - active;
+
+    const byGroup: Record<string, number> = { gcc: 0, levant: 0, lebanon: 0, iran: 0, iraq: 0, other: 0 };
+    const byType: Record<string, number> = {};
+    const cityCount: Record<string, number> = {};
+
+    alerts.forEach(a => {
+      const group = GCC_COUNTRIES.has(a.country || '') ? 'gcc'
+        : a.country === 'Lebanon' ? 'lebanon'
+        : a.country === 'Iran' ? 'iran'
+        : a.country === 'Iraq' ? 'iraq'
+        : (a.country === 'Israel' || a.country === 'Palestine' || a.country === 'Gaza') ? 'levant'
+        : 'other';
+      byGroup[group] = (byGroup[group] || 0) + 1;
+      const t = a.threatType || 'unknown';
+      byType[t] = (byType[t] || 0) + 1;
+      if (a.city) cityCount[a.city] = (cityCount[a.city] || 0) + 1;
+    });
+
+    const topType = Object.entries(byType).sort((a, b) => b[1] - a[1])[0];
+    const topGroup = Object.entries(byGroup).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0];
+    const hotCity = Object.entries(cityCount).sort((a, b) => b[1] - a[1])[0];
+    const liveCount = alerts.filter(a => a.source === 'live').length;
+
+    return { total, active, past, byGroup, byType, topType, topGroup, hotCity, liveCount };
+  }, [alerts]);
+
+  // Fun prediction engine
+  const prediction = useMemo(() => {
+    const { total, active, byGroup, byType } = statsData;
+
+    const tension = Math.min(100, Math.round(
+      (active / Math.max(total, 1)) * 80 + (total > 50 ? 20 : total > 20 ? 10 : 0)
+    ));
+
+    const tensionData =
+      tension >= 80 ? { label: 'ABSOLUTE CHAOS', emoji: '🔥', color: '#dc2626' }
+      : tension >= 60 ? { label: 'VERY HOT', emoji: '⚡', color: '#ea580c' }
+      : tension >= 40 ? { label: 'HEATING UP', emoji: '😬', color: '#f59e0b' }
+      : tension >= 20 ? { label: 'TENSE', emoji: '😐', color: '#3b82f6' }
+      : { label: 'SUSPICIOUSLY QUIET', emoji: '😴', color: '#22c55e' };
+
+    const allQuotes = [
+      { min: 80,  text: "At this rate, the map needs a fire extinguisher." },
+      { min: 80,  text: "Intel suggests someone skipped diplomacy 101." },
+      { min: 60,  text: "Things are spicier than a Yemeni hot sauce." },
+      { min: 60,  text: "The region is having a very energetic Tuesday." },
+      { min: 40,  text: "Threat level: your average Monday morning commute." },
+      { min: 40,  text: "Analysts recommend bringing an umbrella. And a helmet." },
+      { min: 20,  text: "Relatively calm. Suspicious, but calm." },
+      { min: 20,  text: "Either everyone's napping or plotting something." },
+      { min: 0,   text: "Perfect weather for not being in a conflict zone." },
+      { min: 0,   text: "Quiet enough to hear diplomats pretending to talk." },
+    ];
+    const eligibleQuotes = allQuotes.filter(q => tension >= q.min);
+    const quoteIdx = (total * 7 + active * 3) % eligibleQuotes.length;
+    const quote = eligibleQuotes[quoteIdx]?.text ?? "The situation defies description.";
+
+    const topGroupLabel: Record<string, string> = {
+      gcc: 'GCC', levant: 'Levant', lebanon: 'Lebanon', iran: 'Iran', iraq: 'Iraq',
+    };
+    const topRegionEntry = Object.entries(byGroup).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])[0];
+    const topRegionName = topRegionEntry ? (topGroupLabel[topRegionEntry[0]] || topRegionEntry[0]) : 'Unknown';
+
+    const topTypeEntry = Object.entries(byType).sort((a, b) => b[1] - a[1])[0];
+    const topTypeLabel = topTypeEntry ? topTypeEntry[0].replace(/_/g, ' ') : 'unknown';
+
+    // Probability bars (pattern-derived, not random)
+    const escProb = Math.min(93, 15 + active * 6 + (total > 60 ? 20 : total > 30 ? 10 : 0));
+    const deescProb = Math.max(5, 85 - escProb);
+    const interceptProb = Math.min(90, 30 + (byType['rockets'] || 0) * 2);
+
+    // Dramatic city prediction
+    const cityPicks = ['Jizan', 'Tel Aviv', 'Beirut', 'Sana\'a', 'Riyadh', 'Haifa', 'Gaza City', 'Baghdad'];
+    const predCity = cityPicks[(total + active * 2) % cityPicks.length];
+
+    // Fun risk badges
+    const riskBadge =
+      tension >= 75 ? { text: 'SEND HELP', bg: '#dc2626', fg: '#fff' }
+      : tension >= 50 ? { text: 'EYES ON', bg: '#ea580c', fg: '#fff' }
+      : tension >= 25 ? { text: 'WATCHFUL', bg: '#f59e0b', fg: '#000' }
+      : { text: 'NAP TIME', bg: '#22c55e', fg: '#000' };
+
+    return { tension, tensionData, quote, escProb, deescProb, interceptProb, predCity, topRegionName, topTypeLabel, riskBadge };
+  }, [statsData]);
+
   const flyToRegion = (r: typeof REGIONS[number]) => {
     setActiveRegion(r.id);
     mapRef.current?.flyTo({ center: r.center, zoom: r.zoom, duration: 800 });
@@ -445,6 +541,215 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
           ))}
         </div>
       </div>
+
+      {/* ── Stats/Prediction toggle button ───────────────────── */}
+      <button
+        onClick={() => setShowPanel(p => !p)}
+        title="Stats & Prediction"
+        className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-mono font-bold text-[10px] transition-all active:scale-95"
+        style={{
+          background: showPanel ? '#3b82f6' : panelBg,
+          border: showPanel ? '1px solid #2563eb' : panelBorder,
+          color: showPanel ? '#fff' : textBase,
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+        }}
+      >
+        <span style={{ fontSize: 13 }}>📊</span>
+        STATS
+      </button>
+
+      {/* ── Stats & Prediction panel ──────────────────────────── */}
+      {showPanel && (
+        <div
+          className="absolute top-14 right-3 z-10 rounded-xl overflow-hidden flex flex-col"
+          style={{
+            width: 240,
+            maxHeight: 'calc(100% - 7rem)',
+            background: panelBg,
+            border: panelBorder,
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+          }}
+        >
+          {/* Tab bar */}
+          <div className="flex" style={{ borderBottom: panelBorder }}>
+            {(['stats', 'prediction'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setPanelTab(tab)}
+                className="flex-1 py-2 text-[9px] font-mono font-black uppercase tracking-wider transition-all"
+                style={{
+                  background: panelTab === tab ? (isDark ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.08)') : 'transparent',
+                  color: panelTab === tab ? '#3b82f6' : textMuted,
+                  borderBottom: panelTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
+                }}
+              >
+                {tab === 'stats' ? '📈 Stats' : '🔮 Predict'}
+              </button>
+            ))}
+          </div>
+
+          <div className="overflow-y-auto" style={{ flex: 1 }}>
+            {panelTab === 'stats' ? (
+              <div className="p-3 flex flex-col gap-3">
+                {/* KPI row */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: 'Total', value: statsData.total, color: '#94a3b8' },
+                    { label: 'Active', value: statsData.active, color: '#dc2626' },
+                    { label: 'Past', value: statsData.past, color: '#64748b' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="flex flex-col items-center rounded-lg py-2" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}>
+                      <span className="font-mono font-black text-base" style={{ color }}>{value}</span>
+                      <span className="font-mono text-[7px] uppercase tracking-wider mt-0.5" style={{ color: textMuted }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Live badge */}
+                {statsData.liveCount > 0 && (
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="font-mono text-[8px] font-bold text-green-500">{statsData.liveCount} LIVE alerts</span>
+                  </div>
+                )}
+
+                {/* By region */}
+                <div>
+                  <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: textMuted }}>By Region</div>
+                  {Object.entries(statsData.byGroup)
+                    .filter(([, v]) => v > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([group, count]) => {
+                      const regionMeta: Record<string, { label: string; color: string; flag: string }> = {
+                        gcc:     { label: 'GCC',     color: '#f97316', flag: '🛡' },
+                        levant:  { label: 'Levant',  color: '#3b82f6', flag: '🗺' },
+                        lebanon: { label: 'Lebanon', color: '#22c55e', flag: '🇱🇧' },
+                        iran:    { label: 'Iran',    color: '#a855f7', flag: '🇮🇷' },
+                        iraq:    { label: 'Iraq',    color: '#f59e0b', flag: '🇮🇶' },
+                        other:   { label: 'Other',   color: '#64748b', flag: '🌍' },
+                      };
+                      const meta = regionMeta[group] || { label: group, color: '#94a3b8', flag: '📍' };
+                      const pct = Math.round((count / Math.max(statsData.total, 1)) * 100);
+                      return (
+                        <div key={group} className="mb-1.5 last:mb-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="font-mono text-[9px] font-bold" style={{ color: textBase }}>{meta.flag} {meta.label}</span>
+                            <span className="font-mono text-[8px]" style={{ color: textMuted }}>{count} ({pct}%)</span>
+                          </div>
+                          <div className="w-full rounded-full h-1" style={{ background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }}>
+                            <div className="h-1 rounded-full transition-all" style={{ width: `${pct}%`, background: meta.color, opacity: 0.8 }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* By threat type */}
+                <div>
+                  <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: textMuted }}>By Threat Type</div>
+                  {Object.entries(statsData.byType)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([type, count]) => {
+                      const color = THREAT_COLORS[type] || '#94a3b8';
+                      const pct = Math.round((count / Math.max(statsData.total, 1)) * 100);
+                      return (
+                        <div key={type} className="flex items-center gap-2 mb-1 last:mb-0">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                          <span className="font-mono text-[8px] flex-1 truncate" style={{ color: textBase }}>{type.replace(/_/g, ' ')}</span>
+                          <span className="font-mono text-[8px] font-bold" style={{ color }}>{count}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Hot city */}
+                {statsData.hotCity && (
+                  <div className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-0.5" style={{ color: textMuted }}>Hottest City</div>
+                    <span className="font-mono text-[10px] font-black" style={{ color: '#dc2626' }}>🔴 {statsData.hotCity[0]}</span>
+                    <span className="font-mono text-[8px] ml-1.5" style={{ color: textMuted }}>{statsData.hotCity[1]} alerts</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ── Prediction tab ── */
+              <div className="p-3 flex flex-col gap-3">
+                {/* Risk badge */}
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[7px] uppercase tracking-widest" style={{ color: textMuted }}>Analyst Risk Rating</span>
+                  <span className="font-mono text-[9px] font-black px-2 py-0.5 rounded-full" style={{ background: prediction.riskBadge.bg, color: prediction.riskBadge.fg }}>
+                    {prediction.riskBadge.text}
+                  </span>
+                </div>
+
+                {/* Tension-O-Meter */}
+                <div className="rounded-xl p-3" style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', border: panelBorder }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-[8px] font-bold uppercase tracking-wider" style={{ color: textMuted }}>TENSION-O-METER</span>
+                    <span className="font-mono text-[8px] font-black" style={{ color: prediction.tensionData.color }}>{prediction.tension}%</span>
+                  </div>
+                  <div className="w-full rounded-full h-3 overflow-hidden" style={{ background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }}>
+                    <div
+                      className="h-3 rounded-full transition-all"
+                      style={{
+                        width: `${prediction.tension}%`,
+                        background: `linear-gradient(to right, #22c55e, #f59e0b, #dc2626)`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 mt-2">
+                    <span style={{ fontSize: 14 }}>{prediction.tensionData.emoji}</span>
+                    <span className="font-mono text-[9px] font-black" style={{ color: prediction.tensionData.color }}>{prediction.tensionData.label}</span>
+                  </div>
+                </div>
+
+                {/* Analyst quote */}
+                <div className="rounded-xl p-3" style={{ background: isDark ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <div className="font-mono text-[7px] font-bold uppercase tracking-widest mb-1.5 text-blue-400">🧠 Senior Analyst Says</div>
+                  <div className="font-mono text-[9px] italic leading-relaxed" style={{ color: textBase }}>"{prediction.quote}"</div>
+                </div>
+
+                {/* Probability bars */}
+                <div>
+                  <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-2" style={{ color: textMuted }}>Next-Hour Forecast</div>
+                  {[
+                    { label: '📈 Escalation', prob: prediction.escProb, color: '#dc2626' },
+                    { label: '📉 De-escalation', prob: prediction.deescProb, color: '#22c55e' },
+                    { label: '🛡 Intercept rate', prob: prediction.interceptProb, color: '#3b82f6' },
+                  ].map(({ label, prob, color }) => (
+                    <div key={label} className="mb-2 last:mb-0">
+                      <div className="flex justify-between mb-0.5">
+                        <span className="font-mono text-[8px]" style={{ color: textBase }}>{label}</span>
+                        <span className="font-mono text-[8px] font-black" style={{ color }}>{prob}%</span>
+                      </div>
+                      <div className="w-full rounded-full h-1.5" style={{ background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)' }}>
+                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${prob}%`, background: color, opacity: 0.85 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Predicted next target */}
+                <div className="rounded-xl p-3" style={{ background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                  <div className="font-mono text-[7px] font-bold uppercase tracking-widest mb-1" style={{ color: '#dc2626' }}>🎯 Next Predicted Hotspot</div>
+                  <div className="font-mono text-[11px] font-black" style={{ color: textBase }}>{prediction.predCity}</div>
+                  <div className="font-mono text-[8px] mt-0.5" style={{ color: textMuted }}>
+                    Region: {prediction.topRegionName} · Primary threat: {prediction.topTypeLabel}
+                  </div>
+                </div>
+
+                {/* Disclaimer */}
+                <div className="font-mono text-[7px] text-center" style={{ color: textMuted, opacity: 0.6 }}>
+                  * Predictions are pattern-derived estimates.<br/>Not a substitute for actual intelligence.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Zoom controls ────────────────────────────────────── */}
       <div className="absolute bottom-6 right-3 z-10 flex flex-col gap-1">

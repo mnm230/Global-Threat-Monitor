@@ -22,8 +22,6 @@ import type {
   TelegramMessage,
   SirenAlert,
   RedAlert,
-  AIBrief,
-  AIDeduction,
   EWEvent,
   InfraEvent,
   ThermalHotspot,
@@ -71,7 +69,6 @@ import {
   Clock,
   Zap,
   Loader2,
-  Radar,
   Plus,
   Trash2,
   Hash,
@@ -273,7 +270,6 @@ interface SSEData {
   ships: ShipData[];
   sirens: SirenAlert[];
   redAlerts: RedAlert[];
-  aiBrief: AIBrief | null;
   telegramMessages: TelegramMessage[];
   ewEvents: EWEvent[];
   infraEvents: InfraEvent[];
@@ -292,7 +288,6 @@ function useSSE(): SSEData {
   const [ships, setShips] = useState<ShipData[]>([]);
   const [sirens, setSirens] = useState<SirenAlert[]>([]);
   const [redAlerts, setRedAlerts] = useState<RedAlert[]>([]);
-  const [aiBrief, setAiBrief] = useState<AIBrief | null>(null);
   const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
   const [ewEvents, setEwEvents] = useState<EWEvent[]>([]);
   const [infraEvents, setInfraEvents] = useState<InfraEvent[]>([]);
@@ -335,9 +330,6 @@ function useSSE(): SSEData {
       });
       es.addEventListener('red-alerts', (e) => {
         try { setRedAlerts(JSON.parse(e.data)); } catch {}
-      });
-      es.addEventListener('ai-brief', (e) => {
-        try { setAiBrief(JSON.parse(e.data)); } catch {}
       });
       es.addEventListener('telegram', (e) => {
         try { setTelegramMessages(JSON.parse(e.data)); } catch {}
@@ -383,7 +375,7 @@ function useSSE(): SSEData {
     };
   }, []);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected };
+  return { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected };
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -577,14 +569,13 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'radar' | 'alerts' | 'markets' | 'intel' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep' | 'attackpred' | 'rocketstats';
+type PanelId = 'map' | 'events' | 'alerts' | 'markets' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
-  intel: { icon: Brain, label: 'AI Intel', labelAr: '\u0630\u0643\u0627\u0621' },
+  aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
   map: { icon: Target, label: 'Map', labelAr: '\u062E\u0631\u064A\u0637\u0629' },
   telegram: { icon: Send, label: 'Telegram', labelAr: '\u062A\u0644\u063A\u0631\u0627\u0645' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
-  radar: { icon: Plane, label: 'Radar', labelAr: '\u0631\u0627\u062F\u0627\u0631' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
   ew: { icon: Radio, label: 'Elec. Warfare', labelAr: 'الحرب الإلكترونية' },
@@ -1084,26 +1075,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, sitrep: false },
-    colWidths: { telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16, events: 22, radar: 22, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28 },
+    visiblePanels: { map: true, telegram: true, events: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, sitrep: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, map: 36, alerts: 16, livefeed: 16, events: 22, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { intel: false, map: true, telegram: false, events: false, radar: true, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false, sitrep: false },
-    colWidths: { telegram: 16, intel: 16, map: 60, alerts: 26, livefeed: 20, events: 22, radar: 30, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28 },
+    visiblePanels: { map: true, telegram: false, events: false, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: false, analytics: false, osint: false, sitrep: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, map: 60, alerts: 26, livefeed: 20, events: 22, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { intel: false, map: true, telegram: false, events: true, radar: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, sitrep: false },
-    colWidths: { telegram: 16, intel: 16, map: 50, alerts: 50, livefeed: 20, events: 25, radar: 25, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28 },
+    visiblePanels: { map: true, telegram: false, events: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, sitrep: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, map: 50, alerts: 50, livefeed: 20, events: 25, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { intel: false, map: true, telegram: true, events: false, radar: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false, sitrep: false },
-    colWidths: { telegram: 100, intel: 100, map: 100, alerts: 100, livefeed: 100, events: 100, radar: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, sitrep: 100 },
+    visiblePanels: { map: true, telegram: true, events: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: false, analytics: false, osint: false, sitrep: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, map: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, sitrep: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1115,11 +1106,10 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'alerts',    x: 0, y: 0,  w: 4, h: 9, minW: 2, minH: 4 },
   { i: 'telegram',  x: 4, y: 0,  w: 4, h: 9, minW: 2, minH: 3 },
   { i: 'map',       x: 8, y: 0,  w: 4, h: 9, minW: 3, minH: 3 },
-  // Row 2 — Intel + LiveFeed + Events + Radar  (y=9, h=5)
-  { i: 'intel',     x: 0, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'livefeed',  x: 3, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'events',    x: 6, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
-  { i: 'radar',     x: 9, y: 9,  w: 3, h: 5, minW: 2, minH: 2 },
+  // Row 2 — AI Prediction + LiveFeed + Events  (y=9, h=5)
+  { i: 'aiprediction', x: 0, y: 9,  w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'livefeed',  x: 4, y: 9,  w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'events',    x: 8, y: 9,  w: 4, h: 5, minW: 2, minH: 2 },
   // Row 3 — AlertMap & Markets  (y=14, h=4)
   { i: 'alertmap',  x: 0, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
   { i: 'markets',   x: 6, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
@@ -1128,8 +1118,8 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'infra',     x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'analytics', x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'osint',     x: 8, y: 18, w: 4, h: 4, minW: 3, minH: 2 },
-  { i: 'attackpred', x: 0, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
-  { i: 'rocketstats', x: 4, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
+  { i: 'attackpred',   x: 0, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 4, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
 ];
 
 interface Correlation {
@@ -3851,223 +3841,6 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
   );
 }
 
-const AIIntelPanel = memo(function AIIntelPanel({ language, onClose, onMaximize, isMaximized, brief, briefLoading, anomalies = [] }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; brief?: AIBrief | null; briefLoading?: boolean; anomalies?: Anomaly[] }) {
-  const [deductQuery, setDeductQuery] = useState('');
-  const [deductResult, setDeductResult] = useState<AIDeduction | null>(null);
-
-  const deductMutation = useMutation({
-    mutationFn: async (query: string) => {
-      const res = await apiRequest('POST', '/api/ai-deduct', { query });
-      return res.json() as Promise<AIDeduction>;
-    },
-    onSuccess: (data) => setDeductResult(data),
-  });
-
-  const handleDeduct = () => {
-    if (deductQuery.trim()) {
-      deductMutation.mutate(deductQuery.trim());
-    }
-  };
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="ai-intel-panel">
-      <div className="panel-drag-handle h-9 px-3 border-b border-white/[0.04] flex items-center gap-2 bg-gradient-to-r from-purple-500/[0.04] to-transparent shrink-0 relative overflow-hidden cursor-grab active:cursor-grabbing" style={{background:'hsl(220 30% 17% / 0.88)', borderBottom:'1px solid hsl(185 40% 40% / 0.1)'}}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-purple-400/20" />
-        <div className="absolute left-0 inset-y-0 w-[2px] bg-gradient-to-b from-purple-400/50 via-purple-400/20 to-transparent" />
-        <Brain className="w-3.5 h-3.5 text-purple-400/60 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">
-          {language === 'en' ? 'AI Intel' : '\u0630\u0643\u0627\u0621'}
-        </span>
-        <span className="text-[9px] px-1.5 py-0.5 font-mono text-foreground/30 bg-white/[0.03] rounded border border-white/[0.06] tabular-nums leading-none">
-          {brief?.model || '...'}
-        </span>
-        {anomalies.length > 0 && (
-          <span className="text-[9px] px-1.5 py-0.5 font-mono font-bold text-amber-300/80 bg-amber-950/30 rounded border border-amber-500/20 animate-pulse" data-testid="anomaly-badge">
-            {anomalies.length} ANOM
-          </span>
-        )}
-        <div className="flex-1" />
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-emerald-500/[0.06] border border-emerald-500/[0.12]">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
-          <span className="text-[8px] uppercase tracking-widest text-emerald-400/60 font-mono font-bold">LIVE</span>
-        </div>
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
-      <ScrollArea className="flex-1 min-h-0">
-        {anomalies.length > 0 && (
-          <div className="border-b border-amber-500/20 bg-amber-950/10">
-            <div className="px-3 py-2 flex items-center gap-1.5">
-              <TriangleAlert className="w-3 h-3 text-amber-400" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400/80">{language === 'en' ? 'Anomalies Detected' : '\u0634\u0630\u0648\u0630 \u0645\u0643\u062A\u0634\u0641\u0629'}</span>
-            </div>
-            <div className="divide-y divide-amber-900/20">
-              {anomalies.map(a => (
-                <div key={a.id} className="px-3 py-2" data-testid={`anomaly-${a.id}`}>
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border ${a.severity === 'high' ? 'text-red-400 bg-red-950/30 border-red-500/30' : 'text-amber-400 bg-amber-950/30 border-amber-500/30'}`}>
-                      {a.severity.toUpperCase()}
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground/50">{a.type.replace(/_/g, ' ').toUpperCase()}</span>
-                    <span className="text-[10px] font-mono text-muted-foreground/30 ml-auto">{timeAgo(a.timestamp)}</span>
-                  </div>
-                  <p className="text-[11px] text-foreground/70 leading-relaxed">{a.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {briefLoading && (
-          <div className="px-3 py-8 text-center">
-            <Brain className="w-6 h-6 text-purple-400/40 mx-auto mb-2 animate-pulse" />
-            <p className="text-[10px] text-foreground/25">Synthesizing intelligence brief...</p>
-          </div>
-        )}
-
-        {brief && (
-          <div className="divide-y divide-white/[0.03]">
-            <div className="px-3 py-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
-                  {language === 'en' ? 'World Brief' : '\u0645\u0648\u062C\u0632 \u0639\u0627\u0644\u0645\u064A'}
-                </span>
-                {brief.riskLevel && (
-                  <Badge className={`text-xs px-1.5 py-0.5 font-bold border ${RISK_COLORS[brief.riskLevel] || ''}`}>
-                    {brief.riskLevel}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-foreground/70 leading-relaxed">
-                {language === 'ar' ? brief.summaryAr : brief.summary}
-              </p>
-              <div className="flex flex-wrap gap-1.5 mt-2.5">
-                {brief.focalPoints.map((fp, i) => (
-                  <span key={i} className="text-xs px-2 py-0.5 rounded bg-purple-950/30 border border-purple-500/20 text-purple-300/70 font-mono">
-                    {fp}
-                  </span>
-                ))}
-              </div>
-              <div className="text-[11px] text-muted-foreground/40 font-mono mt-2">
-                {new Date(brief.generatedAt).toLocaleTimeString()} UTC
-              </div>
-            </div>
-
-            <div className="px-3 py-3">
-              <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70 mb-2 block">
-                {language === 'en' ? 'Key Developments' : '\u062A\u0637\u0648\u0631\u0627\u062A \u0631\u0626\u064A\u0633\u064A\u0629'}
-              </span>
-              <div className="space-y-2.5">
-                {brief.keyDevelopments.map((dev, i) => (
-                  <div key={i} className="flex gap-2 items-start">
-                    <div className="mt-0.5 shrink-0">
-                      <Badge className={`text-[11px] px-1.5 py-0.5 font-bold border ${DEV_SEVERITY_STYLES[dev.severity] || ''}`}>
-                        {dev.severity.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs text-muted-foreground/50 font-bold uppercase tracking-wider">{dev.category}</span>
-                      <p className="text-xs text-foreground/75 leading-relaxed">
-                        {language === 'ar' ? dev.textAr : dev.text}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {brief.tacticalSituation && (
-              <div className="px-3 py-3 border-t border-white/[0.03]">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Crosshair className="w-3 h-3 text-red-400/70" />
-                  <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
-                    {language === 'en' ? 'Tactical Situation' : '\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062A\u0643\u062A\u064A\u0643\u064A'}
-                  </span>
-                  <span className="ml-auto text-[9px] font-mono text-red-400/50 bg-red-950/20 border border-red-500/20 px-1.5 py-0.5 rounded">24H</span>
-                </div>
-                <p className="text-xs text-foreground/70 leading-relaxed border-l-2 border-red-500/30 pl-2.5">{brief.tacticalSituation}</p>
-              </div>
-            )}
-
-            {brief.escalationIndicators && brief.escalationIndicators.length > 0 && (
-              <div className="px-3 py-3 border-t border-white/[0.03]">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <TriangleAlert className="w-3 h-3 text-amber-400/70" />
-                  <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
-                    {language === 'en' ? 'Escalation Indicators' : '\u0645\u0624\u0634\u0631\u0627\u062A \u0627\u0644\u062A\u0635\u0639\u064A\u062F'}
-                  </span>
-                </div>
-                <div className="space-y-1.5">
-                  {brief.escalationIndicators.map((ind, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span className="text-amber-400/60 font-mono text-[10px] mt-0.5 shrink-0">{String(i + 1).padStart(2, '0')}</span>
-                      <p className="text-xs text-foreground/65 leading-relaxed">{ind}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {brief.actorAnalysis && (
-              <div className="px-3 py-3 border-t border-white/[0.03]">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Users className="w-3 h-3 text-blue-400/70" />
-                  <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
-                    {language === 'en' ? 'Actor Analysis' : '\u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0623\u0637\u0631\u0627\u0641'}
-                  </span>
-                </div>
-                <p className="text-xs text-foreground/70 leading-relaxed border-l-2 border-blue-500/30 pl-2.5">{brief.actorAnalysis}</p>
-              </div>
-            )}
-
-            <div className="px-3 py-3 border-t border-white/[0.03]">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Zap className="w-3 h-3 text-amber-400/70" />
-                <span className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/70">
-                  {language === 'en' ? 'AI Deduction' : '\u0627\u0633\u062A\u0646\u062A\u0627\u062C \u0630\u0643\u064A'}
-                </span>
-              </div>
-              <div className="flex gap-1.5 mb-2.5">
-                <input
-                  type="text"
-                  value={deductQuery}
-                  onChange={(e) => setDeductQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleDeduct()}
-                  placeholder={language === 'en' ? 'What will happen in the next 24h?' : '\u0645\u0627\u0630\u0627 \u0633\u064A\u062D\u062F\u062B \u0641\u064A \u0627\u0644\u0640 24 \u0633\u0627\u0639\u0629 \u0627\u0644\u0642\u0627\u062F\u0645\u0629\u061F'}
-                  className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-2.5 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-purple-500/40 font-mono"
-                  data-testid="input-ai-deduction"
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-[10px] px-1.5 h-5 text-purple-400/80"
-                  onClick={handleDeduct}
-                  disabled={deductMutation.isPending || !deductQuery.trim()}
-                  data-testid="button-ai-deduct"
-                >
-                  {deductMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <ChevronRight className="w-3 h-3" />}
-                </Button>
-              </div>
-
-              {deductResult && (
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded p-3 animate-fade-in">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Badge className="text-xs px-1.5 py-0.5 font-mono bg-purple-950/40 border-purple-500/30 text-purple-300">
-                      {Math.round(deductResult.confidence * 100)}% confidence
-                    </Badge>
-                    <span className="text-xs text-muted-foreground/40 font-mono">{deductResult.timeframe}</span>
-                  </div>
-                  <p className="text-xs text-foreground/75 leading-relaxed whitespace-pre-line">
-                    {language === 'ar' ? deductResult.responseAr : deductResult.response}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </ScrollArea>
-    </div>
-  );
-});
 
 const AlertMapComponent = lazy(() => import('@/components/alert-map'));
 
@@ -5906,6 +5679,258 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   );
 }
 
+// ── AI Prediction Panel ────────────────────────────────────────────────────────
+function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, brief }: {
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+  prediction: AttackPrediction | null;
+}) {
+  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern'>('forecast');
+
+  const threatColor = (level: string) => ({
+    EXTREME: 'text-red-400', HIGH: 'text-orange-400', ELEVATED: 'text-yellow-400',
+    MODERATE: 'text-blue-400', LOW: 'text-green-400',
+  }[level] || 'text-orange-400');
+
+  const threatBg = (level: string) => ({
+    EXTREME: 'bg-red-500/10 border-red-500/25',
+    HIGH: 'bg-orange-500/10 border-orange-500/25',
+    ELEVATED: 'bg-yellow-500/10 border-yellow-500/25',
+    MODERATE: 'bg-blue-500/10 border-blue-500/25',
+    LOW: 'bg-green-500/10 border-green-500/25',
+  }[level] || 'bg-orange-500/10 border-orange-500/25');
+
+  const probColor = (p: number) =>
+    p >= 0.7 ? 'bg-red-500' : p >= 0.4 ? 'bg-yellow-500' : 'bg-blue-500';
+
+  const timeframeLabel = (tf: string) => ({
+    imminent: language === 'ar' ? 'وشيك' : 'IMMINENT',
+    '1h': '1H', '3h': '3H', '6h': '6H', '12h': '12H', '24h': '24H',
+  }[tf] || tf.toUpperCase());
+
+  return (
+    <div className="flex flex-col h-full" data-testid="panel-aiprediction">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0"
+        style={{ background: 'hsl(260 30% 17% / 0.92)', borderBottom: '1px solid hsl(260 40% 40% / 0.14)' }}>
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-violet-400/20 pointer-events-none" />
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+          <span className="text-[11px] font-semibold tracking-wide uppercase text-white/90">
+            {language === 'ar' ? 'توقعات الذكاء الاصطناعي' : 'AI Prediction'}
+          </span>
+          {prediction?.dataPoints?.isEscalating && (
+            <span className="px-1.5 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 rounded border border-red-500/25 animate-pulse">
+              ESCALATING
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {prediction && (
+            <span className="text-[8px] font-mono text-violet-300/50 bg-violet-500/[0.08] px-1.5 py-0.5 rounded border border-violet-500/15">
+              {Math.round((prediction.confidence || 0) * 100)}% CONF
+            </span>
+          )}
+          {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
+          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(260 20% 14% / 0.7)' }}>
+        {(['forecast', 'vectors', 'pattern'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-colors ${
+              activeTab === tab
+                ? 'text-violet-300 border-b border-violet-400'
+                : 'text-white/30 hover:text-white/60'
+            }`}
+          >
+            {tab === 'forecast' ? (language === 'ar' ? 'التوقع' : 'Forecast') :
+             tab === 'vectors' ? (language === 'ar' ? 'التهديدات' : 'Vectors') :
+             (language === 'ar' ? 'النمط' : 'Pattern')}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {!prediction ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
+            <Loader2 className="w-5 h-5 text-violet-400/60 animate-spin" />
+            <span className="text-[10px] text-white/30">{language === 'ar' ? 'جارٍ توليد التوقعات…' : 'Generating AI predictions…'}</span>
+          </div>
+        ) : (
+          <>
+            {/* ── Forecast Tab ── */}
+            {activeTab === 'forecast' && (
+              <div className="p-3 space-y-2.5">
+                {/* Overall threat banner */}
+                <div className={`flex items-center gap-3 p-2.5 rounded border ${threatBg(prediction.overallThreatLevel)}`}>
+                  <div className="flex flex-col gap-0.5 flex-1">
+                    <span className={`text-[13px] font-black tracking-widest font-mono ${threatColor(prediction.overallThreatLevel)}`}>
+                      {prediction.overallThreatLevel}
+                    </span>
+                    <span className="text-[9px] text-white/40 uppercase tracking-wider">
+                      {language === 'ar' ? 'مستوى التهديد' : 'Threat Level'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[9px] text-white/35">{language === 'ar' ? 'الهدف التالي' : 'Next Target'}</div>
+                    <div className="text-[10px] font-semibold text-white/75 max-w-[90px] text-right leading-tight">
+                      {prediction.nextLikelyTarget}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Escalation vector */}
+                {prediction.escalationVector && (
+                  <div className="flex items-start gap-2 px-2.5 py-2 rounded bg-white/[0.03] border border-white/[0.05]">
+                    <TrendingUp className={`w-3 h-3 mt-0.5 shrink-0 ${prediction.dataPoints?.isEscalating ? 'text-red-400' : 'text-green-400'}`} />
+                    <span className="text-[9px] text-white/55 leading-relaxed italic">{prediction.escalationVector}</span>
+                  </div>
+                )}
+
+                {/* Live data points */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { icon: <Activity className="w-3 h-3 text-cyan-400/70" />, label: language === 'ar' ? 'إنذارات' : 'Alerts', value: String(prediction.dataPoints?.totalAlerts ?? 0) },
+                    { icon: <Zap className="w-3 h-3 text-yellow-400/70" />, label: language === 'ar' ? '/ساعة' : '/hr', value: `${prediction.dataPoints?.velocityPerHour ?? 0}` },
+                    { icon: <Clock className="w-3 h-3 text-violet-400/70" />, label: language === 'ar' ? '30د' : '30m', value: String(prediction.dataPoints?.velocity30m ?? 0) },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="flex flex-col items-center gap-0.5 py-1.5 rounded bg-white/[0.03] border border-white/[0.05]">
+                      {icon}
+                      <span className="text-[11px] font-bold font-mono text-white/70">{value}</span>
+                      <span className="text-[8px] text-white/30 uppercase tracking-wider">{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Top predictions preview */}
+                <div className="space-y-1">
+                  <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest px-0.5">
+                    {language === 'ar' ? 'أعلى التوقعات' : 'Top Predictions'}
+                  </div>
+                  {prediction.predictions.slice(0, 3).map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.025] border border-white/[0.04]">
+                      <span className={`text-[8px] font-bold font-mono px-1 py-0.5 rounded ${
+                        p.severity === 'critical' ? 'bg-red-500/20 text-red-300' :
+                        p.severity === 'high' ? 'bg-orange-500/20 text-orange-300' :
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>{timeframeLabel(p.timeframe)}</span>
+                      <span className="text-[9px] text-white/65 flex-1 truncate">{p.region}</span>
+                      <span className="text-[9px] font-mono font-bold text-white/50">{Math.round(p.probability * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+
+            {/* ── Vectors Tab ── */}
+            {activeTab === 'vectors' && (
+              <div className="p-3 space-y-2">
+                {prediction.predictions.map((p, i) => (
+                  <div key={i} className="space-y-1.5 p-2.5 rounded border border-white/[0.06] bg-white/[0.025]"
+                    data-testid={`aipred-vector-${i}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded font-mono ${
+                          p.severity === 'critical' ? 'bg-red-500/25 text-red-300 border border-red-500/30' :
+                          p.severity === 'high' ? 'bg-orange-500/25 text-orange-300 border border-orange-500/30' :
+                          p.severity === 'medium' ? 'bg-yellow-500/25 text-yellow-300 border border-yellow-500/30' :
+                          'bg-green-500/25 text-green-300 border border-green-500/30'
+                        }`}>{p.threatVector.replace('_', ' ')}</span>
+                        <span className="text-[10px] font-semibold text-white/80">{p.region}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono text-white/40">{timeframeLabel(p.timeframe)}</span>
+                        <span className={`text-[9px] font-mono font-bold px-1 py-0.5 rounded ${
+                          p.probability >= 0.7 ? 'bg-red-500/20 text-red-300' :
+                          p.probability >= 0.4 ? 'bg-yellow-500/20 text-yellow-300' :
+                          'bg-blue-500/20 text-blue-300'
+                        }`}>{Math.round(p.probability * 100)}%</span>
+                      </div>
+                    </div>
+                    {/* Probability bar */}
+                    <div className="w-full h-1 rounded-full bg-white/[0.06]">
+                      <div
+                        className={`h-full rounded-full transition-all ${probColor(p.probability)}`}
+                        style={{ width: `${Math.round(p.probability * 100)}%`, opacity: 0.7 }}
+                      />
+                    </div>
+                    {p.rationale && (
+                      <p className="text-[9px] text-white/40 leading-relaxed italic">{p.rationale}</p>
+                    )}
+                    {p.source && (
+                      <div className="text-[8px] font-mono text-white/25">
+                        {language === 'ar' ? 'المصدر:' : 'SRC:'} {p.source}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── Pattern Tab ── */}
+            {activeTab === 'pattern' && (
+              <div className="p-3 space-y-3">
+                {prediction.patternSummary && (
+                  <div className="p-2.5 rounded border border-violet-500/15 bg-violet-500/[0.05]">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="w-3 h-3 text-violet-400/70" />
+                      <span className="text-[9px] font-mono uppercase tracking-widest text-violet-300/60">
+                        {language === 'ar' ? 'تحليل النمط' : 'Pattern Analysis'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-white/65 leading-relaxed">{prediction.patternSummary}</p>
+                  </div>
+                )}
+
+                {/* Top targeted regions */}
+                {prediction.dataPoints?.topRegions && prediction.dataPoints.topRegions.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
+                      {language === 'ar' ? 'المناطق المستهدفة' : 'Targeted Regions'}
+                    </div>
+                    {prediction.dataPoints.topRegions.map(({ region, count }, i) => {
+                      const maxCount = prediction.dataPoints!.topRegions[0]?.count || 1;
+                      const pct = Math.round((count / maxCount) * 100);
+                      return (
+                        <div key={region} className="flex items-center gap-2">
+                          <span className="text-[8px] font-mono text-white/30 w-3">{i + 1}</span>
+                          <span className="text-[9px] text-white/60 flex-1 truncate">{region}</span>
+                          <div className="w-16 h-1.5 rounded-full bg-white/[0.07]">
+                            <div
+                              className="h-full rounded-full bg-violet-400/60"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[8px] font-mono text-white/35 w-5 text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+
+                <div className="pt-1 border-t border-white/[0.04]">
+                  <div className="text-[8px] font-mono text-white/20 text-center">
+                    {language === 'ar' ? 'آخر تحديث' : 'Updated'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, prediction }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; prediction: AttackPrediction | null }) {
   const threatColors: Record<string, string> = {
     EXTREME: 'text-red-400',
@@ -6089,8 +6114,8 @@ function PanelSidebar({
   language: 'en' | 'ar';
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
-  const topGroup: PanelId[] = ['map', 'alerts', 'intel', 'telegram', 'livefeed'];
-  const bottomGroup: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep'];
+  const topGroup: PanelId[] = ['map', 'alerts', 'telegram', 'livefeed'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -6315,7 +6340,7 @@ export default function Dashboard() {
   const panelsScrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'intel', 'markets'];
+  const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'markets'];
 
   useEffect(() => {
     let raf = 0;
@@ -6387,7 +6412,7 @@ export default function Dashboard() {
   
 
 
-  const defaultVisible = { intel: true, map: true, telegram: true, events: true, radar: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false, attackpred: true, rocketstats: true };
+  const defaultVisible = { map: true, telegram: true, events: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false, attackpred: true, rocketstats: true, aiprediction: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -6436,7 +6461,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, aiBrief, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -6600,8 +6625,8 @@ export default function Dashboard() {
     try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
   });
 
-  const topRow: PanelId[] = ['telegram', 'intel', 'map', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'radar', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep', 'attackpred', 'rocketstats'];
+  const topRow: PanelId[] = ['telegram', 'map', 'alerts', 'livefeed'];
+  const bottomRow: PanelId[] = ['events', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint', 'sitrep', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -6609,9 +6634,9 @@ export default function Dashboard() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWidths: Record<PanelId, number> = {
-    telegram: 16, intel: 16, map: 36, alerts: 16, livefeed: 16,
-    events: 22, radar: 22, markets: 28,
-    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22, rocketstats: 22,
+    telegram: 16, map: 36, alerts: 16, livefeed: 16,
+    events: 22, markets: 28,
+    ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, sitrep: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -6720,14 +6745,12 @@ export default function Dashboard() {
     const isMax = isMobile ? false : maximizedPanel === id;
     const panel = (() => {
       switch (id) {
-        case 'intel':
-          return <AIIntelPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} brief={aiBrief} briefLoading={!connected && !aiBrief} anomalies={anomalies} />;
+        case 'aiprediction':
+          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} />;
         case 'map':
           return <MapSection events={events} flights={flights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'radar':
-          return <FlightRadarPanel flights={flights} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onLocateFlight={(lat, lng, callsign, heading, altitude, speed, type) => { setMapFocusLocation({ lat, lng, zoom: 9 }); setPopupTrackFlight({ callsign, lat, lng, heading, altitude, speed, type, source: 'radar' }); }} />;
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':
@@ -6882,11 +6905,9 @@ export default function Dashboard() {
             panelStats={{
               map: 'LIVE',
               alerts: redAlerts.length > 0 ? `${redAlerts.length} ACTIVE` : '',
-              intel: aiBrief ? aiBrief.riskLevel : 'STANDBY',
               telegram: telegramMessages.length > 0 ? `${telegramMessages.length}` : '',
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
-              radar: flights.length > 0 ? `${flights.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
               ew: ewEvents.filter(e => e.active).length > 0 ? `${ewEvents.filter(e => e.active).length} ACTIVE` : '',
               infra: infraEvents.length > 0 ? `${infraEvents.length}` : '',
@@ -6991,7 +7012,7 @@ export default function Dashboard() {
                   isVisible={mobileActivePanel === 'map'}
                 />
               </div>
-              {(['alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => (
+              {(['alerts', 'telegram', 'events', 'markets'] as PanelId[]).map(id => (
                 <div key={id} className={`absolute inset-0 flex flex-col ${mobileActivePanel === id ? 'z-10' : 'z-0 mobile-panel-hidden'}`}>
                   {renderPanel(id)}
                 </div>
@@ -7012,7 +7033,7 @@ export default function Dashboard() {
               ))}
             </div>
             <div className="shrink-0 border-t border-white/[0.05] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }} data-testid="mobile-tab-bar">
-              {(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).map(id => {
+              {(['map', 'alerts', 'telegram', 'events', 'markets'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
                 const isActive = mobileActivePanel === id;
@@ -7068,10 +7089,10 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-4 gap-2.5 p-3">
-                {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'intel', 'markets'] as PanelId[]).includes(id)).map(id => {
+                {allPanels.filter(id => !(['map', 'alerts', 'telegram', 'events', 'markets'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : id === 'radar' ? flights.length : 0;
+                  const count = id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : 0;
                   return (
                     <button
                       key={id}

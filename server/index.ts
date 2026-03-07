@@ -61,8 +61,6 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'AI request limit reached, please try again later.' },
 });
-app.use('/api/ai-deduct', aiLimiter);
-app.use('/api/ai-brief', aiLimiter);
 app.use('/api/analytics', aiLimiter);
 
 app.use(

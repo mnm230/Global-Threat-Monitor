@@ -13,7 +13,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, AIBrief, AIDeduction, CyberEvent, EWEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, EWEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -2038,8 +2038,6 @@ let latestAlerts: RedAlert[] = [];
 const classifiedMessageCache: ClassifiedMessage[] = [];
 let aiClassificationCache: { data: ClassifiedMessage[]; fetchedAt: number } | null = null;
 const AI_CLASSIFY_CACHE_TTL = 10_000;
-let aiBriefCache: { data: AIBrief; fetchedAt: number } | null = null;
-const AI_BRIEF_CACHE_TTL = 30_000;
 
 function recordAlertHistory(alerts: RedAlert[]) {
   for (const a of alerts) {
@@ -2836,152 +2834,6 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
   };
 }
 
-async function generateAIBriefLive(alerts: RedAlert[], messages: ClassifiedMessage[], conflictEvents: ConflictEvent[] = []): Promise<AIBrief> {
-  if (aiBriefCache && Date.now() - aiBriefCache.fetchedAt < AI_BRIEF_CACHE_TTL) {
-    return aiBriefCache.data;
-  }
-
-  // Build rich context from all available data sources
-  const criticalMsgs = messages
-    .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
-    .slice(0, 15);
-  const recentMsgs = messages.slice(0, 10);
-
-  const alertSummary = alerts.length > 0
-    ? `ACTIVE ALERTS: ${alerts.length} total. Countries: ${[...new Set(alerts.map(a => a.country))].join(', ')}. Threat types: ${[...new Set(alerts.map(a => a.threatType))].join(', ')}. Locations: ${alerts.slice(0, 8).map(a => `${a.city} (${a.countdown}s countdown)`).join(', ')}.`
-    : 'No active Oref alerts at this time.';
-
-  const criticalCount = conflictEvents.filter(e => e.severity === 'critical').length;
-  const highCount = conflictEvents.filter(e => e.severity === 'high').length;
-  const byType = conflictEvents.reduce((acc, e) => { acc[e.type] = (acc[e.type] || 0) + 1; return acc; }, {} as Record<string, number>);
-  const eventTypeBreakdown = Object.entries(byType).map(([t, c]) => `${t}: ${c}`).join(', ');
-  const recentEventTitles = conflictEvents
-    .filter(e => e.severity === 'critical' || e.severity === 'high')
-    .slice(0, 12)
-    .map(e => `[${e.type.toUpperCase()}/${e.severity.toUpperCase()}] ${e.title} (${e.description})`)
-    .join('\n');
-
-  const thermalEvents = conflictEvents.filter(e => e.id.startsWith('thermal_'));
-  const thermalSummary = thermalEvents.length > 0
-    ? `NASA FIRMS satellite detected ${thermalEvents.length} thermal anomalies in theater. High-confidence hotspots: ${thermalEvents.filter(e => e.severity === 'high').length}. Locations span: ${thermalEvents.slice(0, 5).map(e => `${e.lat.toFixed(2)}°N ${e.lng.toFixed(2)}°E`).join(', ')}.`
-    : 'No significant satellite thermal anomalies detected.';
-
-  const intelDigest = (criticalMsgs.length > 0 ? criticalMsgs : recentMsgs)
-    .map(m => `[${m.channel || 'OSINT'}] ${m.text.slice(0, 250)}`)
-    .join('\n');
-
-  const briefSystemPrompt = `You are a classified-level senior military intelligence analyst with 20+ years specializing in the Middle East and Levant theaters. You have deep expertise in:
-
-ACTORS & DOCTRINE:
-- IDF (Israel Defense Forces): order of battle, air superiority doctrine, Iron Dome/David's Sling/Arrow layered defense, ground maneuver doctrine, Unit 8200 SIGINT
-- IRGC (Islamic Revolutionary Guard Corps): Quds Force operations, proxy network management, asymmetric warfare doctrine, missile/drone arsenal (Shahab, Emad, Fateh, Shahed-136/131)
-- Hezbollah: estimated 150,000+ rockets/missiles, Radwan Force elite units, south Lebanon deployment, anti-tank guided missiles, precision missile program
-- Hamas & PIJ: Gaza tunnel network, Qassam/Kornet capabilities, leadership structure, Egyptian border logistics
-- Houthis (Ansar Allah): Yemen theater, Red Sea anti-ship campaign, ballistic missile/drone launches toward Israel and shipping
-- CENTCOM/USN: carrier strike groups, B-2/F-35 deployments, prepositioned assets
-- Regional: Saudi Arabia, UAE, Jordan, Egypt roles; Turkish posture; Russian/Syrian air defense integration
-
-CURRENT CONFLICT CONTEXT (as of early 2026):
-- Israeli-Hamas war in Gaza: ongoing, ceasefire negotiations, humanitarian situation
-- Israeli-Hezbollah: Lebanon front, south Lebanon operations, cross-border fire
-- Israeli-Iranian shadow war: direct exchange, regional proxy escalation
-- Red Sea crisis: Houthi anti-shipping campaign, US/UK maritime response
-- Syrian theater: IDF strikes on IRGC/Hezbollah positions
-- Iranian nuclear program: IAEA monitoring, enrichment levels, breakout timeline
-
-ANALYTICAL FRAMEWORK:
-- Escalation ladder assessment (Osgood/Schelling scale)
-- Pattern-of-life analysis for launch cycles
-- Geographic shift detection (pressure → movement)
-- False flag vs. genuine attack discrimination
-- Interoperability between proxy networks
-
-Produce a classified-grade intelligence brief. Be specific with unit names, weapons systems, and locations when data supports it. Return ONLY valid JSON with this exact schema:
-{
-  "summary": "2-3 paragraph executive assessment covering the strategic situation, active fronts, and immediate threat picture — be specific about locations, actors, and weapons",
-  "summaryAr": "Arabic translation of summary",
-  "keyDevelopments": [{"text":"specific development with details","textAr":"Arabic translation","severity":"critical|high|medium","category":"KINETIC|INTEL|DIPLOMATIC|CYBER|HUMANITARIAN|NUCLEAR|MARITIME|AIR DEFENSE"}],
-  "focalPoints": ["specific locations, weapons systems, or named actors — e.g. South Lebanon, Radwan Force, Natanz, USS Nimitz"],
-  "riskLevel": "EXTREME|HIGH|ELEVATED|MODERATE",
-  "tacticalSituation": "One focused paragraph on the immediate 24h tactical picture — specific ground/air/naval activity, which units are active, what systems have fired",
-  "escalationIndicators": ["observable indicator 1 — specific and concrete", "indicator 2", "indicator 3", "indicator 4"],
-  "actorAnalysis": "Paragraph assessing current posture of key actors: IDF readiness, IRGC/proxy network activation level, Hezbollah forward deployment, Houthi launch cadence, US force posture in theater"
-}`;
-
-  const briefUserPrompt = `Generate intelligence brief. Current UTC time: ${new Date().toUTCString()}
-
-=== OREF ALERT STATUS ===
-${alertSummary}
-
-=== CONFLICT EVENT MAP (${conflictEvents.length} events) ===
-Severity breakdown: ${criticalCount} critical, ${highCount} high
-Event types: ${eventTypeBreakdown || 'none'}
-${recentEventTitles || 'No mapped events.'}
-
-=== SATELLITE THERMAL ===
-${thermalSummary}
-
-=== OSINT CHANNEL INTELLIGENCE ===
-${intelDigest || 'No classified OSINT available at this cycle.'}
-
-Assess current threat level, provide 5-7 key developments, and complete all fields. Be specific and analytical — not generic.`;
-
-  try {
-    const resp = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
-      system: briefSystemPrompt,
-      messages: [{ role: 'user', content: briefUserPrompt }],
-    });
-    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch {
-        const cleaned = jsonMatch[0].replace(/[\x00-\x1f]/g, ' ');
-        parsed = JSON.parse(cleaned);
-      }
-      const brief: AIBrief = {
-        id: 'brief-ai-' + Date.now(),
-        summary: (parsed.summary as string) || 'Assessment generation in progress.',
-        summaryAr: (parsed.summaryAr as string) || '',
-        keyDevelopments: Array.isArray(parsed.keyDevelopments) ? parsed.keyDevelopments.map((d: Record<string, unknown>) => ({
-          text: (d.text as string) || '',
-          textAr: (d.textAr as string) || '',
-          severity: (['critical', 'high', 'medium'].includes(d.severity as string) ? d.severity : 'medium') as 'critical' | 'high' | 'medium',
-          category: (d.category as string) || 'General',
-        })) : [],
-        focalPoints: Array.isArray(parsed.focalPoints) ? parsed.focalPoints : [],
-        riskLevel: (['EXTREME', 'HIGH', 'ELEVATED', 'MODERATE'].includes(parsed.riskLevel as string) ? parsed.riskLevel as AIBrief['riskLevel'] : 'HIGH'),
-        generatedAt: new Date().toISOString(),
-        model: 'claude-sonnet-4-6 (ME-Analyst)',
-        tacticalSituation: (parsed.tacticalSituation as string) || undefined,
-        escalationIndicators: Array.isArray(parsed.escalationIndicators) ? parsed.escalationIndicators as string[] : undefined,
-        actorAnalysis: (parsed.actorAnalysis as string) || undefined,
-      };
-      aiBriefCache = { data: brief, fetchedAt: Date.now() };
-      console.log(`[AI-Brief] Generated: riskLevel=${brief.riskLevel}, developments=${brief.keyDevelopments.length}, events_fed=${conflictEvents.length}`);
-      return brief;
-    }
-  } catch (err) {
-    console.error('[AI-Brief] Error:', (err as Error).message);
-  }
-
-  const fallback: AIBrief = {
-    id: `brief-fallback-${Date.now()}`,
-    summary: 'AI intelligence briefing temporarily unavailable. All LLM providers failed to respond.',
-    summaryAr: '\u0645\u0644\u062E\u0635 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0645\u0624\u0642\u062A\u0627\u064B',
-    keyDevelopments: [],
-    focalPoints: [],
-    riskLevel: 'HIGH',
-    generatedAt: new Date().toISOString(),
-    model: 'fallback',
-  };
-  aiBriefCache = { data: fallback, fetchedAt: Date.now() };
-  return fallback;
-}
 
 // --- SITREP Generation ---
 const sitrepCaches: Partial<Record<SitrepWindow, { data: Sitrep; fetchedAt: number }>> = {};
@@ -3220,50 +3072,6 @@ Return this exact JSON schema (all fields required, write in military prose — 
   sitrepCaches[window] = { data: fallback, fetchedAt: Date.now() };
   console.log(`[SITREP] Data-driven fallback generated window=${window} riskLevel=${riskLevel} keyEvents=${fallback.keyEvents.length}`);
   return fallback;
-}
-
-async function generateDeductionLive(query: string, alerts: RedAlert[], messages: ClassifiedMessage[]): Promise<AIDeduction> {
-  const alertContext = alerts.slice(0, 10).map(a => `${a.city} (${a.threatType}) at ${a.timestamp}`).join('; ');
-  const intelContext = messages.slice(0, 5).map(m => `[${m.channel}] ${m.text.slice(0, 150)}`).join('\n');
-
-  const deductionSystemPrompt = `You are a senior intelligence analyst in a war room. Answer the analyst's query with numbered probability-based assessments. Be specific with percentages and timeframes. Format as structured intelligence assessment with 3-5 key points. Also provide a confidence score (0-1) and timeframe. Return ONLY valid JSON:
-{"response":"your assessment","responseAr":"Arabic translation","confidence":0.0-1.0,"timeframe":"e.g. 24-48 hours"}`;
-  const deductionUserPrompt = `QUERY: ${query}\n\nCURRENT ALERTS: ${alertContext || 'None active'}\n\nRECENT INTEL:\n${intelContext || 'Limited data available.'}`;
-
-  try {
-    const resp = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
-      system: deductionSystemPrompt,
-      messages: [{ role: 'user', content: deductionUserPrompt }],
-    });
-    const raw = resp.content[0]?.type === 'text' ? resp.content[0].text.trim() : '';
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        id: 'ded-ai-' + Date.now(),
-        query,
-        response: parsed.response || 'Analysis pending.',
-        responseAr: parsed.responseAr || '',
-        confidence: Math.min(1, Math.max(0, parsed.confidence || 0.5)),
-        timeframe: parsed.timeframe || '24-48 hours',
-        timestamp: new Date().toISOString(),
-      };
-    }
-  } catch (err) {
-    console.error('[AI-Deduct] Error:', (err as Error).message);
-  }
-
-  return {
-    id: 'ded-fallback-' + Date.now(),
-    query,
-    response: 'AI deduction temporarily unavailable. The intelligence analysis provider did not respond.',
-    responseAr: '\u0627\u0644\u062A\u062D\u0644\u064A\u0644 \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0645\u0624\u0642\u062A\u0627\u064B',
-    confidence: 0,
-    timeframe: 'N/A',
-    timestamp: new Date().toISOString(),
-  };
 }
 
 
@@ -4074,17 +3882,6 @@ export async function registerRoutes(
   });
 
 
-  app.get('/api/ai-brief', async (_req, res) => {
-    const [alerts, conflictEvents] = await Promise.all([generateRedAlerts(), fetchGDELTConflictEvents()]);
-    const messages = classifiedMessageCache;
-    try {
-      const brief = await generateAIBriefLive(alerts, messages, conflictEvents);
-      res.json(brief);
-    } catch {
-      res.status(503).json({ error: 'AI brief unavailable' });
-    }
-  });
-
   app.get('/api/sitrep', async (req, res) => {
     const raw = (req.query.window as string) || '1h';
     const window: SitrepWindow = (['1h', '6h', '24h'].includes(raw) ? raw : '1h') as SitrepWindow;
@@ -4093,28 +3890,6 @@ export async function registerRoutes(
       res.json(sitrep);
     } catch {
       res.status(503).json({ error: 'SITREP generation unavailable' });
-    }
-  });
-
-  app.post('/api/ai-deduct', async (req, res) => {
-    const { query } = req.body || {};
-    if (!query || typeof query !== 'string') {
-      return res.status(400).json({ error: 'Query string required' });
-    }
-    if (query.length > 500) {
-      return res.status(400).json({ error: 'Query too long (max 500 characters)' });
-    }
-    const sanitizedQuery = sanitizeText(query.trim());
-    if (!sanitizedQuery) {
-      return res.status(400).json({ error: 'Query contains no valid content' });
-    }
-    const alerts = await generateRedAlerts();
-    const messages = classifiedMessageCache;
-    try {
-      const result = await generateDeductionLive(sanitizedQuery, alerts, messages);
-      res.json(result);
-    } catch {
-      res.status(503).json({ error: 'AI deduction unavailable' });
     }
   });
 
@@ -4408,7 +4183,6 @@ export async function registerRoutes(
       latestTgMsgs = tgMsgs;
       send('telegram', tgMsgs);
       const classified = tgMsgs.map(m => ({ ...m }) as ClassifiedMessage);
-      fetchGDELTConflictEvents().then(conflictEvents => generateAIBriefLive(latestAlerts, classified, conflictEvents)).then(brief => send('ai-brief', brief));
       classifyMessages(tgMsgs).then(c => send('classified', c));
       const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
       send('breaking-news', breaking);
@@ -4455,13 +4229,6 @@ export async function registerRoutes(
         send('telegram', tgMsgs);
       }).catch(() => {});
     }, 15000));
-    intervals.push(setInterval(async () => {
-      const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
-      const messages = classifiedMessageCache.length > 0 ? classifiedMessageCache : [];
-      const conflictEvents = await fetchGDELTConflictEvents();
-      const brief = await generateAIBriefLive(alerts, messages, conflictEvents);
-      send('ai-brief', brief);
-    }, 30000));
     intervals.push(setInterval(() => fetchXFeeds().then(xPosts => {
       latestXPosts = xPosts;
     }), 60000));
@@ -4517,7 +4284,6 @@ export async function registerRoutes(
       liveFxFetchedAt = 0;
       gdeltCache = null;
       orefCache = null;
-      aiBriefCache = null;
       aiClassificationCache = null;
       multiLLMCache = null;
       thermalCache = null;

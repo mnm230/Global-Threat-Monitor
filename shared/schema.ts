@@ -116,37 +116,6 @@ export interface RedAlert {
   source?: 'live' | 'sim';
 }
 
-export interface AIBriefDevelopment {
-  text: string;
-  textAr: string;
-  severity: 'critical' | 'high' | 'medium';
-  category: string;
-}
-
-export interface AIBrief {
-  id: string;
-  summary: string;
-  summaryAr: string;
-  keyDevelopments: AIBriefDevelopment[];
-  focalPoints: string[];
-  riskLevel: 'EXTREME' | 'HIGH' | 'ELEVATED' | 'MODERATE';
-  generatedAt: string;
-  model: string;
-  tacticalSituation?: string;
-  escalationIndicators?: string[];
-  actorAnalysis?: string;
-}
-
-export interface AIDeduction {
-  id: string;
-  query: string;
-  response: string;
-  responseAr: string;
-  confidence: number;
-  timeframe: string;
-  timestamp: string;
-}
-
 export interface ThreatClassification {
   category: 'missile_launch' | 'airstrike' | 'naval_movement' | 'ground_offensive' | 'air_defense' | 'drone_activity' | 'nuclear_related' | 'economic_impact' | 'diplomatic' | 'humanitarian' | 'cyber_attack' | 'unknown';
   severity: 'critical' | 'high' | 'medium' | 'low';
