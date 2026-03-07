@@ -4283,10 +4283,10 @@ function AlertMapPanel({
         )}
       </div>
 
-      {/* Recent alerts strip — compact */}
+      {/* Recent alerts strip — compact, limited on small screens */}
       {recentAlerts.length > 0 && (
-        <div className="shrink-0 divide-y divide-white/[0.04]" style={{background:'hsl(222 30% 8%)', borderTop:'1px solid hsl(185 28% 20% / 0.35)'}}>
-          {recentAlerts.map(alert => {
+        <div className="shrink-0 divide-y divide-white/[0.04] max-h-[120px] overflow-y-auto" style={{background:'hsl(222 30% 8%)', borderTop:'1px solid hsl(185 28% 20% / 0.35)'}}>
+          {recentAlerts.slice(0, 3).map(alert => {
             const meta = ALERT_THREAT_META[alert.threatType] || ALERT_THREAT_META.rockets;
             const elapsed = Math.floor((now - new Date(alert.timestamp).getTime()) / 1000);
             const remaining = Math.max(0, alert.countdown - elapsed);
@@ -4297,7 +4297,7 @@ function AlertMapPanel({
             return (
               <div key={alert.id} className="px-2 py-1 flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{background: meta.dotColor, boxShadow: isActive ? `0 0 5px ${meta.dotColor}` : undefined}} />
-                <span className="text-[11px] font-bold text-foreground/85 font-mono truncate flex-1 min-w-0">{city}</span>
+                <span className="text-[10px] font-bold text-foreground/85 font-mono truncate flex-1 min-w-0">{city}</span>
                 <span className={`text-[8px] font-black uppercase px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor} shrink-0`}>{meta.label}</span>
                 <span className="text-[9px] font-mono shrink-0 w-14 text-right">
                   {isActive && remaining > 0
@@ -6327,7 +6327,7 @@ export default function Dashboard() {
   const panelsScrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'markets'];
+  const SWIPE_TABS: PanelId[] = ['map', 'alerts', 'telegram', 'events', 'aiprediction'];
 
   useEffect(() => {
     let raf = 0;
@@ -6768,7 +6768,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: isMobile && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: isMobile && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
+    <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile || isTablet ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
       <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-12'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'linear-gradient(180deg, hsl(222 30% 11% / 0.98) 0%, hsl(222 28% 9% / 0.99) 100%)', borderBottom:'1px solid hsl(175 40% 30% / 0.18)'}}>
         <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent 5%, hsl(175 80% 44% / 0.15) 25%, hsl(175 80% 44% / 0.30) 50%, hsl(175 80% 44% / 0.15) 75%, transparent 95%)'}} />
         <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(175 80% 44% / 0.08) 30%, hsl(175 80% 44% / 0.12) 50%, hsl(175 80% 44% / 0.08) 70%, transparent)'}} />
@@ -7002,11 +7002,16 @@ export default function Dashboard() {
                   isVisible={mobileActivePanel === 'map'}
                 />
               </div>
-              {(['alerts', 'telegram', 'events', 'markets'] as PanelId[]).map(id => (
+              {(['alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).map(id => (
                 <div key={id} className={`absolute inset-0 flex flex-col ${mobileActivePanel === id ? 'z-10' : 'z-0 mobile-panel-hidden'}`}>
                   {renderPanel(id)}
                 </div>
               ))}
+              {!['map', 'alerts', 'telegram', 'events', 'aiprediction'].includes(mobileActivePanel) && (
+                <div className="absolute inset-0 flex flex-col z-10">
+                  {renderPanel(mobileActivePanel)}
+                </div>
+              )}
             </div>
             <div className="warroom-mobile-swipe-dots shrink-0" data-testid="mobile-swipe-dots">
               {SWIPE_TABS.map(id => (
@@ -7102,21 +7107,22 @@ export default function Dashboard() {
           </div>
         ) : isTablet ? (
           <div
-            className={`grid gap-1 p-1`}
+            className="grid gap-2 p-2 overflow-y-auto"
             style={{
               gridTemplateColumns: isLandscape ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-              gridAutoRows: `minmax(${isLandscape ? '280px' : '320px'}, auto)`,
-              background: 'hsl(185 80% 42% / 0.04)',
-              paddingLeft: 'max(4px, env(safe-area-inset-left))',
-              paddingRight: 'max(4px, env(safe-area-inset-right))',
+              gridAutoRows: `minmax(${isLandscape ? '300px' : '340px'}, auto)`,
+              background: 'hsl(222 28% 9% / 0.98)',
+              paddingLeft: 'max(8px, env(safe-area-inset-left))',
+              paddingRight: 'max(8px, env(safe-area-inset-right))',
+              paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
             }}
           >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
               const isWide = id === 'map' || id === 'alertmap' || id === 'alerts';
-              const mapH = isLandscape ? '420px' : '480px';
-              const alertsH = isLandscape ? '320px' : '380px';
-              const alertmapH = isLandscape ? '300px' : '360px';
-              const defaultH = isLandscape ? '280px' : '320px';
+              const mapH = isLandscape ? '440px' : '500px';
+              const alertsH = isLandscape ? '340px' : '400px';
+              const alertmapH = isLandscape ? '420px' : '480px';
+              const defaultH = isLandscape ? '300px' : '340px';
               return (
                 <div
                   key={id}
@@ -7124,9 +7130,9 @@ export default function Dashboard() {
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'map' ? mapH : id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
                     background: 'hsl(222 30% 10% / 0.97)',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     overflow: 'hidden',
-                    border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.38)' : '1px solid rgba(255,255,255,0.07)',
+                    border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.38)' : id === 'alertmap' ? '1px solid hsl(0 60% 45% / 0.25)' : '1px solid rgba(255,255,255,0.07)',
                     boxShadow: id === 'alerts' ? '0 0 32px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)' : 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)',
                   }}
                 >

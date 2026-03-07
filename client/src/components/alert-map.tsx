@@ -44,8 +44,6 @@ const REGIONS = [
   { id: 'iraq',       label: 'Iraq',       center: [43.5, 33.0] as [number, number], zoom: 6.0 },
 ] as const;
 
-const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
-
 export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; language: 'en' | 'ar' }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -58,6 +56,16 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
   const [activeRegion, setActiveRegion] = useState<string>('all');
   const [showPanel, setShowPanel] = useState(false);
   const [panelTab, setPanelTab] = useState<'stats' | 'prediction'>('stats');
+  const [screenWidth, setScreenWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1280);
+
+  useEffect(() => {
+    const onResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const isMobileView = screenWidth < 768;
+  const isTabletView = screenWidth >= 768 && screenWidth < 1200;
 
   const geoJson = useMemo(() => {
     const now = Date.now();
@@ -271,7 +279,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
         style: MAP_THEMES[theme],
         // Start wide enough to show Lebanon, GCC, and Iran simultaneously
         center: [46.0, 28.0],
-        zoom: IS_MOBILE ? 3.8 : 4.2,
+        zoom: isMobileView ? 3.8 : isTabletView ? 4.0 : 4.2,
         maxBounds: ME_BOUNDS,
         attributionControl: false,
         antialias: false,
@@ -457,7 +465,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
       <div ref={containerRef} className="w-full h-full" data-testid="alert-map-container" />
 
       {/* ── Top-left: theme toggle + region buttons ─────────── */}
-      <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+      <div className={`absolute top-2 left-2 z-10 flex ${isMobileView ? 'flex-row gap-1.5' : 'flex-col gap-2'}`} style={isMobileView ? { left: 6, top: 6 } : undefined}>
         {/* Theme toggle */}
         <div className="flex gap-1 p-1 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
           {(['light', 'dark'] as MapTheme[]).map(t => (
@@ -465,88 +473,98 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
               key={t}
               onClick={() => setTheme(t)}
               title={t === 'light' ? 'Light map' : 'Dark map'}
-              className="flex items-center gap-1 px-2 py-1 rounded-md transition-all active:scale-95"
+              className={`flex items-center gap-1 ${isMobileView ? 'px-1.5 py-1' : 'px-2 py-1'} rounded-md transition-all active:scale-95`}
               style={{
                 background: theme === t ? (t === 'dark' ? 'rgba(30,35,60,0.95)' : 'rgba(255,255,255,1)') : 'transparent',
                 border: theme === t ? `1px solid ${t === 'dark' ? 'rgba(100,120,200,0.4)' : 'rgba(0,0,0,0.15)'}` : '1px solid transparent',
                 boxShadow: theme === t ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
               }}
             >
-              <span style={{ fontSize: 12, lineHeight: 1 }}>{t === 'light' ? '☀️' : '🌙'}</span>
-              <span className="text-[9px] font-mono font-bold uppercase" style={{ color: theme === t ? (t === 'dark' ? 'rgba(180,200,255,0.9)' : '#333') : textMuted }}>
-                {t}
-              </span>
+              <span style={{ fontSize: isMobileView ? 10 : 12, lineHeight: 1 }}>{t === 'light' ? '☀️' : '🌙'}</span>
+              {!isMobileView && (
+                <span className="text-[9px] font-mono font-bold uppercase" style={{ color: theme === t ? (t === 'dark' ? 'rgba(180,200,255,0.9)' : '#333') : textMuted }}>
+                  {t}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Region quick-jump */}
-        <div className="flex flex-col gap-1 p-1.5 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
-          <div className="text-[7px] font-mono font-bold uppercase tracking-widest px-1 mb-0.5" style={{ color: textMuted }}>Jump to</div>
-          {REGIONS.map(r => {
-            const count = regionCounts[r.id] || 0;
-            const isActive = activeRegion === r.id;
-            const regionColor: Record<string, string> = {
-              all: '#94a3b8', levant: '#3b82f6', lebanon: '#22c55e',
-              gcc: '#f97316', iran: '#a855f7', iraq: '#f59e0b',
-            };
-            const color = regionColor[r.id] || '#94a3b8';
-            return (
-              <button
-                key={r.id}
-                onClick={() => flyToRegion(r)}
-                className="flex items-center justify-between gap-2 px-2 py-1 rounded-md transition-all active:scale-95"
-                style={{
-                  background: isActive ? `${color}18` : 'transparent',
-                  border: isActive ? `1px solid ${color}40` : '1px solid transparent',
-                  minWidth: 110,
-                }}
-              >
-                <span className="text-[9px] font-mono font-bold" style={{ color: isActive ? color : textMuted }}>{r.label}</span>
-                {count > 0 && (
-                  <span className="text-[8px] font-mono font-black px-1.5 py-0.5 rounded-full" style={{ background: `${color}25`, color }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* Region quick-jump — horizontal on mobile, vertical on tablet/desktop */}
+        {isMobileView ? (
+          <div className="flex gap-1 p-1 rounded-lg flex-wrap" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)', maxWidth: 'calc(100vw - 80px)' }}>
+            {REGIONS.map(r => {
+              const count = regionCounts[r.id] || 0;
+              const isActive = activeRegion === r.id;
+              const regionColor: Record<string, string> = { all: '#94a3b8', levant: '#3b82f6', lebanon: '#22c55e', gcc: '#f97316', iran: '#a855f7', iraq: '#f59e0b' };
+              const color = regionColor[r.id] || '#94a3b8';
+              return (
+                <button key={r.id} onClick={() => flyToRegion(r)} className="px-1.5 py-0.5 rounded transition-all active:scale-95"
+                  style={{ background: isActive ? `${color}22` : 'transparent', border: isActive ? `1px solid ${color}40` : '1px solid transparent' }}>
+                  <span className="text-[8px] font-mono font-bold" style={{ color: isActive ? color : textMuted }}>{r.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1 p-1.5 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
+            <div className="text-[7px] font-mono font-bold uppercase tracking-widest px-1 mb-0.5" style={{ color: textMuted }}>Jump to</div>
+            {REGIONS.map(r => {
+              const count = regionCounts[r.id] || 0;
+              const isActive = activeRegion === r.id;
+              const regionColor: Record<string, string> = { all: '#94a3b8', levant: '#3b82f6', lebanon: '#22c55e', gcc: '#f97316', iran: '#a855f7', iraq: '#f59e0b' };
+              const color = regionColor[r.id] || '#94a3b8';
+              return (
+                <button key={r.id} onClick={() => flyToRegion(r)} className="flex items-center justify-between gap-2 px-2 py-1 rounded-md transition-all active:scale-95"
+                  style={{ background: isActive ? `${color}18` : 'transparent', border: isActive ? `1px solid ${color}40` : '1px solid transparent', minWidth: isTabletView ? 100 : 110 }}>
+                  <span className={`${isTabletView ? 'text-[8px]' : 'text-[9px]'} font-mono font-bold`} style={{ color: isActive ? color : textMuted }}>{r.label}</span>
+                  {count > 0 && (
+                    <span className="text-[8px] font-mono font-black px-1.5 py-0.5 rounded-full" style={{ background: `${color}25`, color }}>{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* ── Bottom-left: threat legend ───────────────────────── */}
-      <div className="absolute bottom-6 left-3 z-10 p-2 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
-        <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: textMuted }}>Threat Type</div>
-        {[
-          { label: 'Rockets',      color: '#dc2626' },
-          { label: 'Missiles',     color: '#ea580c' },
-          { label: 'UAV / Drone',  color: '#0891b2' },
-          { label: 'Aircraft',     color: '#7c3aed' },
-        ].map(({ label, color }) => (
-          <div key={label} className="flex items-center gap-1.5 mb-1 last:mb-0">
-            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 4px ${color}88` }} />
-            <span className="text-[8px] font-mono" style={{ color: textBase }}>{label}</span>
-          </div>
-        ))}
-        <div className="mt-2 pt-1.5" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}` }}>
-          <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1" style={{ color: textMuted }}>Status</div>
+      {/* ── Bottom-left: threat legend (hidden on mobile to save space) ── */}
+      {!isMobileView && (
+        <div className={`absolute ${isTabletView ? 'bottom-4 left-2' : 'bottom-6 left-3'} z-10 p-2 rounded-lg`} style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
+          <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: textMuted }}>Threat Type</div>
           {[
-            { label: 'Active alert',   size: 9, opacity: 1 },
-            { label: 'Past / resolved', size: 5, opacity: 0.55 },
-          ].map(({ label, size, opacity }) => (
+            { label: 'Rockets',      color: '#dc2626' },
+            { label: 'Missiles',     color: '#ea580c' },
+            { label: 'UAV / Drone',  color: '#0891b2' },
+            { label: 'Aircraft',     color: '#7c3aed' },
+          ].map(({ label, color }) => (
             <div key={label} className="flex items-center gap-1.5 mb-1 last:mb-0">
-              <div style={{ width: size, height: size, borderRadius: '50%', background: '#dc2626', opacity, flexShrink: 0 }} />
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 4px ${color}88` }} />
               <span className="text-[8px] font-mono" style={{ color: textBase }}>{label}</span>
             </div>
           ))}
+          {!isTabletView && (
+            <div className="mt-2 pt-1.5" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}` }}>
+              <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1" style={{ color: textMuted }}>Status</div>
+              {[
+                { label: 'Active alert',   size: 9, opacity: 1 },
+                { label: 'Past / resolved', size: 5, opacity: 0.55 },
+              ].map(({ label, size, opacity }) => (
+                <div key={label} className="flex items-center gap-1.5 mb-1 last:mb-0">
+                  <div style={{ width: size, height: size, borderRadius: '50%', background: '#dc2626', opacity, flexShrink: 0 }} />
+                  <span className="text-[8px] font-mono" style={{ color: textBase }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* ── Stats/Prediction toggle button ───────────────────── */}
       <button
         onClick={() => setShowPanel(p => !p)}
         title="Stats & Prediction"
-        className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-mono font-bold text-[10px] transition-all active:scale-95"
+        className={`absolute top-2 right-2 z-10 flex items-center gap-1.5 ${isMobileView ? 'px-2 py-1' : 'px-2.5 py-1.5'} rounded-lg font-mono font-bold text-[10px] transition-all active:scale-95`}
         style={{
           background: showPanel ? '#3b82f6' : panelBg,
           border: showPanel ? '1px solid #2563eb' : panelBorder,
@@ -555,17 +573,17 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
           boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
         }}
       >
-        <span style={{ fontSize: 13 }}>📊</span>
-        STATS
+        <span style={{ fontSize: isMobileView ? 11 : 13 }}>📊</span>
+        {!isMobileView && 'STATS'}
       </button>
 
       {/* ── Stats & Prediction panel ──────────────────────────── */}
       {showPanel && (
         <div
-          className="absolute top-14 right-3 z-10 rounded-xl overflow-hidden flex flex-col"
+          className={`absolute ${isMobileView ? 'top-10 right-2 left-2' : 'top-14 right-3'} z-10 rounded-xl overflow-hidden flex flex-col`}
           style={{
-            width: 240,
-            maxHeight: 'calc(100% - 7rem)',
+            width: isMobileView ? 'auto' : isTabletView ? 220 : 240,
+            maxHeight: isMobileView ? 'calc(100% - 3.5rem)' : 'calc(100% - 7rem)',
             background: panelBg,
             border: panelBorder,
             backdropFilter: 'blur(12px)',
@@ -752,18 +770,18 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
       )}
 
       {/* ── Zoom controls ────────────────────────────────────── */}
-      <div className="absolute bottom-6 right-3 z-10 flex flex-col gap-1">
+      <div className={`absolute ${isMobileView ? 'bottom-3 right-2' : 'bottom-6 right-3'} z-10 flex flex-col gap-1`}>
         <button
           onClick={() => mapRef.current?.zoomIn()}
           title="Zoom in"
-          className="w-8 h-8 flex items-center justify-center rounded-md font-bold transition-all active:scale-95"
-          style={{ background: panelBg, border: panelBorder, color: textBase, fontSize: 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
+          className={`${isMobileView ? 'w-7 h-7' : 'w-8 h-8'} flex items-center justify-center rounded-md font-bold transition-all active:scale-95`}
+          style={{ background: panelBg, border: panelBorder, color: textBase, fontSize: isMobileView ? 16 : 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
         >+</button>
         <button
           onClick={() => mapRef.current?.zoomOut()}
           title="Zoom out"
-          className="w-8 h-8 flex items-center justify-center rounded-md font-bold transition-all active:scale-95"
-          style={{ background: panelBg, border: panelBorder, color: textBase, fontSize: 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
+          className={`${isMobileView ? 'w-7 h-7' : 'w-8 h-8'} flex items-center justify-center rounded-md font-bold transition-all active:scale-95`}
+          style={{ background: panelBg, border: panelBorder, color: textBase, fontSize: isMobileView ? 16 : 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
         >−</button>
       </div>
     </div>
