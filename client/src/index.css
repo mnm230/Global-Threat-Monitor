@@ -163,10 +163,30 @@
     scrollbar-color: hsl(185 30% 28% / 0.6) transparent;
   }
 
+  .react-grid-item ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .react-grid-item ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .react-grid-item ::-webkit-scrollbar-thumb {
+    background: hsl(185 30% 30% / 0.35);
+    border-radius: 4px;
+  }
+  .react-grid-item ::-webkit-scrollbar-thumb:hover {
+    background: hsl(185 30% 40% / 0.55);
+  }
+  .react-grid-item ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* Momentum scrolling for touch + desktop overflow containers */
   [class*="overflow-y-"], [class*="overflow-x-"], [style*="overflow"],
   [class*="overflow-auto"] {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
   }
 
   /* Scale up tiny hardcoded pixel font sizes used throughout the dashboard */
@@ -857,6 +877,16 @@
   contain: style paint;
   will-change: transform;
   border-radius: 10px;
+  isolation: isolate;
+}
+
+.react-grid-item .overflow-y-auto,
+.react-grid-item .overflow-auto,
+.react-grid-item [data-radix-scroll-area-viewport] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 /* Panel content entrance fade */

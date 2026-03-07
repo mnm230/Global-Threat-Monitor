@@ -6356,9 +6356,32 @@ export default function Dashboard() {
       setShowScrollDown(!atBottom && scrollHeight > clientHeight + 40);
       setShowScrollTop(scrollTop > 80);
     };
-    onScroll(); // run once on mount
+    onScroll();
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const container = panelsScrollRef.current;
+    if (!container) return;
+    const handler = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const scrollable = target.closest('.overflow-y-auto, .overflow-auto, [data-radix-scroll-area-viewport]') as HTMLElement | null;
+      if (!scrollable) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollable;
+      const canScroll = scrollHeight > clientHeight + 1;
+      if (!canScroll) return;
+      const atTop = scrollTop <= 0;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+      const scrollingDown = e.deltaY > 0;
+      const scrollingUp = e.deltaY < 0;
+      if ((scrollingDown && !atBottom) || (scrollingUp && !atTop)) {
+        e.stopPropagation();
+      }
+    };
+    container.addEventListener('wheel', handler, { passive: false });
+    return () => container.removeEventListener('wheel', handler);
   }, []);
 
   
@@ -6943,7 +6966,7 @@ export default function Dashboard() {
       <div
         ref={panelsScrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ minHeight: 0 }}
+        style={{ minHeight: 0, overscrollBehavior: 'none' }}
         data-testid="resizable-panels"
       >
         {isMobile ? (

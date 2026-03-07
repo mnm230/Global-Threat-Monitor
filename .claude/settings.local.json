@@ -22,7 +22,8 @@
       "Bash(ss:*)",
       "Bash(grep:*)",
       "Bash(git stash:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }

@@ -9,9 +9,10 @@ const MAP_THEMES = {
 } as const;
 type MapTheme = keyof typeof MAP_THEMES;
 
+// Expanded bounds to fully cover GCC (Oman east tip) + Iran + Lebanon
 const ME_BOUNDS: [[number, number], [number, number]] = [
-  [24.0, 10.0],
-  [65.0, 42.0],
+  [22.0, 8.0],   // SW: western Egypt / south Yemen
+  [68.0, 44.0],  // NE: eastern Iran / Armenia
 ];
 
 const MIDDLE_EAST_COUNTRIES = new Set([
@@ -20,12 +21,28 @@ const MIDDLE_EAST_COUNTRIES = new Set([
   'Egypt', 'Libya', 'Turkey', 'Cyprus', 'Armenia', 'Azerbaijan',
 ]);
 
+// GCC member states for region colouring
+const GCC_COUNTRIES = new Set(['Saudi Arabia', 'UAE', 'Qatar', 'Bahrain', 'Kuwait', 'Oman']);
+
 const THREAT_COLORS: Record<string, string> = {
   rockets: '#dc2626',
   missiles: '#ea580c',
   uav_intrusion: '#0891b2',
   hostile_aircraft_intrusion: '#7c3aed',
+  ballistic_missile: '#f97316',
+  cruise_missile: '#f59e0b',
+  drone_swarm: '#06b6d4',
 };
+
+// Region quick-navigation presets
+const REGIONS = [
+  { id: 'all',        label: 'All',        center: [46.0, 28.0] as [number, number], zoom: 4.2 },
+  { id: 'levant',     label: 'Levant',     center: [35.8, 32.5] as [number, number], zoom: 6.5 },
+  { id: 'lebanon',    label: 'Lebanon',    center: [35.5, 33.8] as [number, number], zoom: 8.0 },
+  { id: 'gcc',        label: 'GCC',        center: [50.0, 24.5] as [number, number], zoom: 5.5 },
+  { id: 'iran',       label: 'Iran',       center: [53.5, 32.5] as [number, number], zoom: 5.0 },
+  { id: 'iraq',       label: 'Iraq',       center: [43.5, 33.0] as [number, number], zoom: 6.0 },
+] as const;
 
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
@@ -38,6 +55,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
   const geoJsonRef = useRef<{ type: 'FeatureCollection'; features: any[] } | null>(null);
 
   const [theme, setTheme] = useState<MapTheme>('light');
+  const [activeRegion, setActiveRegion] = useState<string>('all');
 
   const geoJson = useMemo(() => {
     const now = Date.now();
@@ -53,6 +71,14 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
         const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
         const isActive = elapsed < a.countdown || a.countdown === 0;
         const color = THREAT_COLORS[a.threatType] || '#dc2626';
+        // Tag each alert with its geopolitical group for UI display
+        const countryGroup = GCC_COUNTRIES.has(a.country || '')
+          ? 'gcc'
+          : a.country === 'Lebanon' ? 'lebanon'
+          : a.country === 'Iran' ? 'iran'
+          : a.country === 'Iraq' ? 'iraq'
+          : (a.country === 'Israel' || a.country === 'Palestine' || a.country === 'Gaza') ? 'levant'
+          : 'other';
         return {
           type: 'Feature' as const,
           geometry: { type: 'Point' as const, coordinates: [a.lng, a.lat] },
@@ -60,6 +86,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
             id: a.id,
             city: language === 'ar' ? a.cityAr : a.city,
             country: a.country,
+            countryGroup,
             threatType: a.threatType,
             color,
             isActive,
@@ -195,10 +222,18 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
         const mins = Math.floor(remaining / 60);
         const secs = remaining % 60;
         const threatLabel = (props.threatType || '').replace(/_/g, ' ').toUpperCase();
+        const groupLabel: Record<string, string> = {
+          gcc: '🛡 GCC', lebanon: '🇱🇧 Lebanon', iran: '🇮🇷 Iran',
+          iraq: '🇮🇶 Iraq', levant: '✡ Levant', other: '🌍 Region',
+        };
+        const groupBadge = groupLabel[props.countryGroup] || props.country || '';
 
         const html = `
-          <div style="font-family:monospace;font-size:12px;color:#1a1a1a;background:#ffffff;padding:10px 12px;border-radius:8px;min-width:175px;border:2px solid ${props.color};box-shadow:0 4px 20px rgba(0,0,0,0.15)">
-            <div style="font-weight:900;font-size:14px;color:${props.color};margin-bottom:3px">${props.city || '—'}</div>
+          <div style="font-family:monospace;font-size:12px;color:#1a1a1a;background:#ffffff;padding:10px 12px;border-radius:8px;min-width:185px;border:2px solid ${props.color};box-shadow:0 4px 20px rgba(0,0,0,0.15)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+              <div style="font-weight:900;font-size:14px;color:${props.color}">${props.city || '—'}</div>
+              <span style="font-size:9px;font-weight:800;color:#666;background:#f3f4f6;padding:1px 5px;border-radius:3px">${groupBadge}</span>
+            </div>
             <div style="color:#888;font-size:10px;margin-bottom:8px">${[props.region, props.country].filter(Boolean).join(' · ')}</div>
             <span style="background:${props.color};color:#fff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:800">${threatLabel}</span>
             ${props.source === 'live' ? '<span style="margin-left:5px;background:#dcfce7;color:#16a34a;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:900;border:1px solid #bbf7d0">LIVE</span>' : ''}
@@ -232,8 +267,9 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
       map = new MapLibreMap({
         container: containerRef.current,
         style: MAP_THEMES[theme],
-        center: [35.5, 32.0],
-        zoom: IS_MOBILE ? 5 : 6,
+        // Start wide enough to show Lebanon, GCC, and Iran simultaneously
+        center: [46.0, 28.0],
+        zoom: IS_MOBILE ? 3.8 : 4.2,
         maxBounds: ME_BOUNDS,
         attributionControl: false,
         antialias: false,
@@ -298,30 +334,116 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
     }
   }, [geoJson]);
 
+  // Computed per-region alert counts for badge display
+  const regionCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0, levant: 0, lebanon: 0, gcc: 0, iran: 0, iraq: 0 };
+    geoJson.features.forEach(f => {
+      counts.all++;
+      const g = f.properties.countryGroup as string;
+      if (g in counts) counts[g]++;
+    });
+    return counts;
+  }, [geoJson]);
+
+  const flyToRegion = (r: typeof REGIONS[number]) => {
+    setActiveRegion(r.id);
+    mapRef.current?.flyTo({ center: r.center, zoom: r.zoom, duration: 800 });
+  };
+
+  const isDark = theme === 'dark';
+  const panelBg = isDark ? 'rgba(12,14,24,0.88)' : 'rgba(255,255,255,0.88)';
+  const panelBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.1)';
+  const textMuted = isDark ? 'rgba(255,255,255,0.45)' : '#666';
+  const textBase = isDark ? 'rgba(255,255,255,0.85)' : '#111';
+
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" data-testid="alert-map-container" />
 
-      {/* ── Theme toggle ─────────────────────────────────────── */}
-      <div className="absolute top-3 left-3 z-10 flex gap-1 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.1)', backdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
-        {(['light', 'dark'] as MapTheme[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTheme(t)}
-            title={t === 'light' ? 'Light map' : 'Dark map'}
-            className="flex items-center gap-1 px-2 py-1 rounded-md transition-all active:scale-95"
-            style={{
-              background: theme === t ? (t === 'dark' ? 'rgba(20,24,40,0.95)' : 'rgba(255,255,255,1)') : 'transparent',
-              border: theme === t ? `1px solid ${t === 'dark' ? 'rgba(100,120,200,0.4)' : 'rgba(0,0,0,0.15)'}` : '1px solid transparent',
-              boxShadow: theme === t ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
-            }}
-          >
-            <span style={{ fontSize: 13, lineHeight: 1 }}>{t === 'light' ? '☀️' : '🌙'}</span>
-            <span className="text-[9px] font-mono font-bold uppercase" style={{ color: theme === t ? (t === 'dark' ? 'rgba(180,200,255,0.9)' : '#333') : '#888' }}>
-              {t}
-            </span>
-          </button>
+      {/* ── Top-left: theme toggle + region buttons ─────────── */}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+        {/* Theme toggle */}
+        <div className="flex gap-1 p-1 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
+          {(['light', 'dark'] as MapTheme[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTheme(t)}
+              title={t === 'light' ? 'Light map' : 'Dark map'}
+              className="flex items-center gap-1 px-2 py-1 rounded-md transition-all active:scale-95"
+              style={{
+                background: theme === t ? (t === 'dark' ? 'rgba(30,35,60,0.95)' : 'rgba(255,255,255,1)') : 'transparent',
+                border: theme === t ? `1px solid ${t === 'dark' ? 'rgba(100,120,200,0.4)' : 'rgba(0,0,0,0.15)'}` : '1px solid transparent',
+                boxShadow: theme === t ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
+              }}
+            >
+              <span style={{ fontSize: 12, lineHeight: 1 }}>{t === 'light' ? '☀️' : '🌙'}</span>
+              <span className="text-[9px] font-mono font-bold uppercase" style={{ color: theme === t ? (t === 'dark' ? 'rgba(180,200,255,0.9)' : '#333') : textMuted }}>
+                {t}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Region quick-jump */}
+        <div className="flex flex-col gap-1 p-1.5 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
+          <div className="text-[7px] font-mono font-bold uppercase tracking-widest px-1 mb-0.5" style={{ color: textMuted }}>Jump to</div>
+          {REGIONS.map(r => {
+            const count = regionCounts[r.id] || 0;
+            const isActive = activeRegion === r.id;
+            const regionColor: Record<string, string> = {
+              all: '#94a3b8', levant: '#3b82f6', lebanon: '#22c55e',
+              gcc: '#f97316', iran: '#a855f7', iraq: '#f59e0b',
+            };
+            const color = regionColor[r.id] || '#94a3b8';
+            return (
+              <button
+                key={r.id}
+                onClick={() => flyToRegion(r)}
+                className="flex items-center justify-between gap-2 px-2 py-1 rounded-md transition-all active:scale-95"
+                style={{
+                  background: isActive ? `${color}18` : 'transparent',
+                  border: isActive ? `1px solid ${color}40` : '1px solid transparent',
+                  minWidth: 110,
+                }}
+              >
+                <span className="text-[9px] font-mono font-bold" style={{ color: isActive ? color : textMuted }}>{r.label}</span>
+                {count > 0 && (
+                  <span className="text-[8px] font-mono font-black px-1.5 py-0.5 rounded-full" style={{ background: `${color}25`, color }}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Bottom-left: threat legend ───────────────────────── */}
+      <div className="absolute bottom-6 left-3 z-10 p-2 rounded-lg" style={{ background: panelBg, border: panelBorder, backdropFilter: 'blur(8px)', boxShadow: '0 2px 8px rgba(0,0,0,0.14)' }}>
+        <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5" style={{ color: textMuted }}>Threat Type</div>
+        {[
+          { label: 'Rockets',      color: '#dc2626' },
+          { label: 'Missiles',     color: '#ea580c' },
+          { label: 'UAV / Drone',  color: '#0891b2' },
+          { label: 'Aircraft',     color: '#7c3aed' },
+        ].map(({ label, color }) => (
+          <div key={label} className="flex items-center gap-1.5 mb-1 last:mb-0">
+            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color, boxShadow: `0 0 4px ${color}88` }} />
+            <span className="text-[8px] font-mono" style={{ color: textBase }}>{label}</span>
+          </div>
         ))}
+        <div className="mt-2 pt-1.5" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}` }}>
+          <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1" style={{ color: textMuted }}>Status</div>
+          {[
+            { label: 'Active alert',   size: 9, opacity: 1 },
+            { label: 'Past / resolved', size: 5, opacity: 0.55 },
+          ].map(({ label, size, opacity }) => (
+            <div key={label} className="flex items-center gap-1.5 mb-1 last:mb-0">
+              <div style={{ width: size, height: size, borderRadius: '50%', background: '#dc2626', opacity, flexShrink: 0 }} />
+              <span className="text-[8px] font-mono" style={{ color: textBase }}>{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Zoom controls ────────────────────────────────────── */}
@@ -329,14 +451,14 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
         <button
           onClick={() => mapRef.current?.zoomIn()}
           title="Zoom in"
-          className="w-8 h-8 flex items-center justify-center rounded-md font-bold transition-all active:scale-95 hover:bg-white/90"
-          style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.15)', color: '#333', fontSize: 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
+          className="w-8 h-8 flex items-center justify-center rounded-md font-bold transition-all active:scale-95"
+          style={{ background: panelBg, border: panelBorder, color: textBase, fontSize: 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
         >+</button>
         <button
           onClick={() => mapRef.current?.zoomOut()}
           title="Zoom out"
-          className="w-8 h-8 flex items-center justify-center rounded-md font-bold transition-all active:scale-95 hover:bg-white/90"
-          style={{ background: 'rgba(255,255,255,0.85)', border: '1px solid rgba(0,0,0,0.15)', color: '#333', fontSize: 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
+          className="w-8 h-8 flex items-center justify-center rounded-md font-bold transition-all active:scale-95"
+          style={{ background: panelBg, border: panelBorder, color: textBase, fontSize: 18, lineHeight: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.12)' }}
         >−</button>
       </div>
     </div>
