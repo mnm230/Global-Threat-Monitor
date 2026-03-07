@@ -534,6 +534,31 @@ function playAlertSound(threatType?: string, volume: number = 70) {
   } catch (_) {}
 }
 
+function playTelegramSound(volume: number = 70) {
+  try {
+    if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+    const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
+    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.12;
+    const t = ctx.currentTime;
+    const freqs = [1200, 1560, 1800];
+    freqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + i * 0.09);
+      gain.gain.setValueAtTime(0, t + i * 0.09);
+      gain.gain.linearRampToValueAtTime(vol * (1 - i * 0.2), t + i * 0.09 + 0.008);
+      gain.gain.setValueAtTime(vol * (1 - i * 0.2), t + i * 0.09 + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.09 + 0.12);
+      osc.start(t + i * 0.09);
+      osc.stop(t + i * 0.09 + 0.13);
+    });
+  } catch (_) {}
+}
+
 function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: boolean, silentMode: boolean, volume: number) {
   const prevIdsRef = useRef<Set<string>>(new Set());
   const hasFetchedOnce = useRef(false);
@@ -3298,12 +3323,18 @@ const TelegramPanel = memo(function TelegramPanel({
   onClose,
   onMaximize,
   isMaximized,
+  soundEnabled = false,
+  silentMode = false,
+  volume = 70,
 }: {
   messages: TelegramMessage[];
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
   isMaximized?: boolean;
+  soundEnabled?: boolean;
+  silentMode?: boolean;
+  volume?: number;
 }) {
   const [customChannels, setCustomChannels] = useState<string[]>(() => {
     try {
@@ -3372,6 +3403,7 @@ const TelegramPanel = memo(function TelegramPanel({
   }, [messages, customMessages, customOnly]);
 
   const clearNewMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTgSoundRef = useRef(0);
   useEffect(() => {
     const currentIds = new Set(filteredMessages.map(m => m.id));
     if (prevMsgIdsRef.current.size > 0) {
@@ -3383,10 +3415,15 @@ const TelegramPanel = memo(function TelegramPanel({
         if (clearNewMsgTimerRef.current) clearTimeout(clearNewMsgTimerRef.current);
         setNewMsgIds(prev => new Set([...Array.from(prev), ...freshIds]));
         clearNewMsgTimerRef.current = setTimeout(() => setNewMsgIds(new Set()), 6000);
+        const now = Date.now();
+        if (soundEnabled && !silentMode && now - lastTgSoundRef.current > 8000) {
+          lastTgSoundRef.current = now;
+          playTelegramSound(volume);
+        }
       }
     }
     prevMsgIdsRef.current = currentIds;
-  }, [filteredMessages]);
+  }, [filteredMessages, soundEnabled, silentMode, volume]);
 
   const [channelFilter, setChannelFilter] = useState<string | null>(null);
 
@@ -7136,7 +7173,7 @@ export default function Dashboard() {
         case 'alerts':
           return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
         case 'telegram':
-          return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+          return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} soundEnabled={soundEnabled} silentMode={settings.silentMode} volume={settings.volume} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'ew':
