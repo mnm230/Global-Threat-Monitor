@@ -917,10 +917,12 @@
 
 .react-grid-item .overflow-y-auto,
 .react-grid-item .overflow-auto,
-.react-grid-item [data-radix-scroll-area-viewport] {
+.react-grid-item [data-radix-scroll-area-viewport],
+[data-testid="resizable-panels"] .overflow-y-auto,
+[data-testid="resizable-panels"] .overflow-auto,
+[data-testid="resizable-panels"] [data-radix-scroll-area-viewport] {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
 

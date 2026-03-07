@@ -6314,43 +6314,32 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Track scroll position on panels container to show/hide scroll buttons
+  const scrollStateRef = useRef({ showDown: false, showTop: false });
   useEffect(() => {
     const el = panelsScrollRef.current;
     if (!el) return;
+    let rafId = 0;
     const onScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 40;
-      setShowScrollDown(!atBottom && scrollHeight > clientHeight + 40);
-      setShowScrollTop(scrollTop > 80);
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        const { scrollTop, scrollHeight, clientHeight } = el;
+        const atBottom = scrollTop + clientHeight >= scrollHeight - 40;
+        const shouldShowDown = !atBottom && scrollHeight > clientHeight + 40;
+        const shouldShowTop = scrollTop > 80;
+        if (shouldShowDown !== scrollStateRef.current.showDown) {
+          scrollStateRef.current.showDown = shouldShowDown;
+          setShowScrollDown(shouldShowDown);
+        }
+        if (shouldShowTop !== scrollStateRef.current.showTop) {
+          scrollStateRef.current.showTop = shouldShowTop;
+          setShowScrollTop(shouldShowTop);
+        }
+      });
     };
     onScroll();
     el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    const container = panelsScrollRef.current;
-    if (!container) return;
-    const handler = (e: WheelEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-      const scrollable = target.closest('.overflow-y-auto, .overflow-auto, [data-radix-scroll-area-viewport]') as HTMLElement | null;
-      if (!scrollable || scrollable === container) return;
-      const { scrollTop, scrollHeight, clientHeight } = scrollable;
-      const canScroll = scrollHeight > clientHeight + 2;
-      if (!canScroll) return;
-      const atTop = scrollTop <= 1;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 2;
-      const scrollingDown = e.deltaY > 0;
-      const scrollingUp = e.deltaY < 0;
-      if ((scrollingDown && !atBottom) || (scrollingUp && !atTop)) {
-        e.preventDefault();
-        scrollable.scrollTop += e.deltaY;
-      }
-    };
-    container.addEventListener('wheel', handler, { passive: false });
-    return () => container.removeEventListener('wheel', handler);
+    return () => { el.removeEventListener('scroll', onScroll); if (rafId) cancelAnimationFrame(rafId); };
   }, []);
 
   
@@ -6934,7 +6923,7 @@ export default function Dashboard() {
       <div
         ref={panelsScrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ minHeight: 0, overscrollBehavior: 'contain', scrollBehavior: 'auto' }}
+        style={{ minHeight: 0, overscrollBehavior: 'contain', willChange: 'scroll-position', contain: 'layout style paint' }}
         data-testid="resizable-panels"
       >
         {isMobile ? (
