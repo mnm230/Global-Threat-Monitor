@@ -183,7 +183,8 @@ export interface RegionAnomaly {
 export interface AnalyticsSnapshot {
   alertsByRegion: Record<string, number>;
   alertsByType: Record<string, number>;
-  alertTimeline: { time: string; count: number; regions?: Record<string, number>; types?: Record<string, number> }[];
+  alertsByCountry?: Record<string, number>;
+  alertTimeline: { time: string; count: number; regions?: Record<string, number>; types?: Record<string, number>; countries?: Record<string, number> }[];
   avgResponseTime: number;
   activeAlertCount: number;
   falseAlarmRate: number;
@@ -200,6 +201,8 @@ export interface AnalyticsSnapshot {
   thermalHotspotCount?: number;
   militaryFlightCount?: number;
   eventsByType?: Record<string, number>;
+  eventsByCountry?: Record<string, number>;
+  telegramByCountry?: Record<string, number>;
   lastUpdated?: string;
 }
 

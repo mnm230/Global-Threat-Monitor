@@ -531,6 +531,9 @@ const OSINT_RSS_FEEDS = [
   { url: 'https://english.alaraby.co.uk/rss', source: 'The New Arab' },
   { url: 'https://www.lorientlejour.com/rss', source: "L'Orient Le Jour" },
   { url: 'https://today.lorientlejour.com/rss', source: "L'Orient Today (EN)" },
+  { url: 'https://www.naharnet.com/stories/en/rss.xml', source: 'Naharnet EN' },
+  { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya EN' },
+  { url: 'https://news.google.com/rss/search?q=south+lebanon+hezbollah+IDF+invasion&hl=en-US&gl=US&ceid=US:en', source: 'Google OSINT Lebanon' },
 ];
 let osintFeedCache: { data: NewsItem[]; fetchedAt: number } | null = null;
 const OSINT_FEED_CACHE_TTL = 60_000;
@@ -616,6 +619,9 @@ const FREE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=iran+israel+war&hl=en-US&gl=US&ceid=US:en', source: 'Google News War' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
   { url: 'https://news.google.com/rss/search?q=lebanon+war+hezbollah&hl=en-US&gl=US&ceid=US:en', source: 'Google News Lebanon' },
+  { url: 'https://news.google.com/rss/search?q=south+lebanon+IDF+hezbollah+airstrike&hl=en-US&gl=US&ceid=US:en', source: 'Google News S.Lebanon' },
+  { url: 'https://news.google.com/rss/search?q=beirut+strike+explosion+lebanon&hl=en-US&gl=US&ceid=US:en', source: 'Google News Beirut' },
+  { url: 'https://news.google.com/rss/search?q=nabatieh+tyre+sidon+lebanon+military&hl=en-US&gl=US&ceid=US:en', source: 'Google News Leb Cities' },
 ];
 
 let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
@@ -2811,11 +2817,14 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
     'artillery': 0, 'ground_incursion': 0, 'cyber': 0,
   };
 
-  // Apply real alert counts
+  const countryCounts: Record<string, number> = {};
+
   for (const a of alerts) {
     const region = a.region || a.country || 'Unknown';
     seedRegions[region] = (seedRegions[region] || 0) + 1;
     seedTypes[a.threatType] = (seedTypes[a.threatType] || 0) + 1;
+    const country = a.country || 'Unknown';
+    countryCounts[country] = (countryCounts[country] || 0) + 1;
   }
 
   // If we have very few real alerts, add synthetic historical baseline
@@ -2842,12 +2851,14 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
   const hourlyMap: Record<string, number> = {};
   const hourlyRegions: Record<string, Record<string, number>> = {};
   const hourlyTypes: Record<string, Record<string, number>> = {};
+  const hourlyCountries: Record<string, Record<string, number>> = {};
   for (let h = 23; h >= 0; h--) {
     const slotTime = new Date(now - h * 3600000);
     const key = `${slotTime.getUTCHours().toString().padStart(2, '0')}:00`;
     hourlyMap[key] = 0;
     hourlyRegions[key] = {};
     hourlyTypes[key] = {};
+    hourlyCountries[key] = {};
   }
   for (const a of alerts) {
     const alertTime = new Date(a.timestamp);
@@ -2859,6 +2870,8 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
         const region = a.region || a.country || 'Unknown';
         hourlyRegions[key][region] = (hourlyRegions[key][region] || 0) + 1;
         hourlyTypes[key][a.threatType] = (hourlyTypes[key][a.threatType] || 0) + 1;
+        const country = a.country || 'Unknown';
+        hourlyCountries[key][country] = (hourlyCountries[key][country] || 0) + 1;
       }
     }
   }
@@ -2875,6 +2888,7 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
     count,
     regions: hourlyRegions[time] || {},
     types: hourlyTypes[time] || {},
+    countries: hourlyCountries[time] || {},
   }));
 
   // Active count: alerts still within countdown window
@@ -2936,13 +2950,32 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
 
   // Conflict event type breakdown (GDELT + alerts + thermal)
   const eventsByType: Record<string, number> = {};
+  const eventsByCountry: Record<string, number> = {};
   for (const e of conflictEvents) {
     eventsByType[e.type] = (eventsByType[e.type] || 0) + 1;
+    const evtCountry = e.country || (e.lat > 33.8 && e.lng > 35.0 && e.lng < 36.5 ? 'Lebanon' : e.lat > 31.0 && e.lat < 33.3 && e.lng > 34.0 && e.lng < 35.9 ? 'Israel' : 'Unknown');
+    eventsByCountry[evtCountry] = (eventsByCountry[evtCountry] || 0) + 1;
+  }
+
+  const telegramByCountry: Record<string, number> = {};
+  const lebKeywords = /lebanon|hezbollah|beirut|nabatieh|tyre|sidon|litani|south lebanon|dahiy|bekaa|baalbek|لبنان|حزب الله|بيروت|النبطية|صيدا|صور|بعلبك|الضاحية|البقاع|جنوب لبنان/i;
+  const israelKeywords = /israel|idf|tel aviv|jerusalem|gaza|iron dome|haifa|תל אביב|ירושלים|חיפה|עזה|כיפת ברזל/i;
+  const yemenKeywords = /yemen|houthi|sanaa|aden|red sea|اليمن|صنعاء|عدن|حوثي|البحر الأحمر/i;
+  const iranKeywords = /iran|tehran|irgc|قدس|إيران|طهران|الحرس الثوري/i;
+  const syriaKeywords = /syria|damascus|aleppo|سوريا|دمشق|حلب/i;
+  for (const m of messages) {
+    const text = m.text || '';
+    if (lebKeywords.test(text)) telegramByCountry['Lebanon'] = (telegramByCountry['Lebanon'] || 0) + 1;
+    if (israelKeywords.test(text)) telegramByCountry['Israel'] = (telegramByCountry['Israel'] || 0) + 1;
+    if (yemenKeywords.test(text)) telegramByCountry['Yemen'] = (telegramByCountry['Yemen'] || 0) + 1;
+    if (iranKeywords.test(text)) telegramByCountry['Iran'] = (telegramByCountry['Iran'] || 0) + 1;
+    if (syriaKeywords.test(text)) telegramByCountry['Syria'] = (telegramByCountry['Syria'] || 0) + 1;
   }
 
   return {
     alertsByRegion: regionCounts,
     alertsByType: typeCounts,
+    alertsByCountry: Object.fromEntries(Object.entries(countryCounts).filter(([, v]) => v > 0)),
     alertTimeline: timeline,
     avgResponseTime,
     activeAlertCount: activeCount,
@@ -2957,6 +2990,8 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
     thermalHotspotCount: thermalCount,
     militaryFlightCount,
     eventsByType,
+    eventsByCountry: Object.fromEntries(Object.entries(eventsByCountry).filter(([, v]) => v > 0)),
+    telegramByCountry: Object.fromEntries(Object.entries(telegramByCountry).filter(([, v]) => v > 0)),
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -3765,6 +3800,10 @@ export async function registerRoutes(
     'HezbollahWO',       // Hezbollah ops updates
     'ResistanceLB',      // Lebanese resistance — fast
     'southlebanon',      // South Lebanon ground reports
+    'LebUpdate',         // Lebanon live updates — fast
+    'nabatiehnews',      // Nabatieh IDF ground axis — fast
+    'MTVLebanonNews',    // MTV Lebanon — fast EN/AR
+    'LBCINews',          // LBCI Lebanese broadcaster — fast
     'BNONewsRoom',       // BNO breaking news
     'GeoConfirmed',      // geo-confirmed events
     'ELINTNews',         // ELINT / air+ground activity
@@ -3774,6 +3813,8 @@ export async function registerRoutes(
     'AlMasiraaTV',       // Houthi attacks / Red Sea
     'CIG_telegram',      // Conflict Intel Group
     'Middle_East_Spectator', // ME conflict fast
+    'interbellumnews',   // InterBellum — fast conflict
+    'lebanonnews2',      // Lebanon news aggregator — fast
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
@@ -4386,7 +4427,7 @@ export async function registerRoutes(
         0,
       );
       send('analytics', analytics);
-    }, 30000));
+    }, 15000));
 
     generateAttackPrediction().then(pred => send('attack-prediction', pred)).catch(() => {});
     intervals.push(setInterval(async () => {

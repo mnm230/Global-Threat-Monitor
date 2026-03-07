@@ -2790,7 +2790,7 @@ const LIVE_CHANNELS = [
 ] as const;
 
 const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const [activeChannel, setActiveChannel] = useState<typeof LIVE_CHANNELS[number]['id']>('aje');
+  const [activeChannel, setActiveChannel] = useState<typeof LIVE_CHANNELS[number]['id']>('aja');
   const [customUrl, setCustomUrl] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [customVideoId, setCustomVideoId] = useState<string | null>(null);
@@ -4653,7 +4653,8 @@ interface RegionAnomalyData {
 interface AnalyticsData {
   alertsByRegion: Record<string, number>;
   alertsByType: Record<string, number>;
-  alertTimeline: { time: string; count: number; regions?: Record<string, number>; types?: Record<string, number> }[];
+  alertsByCountry?: Record<string, number>;
+  alertTimeline: { time: string; count: number; regions?: Record<string, number>; types?: Record<string, number>; countries?: Record<string, number> }[];
   topSources: { channel: string; count: number; reliability: number }[];
   activeAlertCount: number;
   falseAlarmRate: number;
@@ -4667,6 +4668,8 @@ interface AnalyticsData {
   thermalHotspotCount?: number;
   militaryFlightCount?: number;
   eventsByType?: Record<string, number>;
+  eventsByCountry?: Record<string, number>;
+  telegramByCountry?: Record<string, number>;
   lastUpdated?: string;
 }
 
@@ -5028,6 +5031,61 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     </div>
                   )}
 
+                  {analytics.alertsByCountry && Object.keys(analytics.alertsByCountry).length > 0 && (
+                    <div data-testid="section-country-breakdown">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('Alerts by Country', '\u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A \u062D\u0633\u0628 \u0627\u0644\u062F\u0648\u0644\u0629')}</span>
+                        <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.alertsByCountry).reduce((s,v)=>s+v,0)} total</span>
+                      </div>
+                      <div className="space-y-1">
+                        {(() => { const maxCountry = Math.max(...Object.values(analytics.alertsByCountry!)); return Object.entries(analytics.alertsByCountry!).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([country, count]) => {
+                          const pct = (count / maxCountry) * 100;
+                          const countryColors: Record<string, string> = { Israel: 'bg-blue-500/55', Lebanon: 'bg-emerald-500/55', Iran: 'bg-purple-500/55', Syria: 'bg-yellow-500/55', Iraq: 'bg-orange-500/55', Yemen: 'bg-rose-500/55', 'Saudi Arabia': 'bg-green-500/55', UAE: 'bg-sky-500/55' };
+                          const tgCount = analytics.telegramByCountry?.[country] || 0;
+                          const evtCount = analytics.eventsByCountry?.[country] || 0;
+                          return (
+                            <Tooltip key={country}>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1.5 cursor-default hover:bg-white/[0.02] rounded px-1 py-0.5 transition-colors">
+                                  <span className="text-[9px] font-mono text-foreground/55 w-16 truncate">{country}</span>
+                                  <div className="flex-1 h-2.5 bg-white/[0.03] rounded-full overflow-hidden">
+                                    <div className={`h-full ${countryColors[country] || 'bg-blue-500/45'} rounded-full transition-all`} style={{ width: `${Math.max(6, pct)}%` }} />
+                                  </div>
+                                  <span className="text-[9px] font-bold font-mono text-foreground/50 w-6 text-right">{count}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
+                                <p className="text-foreground/80 font-bold mb-0.5">{country}</p>
+                                <p className="text-foreground/50">{count} alerts ({pct.toFixed(0)}% of max)</p>
+                                {tgCount > 0 && <p className="text-cyan-400/70">{tgCount} Telegram mentions</p>}
+                                {evtCount > 0 && <p className="text-orange-400/70">{evtCount} conflict events</p>}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        }); })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {analytics.telegramByCountry && Object.keys(analytics.telegramByCountry).length > 0 && (
+                    <div data-testid="section-telegram-intel">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('Telegram Intel by Country', '\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u062A\u064A\u0644\u064A\u063A\u0631\u0627\u0645')}</span>
+                        <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.telegramByCountry).reduce((s,v)=>s+v,0)} mentions</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(analytics.telegramByCountry).sort((a,b)=>b[1]-a[1]).map(([country, count]) => {
+                          const countryChipColors: Record<string, string> = { Israel: 'bg-blue-950/40 border-blue-500/25 text-blue-300', Lebanon: 'bg-emerald-950/40 border-emerald-500/25 text-emerald-300', Yemen: 'bg-rose-950/40 border-rose-500/25 text-rose-300', Iran: 'bg-purple-950/40 border-purple-500/25 text-purple-300', Syria: 'bg-yellow-950/40 border-yellow-500/25 text-yellow-300' };
+                          return (
+                            <span key={country} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${countryChipColors[country] || 'bg-white/[0.03] border-white/10 text-foreground/50'}`}>
+                              {country.toUpperCase()} {count}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {analytics.escalationForecast && (() => {
                     const fc = analytics.escalationForecast;
                     const dirConfig = {
@@ -5122,6 +5180,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       {(analytics.alertTimeline ?? []).map((b, i) => {
                         const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
                         const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const topCountries = Object.entries(b.countries || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
                         const isPeak = peakHour && b.time === peakHour.time && b.count === peakHour.count;
                         const barColor = isPeak ? 'rgb(239 68 68 / 0.9)' : b.count > maxTimeline * 0.7 ? 'rgb(239 68 68 / 0.75)' : b.count > maxTimeline * 0.4 ? 'rgb(251 146 60 / 0.65)' : 'rgb(59 130 246 / 0.55)';
                         return (
@@ -5145,6 +5204,12 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                                 <div>
                                   <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Types</p>
                                   {topTypes.map(([tp, c]) => (<div key={tp} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55 uppercase">{tp.replace(/_/g,' ')}</span><span className="text-[9px] font-bold font-mono text-blue-300/80">{c}</span></div>))}
+                                </div>
+                              )}
+                              {topCountries.length > 0 && (
+                                <div className="mt-1">
+                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Countries</p>
+                                  {topCountries.map(([c, ct]) => (<div key={c} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55">{c}</span><span className="text-[9px] font-bold font-mono text-emerald-300/80">{ct}</span></div>))}
                                 </div>
                               )}
                               {b.count === 0 && <p className="text-[9px] font-mono text-foreground/25 italic">No alerts this hour</p>}
