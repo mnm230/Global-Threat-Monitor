@@ -2932,6 +2932,9 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   }, {});
 
   const sortedRegions = Object.entries(grouped).sort((a, b) => {
+    const isNonIsraelA = a[1].country !== 'Israel' ? 0 : 1;
+    const isNonIsraelB = b[1].country !== 'Israel' ? 0 : 1;
+    if (isNonIsraelA !== isNonIsraelB) return isNonIsraelA - isNonIsraelB;
     const hasLiveA = a[1].alerts.some(al => al.source === 'live') ? 0 : 1;
     const hasLiveB = b[1].alerts.some(al => al.source === 'live') ? 0 : 1;
     if (hasLiveA !== hasLiveB) return hasLiveA - hasLiveB;
@@ -2946,8 +2949,11 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   const liveCount = alerts.filter(a => a.source === 'live').length;
   const hasActiveAlerts = alerts.length > 0;
 
-  const FLAG_MAP: Record<string, string> = { Israel: '\u{1F1EE}\u{1F1F1}', Lebanon: '\u{1F1F1}\u{1F1E7}', Iran: '\u{1F1EE}\u{1F1F7}', Syria: '\u{1F1F8}\u{1F1FE}', Iraq: '\u{1F1EE}\u{1F1F6}', 'Saudi Arabia': '\u{1F1F8}\u{1F1E6}', Yemen: '\u{1F1FE}\u{1F1EA}', UAE: '\u{1F1E6}\u{1F1EA}', Jordan: '\u{1F1EF}\u{1F1F4}', Kuwait: '\u{1F1F0}\u{1F1FC}', Bahrain: '\u{1F1E7}\u{1F1ED}', Qatar: '\u{1F1F6}\u{1F1E6}' };
+  const FLAG_MAP: Record<string, string> = { Israel: '🇮🇱', Lebanon: '🇱🇧', Iran: '🇮🇷', Syria: '🇸🇾', Iraq: '🇮🇶', 'Saudi Arabia': '🇸🇦', Yemen: '🇾🇪', UAE: '🇦🇪', Jordan: '🇯🇴', Kuwait: '🇰🇼', Bahrain: '🇧🇭', Qatar: '🇶🇦' };
   const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
+  const GCC_COUNTRIES = new Set(['Saudi Arabia', 'UAE', 'Kuwait', 'Bahrain', 'Qatar', 'Oman']);
+  const NON_ISRAEL_HIGHLIGHT = new Set(['Lebanon', 'Iran', 'Syria', 'Iraq', 'Yemen', 'Jordan', ...GCC_COUNTRIES]);
+  const nonIsraelAlerts = useMemo(() => alerts.filter(a => a.country !== 'Israel' && NON_ISRAEL_HIGHLIGHT.has(a.country)), [alerts]);
 
   const TIER_BAND: Record<string, { bg: string; text: string; label: string }> = {
     critical: { bg: '#dc2626', text: '#fff', label: 'CRITICAL' },
@@ -3082,6 +3088,36 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         </div>
       )}
 
+      {/* ── NON-ISRAEL ALERT BANNER ── */}
+      {nonIsraelAlerts.length > 0 && countryFilter === 'ALL' && (
+        <div className="shrink-0" style={{ borderBottom: '2px solid #d97706', background: '#1a0f00' }}>
+          <div className="eas-stripes-static" style={{ height: 3, background: '#d97706' }} />
+          <div style={{ padding: '8px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <TriangleAlert style={{ width: 14, height: 14, color: '#fbbf24', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+                {language === 'ar' ? '\u062A\u0646\u0628\u064A\u0647\u0627\u062A \u062E\u0627\u0631\u062C \u0625\u0633\u0631\u0627\u0626\u064A\u0644' : 'REGIONAL ALERTS'}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 900, color: '#fff', background: '#b45309', borderRadius: 2, padding: '1px 7px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{nonIsraelAlerts.length}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {activeCountries.filter(c => c !== 'Israel').map(c => {
+                const accent: Record<string, string> = { Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
+                return (
+                  <button key={c} onClick={() => setCountryFilter(c)}
+                    style={{ fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 2, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em',
+                      background: accent[c] || '#b45309', color: '#fff', border: '1px solid rgba(0,0,0,0.2)',
+                      boxShadow: `0 1px 6px ${accent[c] || '#b45309'}44`,
+                    }}
+                    data-testid={`button-regional-${c}`}
+                  >{FLAG_MAP[c]} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ALERT LIST ── */}
       <ScrollArea className="flex-1 min-h-0">
         <div>
@@ -3092,25 +3128,40 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             const countryAlertCount = sortedRegions.filter(([, g]) => g.country === country).reduce((sum, [, g]) => sum + g.alerts.length, 0);
 
             const COUNTRY_ACCENT: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
+            const isNonIsrael = country !== 'Israel';
+            const isGCC = GCC_COUNTRIES.has(country);
 
             return (
               <div key={compositeKey}>
                 {showCountryHeader && (
                   <div style={{
-                    padding: '7px 12px', position: 'sticky', top: 0, zIndex: 110,
-                    background: '#1c1917',
+                    padding: isNonIsrael ? '10px 12px' : '7px 12px',
+                    position: 'sticky', top: 0, zIndex: 110,
+                    background: isNonIsrael ? (isGCC ? '#0c2d48' : '#1a1400') : '#1c1917',
                     borderBottom: `2px solid ${COUNTRY_ACCENT[country] || '#dc2626'}`,
-                    borderTop: idx > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                    borderTop: idx > 0 ? `2px solid ${isNonIsrael ? COUNTRY_ACCENT[country] || '#dc2626' : 'rgba(255,255,255,0.06)'}` : 'none',
                     display: 'flex', alignItems: 'center', gap: 8,
                     borderLeft: `4px solid ${COUNTRY_ACCENT[country] || '#dc2626'}`,
                   }}>
-                    <span style={{ fontSize: 15 }}>{FLAG_MAP[country]}</span>
-                    <span style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', fontFamily: 'var(--font-display)' }}>{country}</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: COUNTRY_ACCENT[country] || '#fca5a5', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.3)', padding: '1px 6px', borderRadius: 2 }}>{countryAlertCount}</span>
+                    <span style={{ fontSize: isNonIsrael ? 20 : 15 }}>{FLAG_MAP[country]}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: isNonIsrael ? 15 : 13, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', fontFamily: 'var(--font-display)' }}>{country}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', background: COUNTRY_ACCENT[country] || '#dc2626', padding: '1px 7px', borderRadius: 2 }}>{countryAlertCount}</span>
+                        {isGCC && (
+                          <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 5px', borderRadius: 2, background: '#0ea5e9', color: '#fff', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>GCC</span>
+                        )}
+                      </div>
+                      {isNonIsrael && (
+                        <span style={{ fontSize: 9, color: COUNTRY_ACCENT[country] || 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 700, marginTop: 2, display: 'block' }}>
+                          UNDER ATTACK
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
-                <div style={{ padding: '4px 12px', background: 'rgba(220,38,38,0.06)', borderBottom: '1px solid rgba(220,38,38,0.12)', position: 'sticky', top: showCountryHeader ? 37 : 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid rgba(220,38,38,0.25)' }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(254,202,202,0.65)', fontFamily: 'var(--font-mono)' }}>{regionName}</span>
+                <div style={{ padding: '4px 12px', background: isNonIsrael ? 'rgba(255,255,255,0.03)' : 'rgba(220,38,38,0.06)', borderBottom: '1px solid rgba(220,38,38,0.12)', position: 'sticky', top: showCountryHeader ? (isNonIsrael ? 50 : 37) : 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: `4px solid ${isNonIsrael ? (COUNTRY_ACCENT[country] || '#dc2626') + '66' : 'rgba(220,38,38,0.25)'}` }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: isNonIsrael ? (COUNTRY_ACCENT[country] || 'rgba(254,202,202,0.65)') : 'rgba(254,202,202,0.65)', fontFamily: 'var(--font-mono)' }}>{regionName}</span>
                   <span style={{ fontSize: 10, color: 'rgba(220,38,38,0.4)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{regionAlerts.length}</span>
                 </div>
                 {regionAlerts.map((alert) => {
@@ -3123,6 +3174,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                   const band = TIER_BAND[tier];
                   const isCrit = tier === 'critical';
                   const isExpired = tier === 'expired';
+                  const alertCountryAccent = COUNTRY_ACCENT[alert.country] || '#dc2626';
 
                   return (
                     <div
@@ -3131,17 +3183,22 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                       className={`alert-slide-in${isCrit ? ' eas-pulse-border' : ''}`}
                       style={{
                         padding: '0',
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        borderLeft: `4px solid ${isCrit ? '#dc2626' : tier === 'urgent' ? '#ea580c' : tier === 'warning' ? '#d97706' : isExpired ? 'rgba(220,38,38,0.1)' : '#991b1b'}`,
-                        background: isCrit ? 'rgba(127,29,29,0.5)' : isExpired ? 'transparent' : 'rgba(127,29,29,0.15)',
+                        borderBottom: `1px solid ${isNonIsrael ? alertCountryAccent + '22' : 'rgba(255,255,255,0.04)'}`,
+                        borderLeft: `4px solid ${isNonIsrael ? alertCountryAccent : isCrit ? '#dc2626' : tier === 'urgent' ? '#ea580c' : tier === 'warning' ? '#d97706' : isExpired ? 'rgba(220,38,38,0.1)' : '#991b1b'}`,
+                        background: isNonIsrael
+                          ? (isCrit ? alertCountryAccent + '25' : alertCountryAccent + '10')
+                          : (isCrit ? 'rgba(127,29,29,0.5)' : isExpired ? 'transparent' : 'rgba(127,29,29,0.15)'),
                         cursor: 'pointer',
                         transition: 'background 0.15s ease',
                       }}
                     >
-                      {isCrit && <div className="eas-stripes" style={{ height: 3, background: '#dc2626' }} />}
+                      {isCrit && <div className="eas-stripes" style={{ height: 3, background: isNonIsrael ? alertCountryAccent : '#dc2626' }} />}
                       <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            {isNonIsrael && (
+                              <span style={{ fontSize: 13, flexShrink: 0 }}>{FLAG_MAP[alert.country]}</span>
+                            )}
                             <span style={{
                               fontSize: isCrit ? 16 : 14, fontWeight: 900, color: isExpired ? 'rgba(255,255,255,0.2)' : '#fff',
                               lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -3149,6 +3206,11 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                             }}>
                               {language === 'ar' ? alert.cityAr : alert.city}
                             </span>
+                            {isNonIsrael && !isExpired && (
+                              <span style={{ fontSize: 8, padding: '2px 5px', fontWeight: 900, background: alertCountryAccent, color: '#fff', borderRadius: 2, letterSpacing: '0.08em', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+                                {SHORT_NAMES[alert.country] || alert.country.toUpperCase()}
+                              </span>
+                            )}
                             {isLive && (
                               <span style={{ fontSize: 8, padding: '2px 5px', fontWeight: 900, background: '#15803d', color: '#fff', borderRadius: 2, letterSpacing: '0.12em', flexShrink: 0, fontFamily: 'var(--font-mono)' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
                             )}
