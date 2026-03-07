@@ -94,6 +94,11 @@ import {
   Rocket,
   ArrowRight,
   Flame,
+  Download,
+  Skull,
+  CircleDot,
+  Gauge,
+  Swords,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -4651,13 +4656,15 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
     refetchInterval: 10000,
     staleTime: 0,
   });
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [analyticsTab, setAnalyticsTab] = useState<'overview' | 'regions' | 'sources' | 'patterns'>('overview');
 
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
 
   const patterns = analytics?.patterns ?? [];
   const falseAlarms = analytics?.falseAlarms ?? [];
 
-  const regionEntries = analytics ? Object.entries(analytics.alertsByRegion).sort((a, b) => b[1] - a[1]).slice(0, 8) : [];
+  const regionEntries = analytics ? Object.entries(analytics.alertsByRegion).sort((a, b) => b[1] - a[1]).slice(0, 12) : [];
   const typeEntries = analytics ? Object.entries(analytics.alertsByType).sort((a, b) => b[1] - a[1]) : [];
   const maxRegion = regionEntries.length > 0 ? Math.max(...regionEntries.map(e => e[1])) : 1;
   const maxType = typeEntries.length > 0 ? Math.max(...typeEntries.map(e => e[1])) : 1;
@@ -4666,6 +4673,191 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   const trendColor = analytics?.threatTrend === 'escalating' ? 'text-red-400' : analytics?.threatTrend === 'deescalating' ? 'text-emerald-400' : 'text-yellow-400';
   const trendIcon = analytics?.threatTrend === 'escalating' ? '▲' : analytics?.threatTrend === 'deescalating' ? '▼' : '●';
 
+  const timeline = analytics?.alertTimeline ?? [];
+  const totalAlerts = timeline.reduce((s, b) => s + b.count, 0);
+  const peakHour = timeline.length > 0 ? timeline.reduce((peak, b) => b.count > peak.count ? b : peak, { time: '--', count: 0 }) : { time: '--', count: 0 };
+  const totalRegions = regionEntries.length;
+  const totalTypes = typeEntries.length;
+
+  const exportPdf = useCallback(async () => {
+    if (!analytics) return;
+    setExportingPdf(true);
+    try {
+      const jsPDFModule = await import('jspdf');
+      const jsPDF = jsPDFModule.default || jsPDFModule.jsPDF;
+      await import('jspdf-autotable');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const now = new Date();
+      const pageW = doc.internal.pageSize.getWidth();
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, pageW, 45, 'F');
+      doc.setFillColor(220, 38, 38);
+      doc.rect(0, 0, pageW, 3, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(255, 255, 255);
+      doc.text('CONFLICT INTELLIGENCE REPORT', pageW / 2, 18, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setTextColor(180, 180, 180);
+      doc.text(`Generated: ${now.toUTCString()}`, pageW / 2, 25, { align: 'center' });
+      doc.text('CLASSIFICATION: OSINT // UNCLASSIFIED', pageW / 2, 31, { align: 'center' });
+      doc.setFontSize(8);
+      doc.setTextColor(140, 140, 140);
+      doc.text('War Room Analytics Dashboard — Real-time Conflict Monitoring Platform', pageW / 2, 38, { align: 'center' });
+
+      let y = 52;
+
+      doc.setFillColor(30, 30, 50);
+      doc.roundedRect(10, y, pageW - 20, 28, 2, 2, 'F');
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('EXECUTIVE SUMMARY', 15, y + 6);
+      doc.setDrawColor(220, 38, 38);
+      doc.line(15, y + 8, 60, y + 8);
+
+      const trendLabel = analytics.threatTrend === 'escalating' ? 'ESCALATING' : analytics.threatTrend === 'deescalating' ? 'DE-ESCALATING' : 'STABLE';
+      const summaryStats = [
+        `Active Alerts: ${analytics.activeAlertCount}`,
+        `Total (24h): ${totalAlerts}`,
+        `False Alarm Rate: ${(analytics.falseAlarmRate * 100).toFixed(1)}%`,
+        `Avg Response: ${analytics.avgResponseTime}s`,
+        `Trend: ${trendLabel}`,
+        `Peak Hour: ${peakHour?.time || '--'} UTC (${peakHour?.count || 0} alerts)`,
+        `Conflict Events: ${analytics.conflictEventCount ?? 0}`,
+        `Thermal Hotspots: ${analytics.thermalHotspotCount ?? 0}`,
+      ];
+      doc.setFontSize(9);
+      doc.setTextColor(220, 220, 220);
+      const col1 = summaryStats.slice(0, 4);
+      const col2 = summaryStats.slice(4);
+      col1.forEach((s, i) => doc.text(s, 15, y + 14 + i * 4));
+      col2.forEach((s, i) => doc.text(s, pageW / 2 + 5, y + 14 + i * 4));
+
+      y += 34;
+
+      if (analytics.escalationForecast) {
+        const fc = analytics.escalationForecast;
+        doc.setFillColor(25, 25, 45);
+        doc.roundedRect(10, y, pageW - 20, 18, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('ESCALATION FORECAST', 15, y + 6);
+        doc.setDrawColor(251, 146, 60);
+        doc.line(15, y + 8, 55, y + 8);
+        doc.setFontSize(9);
+        doc.setTextColor(220, 220, 220);
+        doc.text(`Direction: ${fc.direction.toUpperCase()} | Next 1h: ${fc.nextHour} alerts | Next 3h: ${fc.next3Hours} alerts | Velocity: ${fc.velocityPerHour >= 0 ? '+' : ''}${fc.velocityPerHour}/hr | Confidence: ${Math.round(fc.confidence * 100)}%`, 15, y + 14);
+        y += 24;
+      }
+
+      if (regionEntries.length > 0) {
+        doc.setFillColor(25, 25, 45);
+        doc.roundedRect(10, y, pageW - 20, 8 + regionEntries.length * 5.5, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('ALERTS BY REGION', 15, y + 6);
+        doc.setDrawColor(59, 130, 246);
+        doc.line(15, y + 8, 50, y + 8);
+        regionEntries.forEach(([region, count], i) => {
+          const rowY = y + 13 + i * 5.5;
+          const pct = (count / maxRegion) * 100;
+          doc.setFontSize(8);
+          doc.setTextColor(200, 200, 200);
+          doc.text(region, 15, rowY);
+          doc.setFillColor(pct > 70 ? 239 : pct > 40 ? 251 : 59, pct > 70 ? 68 : pct > 40 ? 146 : 130, pct > 70 ? 68 : pct > 40 ? 60 : 246);
+          doc.roundedRect(55, rowY - 3, Math.max(2, (count / maxRegion) * 100), 3, 1, 1, 'F');
+          doc.setTextColor(180, 180, 180);
+          doc.text(String(count), 160, rowY);
+        });
+        y += 14 + regionEntries.length * 5.5;
+      }
+
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      if (typeEntries.length > 0) {
+        doc.setFillColor(25, 25, 45);
+        doc.roundedRect(10, y, pageW - 20, 8 + typeEntries.length * 5.5, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('ALERTS BY TYPE', 15, y + 6);
+        doc.setDrawColor(168, 85, 247);
+        doc.line(15, y + 8, 48, y + 8);
+        typeEntries.forEach(([type, count], i) => {
+          const rowY = y + 13 + i * 5.5;
+          doc.setFontSize(8);
+          doc.setTextColor(200, 200, 200);
+          doc.text(type.replace(/_/g, ' ').toUpperCase(), 15, rowY);
+          doc.setTextColor(180, 180, 180);
+          doc.text(String(count), 160, rowY);
+        });
+        y += 14 + typeEntries.length * 5.5;
+      }
+
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      if (analytics.topSources.length > 0) {
+        doc.setFillColor(25, 25, 45);
+        doc.roundedRect(10, y, pageW - 20, 8 + analytics.topSources.length * 5.5, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('SOURCE RELIABILITY', 15, y + 6);
+        doc.setDrawColor(16, 185, 129);
+        doc.line(15, y + 8, 50, y + 8);
+        analytics.topSources.forEach((src, i) => {
+          const rowY = y + 13 + i * 5.5;
+          doc.setFontSize(8);
+          const rel = src.reliability;
+          doc.setTextColor(rel > 0.85 ? 74 : rel > 0.7 ? 250 : 248, rel > 0.85 ? 222 : rel > 0.7 ? 204 : 113, rel > 0.85 ? 128 : rel > 0.7 ? 21 : 113);
+          doc.text(`${(rel * 100).toFixed(0)}%`, 15, rowY);
+          doc.setTextColor(200, 200, 200);
+          doc.text(src.channel, 30, rowY);
+          doc.setTextColor(140, 140, 140);
+          doc.text(`${src.count} msgs`, 140, rowY);
+        });
+        y += 14 + analytics.topSources.length * 5.5;
+      }
+
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      if (analytics.regionAnomalies && analytics.regionAnomalies.length > 0) {
+        doc.setFillColor(30, 20, 20);
+        doc.roundedRect(10, y, pageW - 20, 8 + analytics.regionAnomalies.length * 5.5, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('ANOMALY DETECTION', 15, y + 6);
+        doc.setDrawColor(245, 158, 11);
+        doc.line(15, y + 8, 50, y + 8);
+        analytics.regionAnomalies.forEach((a, i) => {
+          const rowY = y + 13 + i * 5.5;
+          doc.setFontSize(8);
+          doc.setTextColor(a.severity === 'critical' ? 248 : 251, a.severity === 'critical' ? 113 : 191, a.severity === 'critical' ? 113 : 36);
+          doc.text(`[${a.severity.toUpperCase()}]`, 15, rowY);
+          doc.setTextColor(200, 200, 200);
+          doc.text(`${a.region} — +${a.pctAboveAvg}% above avg (z=${a.zScore.toFixed(1)})`, 38, rowY);
+        });
+        y += 14 + analytics.regionAnomalies.length * 5.5;
+      }
+
+      const pageCount = doc.internal.pages.length - 1;
+      for (let p = 1; p <= pageCount; p++) {
+        doc.setPage(p);
+        doc.setFillColor(15, 23, 42);
+        doc.rect(0, doc.internal.pageSize.getHeight() - 10, pageW, 10, 'F');
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`CONFLICT INTELLIGENCE REPORT — Page ${p}/${pageCount} — ${now.toISOString().split('T')[0]}`, pageW / 2, doc.internal.pageSize.getHeight() - 4, { align: 'center' });
+      }
+
+      doc.save(`conflict-intel-report-${now.toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [analytics, totalAlerts, peakHour, regionEntries, maxRegion, typeEntries]);
+
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
       <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(222 28% 13% / 0.95), hsl(222 26% 11% / 0.92))', borderBottom:'1px solid hsl(175 40% 34% / 0.10)'}}>
@@ -4673,419 +4865,488 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
         <div className="flex-1" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={exportPdf}
+              disabled={exportingPdf || !analytics}
+              className="w-6 h-6 rounded flex items-center justify-center text-foreground/30 hover:text-blue-400 hover:bg-blue-500/10 transition-colors disabled:opacity-30"
+              data-testid="button-export-pdf"
+            >
+              {exportingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono">
+            Export Intelligence Report (PDF)
+          </TooltipContent>
+        </Tooltip>
         {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10 transition-colors" data-testid="button-maximize-analytics">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
+
+      <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(222 20% 12% / 0.7)' }}>
+        {(['overview', 'regions', 'sources', 'patterns'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setAnalyticsTab(tab)}
+            className={`flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-colors ${
+              analyticsTab === tab
+                ? 'text-blue-300 border-b border-blue-400'
+                : 'text-white/30 hover:text-white/60'
+            }`}
+            data-testid={`button-tab-${tab}`}
+          >
+            {tab === 'overview' ? t('Overview', '\u0646\u0638\u0631\u0629') :
+             tab === 'regions' ? t('Regions', '\u0645\u0646\u0627\u0637\u0642') :
+             tab === 'sources' ? t('Sources', '\u0645\u0635\u0627\u062F\u0631') :
+             t('Patterns', '\u0623\u0646\u0645\u0627\u0637')}
+          </button>
+        ))}
+      </div>
+
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 space-y-4">
           {!analytics ? (
             <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-blue-400/40 animate-spin mx-auto" /></div>
           ) : (
             <TooltipProvider delayDuration={200}>
-              {/* ── Last updated timestamp ── */}
-              {analytics.lastUpdated && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1.5 cursor-default mb-1 -mt-1">
+
+              {analyticsTab === 'overview' && (
+                <>
+                  {analytics.lastUpdated && (
+                    <div className="flex items-center gap-1.5 cursor-default -mt-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                      <span className="text-[9px] font-mono text-foreground/30 hover:text-foreground/50 transition-colors">
+                      <span className="text-[9px] font-mono text-foreground/30">
                         Updated {timeAgo(analytics.lastUpdated)}
                       </span>
                     </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono">
-                    <p className="text-foreground/80">Last data refresh</p>
-                    <p className="text-emerald-400">{new Date(analytics.lastUpdated).toUTCString()}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+                  )}
 
-              {/* ── Primary stat row ── */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { label: t('ACTIVE','نشط'), value: analytics.activeAlertCount, color: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-950/10', testid: 'text-active-alerts', tooltip: 'Oref red alerts currently within countdown window' },
-                  { label: t('FALSE ALM','كاذب'), value: `${(analytics.falseAlarmRate * 100).toFixed(1)}%`, color: 'text-yellow-400', border: 'border-yellow-500/20', bg: 'bg-yellow-950/10', testid: 'text-false-alarm-rate', tooltip: 'Estimated false alarm rate based on AI scoring of alert patterns' },
-                  { label: t('AVG RSP','متوسط'), value: `${analytics.avgResponseTime}s`, color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-950/10', testid: 'text-avg-response', tooltip: 'Average shelter countdown time across active alerts' },
-                  { label: t('TREND','اتجاه'), value: `${trendIcon}`, color: trendColor, border: 'border-white/[0.06]', bg: 'bg-white/[0.02]', testid: 'text-trend', sub: analytics.threatTrend.slice(0,4).toUpperCase(), tooltip: `Threat trend: ${analytics.threatTrend} (comparing last 30min vs prior 30min alert rate)` },
-                ].map(stat => (
-                  <Tooltip key={stat.label}>
-                    <TooltipTrigger asChild>
-                      <div className={`${stat.bg} border ${stat.border} rounded p-2 flex flex-col items-center gap-0.5 cursor-default hover:brightness-125 transition-all`}>
-                        <span className="text-[8px] text-foreground/35 font-mono tracking-wider">{stat.label}</span>
-                        <span className={`text-base font-black font-mono leading-none ${stat.color}`} data-testid={stat.testid}>{stat.value}</span>
-                        {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-70`}>{stat.sub}</span>}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
-                      <p className="text-foreground/70 leading-relaxed">{stat.tooltip}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-
-              {/* ── Live intel counters row ── */}
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  {
-                    label: t('CONFLICT EVT','أحداث'), value: analytics.conflictEventCount ?? 0,
-                    color: 'text-orange-400', border: 'border-orange-500/20', bg: 'bg-orange-950/10',
-                    tooltip: `${analytics.conflictEventCount ?? 0} mapped conflict events from GDELT, Oref alerts, and NASA FIRMS thermal data`,
-                    sub: analytics.eventsByType ? Object.entries(analytics.eventsByType).sort((a,b)=>b[1]-a[1])[0]?.[0]?.toUpperCase() : undefined,
-                  },
-                  {
-                    label: t('THERMAL SAT','حراري'), value: analytics.thermalHotspotCount ?? 0,
-                    color: 'text-red-300', border: 'border-red-500/20', bg: 'bg-red-950/10',
-                    tooltip: 'NASA FIRMS VIIRS satellite thermal hotspots (high/nominal confidence) detected in theater in last 48h',
-                    sub: 'NASA',
-                  },
-                  {
-                    label: t('MIL FLIGHT','طيران'), value: analytics.militaryFlightCount ?? 0,
-                    color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-950/10',
-                    tooltip: 'Military aircraft currently tracked via ADS-B in Middle East theater',
-                    sub: 'ADS-B',
-                  },
-                ].map(stat => (
-                  <Tooltip key={stat.label}>
-                    <TooltipTrigger asChild>
-                      <div className={`${stat.bg} border ${stat.border} rounded p-2 flex flex-col items-center gap-0.5 cursor-default hover:brightness-125 transition-all`}>
-                        <span className="text-[8px] text-foreground/35 font-mono tracking-wider truncate w-full text-center">{stat.label}</span>
-                        <span className={`text-base font-black font-mono leading-none ${stat.color}`}>{stat.value}</span>
-                        {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-60 truncate max-w-full`}>{stat.sub}</span>}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
-                      <p className="text-foreground/70 leading-relaxed">{stat.tooltip}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
-
-              {/* ── Event type breakdown ── */}
-              {analytics.eventsByType && Object.keys(analytics.eventsByType).length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('Live Event Types', 'أنواع الأحداث')}</span>
-                    <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.eventsByType).reduce((s,v)=>s+v,0)} total</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {Object.entries(analytics.eventsByType).sort((a,b)=>b[1]-a[1]).map(([type, count]) => {
-                      const colors: Record<string, string> = {
-                        missile: 'bg-red-950/40 border-red-500/25 text-red-300',
-                        airstrike: 'bg-orange-950/40 border-orange-500/25 text-orange-300',
-                        defense: 'bg-cyan-950/40 border-cyan-500/25 text-cyan-300',
-                        ground: 'bg-yellow-950/40 border-yellow-500/25 text-yellow-300',
-                        naval: 'bg-blue-950/40 border-blue-500/25 text-blue-300',
-                        nuclear: 'bg-purple-950/40 border-purple-500/25 text-purple-300',
-                      };
-                      return (
-                        <span key={type} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${colors[type] || 'bg-white/[0.03] border-white/10 text-foreground/50'}`}>
-                          {type.toUpperCase()} {count}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-
-              {/* ── Escalation Forecast ── */}
-              {analytics.escalationForecast && (() => {
-                const fc = analytics.escalationForecast;
-                const dirConfig = {
-                  surging:    { label: 'SURGING',    color: 'text-red-400',    bg: 'bg-red-950/30 border-red-500/30',    icon: '⚡', glow: 'shadow-[0_0_12px_rgb(239_68_68_/_0.25)]' },
-                  escalating: { label: 'ESCALATING', color: 'text-orange-400', bg: 'bg-orange-950/25 border-orange-500/25', icon: '▲', glow: '' },
-                  stable:     { label: 'STABLE',     color: 'text-yellow-400', bg: 'bg-yellow-950/20 border-yellow-500/20', icon: '●', glow: '' },
-                  cooling:    { label: 'COOLING',    color: 'text-emerald-400', bg: 'bg-emerald-950/20 border-emerald-500/20', icon: '▼', glow: '' },
-                }[fc.direction];
-                const confPct = Math.round(fc.confidence * 100);
-                const velSign = fc.velocityPerHour >= 0 ? '+' : '';
-                return (
-                  <div className={`rounded border p-2.5 ${dirConfig.bg} ${dirConfig.glow}`} data-testid="section-escalation-forecast">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${dirConfig.color}`} />
-                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Escalation Forecast', 'توقعات التصعيد')}</span>
-                      <div className="flex-1" />
-                      <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded ${dirConfig.color}`} style={{background:'rgb(0 0 0 / 0.25)'}}>
-                        {dirConfig.icon} {dirConfig.label}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mb-2">
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 1h</span>
-                        <span className={`text-xl font-black font-mono leading-none ${dirConfig.color}`}>{fc.nextHour}</span>
-                        <span className="text-[7px] font-mono text-foreground/30">alerts</span>
-                      </div>
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 3h</span>
-                        <span className={`text-xl font-black font-mono leading-none ${dirConfig.color}`}>{fc.next3Hours}</span>
-                        <span className="text-[7px] font-mono text-foreground/30">alerts</span>
-                      </div>
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Velocity</span>
-                        <span className={`text-xl font-black font-mono leading-none ${dirConfig.color}`}>{velSign}{fc.velocityPerHour}</span>
-                        <span className="text-[7px] font-mono text-foreground/30">/hr</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-mono text-foreground/30">{t('Confidence', 'الثقة')}</span>
-                      <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${fc.confidence > 0.6 ? 'bg-emerald-400/70' : fc.confidence > 0.35 ? 'bg-yellow-400/70' : 'bg-red-400/50'}`}
-                          style={{ width: `${confPct}%` }}
-                        />
-                      </div>
-                      <span className={`text-[8px] font-black font-mono ${fc.confidence > 0.6 ? 'text-emerald-400' : fc.confidence > 0.35 ? 'text-yellow-400' : 'text-red-400/70'}`}>{confPct}%</span>
-                      {fc.projectedPeak && (
-                        <span className="text-[8px] font-mono text-foreground/25 ml-1">peak {fc.projectedPeak}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* ── Region Anomalies ── */}
-              {analytics.regionAnomalies && analytics.regionAnomalies.length > 0 && (
-                <div data-testid="section-region-anomalies">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400/70 shrink-0" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Anomaly Detection', 'رصد الشذوذ')}</span>
-                    <div className="flex-1" />
-                    <span className="text-[8px] font-mono text-foreground/30">{analytics.regionAnomalies.length} flagged</span>
-                  </div>
-                  <div className="space-y-1" data-testid="list-anomalies">
-                    {analytics.regionAnomalies.map(a => {
-                      const isCrit = a.severity === 'critical';
-                      const barPct = Math.min(100, Math.round((a.zScore / 4) * 100));
-                      return (
-                        <div
-                          key={a.region}
-                          className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${
-                            isCrit
-                              ? 'bg-red-950/25 border-red-500/25 hover:border-red-500/45'
-                              : 'bg-amber-950/20 border-amber-500/20 hover:border-amber-500/40'
-                          }`}
-                          data-testid={`anomaly-${a.region.toLowerCase().replace(/\s/g, '-')}`}
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isCrit ? 'bg-red-400 animate-pulse' : 'bg-amber-400'}`} />
-                          <span className={`text-[10px] font-bold font-mono w-16 truncate ${isCrit ? 'text-red-300' : 'text-amber-300'}`}>{a.region}</span>
-                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${isCrit ? 'bg-red-400/65' : 'bg-amber-400/55'}`}
-                              style={{ width: `${barPct}%` }}
-                            />
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { label: t('ACTIVE','\u0646\u0634\u0637'), value: analytics.activeAlertCount, color: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-950/10', testid: 'text-active-alerts', tooltip: 'Oref red alerts currently within countdown window' },
+                      { label: t('24H TOTAL','\u0625\u062C\u0645\u0627\u0644\u064A'), value: totalAlerts, color: 'text-orange-400', border: 'border-orange-500/20', bg: 'bg-orange-950/10', testid: 'text-total-24h', tooltip: 'Total alerts across all regions in the last 24 hours' },
+                      { label: t('FALSE ALM','\u0643\u0627\u0630\u0628'), value: `${(analytics.falseAlarmRate * 100).toFixed(1)}%`, color: 'text-yellow-400', border: 'border-yellow-500/20', bg: 'bg-yellow-950/10', testid: 'text-false-alarm-rate', tooltip: 'Estimated false alarm rate based on AI scoring' },
+                      { label: t('TREND','\u0627\u062A\u062C\u0627\u0647'), value: `${trendIcon}`, color: trendColor, border: 'border-white/[0.06]', bg: 'bg-white/[0.02]', testid: 'text-trend', sub: analytics.threatTrend.slice(0,4).toUpperCase(), tooltip: `Threat trend: ${analytics.threatTrend}` },
+                    ].map(stat => (
+                      <Tooltip key={stat.label}>
+                        <TooltipTrigger asChild>
+                          <div className={`${stat.bg} border ${stat.border} rounded p-2 flex flex-col items-center gap-0.5 cursor-default hover:brightness-125 transition-all`}>
+                            <span className="text-[8px] text-foreground/35 font-mono tracking-wider">{stat.label}</span>
+                            <span className={`text-base font-black font-mono leading-none ${stat.color}`} data-testid={stat.testid}>{stat.value}</span>
+                            {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-70`}>{stat.sub}</span>}
                           </div>
-                          <div className="flex flex-col items-end gap-0">
-                            <span className={`text-[9px] font-black font-mono ${isCrit ? 'text-red-400' : 'text-amber-400'}`}>
-                              {a.pctAboveAvg > 0 ? '+' : ''}{a.pctAboveAvg}%
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
+                          <p className="text-foreground/70 leading-relaxed">{stat.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { label: t('CONFLICT EVT','\u0623\u062D\u062F\u0627\u062B'), value: analytics.conflictEventCount ?? 0, color: 'text-orange-400', border: 'border-orange-500/20', bg: 'bg-orange-950/10', tooltip: `${analytics.conflictEventCount ?? 0} mapped conflict events from GDELT, Oref, NASA FIRMS`, sub: analytics.eventsByType ? Object.entries(analytics.eventsByType).sort((a,b)=>b[1]-a[1])[0]?.[0]?.toUpperCase() : undefined },
+                      { label: t('THERMAL SAT','\u062D\u0631\u0627\u0631\u064A'), value: analytics.thermalHotspotCount ?? 0, color: 'text-red-300', border: 'border-red-500/20', bg: 'bg-red-950/10', tooltip: 'NASA FIRMS VIIRS satellite thermal hotspots in theater (48h)', sub: 'NASA' },
+                      { label: t('MIL FLIGHT','\u0637\u064A\u0631\u0627\u0646'), value: analytics.militaryFlightCount ?? 0, color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-950/10', tooltip: 'Military aircraft tracked via ADS-B in Middle East', sub: 'ADS-B' },
+                    ].map(stat => (
+                      <Tooltip key={stat.label}>
+                        <TooltipTrigger asChild>
+                          <div className={`${stat.bg} border ${stat.border} rounded p-2 flex flex-col items-center gap-0.5 cursor-default hover:brightness-125 transition-all`}>
+                            <span className="text-[8px] text-foreground/35 font-mono tracking-wider truncate w-full text-center">{stat.label}</span>
+                            <span className={`text-base font-black font-mono leading-none ${stat.color}`}>{stat.value}</span>
+                            {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-60 truncate max-w-full`}>{stat.sub}</span>}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
+                          <p className="text-foreground/70 leading-relaxed">{stat.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+
+                  {analytics.eventsByType && Object.keys(analytics.eventsByType).length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('Live Event Types', '\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0623\u062D\u062F\u0627\u062B')}</span>
+                        <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.eventsByType).reduce((s,v)=>s+v,0)} total</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(analytics.eventsByType).sort((a,b)=>b[1]-a[1]).map(([type, count]) => {
+                          const colors: Record<string, string> = { missile: 'bg-red-950/40 border-red-500/25 text-red-300', airstrike: 'bg-orange-950/40 border-orange-500/25 text-orange-300', defense: 'bg-cyan-950/40 border-cyan-500/25 text-cyan-300', ground: 'bg-yellow-950/40 border-yellow-500/25 text-yellow-300', naval: 'bg-blue-950/40 border-blue-500/25 text-blue-300', nuclear: 'bg-purple-950/40 border-purple-500/25 text-purple-300' };
+                          return (
+                            <span key={type} className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${colors[type] || 'bg-white/[0.03] border-white/10 text-foreground/50'}`}>
+                              {type.toUpperCase()} {count}
                             </span>
-                            <span className="text-[7px] font-mono text-foreground/25">z={a.zScore.toFixed(1)}</span>
-                          </div>
-                          <span className={`text-[8px] font-black font-mono px-1.5 py-0.5 rounded border ml-1 ${
-                            isCrit ? 'text-red-400 bg-red-950/50 border-red-500/30' : 'text-amber-400 bg-amber-950/40 border-amber-500/25'
-                          }`}>{isCrit ? 'CRIT' : 'WARN'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Alert Timeline', 'الجدول الزمني 24 ساعة')}</span>
-                  <span className="text-[9px] font-mono text-foreground/30">UTC · {analytics.alertTimeline.reduce((s, b) => s + b.count, 0)} alerts</span>
-                </div>
-                <div className="flex items-end gap-[2px] h-16 bg-white/[0.02] rounded border border-white/[0.04] px-1.5 pt-1.5 pb-0" data-testid="chart-timeline">
-                  {analytics.alertTimeline.map((b, i) => {
-                    const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
-                    const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
-                    const barColor = b.count > maxTimeline * 0.7 ? 'rgb(239 68 68 / 0.75)' :
-                      b.count > maxTimeline * 0.4 ? 'rgb(251 146 60 / 0.65)' : 'rgb(59 130 246 / 0.55)';
+                  {analytics.escalationForecast && (() => {
+                    const fc = analytics.escalationForecast;
+                    const dirConfig = {
+                      surging:    { label: 'SURGING',    color: 'text-red-400',    bg: 'bg-red-950/30 border-red-500/30',    icon: '▲▲', glow: 'shadow-[0_0_12px_rgb(239_68_68_/_0.25)]' },
+                      escalating: { label: 'ESCALATING', color: 'text-orange-400', bg: 'bg-orange-950/25 border-orange-500/25', icon: '▲', glow: '' },
+                      stable:     { label: 'STABLE',     color: 'text-yellow-400', bg: 'bg-yellow-950/20 border-yellow-500/20', icon: '●', glow: '' },
+                      cooling:    { label: 'COOLING',    color: 'text-emerald-400', bg: 'bg-emerald-950/20 border-emerald-500/20', icon: '▼', glow: '' },
+                    }[fc.direction];
+                    const confPct = Math.round(fc.confidence * 100);
+                    const velSign = fc.velocityPerHour >= 0 ? '+' : '';
                     return (
-                      <Tooltip key={i}>
-                        <TooltipTrigger asChild>
-                          <div className="flex-1 flex flex-col items-center justify-end h-full group cursor-default">
-                            <div
-                              className="w-full rounded-t-[2px] transition-all group-hover:brightness-150 group-hover:scale-y-105 min-h-[2px] origin-bottom"
-                              style={{ height: `${Math.max(3, (b.count / maxTimeline) * 80)}%`, background: barColor }}
-                            />
-                            {i % 6 === 0 && (
-                              <span className="text-[7px] font-mono text-foreground/25 mt-0.5 leading-none">{b.time}</span>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-black/95 border-white/10 p-2 min-w-[130px]">
-                          <p className="text-[11px] font-black font-mono text-foreground/90 mb-1">{b.time} UTC</p>
-                          <p className="text-[10px] font-mono text-foreground/60 mb-1.5">{b.count} alert{b.count !== 1 ? 's' : ''}</p>
-                          {topRegions.length > 0 && (
-                            <div className="mb-1">
-                              <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Regions</p>
-                              {topRegions.map(([r, c]) => (
-                                <div key={r} className="flex justify-between gap-3">
-                                  <span className="text-[9px] font-mono text-foreground/55">{r}</span>
-                                  <span className="text-[9px] font-bold font-mono text-orange-300/80">{c}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {topTypes.length > 0 && (
-                            <div>
-                              <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Types</p>
-                              {topTypes.map(([t, c]) => (
-                                <div key={t} className="flex justify-between gap-3">
-                                  <span className="text-[9px] font-mono text-foreground/55 uppercase">{t.replace(/_/g,' ')}</span>
-                                  <span className="text-[9px] font-bold font-mono text-blue-300/80">{c}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          {b.count === 0 && <p className="text-[9px] font-mono text-foreground/25 italic">No alerts this hour</p>}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('By Region', 'المنطقة')}</span>
-                    <span className="text-[8px] font-mono text-foreground/25">{regionEntries.reduce((s,[,v])=>s+v,0)}</span>
-                  </div>
-                  <div className="space-y-1" data-testid="chart-by-region">
-                    {regionEntries.slice(0, 7).map(([region, count]) => {
-                      const pct = (count / maxRegion) * 100;
-                      const barColor = pct > 70 ? 'bg-red-500/60' : pct > 40 ? 'bg-orange-500/55' : 'bg-amber-500/45';
-                      return (
-                        <div key={region} className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-mono text-foreground/45 w-14 truncate">{region}</span>
-                          <div className="flex-1 h-2 bg-white/[0.03] rounded-full overflow-hidden">
-                            <div className={`h-full ${barColor} rounded-full`} style={{ width: `${Math.max(6, pct)}%` }} />
-                          </div>
-                          <span className="text-[8px] font-bold font-mono text-foreground/45 w-4 text-right">{count}</span>
+                      <div className={`rounded border p-2.5 ${dirConfig.bg} ${dirConfig.glow}`} data-testid="section-escalation-forecast">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${dirConfig.color}`} />
+                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Escalation Forecast', '\u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u062A\u0635\u0639\u064A\u062F')}</span>
+                          <div className="flex-1" />
+                          <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded ${dirConfig.color}`} style={{background:'rgb(0 0 0 / 0.25)'}}>
+                            {dirConfig.icon} {dirConfig.label}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/40 font-mono">{t('By Type', 'النوع')}</span>
-                    <span className="text-[8px] font-mono text-foreground/25">{typeEntries.length}</span>
-                  </div>
-                  <div className="space-y-1" data-testid="chart-by-type">
-                    {typeEntries.slice(0, 7).map(([type, count]) => {
-                      const pct = (count / maxType) * 100;
-                      const typeColors: Record<string, string> = {
-                        missile: 'bg-red-500/60', airstrike: 'bg-orange-500/55',
-                        rocket: 'bg-amber-500/50', drone: 'bg-purple-500/55',
-                        artillery: 'bg-yellow-500/50', ground_incursion: 'bg-emerald-500/50',
-                        gps_jamming: 'bg-cyan-500/50', gps_spoofing: 'bg-cyan-400/50',
-                        power: 'bg-yellow-400/50', hospital: 'bg-rose-400/50',
-                      };
-                      return (
-                        <div key={type} className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-mono text-foreground/45 w-14 truncate uppercase">{type.replace(/_/g,' ')}</span>
-                          <div className="flex-1 h-2 bg-white/[0.03] rounded-full overflow-hidden">
-                            <div className={`h-full ${typeColors[type] || 'bg-blue-500/50'} rounded-full`} style={{ width: `${Math.max(6, pct)}%` }} />
+                        <div className="grid grid-cols-4 gap-1.5 mb-2">
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 1h</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.nextHour}</span>
                           </div>
-                          <span className="text-[8px] font-bold font-mono text-foreground/45 w-4 text-right">{count}</span>
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 3h</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.next3Hours}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Velocity</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{velSign}{Math.round(fc.velocityPerHour)}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Peak</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.projectedPeak || '--'}</span>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Source Reliability', 'موثوقية المصادر')}</span>
-                  <span className="text-[9px] font-mono text-foreground/30">{analytics.topSources.length} feeds</span>
-                </div>
-                <div className="space-y-1" data-testid="table-sources">
-                  {analytics.topSources.map((src) => {
-                    const reliabilityPct = (src.reliability * 100).toFixed(0);
-                    const reliabilityColor = src.reliability > 0.85 ? 'text-emerald-400' : src.reliability > 0.7 ? 'text-yellow-400' : 'text-red-400';
-                    const reliabilityBg = src.reliability > 0.85 ? 'bg-emerald-950/30 border-emerald-500/20' : src.reliability > 0.7 ? 'bg-yellow-950/30 border-yellow-500/20' : 'bg-red-950/30 border-red-500/20';
-                    const reliabilityLabel = src.reliability > 0.85 ? 'High reliability — primary source' : src.reliability > 0.7 ? 'Moderate reliability — verify with second source' : 'Low reliability — use with caution';
-                    return (
-                      <Tooltip key={src.channel}>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-transparent hover:border-white/[0.04] cursor-default">
-                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${src.reliability > 0.85 ? 'bg-emerald-400' : src.reliability > 0.7 ? 'bg-yellow-400' : 'bg-red-400'}`} />
-                            <span className="text-[10px] font-mono text-foreground/65 flex-1 truncate">{src.channel}</span>
-                            <span className="text-[9px] font-mono text-foreground/30 mr-1">{src.count}msg</span>
-                            <div className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded border ${reliabilityBg} ${reliabilityColor}`}>
-                              {reliabilityPct}%
-                            </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[8px] font-mono text-foreground/30">{t('Confidence', '\u0627\u0644\u062B\u0642\u0629')}</span>
+                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${fc.confidence > 0.6 ? 'bg-emerald-400/70' : fc.confidence > 0.35 ? 'bg-yellow-400/70' : 'bg-red-400/50'}`} style={{ width: `${confPct}%` }} />
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
-                          <p className="text-foreground/80 font-bold mb-0.5">{src.channel}</p>
-                          <p className={`${reliabilityColor} mb-0.5`}>{reliabilityLabel}</p>
-                          <p className="text-foreground/40">{src.count} messages processed this session</p>
-                        </TooltipContent>
-                      </Tooltip>
+                          <span className={`text-[8px] font-black font-mono ${fc.confidence > 0.6 ? 'text-emerald-400' : fc.confidence > 0.35 ? 'text-yellow-400' : 'text-red-400/70'}`}>{confPct}%</span>
+                        </div>
+                      </div>
                     );
-                  })}
-                </div>
-              </div>
+                  })()}
 
-              {patterns.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('Detected Patterns', '\u0623\u0646\u0645\u0627\u0637')}</span>
-                  <div className="space-y-1.5" data-testid="list-patterns">
-                    {patterns.map(p => (
-                      <Tooltip key={p.id}>
-                        <TooltipTrigger asChild>
-                          <div className="p-2 rounded bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-default" data-testid={`pattern-${p.id}`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <Sparkles className="w-3 h-3 text-purple-400" />
-                              <span className="text-[11px] font-bold text-purple-300 font-mono uppercase">{p.type.replace(/_/g, ' ')}</span>
-                              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.confidence > 0.7 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-yellow-950/40 text-yellow-400'}`}>{(p.confidence * 100).toFixed(0)}%</span>
-                              <span className="ml-auto text-[8px] font-mono text-foreground/30">{timeAgo(p.detectedAt)}</span>
+                  {analytics.regionAnomalies && analytics.regionAnomalies.length > 0 && (
+                    <div data-testid="section-region-anomalies">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400/70 shrink-0" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Anomaly Detection', '\u0631\u0635\u062F \u0627\u0644\u0634\u0630\u0648\u0630')}</span>
+                        <div className="flex-1" />
+                        <span className="text-[8px] font-mono text-foreground/30">{analytics.regionAnomalies.length} flagged</span>
+                      </div>
+                      <div className="space-y-1" data-testid="list-anomalies">
+                        {analytics.regionAnomalies.map(a => {
+                          const isCrit = a.severity === 'critical';
+                          const barPct = Math.min(100, Math.round((a.zScore / 4) * 100));
+                          return (
+                            <div key={a.region} className={`flex items-center gap-2 px-2 py-1.5 rounded border transition-colors ${isCrit ? 'bg-red-950/25 border-red-500/25 hover:border-red-500/45' : 'bg-amber-950/20 border-amber-500/20 hover:border-amber-500/40'}`} data-testid={`anomaly-${a.region.toLowerCase().replace(/\s/g, '-')}`}>
+                              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isCrit ? 'bg-red-400 animate-pulse' : 'bg-amber-400'}`} />
+                              <span className={`text-[10px] font-bold font-mono w-16 truncate ${isCrit ? 'text-red-300' : 'text-amber-300'}`}>{a.region}</span>
+                              <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${isCrit ? 'bg-red-400/65' : 'bg-amber-400/55'}`} style={{ width: `${barPct}%` }} />
+                              </div>
+                              <div className="flex flex-col items-end gap-0">
+                                <span className={`text-[9px] font-black font-mono ${isCrit ? 'text-red-400' : 'text-amber-400'}`}>{a.pctAboveAvg > 0 ? '+' : ''}{a.pctAboveAvg}%</span>
+                                <span className="text-[7px] font-mono text-foreground/25">z={a.zScore.toFixed(1)}</span>
+                              </div>
+                              <span className={`text-[8px] font-black font-mono px-1.5 py-0.5 rounded border ml-1 ${isCrit ? 'text-red-400 bg-red-950/50 border-red-500/30' : 'text-amber-400 bg-amber-950/40 border-amber-500/25'}`}>{isCrit ? 'CRIT' : 'WARN'}</span>
                             </div>
-                            <p className="text-[10px] text-foreground/50">{p.description}</p>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
-                          <p className="text-foreground/50 mb-0.5">Detected at</p>
-                          <p className="text-foreground/80">{new Date(p.detectedAt).toUTCString()}</p>
-                          {p.affectedRegions.length > 0 && <p className="text-foreground/40 mt-1">Regions: {p.affectedRegions.join(', ')}</p>}
-                          <p className="text-foreground/40 mt-0.5">{p.alertCount} alerts in pattern</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Alert Timeline', '\u0627\u0644\u062C\u062F\u0648\u0644 \u0627\u0644\u0632\u0645\u0646\u064A 24 \u0633\u0627\u0639\u0629')}</span>
+                      <div className="flex items-center gap-2">
+                        {peakHour && peakHour.count > 0 && (
+                          <span className="text-[8px] font-mono text-red-400/60">Peak: {peakHour.time}</span>
+                        )}
+                        <span className="text-[9px] font-mono text-foreground/30">UTC · {totalAlerts}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-end gap-[2px] h-20 bg-white/[0.02] rounded border border-white/[0.04] px-1.5 pt-1.5 pb-0" data-testid="chart-timeline">
+                      {(analytics.alertTimeline ?? []).map((b, i) => {
+                        const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const isPeak = peakHour && b.time === peakHour.time && b.count === peakHour.count;
+                        const barColor = isPeak ? 'rgb(239 68 68 / 0.9)' : b.count > maxTimeline * 0.7 ? 'rgb(239 68 68 / 0.75)' : b.count > maxTimeline * 0.4 ? 'rgb(251 146 60 / 0.65)' : 'rgb(59 130 246 / 0.55)';
+                        return (
+                          <Tooltip key={i}>
+                            <TooltipTrigger asChild>
+                              <div className="flex-1 flex flex-col items-center justify-end h-full group cursor-default">
+                                <div className={`w-full rounded-t-[2px] transition-all group-hover:brightness-150 group-hover:scale-y-105 min-h-[2px] origin-bottom ${isPeak ? 'ring-1 ring-red-400/50' : ''}`} style={{ height: `${Math.max(3, (b.count / maxTimeline) * 85)}%`, background: barColor }} />
+                                {i % 6 === 0 && <span className="text-[7px] font-mono text-foreground/25 mt-0.5 leading-none">{b.time}</span>}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-black/95 border-white/10 p-2 min-w-[130px]">
+                              <p className="text-[11px] font-black font-mono text-foreground/90 mb-1">{b.time} UTC {isPeak ? '(PEAK)' : ''}</p>
+                              <p className="text-[10px] font-mono text-foreground/60 mb-1.5">{b.count} alert{b.count !== 1 ? 's' : ''}</p>
+                              {topRegions.length > 0 && (
+                                <div className="mb-1">
+                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Regions</p>
+                                  {topRegions.map(([r, c]) => (<div key={r} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55">{r}</span><span className="text-[9px] font-bold font-mono text-orange-300/80">{c}</span></div>))}
+                                </div>
+                              )}
+                              {topTypes.length > 0 && (
+                                <div>
+                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Types</p>
+                                  {topTypes.map(([tp, c]) => (<div key={tp} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55 uppercase">{tp.replace(/_/g,' ')}</span><span className="text-[9px] font-bold font-mono text-blue-300/80">{c}</span></div>))}
+                                </div>
+                              )}
+                              {b.count === 0 && <p className="text-[9px] font-mono text-foreground/25 italic">No alerts this hour</p>}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+
+                  <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5" data-testid="section-quick-stats">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity className="w-3 h-3 text-cyan-400/60" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/40 font-mono">{t('Session Intelligence Summary', '\u0645\u0644\u062E\u0635 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A')}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      {[
+                        { label: t('Regions Affected', '\u0627\u0644\u0645\u0646\u0627\u0637\u0642'), value: String(totalRegions), color: 'text-blue-400' },
+                        { label: t('Threat Types', '\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u062A\u0647\u062F\u064A\u062F'), value: String(totalTypes), color: 'text-purple-400' },
+                        { label: t('Avg Response Time', '\u0645\u062A\u0648\u0633\u0637 \u0627\u0644\u0627\u0633\u062A\u062C\u0627\u0628\u0629'), value: `${analytics.avgResponseTime}s`, color: 'text-cyan-400' },
+                        { label: t('Intelligence Feeds', '\u062E\u0644\u0627\u0635\u0627\u062A'), value: String(analytics.topSources.length), color: 'text-emerald-400' },
+                        { label: t('AI Patterns Found', '\u0623\u0646\u0645\u0627\u0637 \u0630\u0643\u064A\u0629'), value: String(patterns.length), color: 'text-violet-400' },
+                        { label: t('False Alarm Cases', '\u0625\u0646\u0630\u0627\u0631\u0627\u062A \u0643\u0627\u0630\u0628\u0629'), value: String(falseAlarms.length), color: 'text-yellow-400' },
+                      ].map(row => (
+                        <div key={row.label} className="flex items-center justify-between py-0.5">
+                          <span className="text-[9px] font-mono text-foreground/35">{row.label}</span>
+                          <span className={`text-[10px] font-black font-mono ${row.color}`}>{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
 
-              {falseAlarms.length > 0 && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono mb-2 block">{t('False Alarm Analysis', '\u062A\u062D\u0644\u064A\u0644 \u0625\u0646\u0630\u0627\u0631\u0627\u062A \u0643\u0627\u0630\u0628\u0629')}</span>
-                  <div className="space-y-1" data-testid="list-false-alarms">
-                    {falseAlarms.slice(0, 10).map(fa => (
-                      <Tooltip key={fa.alertId}>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-default" data-testid={`false-alarm-${fa.alertId}`}>
-                            <div className={`w-2 h-2 rounded-full ${fa.score > 0.7 ? 'bg-red-500' : fa.score > 0.4 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
-                            <span className="text-[10px] font-mono text-foreground/60 flex-1 truncate">{fa.recommendation.replace(/_/g, ' ')}</span>
-                            <span className="text-[10px] font-mono text-foreground/40 truncate max-w-[120px]">{fa.reasons[0] || ''}</span>
-                            <span className="text-[10px] font-bold font-mono text-foreground/50">{(fa.score * 100).toFixed(0)}%</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
-                          <p className={`font-bold mb-1 ${fa.score > 0.7 ? 'text-red-400' : fa.score > 0.4 ? 'text-yellow-400' : 'text-emerald-400'}`}>{fa.recommendation.replace(/_/g,' ').toUpperCase()}</p>
-                          <p className="text-foreground/50 mb-0.5">Alert ID: {fa.alertId}</p>
-                          {fa.reasons.map((r, i) => <p key={i} className="text-foreground/60">• {r}</p>)}
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+              {analyticsTab === 'regions' && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Alerts by Region', '\u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A \u062D\u0633\u0628 \u0627\u0644\u0645\u0646\u0637\u0642\u0629')}</span>
+                      <span className="text-[8px] font-mono text-foreground/25">{regionEntries.reduce((s,[,v])=>s+v,0)} total across {regionEntries.length} regions</span>
+                    </div>
+                    <div className="space-y-1" data-testid="chart-by-region">
+                      {regionEntries.map(([region, count], i) => {
+                        const pct = (count / maxRegion) * 100;
+                        const barColor = pct > 70 ? 'bg-red-500/60' : pct > 40 ? 'bg-orange-500/55' : 'bg-amber-500/45';
+                        const avgPerHour = (analytics.alertTimeline ?? []).length > 0 ? (count / (analytics.alertTimeline ?? []).length).toFixed(1) : '0';
+                        return (
+                          <Tooltip key={region}>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 cursor-default hover:bg-white/[0.02] rounded px-1 py-0.5 transition-colors">
+                                <span className="text-[8px] font-mono text-foreground/25 w-3">{i+1}</span>
+                                <span className="text-[9px] font-mono text-foreground/55 w-20 truncate">{region}</span>
+                                <div className="flex-1 h-2.5 bg-white/[0.03] rounded-full overflow-hidden">
+                                  <div className={`h-full ${barColor} rounded-full transition-all`} style={{ width: `${Math.max(6, pct)}%` }} />
+                                </div>
+                                <span className="text-[9px] font-bold font-mono text-foreground/50 w-6 text-right">{count}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[180px]">
+                              <p className="text-foreground/80 font-bold">{region}</p>
+                              <p className="text-foreground/50">{count} alerts ({pct.toFixed(0)}% of max)</p>
+                              <p className="text-foreground/40">~{avgPerHour} alerts/hour avg</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('By Threat Type', '\u062D\u0633\u0628 \u0646\u0648\u0639 \u0627\u0644\u062A\u0647\u062F\u064A\u062F')}</span>
+                      <span className="text-[8px] font-mono text-foreground/25">{typeEntries.length} types</span>
+                    </div>
+                    <div className="space-y-1" data-testid="chart-by-type">
+                      {typeEntries.map(([type, count]) => {
+                        const pct = (count / maxType) * 100;
+                        const typeColors: Record<string, string> = { missile: 'bg-red-500/60', airstrike: 'bg-orange-500/55', rocket: 'bg-amber-500/50', drone: 'bg-purple-500/55', artillery: 'bg-yellow-500/50', ground_incursion: 'bg-emerald-500/50', gps_jamming: 'bg-cyan-500/50', gps_spoofing: 'bg-cyan-400/50', power: 'bg-yellow-400/50', hospital: 'bg-rose-400/50' };
+                        const pctOfTotal = totalAlerts > 0 ? ((count / totalAlerts) * 100).toFixed(1) : '0';
+                        return (
+                          <Tooltip key={type}>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 cursor-default hover:bg-white/[0.02] rounded px-1 py-0.5 transition-colors">
+                                <span className="text-[9px] font-mono text-foreground/45 w-16 truncate uppercase">{type.replace(/_/g,' ')}</span>
+                                <div className="flex-1 h-2.5 bg-white/[0.03] rounded-full overflow-hidden">
+                                  <div className={`h-full ${typeColors[type] || 'bg-blue-500/50'} rounded-full`} style={{ width: `${Math.max(6, pct)}%` }} />
+                                </div>
+                                <span className="text-[8px] font-mono text-foreground/30 w-8 text-right">{pctOfTotal}%</span>
+                                <span className="text-[9px] font-bold font-mono text-foreground/50 w-6 text-right">{count}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono">
+                              <p className="text-foreground/70">{type.replace(/_/g,' ').toUpperCase()}: {count} events ({pctOfTotal}% of total)</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
+
+              {analyticsTab === 'sources' && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Source Reliability', '\u0645\u0648\u062B\u0648\u0642\u064A\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631')}</span>
+                      <span className="text-[9px] font-mono text-foreground/30">{analytics.topSources.length} feeds</span>
+                    </div>
+                    <div className="space-y-1" data-testid="table-sources">
+                      {analytics.topSources.map((src) => {
+                        const reliabilityPct = (src.reliability * 100).toFixed(0);
+                        const reliabilityColor = src.reliability > 0.85 ? 'text-emerald-400' : src.reliability > 0.7 ? 'text-yellow-400' : 'text-red-400';
+                        const reliabilityBg = src.reliability > 0.85 ? 'bg-emerald-950/30 border-emerald-500/20' : src.reliability > 0.7 ? 'bg-yellow-950/30 border-yellow-500/20' : 'bg-red-950/30 border-red-500/20';
+                        const reliabilityLabel = src.reliability > 0.85 ? 'High reliability' : src.reliability > 0.7 ? 'Moderate reliability' : 'Low reliability';
+                        const reliabilityBar = src.reliability * 100;
+                        return (
+                          <Tooltip key={src.channel}>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-2 px-2 py-2 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-transparent hover:border-white/[0.04] cursor-default">
+                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${src.reliability > 0.85 ? 'bg-emerald-400' : src.reliability > 0.7 ? 'bg-yellow-400' : 'bg-red-400'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-[10px] font-mono text-foreground/65 block truncate">{src.channel}</span>
+                                  <div className="w-full h-1 bg-black/30 rounded-full overflow-hidden mt-1">
+                                    <div className={`h-full rounded-full ${src.reliability > 0.85 ? 'bg-emerald-400/60' : src.reliability > 0.7 ? 'bg-yellow-400/60' : 'bg-red-400/50'}`} style={{ width: `${reliabilityBar}%` }} />
+                                  </div>
+                                </div>
+                                <span className="text-[9px] font-mono text-foreground/30 shrink-0">{src.count}msg</span>
+                                <div className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded border shrink-0 ${reliabilityBg} ${reliabilityColor}`}>{reliabilityPct}%</div>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[200px]">
+                              <p className="text-foreground/80 font-bold mb-0.5">{src.channel}</p>
+                              <p className={`${reliabilityColor} mb-0.5`}>{reliabilityLabel}</p>
+                              <p className="text-foreground/40">{src.count} messages processed</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="w-3 h-3 text-emerald-400/60" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/40 font-mono">{t('Source Health Overview', '\u0635\u062D\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631')}</span>
+                    </div>
+                    {(() => {
+                      const highRel = analytics.topSources.filter(s => s.reliability > 0.85).length;
+                      const medRel = analytics.topSources.filter(s => s.reliability > 0.7 && s.reliability <= 0.85).length;
+                      const lowRel = analytics.topSources.filter(s => s.reliability <= 0.7).length;
+                      const totalMsgs = analytics.topSources.reduce((s, src) => s + src.count, 0);
+                      const avgRel = analytics.topSources.length > 0 ? (analytics.topSources.reduce((s, src) => s + src.reliability, 0) / analytics.topSources.length * 100).toFixed(1) : '0';
+                      return (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">High Reliability</span><span className="text-[10px] font-black font-mono text-emerald-400">{highRel}</span></div>
+                          <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">Medium Reliability</span><span className="text-[10px] font-black font-mono text-yellow-400">{medRel}</span></div>
+                          <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">Low Reliability</span><span className="text-[10px] font-black font-mono text-red-400">{lowRel}</span></div>
+                          <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">Avg Reliability</span><span className="text-[10px] font-black font-mono text-blue-400">{avgRel}%</span></div>
+                          <div className="flex items-center justify-between col-span-2 pt-1 border-t border-white/[0.04]"><span className="text-[9px] font-mono text-foreground/35">Total Messages</span><span className="text-[10px] font-black font-mono text-cyan-400">{totalMsgs.toLocaleString()}</span></div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </>
+              )}
+
+              {analyticsTab === 'patterns' && (
+                <>
+                  {patterns.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-3.5 h-3.5 text-purple-400/70" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Detected Patterns', '\u0623\u0646\u0645\u0627\u0637')}</span>
+                        <span className="text-[8px] font-mono text-foreground/25 ml-auto">{patterns.length} found</span>
+                      </div>
+                      <div className="space-y-1.5" data-testid="list-patterns">
+                        {patterns.map(p => (
+                          <Tooltip key={p.id}>
+                            <TooltipTrigger asChild>
+                              <div className="p-2.5 rounded bg-purple-950/20 border border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-default" data-testid={`pattern-${p.id}`}>
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <Sparkles className="w-3 h-3 text-purple-400" />
+                                  <span className="text-[11px] font-bold text-purple-300 font-mono uppercase">{p.type.replace(/_/g, ' ')}</span>
+                                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${p.confidence > 0.7 ? 'bg-emerald-950/40 text-emerald-400' : 'bg-yellow-950/40 text-yellow-400'}`}>{(p.confidence * 100).toFixed(0)}%</span>
+                                  <span className="ml-auto text-[8px] font-mono text-foreground/30">{timeAgo(p.detectedAt)}</span>
+                                </div>
+                                <p className="text-[10px] text-foreground/50 leading-relaxed">{p.description}</p>
+                                {p.affectedRegions.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {p.affectedRegions.map(r => (
+                                      <span key={r} className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-purple-950/30 border border-purple-500/15 text-purple-300/70">{r}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
+                              <p className="text-foreground/50 mb-0.5">Detected at</p>
+                              <p className="text-foreground/80">{new Date(p.detectedAt).toUTCString()}</p>
+                              <p className="text-foreground/40 mt-0.5">{p.alertCount} alerts in pattern</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {falseAlarms.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-yellow-400/70" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('False Alarm Analysis', '\u062A\u062D\u0644\u064A\u0644 \u0625\u0646\u0630\u0627\u0631\u0627\u062A \u0643\u0627\u0630\u0628\u0629')}</span>
+                        <span className="text-[8px] font-mono text-foreground/25 ml-auto">{falseAlarms.length} analyzed</span>
+                      </div>
+                      <div className="space-y-1" data-testid="list-false-alarms">
+                        {falseAlarms.slice(0, 12).map(fa => (
+                          <Tooltip key={fa.alertId}>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-default" data-testid={`false-alarm-${fa.alertId}`}>
+                                <div className={`w-2 h-2 rounded-full ${fa.score > 0.7 ? 'bg-red-500' : fa.score > 0.4 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
+                                <span className="text-[10px] font-mono text-foreground/60 flex-1 truncate">{fa.recommendation.replace(/_/g, ' ')}</span>
+                                <span className="text-[10px] font-mono text-foreground/40 truncate max-w-[120px]">{fa.reasons[0] || ''}</span>
+                                <span className="text-[10px] font-bold font-mono text-foreground/50">{(fa.score * 100).toFixed(0)}%</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="bg-black/90 border-white/10 text-[10px] font-mono max-w-[220px]">
+                              <p className={`font-bold mb-1 ${fa.score > 0.7 ? 'text-red-400' : fa.score > 0.4 ? 'text-yellow-400' : 'text-emerald-400'}`}>{fa.recommendation.replace(/_/g,' ').toUpperCase()}</p>
+                              <p className="text-foreground/50 mb-0.5">Alert ID: {fa.alertId}</p>
+                              {fa.reasons.map((r, i) => <p key={i} className="text-foreground/60">• {r}</p>)}
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {patterns.length === 0 && falseAlarms.length === 0 && (
+                    <div className="py-6 text-center">
+                      <Brain className="w-6 h-6 text-purple-400/30 mx-auto mb-2" />
+                      <span className="text-[10px] font-mono text-foreground/30">{t('No patterns detected yet', '\u0644\u0645 \u064A\u062A\u0645 \u0627\u0643\u062A\u0634\u0627\u0641 \u0623\u0646\u0645\u0627\u0637')}</span>
+                    </div>
+                  )}
+                </>
+              )}
+
             </TooltipProvider>
           )}
         </div>
@@ -5706,35 +5967,51 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
     LOW: 'bg-green-500/10 border-green-500/25',
   }[level] || 'bg-orange-500/10 border-orange-500/25');
 
+  const threatGlow = (level: string) => ({
+    EXTREME: '0 0 20px rgba(239,68,68,0.3), 0 0 40px rgba(239,68,68,0.1)',
+    HIGH: '0 0 15px rgba(251,146,60,0.2)',
+    ELEVATED: '0 0 10px rgba(250,204,21,0.15)',
+    MODERATE: 'none', LOW: 'none',
+  }[level] || 'none');
+
   const probColor = (p: number) =>
     p >= 0.7 ? 'bg-red-500' : p >= 0.4 ? 'bg-yellow-500' : 'bg-blue-500';
 
   const timeframeLabel = (tf: string) => ({
-    imminent: language === 'ar' ? 'وشيك' : 'IMMINENT',
+    imminent: language === 'ar' ? '\u0648\u0634\u064A\u0643' : 'IMMINENT',
     '1h': '1H', '3h': '3H', '6h': '6H', '12h': '12H', '24h': '24H',
   }[tf] || tf.toUpperCase());
 
+  const threatLevel = prediction?.overallThreatLevel || 'MODERATE';
+  const threatNum = ({ EXTREME: 5, HIGH: 4, ELEVATED: 3, MODERATE: 2, LOW: 1 }[threatLevel] || 2);
+  const confPct = Math.round((prediction?.confidence || 0) * 100);
+
+  const gaugeAngle = -90 + (threatNum / 5) * 180;
+  const gaugeColors = ['#22c55e', '#3b82f6', '#eab308', '#f97316', '#ef4444'];
+
   return (
-    <div className="flex flex-col h-full" data-testid="panel-aiprediction">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0"
-        style={{ background: 'hsl(260 30% 17% / 0.92)', borderBottom: '1px solid hsl(260 40% 40% / 0.14)' }}>
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-violet-400/20 pointer-events-none" />
+    <div className="flex flex-col h-full" data-testid="panel-aiprediction" style={{ background: 'linear-gradient(180deg, hsl(260 30% 8%) 0%, hsl(260 20% 6%) 100%)' }}>
+      <div className="panel-drag-handle flex items-center justify-between px-3 py-1.5 shrink-0 relative cursor-grab active:cursor-grabbing"
+        style={{ background: 'linear-gradient(180deg, hsl(260 35% 18% / 0.95), hsl(260 30% 14% / 0.92))', borderBottom: '1px solid hsl(260 40% 40% / 0.14)' }}>
+        <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, hsl(260 80% 70% / 0.3), transparent)' }} />
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-          <span className="text-[11px] font-semibold tracking-wide uppercase text-white/90">
-            {language === 'ar' ? 'توقعات الذكاء الاصطناعي' : 'AI Prediction'}
+          <div className="relative">
+            <Brain className="w-4 h-4 text-violet-400" />
+            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-violet-400 animate-pulse" style={{ boxShadow: '0 0 6px rgba(167,139,250,0.6)' }} />
+          </div>
+          <span className="text-[11px] font-black tracking-[0.2em] uppercase text-white/90" style={{ fontFamily: 'var(--font-display)' }}>
+            {language === 'ar' ? '\u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A' : 'AI ORACLE'}
           </span>
           {prediction?.dataPoints?.isEscalating && (
-            <span className="px-1.5 py-0.5 text-[8px] font-bold bg-red-500/20 text-red-300 rounded border border-red-500/25 animate-pulse">
+            <span className="px-1.5 py-0.5 text-[8px] font-black bg-red-500/25 text-red-300 rounded border border-red-500/30 animate-pulse tracking-widest">
               ESCALATING
             </span>
           )}
         </div>
         <div className="flex items-center gap-1">
           {prediction && (
-            <span className="text-[8px] font-mono text-violet-300/50 bg-violet-500/[0.08] px-1.5 py-0.5 rounded border border-violet-500/15">
-              {Math.round((prediction.confidence || 0) * 100)}% CONF
+            <span className="text-[8px] font-mono text-violet-300/60 bg-violet-500/[0.1] px-1.5 py-0.5 rounded border border-violet-500/20">
+              {confPct}% CONF
             </span>
           )}
           {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
@@ -5742,188 +6019,298 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(260 20% 14% / 0.7)' }}>
+      <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(260 20% 11% / 0.8)' }}>
         {(['forecast', 'vectors', 'pattern'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-colors ${
+            className={`flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-all ${
               activeTab === tab
-                ? 'text-violet-300 border-b border-violet-400'
-                : 'text-white/30 hover:text-white/60'
+                ? 'text-violet-300 border-b-2 border-violet-400 bg-violet-500/[0.05]'
+                : 'text-white/25 hover:text-white/55 hover:bg-white/[0.02]'
             }`}
+            data-testid={`button-aipred-tab-${tab}`}
           >
-            {tab === 'forecast' ? (language === 'ar' ? 'التوقع' : 'Forecast') :
-             tab === 'vectors' ? (language === 'ar' ? 'التهديدات' : 'Vectors') :
-             (language === 'ar' ? 'النمط' : 'Pattern')}
+            {tab === 'forecast' ? (language === 'ar' ? '\u0627\u0644\u062A\u0648\u0642\u0639' : 'Forecast') :
+             tab === 'vectors' ? (language === 'ar' ? '\u0627\u0644\u062A\u0647\u062F\u064A\u062F\u0627\u062A' : 'Vectors') :
+             (language === 'ar' ? '\u0627\u0644\u0646\u0645\u0637' : 'Intel')}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0">
         {!prediction ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-center px-4">
-            <Loader2 className="w-5 h-5 text-violet-400/60 animate-spin" />
-            <span className="text-[10px] text-white/30">{language === 'ar' ? 'جارٍ توليد التوقعات…' : 'Generating AI predictions…'}</span>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
+            <div className="relative">
+              <Brain className="w-8 h-8 text-violet-400/30 animate-pulse" />
+              <Loader2 className="w-4 h-4 text-violet-400/60 animate-spin absolute -bottom-1 -right-1" />
+            </div>
+            <span className="text-[10px] text-white/30 font-mono tracking-wider">{language === 'ar' ? '\u062C\u0627\u0631\u064D \u062A\u0648\u0644\u064A\u062F \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A\u2026' : 'Neural networks analyzing...'}</span>
+            <div className="flex gap-1">
+              {[0,1,2,3,4].map(i => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
+              ))}
+            </div>
           </div>
         ) : (
           <>
-            {/* ── Forecast Tab ── */}
             {activeTab === 'forecast' && (
-              <div className="p-3 space-y-2.5">
-                {/* Overall threat banner */}
-                <div className={`flex items-center gap-3 p-2.5 rounded border ${threatBg(prediction.overallThreatLevel)}`}>
-                  <div className="flex flex-col gap-0.5 flex-1">
-                    <span className={`text-[13px] font-black tracking-widest font-mono ${threatColor(prediction.overallThreatLevel)}`}>
-                      {prediction.overallThreatLevel}
-                    </span>
-                    <span className="text-[9px] text-white/40 uppercase tracking-wider">
-                      {language === 'ar' ? 'مستوى التهديد' : 'Threat Level'}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[9px] text-white/35">{language === 'ar' ? 'الهدف التالي' : 'Next Target'}</div>
-                    <div className="text-[10px] font-semibold text-white/75 max-w-[90px] text-right leading-tight">
-                      {prediction.nextLikelyTarget}
+              <div className="p-3 space-y-3">
+                <div className="relative rounded-lg border overflow-hidden" style={{
+                  borderColor: gaugeColors[threatNum - 1] + '66',
+                  boxShadow: threatGlow(threatLevel),
+                  background: 'linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 100%)',
+                }}>
+                  <div className={`${threatBg(threatLevel)} border-0 p-3`}>
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex flex-col items-center">
+                        <svg width="64" height="36" viewBox="0 0 64 36" className="overflow-visible">
+                          {gaugeColors.map((color, i) => {
+                            const startAngle = -90 + (i / 5) * 180;
+                            const endAngle = -90 + ((i + 1) / 5) * 180;
+                            const startRad = (startAngle * Math.PI) / 180;
+                            const endRad = (endAngle * Math.PI) / 180;
+                            const r = 28;
+                            return (
+                              <path key={i}
+                                d={`M ${32 + r * Math.cos(startRad)} ${32 + r * Math.sin(startRad)} A ${r} ${r} 0 0 1 ${32 + r * Math.cos(endRad)} ${32 + r * Math.sin(endRad)}`}
+                                fill="none" stroke={color} strokeWidth={i + 1 === threatNum ? 5 : 3}
+                                opacity={i + 1 === threatNum ? 1 : 0.25}
+                              />
+                            );
+                          })}
+                          <line
+                            x1="32" y1="32"
+                            x2={32 + 20 * Math.cos((gaugeAngle * Math.PI) / 180)}
+                            y2={32 + 20 * Math.sin((gaugeAngle * Math.PI) / 180)}
+                            stroke={gaugeColors[threatNum - 1]} strokeWidth="2" strokeLinecap="round"
+                          />
+                          <circle cx="32" cy="32" r="3" fill={gaugeColors[threatNum - 1]} />
+                        </svg>
+                        <span className={`text-[8px] font-mono font-bold mt-0.5 ${threatColor(threatLevel)}`}>
+                          {threatNum}/5
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-[16px] font-black tracking-[0.2em] font-mono leading-none ${threatColor(threatLevel)}`} style={{ textShadow: threatLevel === 'EXTREME' ? '0 0 10px rgba(239,68,68,0.5)' : 'none' }}>
+                          {threatLevel}
+                        </span>
+                        <div className="text-[9px] text-white/40 uppercase tracking-wider mt-1" style={{ fontFamily: 'var(--font-mono)' }}>
+                          {language === 'ar' ? '\u0645\u0633\u062A\u0648\u0649 \u0627\u0644\u062A\u0647\u062F\u064A\u062F' : 'THREAT LEVEL'}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all" style={{ width: `${confPct}%`, background: `linear-gradient(90deg, ${gaugeColors[threatNum-1]}88, ${gaugeColors[threatNum-1]})` }} />
+                          </div>
+                          <span className="text-[9px] font-black font-mono text-white/50">{confPct}%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Escalation vector */}
+                <div className="rounded border border-violet-500/15 bg-violet-500/[0.04] p-2.5" style={{ boxShadow: '0 0 15px rgba(139,92,246,0.05)' }}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Crosshair className="w-3 h-3 text-red-400/70" />
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-white/40">
+                      {language === 'ar' ? '\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u0645\u0631\u062C\u062D' : 'PREDICTED NEXT TARGET'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-red-400/50" />
+                    <span className="text-[13px] font-black text-white/85" style={{ fontFamily: 'var(--font-display)' }}>
+                      {prediction.nextLikelyTarget}
+                    </span>
+                  </div>
+                </div>
+
                 {prediction.escalationVector && (
-                  <div className="flex items-start gap-2 px-2.5 py-2 rounded bg-white/[0.03] border border-white/[0.05]">
-                    <TrendingUp className={`w-3 h-3 mt-0.5 shrink-0 ${prediction.dataPoints?.isEscalating ? 'text-red-400' : 'text-green-400'}`} />
+                  <div className="flex items-start gap-2 px-2.5 py-2 rounded border border-white/[0.06]" style={{ background: prediction.dataPoints?.isEscalating ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.03)' }}>
+                    {prediction.dataPoints?.isEscalating ? (
+                      <TrendingUp className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-400" />
+                    ) : (
+                      <TrendingDown className="w-3.5 h-3.5 mt-0.5 shrink-0 text-green-400" />
+                    )}
                     <span className="text-[9px] text-white/55 leading-relaxed italic">{prediction.escalationVector}</span>
                   </div>
                 )}
 
-                {/* Live data points */}
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-4 gap-1.5">
                   {[
-                    { icon: <Activity className="w-3 h-3 text-cyan-400/70" />, label: language === 'ar' ? 'إنذارات' : 'Alerts', value: String(prediction.dataPoints?.totalAlerts ?? 0) },
-                    { icon: <Zap className="w-3 h-3 text-yellow-400/70" />, label: language === 'ar' ? '/ساعة' : '/hr', value: `${prediction.dataPoints?.velocityPerHour ?? 0}` },
-                    { icon: <Clock className="w-3 h-3 text-violet-400/70" />, label: language === 'ar' ? '30د' : '30m', value: String(prediction.dataPoints?.velocity30m ?? 0) },
-                  ].map(({ icon, label, value }) => (
-                    <div key={label} className="flex flex-col items-center gap-0.5 py-1.5 rounded bg-white/[0.03] border border-white/[0.05]">
+                    { icon: <Activity className="w-3.5 h-3.5 text-cyan-400" />, label: language === 'ar' ? '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' : 'ALERTS', value: String(prediction.dataPoints?.totalAlerts ?? 0), color: 'text-cyan-400', glow: 'rgba(34,211,238,0.1)' },
+                    { icon: <Zap className="w-3.5 h-3.5 text-yellow-400" />, label: language === 'ar' ? '/\u0633\u0627\u0639\u0629' : '/HOUR', value: `${prediction.dataPoints?.velocityPerHour ?? 0}`, color: 'text-yellow-400', glow: 'rgba(250,204,21,0.1)' },
+                    { icon: <Clock className="w-3.5 h-3.5 text-violet-400" />, label: '30M', value: String(prediction.dataPoints?.velocity30m ?? 0), color: 'text-violet-400', glow: 'rgba(167,139,250,0.1)' },
+                    { icon: <Gauge className="w-3.5 h-3.5 text-orange-400" />, label: '2H', value: String(prediction.dataPoints?.velocity2h ?? 0), color: 'text-orange-400', glow: 'rgba(251,146,60,0.1)' },
+                  ].map(({ icon, label, value, color, glow }) => (
+                    <div key={label} className="flex flex-col items-center gap-0.5 py-2 rounded border border-white/[0.06]" style={{ background: glow }}>
                       {icon}
-                      <span className="text-[11px] font-bold font-mono text-white/70">{value}</span>
-                      <span className="text-[8px] text-white/30 uppercase tracking-wider">{label}</span>
+                      <span className={`text-[13px] font-black font-mono leading-none ${color}`}>{value}</span>
+                      <span className="text-[7px] text-white/25 uppercase tracking-wider font-mono">{label}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Top predictions preview */}
                 <div className="space-y-1">
-                  <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest px-0.5">
-                    {language === 'ar' ? 'أعلى التوقعات' : 'Top Predictions'}
+                  <div className="flex items-center gap-2 px-0.5">
+                    <Swords className="w-3 h-3 text-red-400/50" />
+                    <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
+                      {language === 'ar' ? '\u0623\u0639\u0644\u0649 \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A' : 'TOP PREDICTIONS'}
+                    </span>
                   </div>
-                  {prediction.predictions.slice(0, 3).map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.025] border border-white/[0.04]">
-                      <span className={`text-[8px] font-bold font-mono px-1 py-0.5 rounded ${
-                        p.severity === 'critical' ? 'bg-red-500/20 text-red-300' :
-                        p.severity === 'high' ? 'bg-orange-500/20 text-orange-300' :
-                        'bg-yellow-500/20 text-yellow-300'
-                      }`}>{timeframeLabel(p.timeframe)}</span>
-                      <span className="text-[9px] text-white/65 flex-1 truncate">{p.region}</span>
-                      <span className="text-[9px] font-mono font-bold text-white/50">{Math.round(p.probability * 100)}%</span>
-                    </div>
-                  ))}
+                  {prediction.predictions.slice(0, 4).map((p, i) => {
+                    const barW = Math.round(p.probability * 100);
+                    const isHot = p.probability >= 0.7;
+                    const isWarm = p.probability >= 0.4;
+                    return (
+                      <div key={i} className={`relative rounded border overflow-hidden ${isHot ? 'border-red-500/25' : isWarm ? 'border-yellow-500/15' : 'border-white/[0.05]'}`} style={{ background: isHot ? 'rgba(127,29,29,0.15)' : 'rgba(255,255,255,0.015)' }}>
+                        <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(90deg, ${isHot ? 'rgba(239,68,68,0.2)' : isWarm ? 'rgba(250,204,21,0.1)' : 'rgba(59,130,246,0.1)'} ${barW}%, transparent ${barW}%)` }} />
+                        <div className="relative flex items-center gap-2 px-2.5 py-2">
+                          <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                            p.severity === 'critical' ? 'bg-red-500/25 text-red-300 border border-red-500/30' :
+                            p.severity === 'high' ? 'bg-orange-500/25 text-orange-300 border border-orange-500/30' :
+                            p.severity === 'medium' ? 'bg-yellow-500/25 text-yellow-300 border border-yellow-500/30' :
+                            'bg-green-500/25 text-green-300 border border-green-500/30'
+                          }`}>{timeframeLabel(p.timeframe)}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10px] font-bold text-white/75 block truncate">{p.region}</span>
+                            <span className="text-[8px] font-mono text-white/30 uppercase">{p.threatVector.replace(/_/g, ' ')}</span>
+                          </div>
+                          <div className="flex flex-col items-end shrink-0">
+                            <span className={`text-[13px] font-black font-mono ${isHot ? 'text-red-400' : isWarm ? 'text-yellow-400' : 'text-blue-400'}`}>{barW}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-
               </div>
             )}
 
-            {/* ── Vectors Tab ── */}
             {activeTab === 'vectors' && (
               <div className="p-3 space-y-2">
-                {prediction.predictions.map((p, i) => (
-                  <div key={i} className="space-y-1.5 p-2.5 rounded border border-white/[0.06] bg-white/[0.025]"
-                    data-testid={`aipred-vector-${i}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded font-mono ${
+                <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5 mb-1">
+                  <div className="text-[9px] font-mono text-white/25 uppercase tracking-widest mb-1.5">
+                    {language === 'ar' ? '\u0645\u0644\u062E\u0635 \u0627\u0644\u062A\u0647\u062F\u064A\u062F\u0627\u062A' : 'THREAT VECTOR SUMMARY'}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <span className="text-[10px] font-mono text-white/50">{prediction.predictions.length} vectors tracked</span>
+                      <div className="flex gap-1 mt-1">
+                        {['critical','high','medium','low'].map(sev => {
+                          const cnt = prediction.predictions.filter(p => p.severity === sev).length;
+                          if (cnt === 0) return null;
+                          const sevColors: Record<string,string> = { critical: 'bg-red-500/25 text-red-300', high: 'bg-orange-500/25 text-orange-300', medium: 'bg-yellow-500/25 text-yellow-300', low: 'bg-green-500/25 text-green-300' };
+                          return <span key={sev} className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded ${sevColors[sev]}`}>{cnt} {sev.toUpperCase()}</span>;
+                        })}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[8px] font-mono text-white/25">AVG PROB</span>
+                      <div className={`text-[16px] font-black font-mono ${threatColor(threatLevel)}`}>
+                        {prediction.predictions.length > 0 ? Math.round(prediction.predictions.reduce((s,p)=>s+p.probability,0)/prediction.predictions.length*100) : 0}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {prediction.predictions.map((p, i) => {
+                  const isHot = p.probability >= 0.7;
+                  const VectorIcons: Record<string, typeof Zap> = { rockets: Rocket, missiles: Target, uav: Plane, cruise_missile: Plane, ballistic: AlertTriangle, mortar: Crosshair, anti_tank: Shield, combined: ShieldAlert };
+                  const VIcon = VectorIcons[p.threatVector] || AlertTriangle;
+                  return (
+                    <div key={i} className={`rounded border p-2.5 transition-all ${isHot ? 'border-red-500/25 bg-red-950/10' : 'border-white/[0.06] bg-white/[0.025]'}`} data-testid={`aipred-vector-${i}`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <VIcon className={`w-3.5 h-3.5 shrink-0 ${
+                          p.severity === 'critical' ? 'text-red-400' : p.severity === 'high' ? 'text-orange-400' : p.severity === 'medium' ? 'text-yellow-400' : 'text-green-400'
+                        }`} />
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded font-mono ${
                           p.severity === 'critical' ? 'bg-red-500/25 text-red-300 border border-red-500/30' :
                           p.severity === 'high' ? 'bg-orange-500/25 text-orange-300 border border-orange-500/30' :
                           p.severity === 'medium' ? 'bg-yellow-500/25 text-yellow-300 border border-yellow-500/30' :
                           'bg-green-500/25 text-green-300 border border-green-500/30'
-                        }`}>{p.threatVector.replace('_', ' ')}</span>
-                        <span className="text-[10px] font-semibold text-white/80">{p.region}</span>
+                        }`}>{p.threatVector.replace(/_/g, ' ')}</span>
+                        <span className="text-[10px] font-semibold text-white/80 flex-1 truncate">{p.region}</span>
+                        <span className="text-[9px] font-mono text-white/35">{timeframeLabel(p.timeframe)}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-mono text-white/40">{timeframeLabel(p.timeframe)}</span>
-                        <span className={`text-[9px] font-mono font-bold px-1 py-0.5 rounded ${
-                          p.probability >= 0.7 ? 'bg-red-500/20 text-red-300' :
-                          p.probability >= 0.4 ? 'bg-yellow-500/20 text-yellow-300' :
-                          'bg-blue-500/20 text-blue-300'
-                        }`}>{Math.round(p.probability * 100)}%</span>
+                      <div className="relative w-full h-2 rounded-full bg-white/[0.06] overflow-hidden mb-1.5">
+                        <div className={`h-full rounded-full transition-all ${probColor(p.probability)}`} style={{ width: `${Math.round(p.probability * 100)}%`, opacity: 0.8 }} />
+                        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[7px] font-black font-mono text-white/70">{Math.round(p.probability * 100)}%</span>
                       </div>
+                      {p.rationale && <p className="text-[9px] text-white/40 leading-relaxed italic">{p.rationale}</p>}
+                      {p.source && <div className="text-[8px] font-mono text-white/20 mt-1">SRC: {p.source}</div>}
                     </div>
-                    {/* Probability bar */}
-                    <div className="w-full h-1 rounded-full bg-white/[0.06]">
-                      <div
-                        className={`h-full rounded-full transition-all ${probColor(p.probability)}`}
-                        style={{ width: `${Math.round(p.probability * 100)}%`, opacity: 0.7 }}
-                      />
-                    </div>
-                    {p.rationale && (
-                      <p className="text-[9px] text-white/40 leading-relaxed italic">{p.rationale}</p>
-                    )}
-                    {p.source && (
-                      <div className="text-[8px] font-mono text-white/25">
-                        {language === 'ar' ? 'المصدر:' : 'SRC:'} {p.source}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {/* ── Pattern Tab ── */}
             {activeTab === 'pattern' && (
               <div className="p-3 space-y-3">
                 {prediction.patternSummary && (
-                  <div className="p-2.5 rounded border border-violet-500/15 bg-violet-500/[0.05]">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Sparkles className="w-3 h-3 text-violet-400/70" />
-                      <span className="text-[9px] font-mono uppercase tracking-widest text-violet-300/60">
-                        {language === 'ar' ? 'تحليل النمط' : 'Pattern Analysis'}
+                  <div className="rounded-lg border border-violet-500/20 overflow-hidden" style={{ boxShadow: '0 0 20px rgba(139,92,246,0.08)' }}>
+                    <div className="px-3 py-1.5 flex items-center gap-2" style={{ background: 'linear-gradient(90deg, hsl(260 40% 20% / 0.6), hsl(260 30% 15% / 0.4))' }}>
+                      <Brain className="w-3.5 h-3.5 text-violet-400" />
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-violet-300/70">
+                        {language === 'ar' ? '\u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0646\u0645\u0637' : 'AI PATTERN ANALYSIS'}
                       </span>
                     </div>
-                    <p className="text-[10px] text-white/65 leading-relaxed">{prediction.patternSummary}</p>
-                  </div>
-                )}
-
-                {/* Top targeted regions */}
-                {prediction.dataPoints?.topRegions && prediction.dataPoints.topRegions.length > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
-                      {language === 'ar' ? 'المناطق المستهدفة' : 'Targeted Regions'}
+                    <div className="p-3 bg-violet-500/[0.03]">
+                      <p className="text-[10px] text-white/65 leading-relaxed">{prediction.patternSummary}</p>
                     </div>
-                    {prediction.dataPoints.topRegions.map(({ region, count }, i) => {
-                      const maxCount = prediction.dataPoints!.topRegions[0]?.count || 1;
-                      const pct = Math.round((count / maxCount) * 100);
-                      return (
-                        <div key={region} className="flex items-center gap-2">
-                          <span className="text-[8px] font-mono text-white/30 w-3">{i + 1}</span>
-                          <span className="text-[9px] text-white/60 flex-1 truncate">{region}</span>
-                          <div className="w-16 h-1.5 rounded-full bg-white/[0.07]">
-                            <div
-                              className="h-full rounded-full bg-violet-400/60"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span className="text-[8px] font-mono text-white/35 w-5 text-right">{count}</span>
-                        </div>
-                      );
-                    })}
                   </div>
                 )}
 
+                {prediction.dataPoints?.topRegions && prediction.dataPoints.topRegions.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="w-3.5 h-3.5 text-red-400/50" />
+                      <span className="text-[9px] font-mono font-bold text-white/30 uppercase tracking-widest">
+                        {language === 'ar' ? '\u0627\u0644\u0645\u0646\u0627\u0637\u0642 \u0627\u0644\u0645\u0633\u062A\u0647\u062F\u0641\u0629' : 'HEAT MAP — TARGETED REGIONS'}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {prediction.dataPoints.topRegions.map(({ region, count }, i) => {
+                        const maxCount = prediction.dataPoints!.topRegions[0]?.count || 1;
+                        const pct = Math.round((count / maxCount) * 100);
+                        const heat = pct > 70 ? 'from-red-500/30 to-red-500/5' : pct > 40 ? 'from-orange-500/25 to-orange-500/5' : 'from-blue-500/20 to-blue-500/5';
+                        const textColor = pct > 70 ? 'text-red-400' : pct > 40 ? 'text-orange-400' : 'text-blue-400';
+                        return (
+                          <div key={region} className="relative rounded border border-white/[0.05] overflow-hidden">
+                            <div className={`absolute inset-0 bg-gradient-to-r ${heat}`} style={{ width: `${pct}%` }} />
+                            <div className="relative flex items-center gap-2 px-2.5 py-1.5">
+                              <span className="text-[9px] font-mono text-white/25 w-3">{i + 1}</span>
+                              <span className="text-[10px] text-white/60 flex-1 truncate font-medium">{region}</span>
+                              <div className="w-12 h-1.5 rounded-full bg-white/[0.07]">
+                                <div className={`h-full rounded-full ${pct > 70 ? 'bg-red-400/70' : pct > 40 ? 'bg-orange-400/60' : 'bg-blue-400/50'}`} style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className={`text-[9px] font-black font-mono w-6 text-right ${textColor}`}>{count}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5">
+                  <div className="text-[9px] font-mono text-white/25 uppercase tracking-widest mb-1.5">
+                    {language === 'ar' ? '\u0625\u062D\u0635\u0627\u0626\u064A\u0627\u062A \u0627\u0644\u062A\u0648\u0642\u0639' : 'PREDICTION METRICS'}
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-white/30">Vectors Tracked</span><span className="text-[10px] font-black font-mono text-violet-400">{prediction.predictions.length}</span></div>
+                    <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-white/30">Confidence</span><span className="text-[10px] font-black font-mono text-cyan-400">{confPct}%</span></div>
+                    <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-white/30">Alert Velocity</span><span className="text-[10px] font-black font-mono text-yellow-400">{prediction.dataPoints?.velocityPerHour ?? 0}/hr</span></div>
+                    <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-white/30">Status</span><span className={`text-[10px] font-black font-mono ${prediction.dataPoints?.isEscalating ? 'text-red-400' : 'text-green-400'}`}>{prediction.dataPoints?.isEscalating ? 'ESCALATING' : 'STABLE'}</span></div>
+                  </div>
+                </div>
 
                 <div className="pt-1 border-t border-white/[0.04]">
-                  <div className="text-[8px] font-mono text-white/20 text-center">
-                    {language === 'ar' ? 'آخر تحديث' : 'Updated'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" />
+                    <span className="text-[8px] font-mono text-white/20">
+                      {language === 'ar' ? '\u0622\u062E\u0631 \u062A\u062D\u062F\u064A\u062B' : 'Updated'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '\u2014'}
+                    </span>
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: '500ms' }} />
                   </div>
                 </div>
               </div>
