@@ -1537,6 +1537,104 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
   'גן יבנה': { lat: 31.793, lng: 34.707, en: 'Gan Yavne', ar: 'غان يافني', region: 'Southern Coastal', regionHe: 'חוף דרומי', regionAr: 'الساحل الجنوبي', countdown: 45 },
   'אופקים': { lat: 31.312, lng: 34.622, en: 'Ofakim', ar: 'أوفاكيم', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 45 },
   'נתיבות': { lat: 31.420, lng: 34.589, en: 'Netivot', ar: 'نتيفوت', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 30 },
+  'מודיעין-מכבים-רעות': { lat: 31.897, lng: 35.010, en: "Modi'in-Maccabim-Re'ut", ar: 'موديعين', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'מודיעין עילית': { lat: 31.933, lng: 35.044, en: "Modi'in Illit", ar: 'موديعين عيليت', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'ביתר עילית': { lat: 31.699, lng: 35.118, en: 'Beitar Illit', ar: 'بيتار عيليت', region: 'Gush Etzion', regionHe: 'גוש עציון', regionAr: 'غوش عتصيون', countdown: 60 },
+  'מעלה אדומים': { lat: 31.778, lng: 35.303, en: "Ma'ale Adumim", ar: 'معالي أدوميم', region: 'Judean Hills', regionHe: 'הרי יהודה', regionAr: 'جبال يهودا', countdown: 90 },
+  'גבעת זאב': { lat: 31.862, lng: 35.171, en: "Giv'at Ze'ev", ar: 'جفعات زئيف', region: 'Judean Hills', regionHe: 'הרי יהודה', regionAr: 'جبال يهودا', countdown: 90 },
+  'אלפי מנשה': { lat: 32.178, lng: 35.063, en: 'Alfei Menashe', ar: 'ألفي مناشيه', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'עמנואל': { lat: 32.157, lng: 35.146, en: 'Immanuel', ar: 'عمنوئيل', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'נס ציונה': { lat: 31.930, lng: 34.795, en: 'Ness Ziona', ar: 'نيس تسيونا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'טייבה': { lat: 32.267, lng: 35.010, en: 'Tayibe', ar: 'الطيبة', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'טירה': { lat: 32.232, lng: 34.951, en: 'Tira', ar: 'الطيرة', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'קלנסווה': { lat: 32.284, lng: 34.983, en: 'Qalansawe', ar: 'قلنسوة', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'ג\'לג\'וליה': { lat: 32.158, lng: 34.955, en: 'Jaljulia', ar: 'جلجولية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אם אל-פחם': { lat: 32.519, lng: 35.153, en: 'Umm al-Fahm', ar: 'أم الفحم', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 60 },
+  'נחלים': { lat: 32.066, lng: 34.921, en: 'Nahalim', ar: 'نحاليم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'מתן': { lat: 32.184, lng: 34.942, en: 'Mattan', ar: 'متان', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'חגור': { lat: 32.163, lng: 34.928, en: 'Hagor', ar: 'حاجور', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'עינת': { lat: 32.094, lng: 34.929, en: 'Einat', ar: 'عينات', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'ירקונה': { lat: 32.108, lng: 34.917, en: 'Yarkona', ar: 'يركونا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'חורשים': { lat: 32.140, lng: 34.936, en: 'Horashim', ar: 'حوراشيم', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'נופך': { lat: 32.036, lng: 34.940, en: 'Nofekh', ar: 'نوفخ', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בן שמן': { lat: 31.952, lng: 34.929, en: 'Ben Shemen', ar: 'بن شيمن', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'כפר חב\'ד': { lat: 31.978, lng: 34.848, en: 'Kfar Chabad', ar: 'كفار حباد', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'גינתון': { lat: 31.926, lng: 34.883, en: 'Ginaton', ar: 'جيناتون', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'מצליח': { lat: 31.930, lng: 34.907, en: 'Matzliah', ar: 'متسلياح', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'גן שורק': { lat: 31.872, lng: 34.790, en: 'Gan Sorek', ar: 'غان سوريك', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'ניר צבי': { lat: 31.950, lng: 34.842, en: 'Nir Tzvi', ar: 'نير تسفي', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בית עובד': { lat: 31.881, lng: 34.828, en: 'Beit Oved', ar: 'بيت عوفيد', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בית חנן': { lat: 31.879, lng: 34.809, en: 'Beit Hanan', ar: 'بيت حنان', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'ישרש': { lat: 31.897, lng: 34.908, en: 'Yesharesh', ar: 'يشاريش', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'נחשונים': { lat: 31.944, lng: 34.946, en: 'Nahshonim', ar: 'نحشونيم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'מגשימים': { lat: 32.019, lng: 34.873, en: 'Magshimim', ar: 'ماغشيميم', region: 'Gush Dan', regionHe: 'גוש דן', regionAr: 'غوش دان', countdown: 90 },
+  'נטעים': { lat: 31.866, lng: 34.834, en: 'Neta\'im', ar: 'نيتاعيم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'עיינות': { lat: 31.882, lng: 34.848, en: 'Ayanot', ar: 'عيانوت', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'עדנים': { lat: 31.947, lng: 34.895, en: 'Adanim', ar: 'عدانيم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'נווה ימין': { lat: 32.125, lng: 34.895, en: 'Neve Yamin', ar: 'نيفي يامين', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'נווה ירק': { lat: 32.111, lng: 34.899, en: 'Neve Yerak', ar: 'نيفي يرق', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'מזור': { lat: 32.026, lng: 34.936, en: 'Mazor', ar: 'مازور', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'רינתיה': { lat: 32.017, lng: 34.893, en: 'Rinnatya', ar: 'ريناتيا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'שדי חמד': { lat: 32.142, lng: 34.952, en: 'Sdei Hemed', ar: 'سدي حيمد', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'גני עם': { lat: 31.904, lng: 34.850, en: 'Ganei Am', ar: 'غاني عام', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אחיסמך': { lat: 31.935, lng: 34.870, en: 'Ahisamakh', ar: 'أحيسماخ', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אירוס': { lat: 31.895, lng: 34.868, en: 'Irus', ar: 'إيروس', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בארות יצחק': { lat: 32.078, lng: 34.925, en: "Ba'arot Yitzhak", ar: 'بئروت يتسحاق', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בני עטרות': { lat: 32.073, lng: 34.912, en: 'Bnei Atarot', ar: 'بني عطاروت', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'גבעת כ\'\'ח': { lat: 31.950, lng: 34.870, en: "Giv'at Koah", ar: 'جفعات كوح', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'כפר נוער בן שמן': { lat: 31.955, lng: 34.925, en: 'Ben Shemen Youth Village', ar: 'كفار نوعر بن شيمن', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אלישמע': { lat: 32.146, lng: 34.966, en: 'Elishama', ar: 'إليشمع', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'משמר השבעה': { lat: 32.001, lng: 34.860, en: 'Mishmar HaShiv\'a', ar: 'مشمار هشفعا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'טירת יהודה': { lat: 32.026, lng: 34.906, en: 'Tirat Yehuda', ar: 'تيرات يهودا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'כפר טרומן': { lat: 31.986, lng: 34.927, en: 'Kfar Truman', ar: 'كفار ترومان', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'חמד': { lat: 32.042, lng: 34.930, en: 'Hemed', ar: 'حيمد', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בית נחמיה': { lat: 31.955, lng: 34.942, en: 'Beit Nechemya', ar: 'بيت نحميا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'בית עריף': { lat: 31.940, lng: 34.958, en: 'Beit Arif', ar: 'بيت عاريف', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'חדיד': { lat: 31.978, lng: 34.942, en: 'Hadid', ar: 'حديد', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'נעלה': { lat: 31.960, lng: 35.020, en: "Na'ale", ar: 'ناعالي', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'נילי': { lat: 31.948, lng: 35.037, en: 'Nili', ar: 'نيلي', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'עלי זהב - לשם': { lat: 32.107, lng: 35.060, en: 'Alei Zahav - Leshem', ar: 'إلي زاهاف', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'פדואל': { lat: 32.051, lng: 35.075, en: 'Peduel', ar: 'بدوئيل', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'ברקן': { lat: 32.085, lng: 35.080, en: 'Barkan', ar: 'بركان', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'ברקת': { lat: 31.985, lng: 34.960, en: 'Bareket', ar: 'بركت', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'זיתן': { lat: 31.963, lng: 34.942, en: 'Zeitan', ar: 'زيتان', region: 'Central', regionHe: 'מרכز', regionAr: 'المركز', countdown: 90 },
+  'צפריה': { lat: 31.958, lng: 34.888, en: 'Tzafriya', ar: 'تسفريا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'יגל': { lat: 31.890, lng: 34.859, en: 'Yagel', ar: 'ياغل', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'יד רמב\'\'ם': { lat: 31.869, lng: 34.827, en: 'Yad Rambam', ar: 'ياد رامبام', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אזור תעשייה חבל מודיעין שוהם': { lat: 31.996, lng: 34.950, en: "Modi'in-Shoham Industrial Zone", ar: 'منطقة صناعية موديعين', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אזור תעשייה אפק ולב הארץ': { lat: 32.085, lng: 34.944, en: 'Afek Industrial Zone', ar: 'منطقة أفيك الصناعية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'איירפורט סיטי': { lat: 31.983, lng: 34.876, en: 'Airport City', ar: 'إيربورت سيتي', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'אזור תעשייה נשר - רמלה': { lat: 31.932, lng: 34.875, en: 'Nesher-Ramla Industrial Zone', ar: 'منطقة نيشر رملة الصناعية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'תעשיון צריפין': { lat: 31.934, lng: 34.844, en: 'Tzrifin Industrial Park', ar: 'منطقة تسريفين', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'תחנת רכבת ראש העין': { lat: 32.096, lng: 34.960, en: 'Rosh HaAyin Train Station', ar: 'محطة قطار رأس العين', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'מרכז אזורי דרום השרון': { lat: 32.090, lng: 34.900, en: 'South Sharon Regional Center', ar: 'مركز جنوب الشارون', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
+  'אזור תעשייה אריאל': { lat: 32.106, lng: 35.180, en: 'Ariel Industrial Zone', ar: 'منطقة أريئيل الصناعية', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'אזור תעשייה ברקן': { lat: 32.085, lng: 35.085, en: 'Barkan Industrial Zone', ar: 'منطقة بركان الصناعية', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'בית אריה': { lat: 32.040, lng: 35.025, en: 'Beit Arye', ar: 'بيت آريه', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'גופנה': { lat: 31.935, lng: 35.168, en: 'Gofna', ar: 'جوفنا', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'גנות': { lat: 32.020, lng: 34.862, en: 'Ganot', ar: 'غانوت', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'שערי תקווה': { lat: 32.130, lng: 35.019, en: "Sha'arei Tikva", ar: 'شعاري تكفا', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'צופים': { lat: 32.161, lng: 35.050, en: 'Tzufim', ar: 'تسوفيم', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'קריית נטפים': { lat: 32.190, lng: 35.092, en: 'Kiryat Netafim', ar: 'كريات نيتافيم', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'יקיר': { lat: 32.128, lng: 35.117, en: 'Yakir', ar: 'ياكير', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'נופים': { lat: 32.183, lng: 35.070, en: 'Nofim', ar: 'نوفيم', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'רבבה': { lat: 32.144, lng: 35.137, en: 'Revava', ar: 'ريفافا', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'דורות עילית': { lat: 31.950, lng: 35.060, en: 'Dorot Illit', ar: 'دوروت عيليت', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'נאות קדומים': { lat: 32.010, lng: 34.960, en: 'Neot Kedumim', ar: 'نؤوت كدوميم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'עופרים': { lat: 31.963, lng: 35.050, en: 'Ofarim', ar: 'عوفاريم', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'נופי נחמיה': { lat: 31.960, lng: 34.948, en: 'Nofei Nechemya', ar: 'نوفي نحمية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'חוות יאיר': { lat: 32.096, lng: 34.961, en: 'Havat Ya\'ir', ar: 'حافات يائير', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'נווה צוף': { lat: 31.977, lng: 35.062, en: 'Neve Tzuf', ar: 'نيفي تسوف', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'כפר תפוח': { lat: 32.148, lng: 35.174, en: 'Kfar Tapuah', ar: 'كفار تبواح', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'יצהר': { lat: 32.162, lng: 35.228, en: 'Yitzhar', ar: 'يتسهار', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'רחלים': { lat: 32.201, lng: 35.230, en: 'Rechalim', ar: 'رحاليم', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'אביתר': { lat: 32.217, lng: 35.244, en: 'Evyatar', ar: 'إفياتار', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'עץ אפרים': { lat: 32.137, lng: 35.031, en: 'Etz Efraim', ar: 'عيتس إفرايم', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'בית עלמין מורשה': { lat: 32.036, lng: 35.030, en: 'Moresha Cemetery', ar: 'مقبرة موريشا', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'ברוכין': { lat: 32.078, lng: 35.076, en: 'Bruchin', ar: 'بروخين', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'מסוף אורנית': { lat: 32.130, lng: 35.008, en: 'Oranit Terminal', ar: 'معبر أورانيت', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'אורנית': { lat: 32.130, lng: 35.004, en: 'Oranit', ar: 'أورانيت', region: 'Samaria', regionHe: 'שומרון', regionAr: 'السامرة', countdown: 60 },
+  'אחיעזר': { lat: 31.962, lng: 34.910, en: 'Ahi\'ezer', ar: 'أحيعيزر', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
 };
 
 const OREF_HISTORY_URL = 'https://www.oref.org.il/warningMessages/alert/History/AlertsHistory.json';
@@ -1574,25 +1672,54 @@ fetchDynamicCities();
 let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
 const OREF_CACHE_TTL = 0;
 
+const HE_WORD_MAP: Record<string, string> = {
+  'אזור': 'Ezor', 'תעשייה': 'Industrial', 'תעשיון': 'Industrial Zone', 'מרכז': 'Center',
+  'אזורי': 'Regional', 'מועצה': 'Council', 'חוות': 'Havat', 'חוף': 'Hof',
+  'מלונות': 'Hotels', 'מרחצאות': 'Spa', 'נווה': 'Neve', 'גני': 'Ganei',
+  'בית': 'Beit', 'כפר': 'Kfar', 'תל': 'Tel', 'עין': 'Ein', 'באר': "Be'er",
+  'ראש': 'Rosh', 'מעלה': "Ma'ale", 'מעלות': "Ma'alot", 'קריית': 'Kiryat',
+  'גבעת': "Giv'at", 'רמת': 'Ramat', 'נוף': 'Nof', 'הר': 'Har',
+  'מצפה': 'Mitzpe', 'נחל': 'Nahal', 'שדה': 'Sde', 'גבעות': "Giv'ot",
+  'מושב': 'Moshav', 'קיבוץ': 'Kibbutz', 'ישוב': 'Yishuv',
+  'צפון': 'North', 'דרום': 'South', 'מזרח': 'East', 'מערב': 'West',
+  'עליון': 'Upper', 'תחתון': 'Lower', 'חדש': 'Hadash', 'ישן': 'Old',
+  'מגדל': 'Migdal', 'גשר': 'Gesher', 'מעבר': 'Crossing', 'מסוף': 'Terminal',
+  'תחנת': 'Tahanat', 'רכבת': 'Rakevet', 'שכונת': 'Shekhunat',
+};
+
 const HE_TRANSLITERATION: Record<string, string> = {
   'א': 'a', 'ב': 'b', 'ג': 'g', 'ד': 'd', 'ה': 'h', 'ו': 'v', 'ז': 'z', 'ח': 'kh', 'ט': 't',
-  'י': 'y', 'כ': 'k', 'ך': 'k', 'ל': 'l', 'מ': 'm', 'ם': 'm', 'נ': 'n', 'ן': 'n', 'ס': 's',
-  'ע': 'a', 'פ': 'p', 'ף': 'f', 'צ': 'tz', 'ץ': 'tz', 'ק': 'k', 'ר': 'r', 'ש': 'sh', 'ת': 't',
+  'י': 'y', 'כ': 'k', 'ך': 'kh', 'ל': 'l', 'מ': 'm', 'ם': 'm', 'נ': 'n', 'ן': 'n', 'ס': 's',
+  'ע': "'", 'פ': 'p', 'ף': 'f', 'צ': 'tz', 'ץ': 'tz', 'ק': 'k', 'ר': 'r', 'ש': 'sh', 'ת': 't',
   "'": "'", "׳": "'", '"': '', '״': '',
 };
 
 function transliterateHebrew(he: string): string {
   if (!/[\u0590-\u05FF]/.test(he)) return he;
-  let result = '';
-  for (const ch of he) {
-    if (HE_TRANSLITERATION[ch] !== undefined) {
-      result += HE_TRANSLITERATION[ch];
-    } else {
-      result += ch;
+  const words = he.split(/(\s*[-–/,]\s*|\s+)/);
+  const transliterated = words.map(segment => {
+    const trimSeg = segment.trim();
+    if (!trimSeg || /^[-–/,\s]+$/.test(trimSeg)) return segment;
+    if (HE_WORD_MAP[trimSeg]) return HE_WORD_MAP[trimSeg];
+    if (!/[\u0590-\u05FF]/.test(trimSeg)) return trimSeg;
+    let r = '';
+    const chars = [...trimSeg];
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+      const mapped = HE_TRANSLITERATION[ch];
+      if (mapped !== undefined) {
+        if (ch === 'ו' && chars[i + 1] === 'ו') { r += 'v'; i++; continue; }
+        r += mapped;
+      } else {
+        r += ch;
+      }
     }
-  }
-  result = result.replace(/\s+/g, ' ').trim();
-  return result.charAt(0).toUpperCase() + result.slice(1);
+    r = r.replace(/aa/g, 'a').replace(/''/, "'").replace(/^'/, '').replace(/'$/, '');
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  });
+  let result = transliterated.join('').replace(/\s+/g, ' ').trim();
+  result = result.replace(/\b(\w)/g, (_, c) => c.toUpperCase());
+  return result;
 }
 
 function parseCityAlerts(cities: string[], threat: number, timestamp: string): RedAlert[] {

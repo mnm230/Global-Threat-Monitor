@@ -478,6 +478,26 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 
 const audioCtxRef = { current: null as AudioContext | null };
 
+function playMilBeep(ctx: AudioContext, freq: number, startTime: number, duration: number, vol: number, type: OscillatorType = 'square') {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = freq;
+  filter.Q.value = 4;
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(vol, startTime + 0.008);
+  gain.gain.setValueAtTime(vol, startTime + duration - 0.015);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+  osc.start(startTime);
+  osc.stop(startTime + duration);
+}
+
 function playAlertSound(threatType?: string, volume: number = 70) {
   try {
     if (!audioCtxRef.current) {
@@ -485,63 +505,26 @@ function playAlertSound(threatType?: string, volume: number = 70) {
     }
     const ctx = audioCtxRef.current;
     if (ctx.state === 'suspended') ctx.resume();
-    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.3;
+    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.25;
     const t = ctx.currentTime;
 
     if (threatType === 'missiles') {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(440, t);
-      osc.frequency.linearRampToValueAtTime(330, t + 0.4);
-      osc.frequency.setValueAtTime(440, t + 0.5);
-      osc.frequency.linearRampToValueAtTime(330, t + 0.9);
-      gain.gain.setValueAtTime(vol, t);
-      gain.gain.setValueAtTime(vol * 0.8, t + 0.45);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
-      osc.start(t);
-      osc.stop(t + 1.0);
+      const pattern = [0, 0.1, 0.2, 0.4, 0.5, 0.6];
+      pattern.forEach(d => playMilBeep(ctx, 1200, t + d, 0.07, vol, 'square'));
+      playMilBeep(ctx, 900, t + 0.8, 0.15, vol * 0.7, 'square');
     } else if (threatType === 'uav_intrusion') {
-      for (let i = 0; i < 3; i++) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(660, t + i * 0.15);
-        gain.gain.setValueAtTime(0, t + i * 0.15);
-        gain.gain.linearRampToValueAtTime(vol, t + i * 0.15 + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.1);
-        osc.start(t + i * 0.15);
-        osc.stop(t + i * 0.15 + 0.12);
+      for (let i = 0; i < 4; i++) {
+        playMilBeep(ctx, 1800, t + i * 0.12, 0.05, vol * 0.9, 'square');
       }
+      playMilBeep(ctx, 1400, t + 0.56, 0.08, vol * 0.6, 'square');
     } else if (threatType === 'hostile_aircraft_intrusion') {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1000, t);
-      osc.frequency.exponentialRampToValueAtTime(400, t + 0.6);
-      gain.gain.setValueAtTime(vol, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-      osc.start(t);
-      osc.stop(t + 0.7);
+      const freqs = [1000, 1200, 1000, 1200, 1000];
+      freqs.forEach((f, i) => playMilBeep(ctx, f, t + i * 0.14, 0.1, vol, 'square'));
+      playMilBeep(ctx, 800, t + 0.84, 0.2, vol * 0.6, 'square');
     } else {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, t);
-      osc.frequency.setValueAtTime(660, t + 0.08);
-      osc.frequency.setValueAtTime(880, t + 0.16);
-      gain.gain.setValueAtTime(vol, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-      osc.start(t);
-      osc.stop(t + 0.3);
+      playMilBeep(ctx, 1400, t, 0.06, vol, 'square');
+      playMilBeep(ctx, 1400, t + 0.1, 0.06, vol, 'square');
+      playMilBeep(ctx, 1050, t + 0.25, 0.1, vol * 0.7, 'square');
     }
   } catch (_) {}
 }
