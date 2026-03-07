@@ -3614,7 +3614,7 @@ function MapLegend({ activeView, language }: { activeView: string; language: 'en
         border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 10, padding: '10px 12px',
         boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "var(--font-mono)",
       }}
     >
       <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 7 }}>
@@ -4323,7 +4323,7 @@ const MapSection = memo(function MapSection({
   ];
 
   return (
-    <div className="h-full flex flex-col min-h-0" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+    <div className="h-full flex flex-col min-h-0" style={{ fontFamily: "var(--font-mono)" }}>
 
       {/* ── THEATRE OF OPERATIONS header ── */}
       <div

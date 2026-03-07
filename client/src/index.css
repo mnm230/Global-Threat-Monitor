@@ -42,10 +42,10 @@
   --chart-3: 0 72% 48%;
   --chart-4: 270 89% 55%;
   --chart-5: 47 95% 50%;
-  --font-sans: 'Chakra Petch', 'Inter', sans-serif;
+  --font-sans: 'Fira Sans', sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
-  --font-display: 'Chakra Petch', sans-serif;
+  --font-mono: 'Fira Mono', monospace;
+  --font-display: 'Fira Sans', sans-serif;
   --radius: .25rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
