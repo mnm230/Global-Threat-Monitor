@@ -22,7 +22,9 @@ import type {
   TelegramMessage,
   SirenAlert,
   RedAlert,
-  EWEvent,
+  GPSSpoofingZone,
+  InternetCountryStatus,
+  NOTAMItem,
   InfraEvent,
   ThermalHotspot,
   BreakingNewsItem,
@@ -99,6 +101,9 @@ import {
   CircleDot,
   Gauge,
   Swords,
+  Navigation,
+  WifiOff,
+  FileWarning,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -276,7 +281,9 @@ interface SSEData {
   sirens: SirenAlert[];
   redAlerts: RedAlert[];
   telegramMessages: TelegramMessage[];
-  ewEvents: EWEvent[];
+  gpsSpoofZones: GPSSpoofingZone[];
+  internetStatus: InternetCountryStatus[];
+  notams: NOTAMItem[];
   infraEvents: InfraEvent[];
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
@@ -288,8 +295,8 @@ interface SSEData {
 function useSSE(): SSEData {
   const [state, setState] = useState<Omit<SSEData, 'connected'>>({
     news: [], commodities: [], events: [], flights: [], ships: [],
-    sirens: [], redAlerts: [], telegramMessages: [], ewEvents: [],
-    infraEvents: [], thermalHotspots: [], breakingNews: [],
+    sirens: [], redAlerts: [], telegramMessages: [], gpsSpoofZones: [],
+    internetStatus: [], notams: [], infraEvents: [], thermalHotspots: [], breakingNews: [],
     attackPrediction: null, rocketStats: null,
   });
   const [connected, setConnected] = useState(false);
@@ -345,8 +352,14 @@ function useSSE(): SSEData {
       es.addEventListener('telegram', (e) => {
         try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
-      es.addEventListener('ew', (e) => {
-        try { pending.current.ewEvents = JSON.parse(e.data); scheduleFlush(); } catch {}
+      es.addEventListener('gps-spoofing', (e) => {
+        try { pending.current.gpsSpoofZones = JSON.parse(e.data); scheduleFlush(); } catch {}
+      });
+      es.addEventListener('internet-status', (e) => {
+        try { pending.current.internetStatus = JSON.parse(e.data); scheduleFlush(); } catch {}
+      });
+      es.addEventListener('notams', (e) => {
+        try { pending.current.notams = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('infra', (e) => {
         try { pending.current.infraEvents = JSON.parse(e.data); scheduleFlush(); } catch {}
@@ -653,7 +666,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'gpsspoof' | 'netblack' | 'notams' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
@@ -662,7 +675,9 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
-  ew: { icon: Radio, label: 'Elec. Warfare', labelAr: 'الحرب الإلكترونية' },
+  gpsspoof: { icon: Navigation, label: 'GPS Spoofing', labelAr: 'انتحال GPS' },
+  netblack: { icon: Wifi, label: 'Internet Monitor', labelAr: 'مراقب الإنترنت' },
+  notams: { icon: FileWarning, label: 'NOTAMs', labelAr: 'إشعارات الطيران' },
   infra: { icon: Zap, label: 'Infrastructure', labelAr: 'البنية التحتية' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
@@ -1153,26 +1168,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, ew: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, gpsspoof: false, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, gpsspoof: 22, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, gpsspoof: false, netblack: false, notams: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, gpsspoof: 22, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, ew: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, ew: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, gpsspoof: true, netblack: false, notams: true, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, gpsspoof: 22, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, ew: false, infra: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, ew: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, gpsspoof: false, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, gpsspoof: 100, netblack: 100, notams: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1190,14 +1205,17 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'markets',      x: 8, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
   // Zone 3 — Situational: Live Feed
   { i: 'livefeed',     x: 0, y: 15, w: 12, h: 4,  minW: 2, minH: 2 },
-  // Zone 4 — Analysis: EW | Infra | Analytics | OSINT
-  { i: 'ew',           x: 0, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
-  { i: 'infra',        x: 3, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
-  { i: 'analytics',    x: 6, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
-  { i: 'osint',        x: 9, y: 19, w: 3, h: 4,  minW: 3, minH: 2 },
+  // Zone 4 — Analysis: GPS Spoof | Internet | NOTAMs | Infra
+  { i: 'gpsspoof',     x: 0, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  { i: 'netblack',     x: 3, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  { i: 'notams',       x: 6, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  { i: 'infra',        x: 9, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  // Zone 4b — Analytics | OSINT
+  { i: 'analytics',    x: 0, y: 23, w: 6, h: 4,  minW: 2, minH: 2 },
+  { i: 'osint',        x: 6, y: 23, w: 6, h: 4,  minW: 3, minH: 2 },
   // Zone 5 — Predictions
-  { i: 'attackpred',   x: 0, y: 23, w: 6, h: 5,  minW: 2, minH: 3 },
-  { i: 'rocketstats',  x: 6, y: 23, w: 6, h: 5,  minW: 2, minH: 3 },
+  { i: 'attackpred',   x: 0, y: 27, w: 6, h: 5,  minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 6, y: 27, w: 6, h: 5,  minW: 2, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
@@ -1207,7 +1225,9 @@ const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   markets:      'hsl(265 70% 65%)',
   aiprediction: 'hsl(275 70% 65%)',
   analytics:    'hsl(185 75% 50%)',
-  ew:           'hsl(25 85% 55%)',
+  gpsspoof:     'hsl(25 85% 55%)',
+  netblack:     'hsl(195 75% 50%)',
+  notams:       'hsl(45 80% 55%)',
   infra:        'hsl(345 75% 55%)',
   osint:        'hsl(240 65% 65%)',
   livefeed:     'hsl(215 60% 55%)',
@@ -2596,81 +2616,258 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
 const CYBER_TYPE_LABELS: Record<string, string> = { ddos: 'DDoS', intrusion: 'INTRU', malware: 'MALWR', phishing: 'PHISH', defacement: 'DEFAC', data_exfil: 'EXFIL', scada: 'SCADA' };
 const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-orange-950/40 border-orange-500/30', intrusion: 'text-red-400 bg-red-950/40 border-red-500/30', malware: 'text-purple-400 bg-purple-950/40 border-purple-500/30', phishing: 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30', defacement: 'text-blue-400 bg-blue-950/40 border-blue-500/30', data_exfil: 'text-red-400 bg-red-950/40 border-red-500/30', scada: 'text-red-400 bg-red-950/40 border-red-500/30' };
 
-// ── Electronic Warfare Panel ──────────────────────────────────────────────────
-const EW_TYPE_LABELS: Record<string, string> = {
-  gps_jamming:   'GPS JAM',
-  gps_spoofing:  'GPS SPOOF',
-  comms_jamming: 'COMMS JAM',
-  radar_spoofing:'RADAR SPOOF',
-  drone_ew:      'DRONE EW',
+// ── GPS Spoofing Panel ────────────────────────────────────────────────────────
+const GPS_SEV_BORDER: Record<string, string> = {
+  critical: 'rgb(239 68 68 / 0.55)', high: 'rgb(249 115 22 / 0.45)', medium: 'rgb(234 179 8 / 0.35)', low: 'transparent',
 };
-const EW_TYPE_COLORS: Record<string, string> = {
-  gps_jamming:   'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
-  gps_spoofing:  'text-orange-300 bg-orange-500/10 border-orange-500/30',
-  comms_jamming: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
-  radar_spoofing:'text-purple-300 bg-purple-500/10 border-purple-500/30',
-  drone_ew:      'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+const GPS_SEV_TEXT: Record<string, string> = {
+  critical: 'text-red-400', high: 'text-orange-400', medium: 'text-yellow-400', low: 'text-emerald-400',
 };
+const NACP_COLOR = (n: number) => n < 3 ? 'text-red-400' : n < 5 ? 'text-orange-400' : n < 7 ? 'text-yellow-400' : 'text-emerald-400';
 
-const EWPanel = memo(function EWPanel({ ewEvents, language, onClose, onMaximize, isMaximized }: { ewEvents: EWEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClose, onMaximize, isMaximized }: { zones: GPSSpoofingZone[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.55)' : s === 'high' ? 'rgb(249 115 22 / 0.45)' : s === 'medium' ? 'rgb(234 179 8 / 0.35)' : 'transparent';
-  const sevText   = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
-  const active   = ewEvents.filter(e => e.active);
-  const inactive = ewEvents.filter(e => !e.active);
-  const sorted   = [...active, ...inactive];
+  const [expandedZone, setExpandedZone] = useState<string | null>(null);
+  const totalAffected = zones.reduce((s, z) => s + z.affectedAircraft, 0);
+  const critCount = zones.filter(z => z.severity === 'critical').length;
+  const highCount = zones.filter(z => z.severity === 'high').length;
 
   return (
-    <div className="h-full flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0" data-testid="gpsspoof-panel">
       <PanelHeader
-        title={t('Elec. Warfare', 'الحرب الإلكترونية')}
-        icon={<Radio className="w-3.5 h-3.5" />}
-        live count={active.length}
+        title={t('GPS Spoofing', 'انتحال GPS')}
+        icon={<Navigation className="w-3.5 h-3.5" />}
+        live count={zones.length}
         onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
       />
-
-      {/* Summary strip */}
       <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
         {[
-          { label: t('GPS JAM', 'تشويش GPS'), count: ewEvents.filter(e => e.type === 'gps_jamming').length, color: 'text-yellow-400' },
-          { label: t('GPS SPOOF', 'انتحال GPS'), count: ewEvents.filter(e => e.type === 'gps_spoofing').length, color: 'text-orange-400' },
-          { label: t('COMMS', 'اتصالات'), count: ewEvents.filter(e => e.type === 'comms_jamming').length, color: 'text-cyan-400' },
-          { label: t('ACTIVE', 'نشط'), count: active.length, color: 'text-red-400' },
+          { label: t('ZONES', 'مناطق'), count: zones.length, color: 'text-orange-400' },
+          { label: t('AIRCRAFT', 'طائرات'), count: totalAffected, color: 'text-yellow-400' },
+          { label: t('CRITICAL', 'حرج'), count: critCount, color: 'text-red-400' },
+          { label: t('HIGH', 'عالي'), count: highCount, color: 'text-amber-400' },
         ].map(s => (
-          <div key={s.label} className="flex flex-col items-center">
+          <div key={s.label} className="flex flex-col items-center" data-testid={`gpsspoof-stat-${s.label.toLowerCase()}`}>
             <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
             <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
           </div>
         ))}
       </div>
-
-      {ewEvents.length === 0 && (
+      {zones.length === 0 && (
         <div className="px-3 py-6 text-center">
-          <Radio className="w-5 h-5 text-muted-foreground/20 mx-auto mb-2" />
-          <p className="text-[10px] text-foreground/25">{t('No EW events detected', 'لا توجد أحداث حرب إلكترونية')}</p>
+          <Navigation className="w-5 h-5 text-emerald-400/20 mx-auto mb-2" />
+          <p className="text-[10px] text-emerald-400/40 font-mono">{t('NO GPS ANOMALIES DETECTED', 'لم يتم اكتشاف شذوذ GPS')}</p>
+          <p className="text-[9px] text-foreground/20 mt-1">{t('All aircraft reporting normal NACp', 'جميع الطائرات تبلغ عن NACp طبيعي')}</p>
         </div>
       )}
       <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-        {sorted.map((ev) => (
-          <div key={ev.id} className="px-3 py-2.5 hover-elevate border-l-2 relative" style={{ borderLeftColor: sevBorder(ev.severity), opacity: ev.active ? 1 : 0.55 }}>
-            {ev.active && (
-              <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.7)' }} />
-            )}
+        {zones.map((zone) => (
+          <div key={zone.id} className="px-3 py-2.5 hover-elevate border-l-2 relative cursor-pointer" style={{ borderLeftColor: GPS_SEV_BORDER[zone.severity] || 'transparent' }} onClick={() => setExpandedZone(expandedZone === zone.id ? null : zone.id)} data-testid={`gpsspoof-zone-${zone.id}`}>
+            <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-orange-500" style={{ boxShadow: '0 0 6px rgb(249 115 22 / 0.7)' }} />
             <div className="flex items-center gap-1.5 mb-1 pr-4">
-              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 ${EW_TYPE_COLORS[ev.type] || 'text-foreground/50 bg-muted border-border'}`}>
-                {EW_TYPE_LABELS[ev.type] || ev.type.toUpperCase()}
-              </span>
-              <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{ev.country}</span>
-              <span className={`text-[9px] font-mono font-bold shrink-0 ${sevText(ev.severity)}`}>{ev.severity.toUpperCase()}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 text-orange-300 bg-orange-500/10 border-orange-500/30">GPS</span>
+              <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{zone.region}</span>
+              <span className={`text-[9px] font-mono font-bold shrink-0 ${GPS_SEV_TEXT[zone.severity]}`}>{zone.severity.toUpperCase()}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-1.5">{ev.description}</p>
-            <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/30">
-              <span>{ev.radiusKm} km radius</span>
+            <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/40 mb-1">
+              <span className="text-orange-400">{zone.affectedAircraft} aircraft</span>
               <span>·</span>
-              <span>{ev.affectedSystems.join(' / ')}</span>
-              <span className="ml-auto">{timeAgo(ev.timestamp)}</span>
+              <span>NACp avg <span className={NACP_COLOR(zone.avgNacP)}>{zone.avgNacP}</span></span>
+              <span>·</span>
+              <span>{zone.radiusKm}km</span>
             </div>
-            <div className="text-[9px] font-mono text-foreground/20 mt-0.5">{t('SRC', 'مصدر')}: {ev.source}</div>
+            <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
+              <span>{zone.country}</span>
+              <span className="ml-auto">{timeAgo(zone.detectedAt)}</span>
+            </div>
+            {expandedZone === zone.id && zone.aircraftSamples.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-white/[0.04]">
+                <div className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider mb-1.5">{t('AFFECTED AIRCRAFT', 'الطائرات المتأثرة')}</div>
+                {zone.aircraftSamples.map((ac, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px] font-mono py-0.5">
+                    <span className="text-foreground/60 w-16 truncate">{ac.callsign || '---'}</span>
+                    <span className={`${NACP_COLOR(ac.nacP)}`}>NACp:{ac.nacP}</span>
+                    <span className="text-foreground/30">NIC:{ac.nic}</span>
+                    <span className="text-foreground/30">SIL:{ac.sil}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+// ── Internet Blackout Panel ──────────────────────────────────────────────────
+const INET_STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  online:    { bg: 'bg-emerald-500/10', text: 'text-emerald-400', dot: 'bg-emerald-500' },
+  degraded:  { bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  dot: 'bg-yellow-500' },
+  disrupted: { bg: 'bg-orange-500/10',  text: 'text-orange-400',  dot: 'bg-orange-500' },
+  blackout:  { bg: 'bg-red-500/10',     text: 'text-red-400',     dot: 'bg-red-500' },
+};
+const INET_FLAG: Record<string, string> = {
+  IR: '\u{1F1EE}\u{1F1F7}', IQ: '\u{1F1EE}\u{1F1F6}', SY: '\u{1F1F8}\u{1F1FE}', LB: '\u{1F1F1}\u{1F1E7}',
+  IL: '\u{1F1EE}\u{1F1F1}', YE: '\u{1F1FE}\u{1F1EA}', SA: '\u{1F1F8}\u{1F1E6}', JO: '\u{1F1EF}\u{1F1F4}',
+  PS: '\u{1F1F5}\u{1F1F8}', AE: '\u{1F1E6}\u{1F1EA}', BH: '\u{1F1E7}\u{1F1ED}', KW: '\u{1F1F0}\u{1F1FC}', QA: '\u{1F1F6}\u{1F1E6}',
+};
+
+const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, language, onClose, onMaximize, isMaximized }: { statuses: InternetCountryStatus[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const sorted = [...statuses].sort((a, b) => {
+    const order = { blackout: 0, disrupted: 1, degraded: 2, online: 3 };
+    return (order[a.status] ?? 3) - (order[b.status] ?? 3);
+  });
+  const issues = statuses.filter(s => s.status !== 'online');
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="netblack-panel">
+      <PanelHeader
+        title={t('Internet Monitor', 'مراقب الإنترنت')}
+        icon={<Wifi className="w-3.5 h-3.5" />}
+        live count={issues.length > 0 ? issues.length : undefined}
+        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
+      />
+      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
+        {[
+          { label: t('COUNTRIES', 'دول'), count: statuses.length, color: 'text-cyan-400' },
+          { label: t('ONLINE', 'متصل'), count: statuses.filter(s => s.status === 'online').length, color: 'text-emerald-400' },
+          { label: t('DEGRADED', 'متدهور'), count: statuses.filter(s => s.status === 'degraded').length, color: 'text-yellow-400' },
+          { label: t('DOWN', 'معطل'), count: statuses.filter(s => s.status === 'disrupted' || s.status === 'blackout').length, color: 'text-red-400' },
+        ].map(s => (
+          <div key={s.label} className="flex flex-col items-center" data-testid={`netblack-stat-${s.label.toLowerCase()}`}>
+            <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
+            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {sorted.map((cs) => {
+          const colors = INET_STATUS_COLORS[cs.status] || INET_STATUS_COLORS.online;
+          return (
+            <div key={cs.countryCode} className="px-3 py-2 border-b border-white/[0.03] hover-elevate" data-testid={`netblack-country-${cs.countryCode}`}>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{INET_FLAG[cs.countryCode] || ''}</span>
+                <span className="text-[11px] font-bold font-mono text-foreground/80 flex-1 truncate">{cs.country}</span>
+                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${colors.bg}`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+                  <span className={`text-[9px] font-mono font-bold uppercase ${colors.text}`}>{cs.status}</span>
+                </div>
+              </div>
+              <div className="mt-1.5 flex items-center gap-1">
+                <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${cs.healthScore >= 70 ? 'bg-emerald-500' : cs.healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${cs.healthScore}%` }} />
+                </div>
+                <span className="text-[9px] font-mono text-foreground/30 w-8 text-right">{cs.healthScore}%</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-[9px] font-mono text-foreground/25">
+                <span className="truncate flex-1">{cs.topASN}</span>
+                <span>h={cs.topASNHege}</span>
+                <span>{cs.asnCount} ASNs</span>
+              </div>
+              {cs.outages.length > 0 && cs.outages.map((o) => (
+                <div key={o.id} className="mt-1.5 px-2 py-1.5 rounded border border-red-500/20 bg-red-500/5">
+                  <div className="flex items-center gap-1.5 text-[9px] font-mono">
+                    <WifiOff className="w-3 h-3 text-red-400 shrink-0" />
+                    <span className="text-red-400 font-bold">{o.dropPercent}% DROP</span>
+                    <span className="text-foreground/30 ml-auto">{timeAgo(o.detectedAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+// ── NOTAM Panel ──────────────────────────────────────────────────────────────
+const NOTAM_TYPE_LABELS: Record<string, { en: string; ar: string }> = {
+  airspace_closure:    { en: 'CLOSURE',  ar: 'إغلاق' },
+  flight_restriction:  { en: 'RESTRICT', ar: 'تقييد' },
+  tfr:                 { en: 'TFR',      ar: 'TFR' },
+  hazard:              { en: 'HAZARD',   ar: 'خطر' },
+  military_exercise:   { en: 'MIL EX',   ar: 'تدريب' },
+  navigation_warning:  { en: 'NAV WARN', ar: 'تحذير' },
+};
+const NOTAM_TYPE_COLORS: Record<string, string> = {
+  airspace_closure:   'text-red-300 bg-red-500/10 border-red-500/30',
+  flight_restriction: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+  tfr:                'text-orange-300 bg-orange-500/10 border-orange-500/30',
+  hazard:             'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
+  military_exercise:  'text-purple-300 bg-purple-500/10 border-purple-500/30',
+  navigation_warning: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+};
+const NOTAM_SEV_BORDER: Record<string, string> = {
+  critical: 'rgb(239 68 68 / 0.55)', high: 'rgb(249 115 22 / 0.45)', medium: 'rgb(234 179 8 / 0.35)', low: 'transparent',
+};
+
+const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaximize, isMaximized }: { notams: NOTAMItem[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const [filterType, setFilterType] = useState<string>('all');
+  const now = Date.now();
+  const activeNotams = notams.filter(n => new Date(n.effectiveTo).getTime() > now);
+  const filtered = filterType === 'all' ? activeNotams : activeNotams.filter(n => n.type === filterType);
+  const closureCount = activeNotams.filter(n => n.type === 'airspace_closure').length;
+  const tfrCount = activeNotams.filter(n => n.type === 'tfr' || n.type === 'flight_restriction').length;
+  const navCount = activeNotams.filter(n => n.type === 'navigation_warning').length;
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="notams-panel">
+      <PanelHeader
+        title={t('NOTAMs', 'إشعارات الطيران')}
+        icon={<FileWarning className="w-3.5 h-3.5" />}
+        live count={activeNotams.length}
+        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
+      />
+      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
+        {[
+          { label: t('ACTIVE', 'نشط'), count: activeNotams.length, color: 'text-cyan-400' },
+          { label: t('CLOSURES', 'إغلاق'), count: closureCount, color: 'text-red-400' },
+          { label: t('TFR', 'TFR'), count: tfrCount, color: 'text-orange-400' },
+          { label: t('NAV', 'ملاحة'), count: navCount, color: 'text-yellow-400' },
+        ].map(s => (
+          <div key={s.label} className="flex flex-col items-center" data-testid={`notam-stat-${s.label.toLowerCase()}`}>
+            <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
+            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="shrink-0 px-3 py-1.5 border-b border-white/[0.04] flex items-center gap-1 overflow-x-auto" style={{ background: 'hsl(222 28% 11% / 0.5)' }}>
+        {['all', 'airspace_closure', 'tfr', 'flight_restriction', 'military_exercise', 'navigation_warning', 'hazard'].map(ft => (
+          <button key={ft} onClick={() => setFilterType(ft)} data-testid={`notam-filter-${ft}`}
+            className={`ra-pill text-[9px] font-mono font-bold uppercase whitespace-nowrap ${filterType === ft ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'text-foreground/30 border-white/[0.06]'}`}>
+            {ft === 'all' ? t('ALL', 'الكل') : (NOTAM_TYPE_LABELS[ft]?.[language === 'ar' ? 'ar' : 'en'] || ft)}
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 && (
+        <div className="px-3 py-6 text-center">
+          <FileWarning className="w-5 h-5 text-emerald-400/20 mx-auto mb-2" />
+          <p className="text-[10px] text-emerald-400/40 font-mono">{t('NO ACTIVE NOTAMs', 'لا توجد إشعارات نشطة')}</p>
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
+        {filtered.map((n) => (
+          <div key={n.id} className="px-3 py-2.5 hover-elevate border-l-2" style={{ borderLeftColor: NOTAM_SEV_BORDER[n.severity] || 'transparent' }} data-testid={`notam-item-${n.id}`}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-black font-mono bg-white/[0.06] text-foreground/50 border border-white/[0.08]">{n.icao}</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 ${NOTAM_TYPE_COLORS[n.type] || 'text-foreground/50 bg-muted border-border'}`}>
+                {NOTAM_TYPE_LABELS[n.type]?.[language === 'ar' ? 'ar' : 'en'] || n.type}
+              </span>
+              <span className="text-[10px] font-mono text-foreground/40 truncate flex-1">{n.location}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 leading-relaxed line-clamp-3 mb-1.5 font-mono">{n.text}</p>
+            <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
+              <span>{n.country}</span>
+              <span>·</span>
+              <span>{t('FROM', 'من')} {new Date(n.effectiveFrom).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>·</span>
+              <span>{t('TO', 'إلى')} {new Date(n.effectiveTo).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="ml-auto text-foreground/20">{n.source}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -4060,7 +4257,7 @@ const MapSection = memo(function MapSection({
   flights,
   redAlerts,
   thermalHotspots,
-  ewEvents = [],
+  gpsSpoofZones = [],
   language,
   onClose,
   onMaximize,
@@ -4072,7 +4269,7 @@ const MapSection = memo(function MapSection({
   flights: FlightData[];
   redAlerts: RedAlert[];
   thermalHotspots: ThermalHotspot[];
-  ewEvents?: EWEvent[];
+  gpsSpoofZones?: GPSSpoofingZone[];
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -4249,7 +4446,7 @@ const MapSection = memo(function MapSection({
                 flights={flights}
                 redAlerts={redAlerts}
                 thermalHotspots={thermalHotspots}
-                ewEvents={ewEvents}
+                gpsSpoofZones={gpsSpoofZones}
                 activeView={activeView}
                 language={language}
                 mapStyle={mapStyleUrl}
@@ -4392,6 +4589,39 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   const totalRegions = regionEntries.length;
   const totalTypes = typeEntries.length;
 
+  const anomalyCount = analytics?.regionAnomalies?.length ?? 0;
+  const computedThreatLevel: 'CRITICAL'|'HIGH'|'ELEVATED'|'MODERATE'|'LOW' = (() => {
+    if (!analytics) return 'LOW';
+    const active = analytics.activeAlertCount;
+    const escalating = analytics.threatTrend === 'escalating';
+    if (active > 10 || (escalating && anomalyCount > 3)) return 'CRITICAL';
+    if (active > 5  || (escalating && anomalyCount > 1)) return 'HIGH';
+    if (active > 0  || anomalyCount > 0)                 return 'ELEVATED';
+    if (totalAlerts > 20)                                return 'MODERATE';
+    return 'LOW';
+  })();
+
+  const threatLevelConfig = {
+    CRITICAL: { gradient: 'linear-gradient(135deg,rgb(127 29 29/0.9),rgb(185 28 28/0.5))', border:'border-red-500/50', badge:'bg-red-600/80 text-red-100', glow:'shadow-[0_0_20px_rgb(239_68_68_/_0.3)]', desc:'Immediate threat. Multiple active alerts across theater.' },
+    HIGH:     { gradient: 'linear-gradient(135deg,rgb(120 53 15/0.9),rgb(194 65 12/0.5))',  border:'border-orange-500/40', badge:'bg-orange-600/80 text-orange-100', glow:'', desc:'Elevated threat posture. Active incidents in theater.' },
+    ELEVATED: { gradient: 'linear-gradient(135deg,rgb(113 63 18/0.85),rgb(120 72 12/0.6))', border:'border-yellow-500/35', badge:'bg-yellow-600/70 text-yellow-100', glow:'', desc:'Elevated conditions. Monitor for escalation.' },
+    MODERATE: { gradient: 'linear-gradient(135deg,rgb(20 83 45/0.8),rgb(6 78 59/0.6))',    border:'border-emerald-500/30', badge:'bg-emerald-700/60 text-emerald-100', glow:'', desc:'Moderate activity. Situation being monitored.' },
+    LOW:      { gradient: 'linear-gradient(135deg,rgb(15 23 42/0.95),rgb(20 30 55/0.8))',  border:'border-white/[0.08]', badge:'bg-slate-700/50 text-slate-300', glow:'', desc:'Routine monitoring. No significant threats detected.' },
+  };
+
+  const last6 = (analytics?.alertTimeline ?? []).slice(-6);
+  const sparkMax = Math.max(...last6.map(b => b.count), 1);
+  const makeSparkPath = (data: typeof last6) => {
+    if (data.length < 2) return '';
+    const w = 40, h = 10;
+    return data.map((b, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - (b.count / sparkMax) * h;
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  };
+  const sparkPath = makeSparkPath(last6);
+
   const exportPdf = useCallback(async () => {
     if (!analytics) return;
     setExportingPdf(true);
@@ -4419,6 +4649,18 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
       doc.setFontSize(8);
       doc.setTextColor(140, 140, 140);
       doc.text('War Room Analytics Dashboard — Real-time Conflict Monitoring Platform', pageW / 2, 38, { align: 'center' });
+
+      // Threat level badge top-right
+      const tlColors: Record<string, [number,number,number]> = { CRITICAL:[220,38,38], HIGH:[234,88,12], ELEVATED:[202,138,4], MODERATE:[5,150,105], LOW:[71,85,105] };
+      const tlColor = tlColors[computedThreatLevel] || [71,85,105];
+      doc.setFillColor(tlColor[0], tlColor[1], tlColor[2]);
+      doc.roundedRect(pageW - 52, 8, 42, 10, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(255, 255, 255);
+      doc.text('THREAT LEVEL', pageW - 31, 13.5, { align: 'center' });
+      doc.setFontSize(9);
+      doc.text(computedThreatLevel, pageW - 31, 17.5, { align: 'center' });
 
       let y = 52;
 
@@ -4461,11 +4703,62 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         doc.line(15, y + 8, 55, y + 8);
         doc.setFontSize(9);
         doc.setTextColor(220, 220, 220);
-        doc.text(`Direction: ${fc.direction.toUpperCase()} | Next 1h: ${fc.nextHour} alerts | Next 3h: ${fc.next3Hours} alerts | Velocity: ${fc.velocityPerHour >= 0 ? '+' : ''}${fc.velocityPerHour}/hr | Confidence: ${Math.round(fc.confidence * 100)}%`, 15, y + 14);
+        const dirIcon = fc.direction === 'surging' ? '▲▲' : fc.direction === 'escalating' ? '▲' : fc.direction === 'cooling' ? '▼' : '●';
+        doc.text(`${dirIcon} Direction: ${fc.direction.toUpperCase()} | Next 1h: ${fc.nextHour} alerts | Next 3h: ${fc.next3Hours} alerts | Velocity: ${fc.velocityPerHour >= 0 ? '+' : ''}${fc.velocityPerHour}/hr | Confidence: ${Math.round(fc.confidence * 100)}%`, 15, y + 14);
         y += 24;
       }
 
+      // 24h Alert Timeline chart
+      if (analytics.alertTimeline && analytics.alertTimeline.length > 0) {
+        if (y > 200) { doc.addPage(); y = 15; }
+        doc.setFillColor(220, 38, 38);
+        doc.rect(10, y, pageW - 20, 0.5, 'F');
+        y += 2;
+        doc.setFillColor(20, 25, 45);
+        const tlHeight = 28;
+        doc.roundedRect(10, y, pageW - 20, tlHeight + 10, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('24H ALERT TIMELINE', 15, y + 6);
+        doc.setDrawColor(239, 68, 68);
+        doc.line(15, y + 8, 52, y + 8);
+        const tl = analytics.alertTimeline;
+        const tlMax = Math.max(...tl.map((b: {time:string;count:number}) => b.count), 1);
+        const peakBucket = tl.reduce((pk: {time:string;count:number}, b: {time:string;count:number}) => b.count > pk.count ? b : pk, {time:'',count:0});
+        const barW = (pageW - 30) / tl.length;
+        const chartTop = y + 10;
+        tl.forEach((b: {time:string;count:number}, i: number) => {
+          const bh = Math.max(1, (b.count / tlMax) * tlHeight);
+          const bx = 15 + i * barW;
+          const by = chartTop + tlHeight - bh;
+          const isPk = b.count === peakBucket.count && b.time === peakBucket.time;
+          if (isPk) { doc.setFillColor(239, 68, 68); }
+          else if (b.count > tlMax * 0.7) { doc.setFillColor(239, 68, 68); }
+          else if (b.count > tlMax * 0.4) { doc.setFillColor(251, 146, 60); }
+          else if (b.count > tlMax * 0.15) { doc.setFillColor(245, 158, 11); }
+          else { doc.setFillColor(59, 130, 246); }
+          doc.rect(bx, by, Math.max(0.5, barW - 0.5), bh, 'F');
+          if (isPk && b.count > 0) {
+            doc.setFontSize(6);
+            doc.setTextColor(239, 68, 68);
+            doc.text(`${b.count}`, bx + barW/2, by - 1, {align:'center'});
+          }
+        });
+        // Hour axis labels
+        doc.setFontSize(6);
+        doc.setTextColor(100, 100, 100);
+        ['0h','6h','12h','18h','23h'].forEach((lbl, i) => {
+          const positions = [0, 6, 12, 18, 23];
+          const xPos = 15 + (positions[i] / 23) * (pageW - 30);
+          doc.text(lbl, xPos, chartTop + tlHeight + 5);
+        });
+        y += tlHeight + 14;
+      }
+
       if (regionEntries.length > 0) {
+        doc.setFillColor(59, 130, 246);
+        doc.rect(10, y, pageW - 20, 0.5, 'F');
+        y += 2;
         doc.setFillColor(25, 25, 45);
         doc.roundedRect(10, y, pageW - 20, 8 + regionEntries.length * 5.5, 2, 2, 'F');
         doc.setFontSize(8);
@@ -4476,6 +4769,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         regionEntries.forEach(([region, count], i) => {
           const rowY = y + 13 + i * 5.5;
           const pct = (count / maxRegion) * 100;
+          if (i % 2 === 0) { doc.setFillColor(255,255,255); doc.setFillColor(20,25,40); doc.rect(11, rowY - 3.5, pageW - 22, 5, 'F'); }
           doc.setFontSize(8);
           doc.setTextColor(200, 200, 200);
           doc.text(region, 15, rowY);
@@ -4499,6 +4793,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         doc.line(15, y + 8, 48, y + 8);
         typeEntries.forEach(([type, count], i) => {
           const rowY = y + 13 + i * 5.5;
+          if (i % 2 === 0) { doc.setFillColor(20,25,40); doc.rect(11, rowY - 3.5, pageW - 22, 5, 'F'); }
           doc.setFontSize(8);
           doc.setTextColor(200, 200, 200);
           doc.text(type.replace(/_/g, ' ').toUpperCase(), 15, rowY);
@@ -4520,6 +4815,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         doc.line(15, y + 8, 50, y + 8);
         analytics.topSources.forEach((src, i) => {
           const rowY = y + 13 + i * 5.5;
+          if (i % 2 === 0) { doc.setFillColor(20,25,40); doc.rect(11, rowY - 3.5, pageW - 22, 5, 'F'); }
           doc.setFontSize(8);
           const rel = src.reliability;
           doc.setTextColor(rel > 0.85 ? 74 : rel > 0.7 ? 250 : 248, rel > 0.85 ? 222 : rel > 0.7 ? 204 : 113, rel > 0.85 ? 128 : rel > 0.7 ? 21 : 113);
@@ -4530,6 +4826,102 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
           doc.text(`${src.count} msgs`, 140, rowY);
         });
         y += 14 + analytics.topSources.length * 5.5;
+      }
+
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      // Alerts by Country horizontal bars
+      if (analytics.alertsByCountry && Object.keys(analytics.alertsByCountry).length > 0) {
+        doc.setFillColor(16, 185, 129);
+        doc.rect(10, y, pageW - 20, 0.5, 'F');
+        y += 2;
+        const countryArr = Object.entries(analytics.alertsByCountry as Record<string,number>).sort((a,b)=>b[1]-a[1]).slice(0,8);
+        const maxCt = Math.max(...countryArr.map(e=>e[1]),1);
+        const totalCt = countryArr.reduce((s,e)=>s+e[1],0);
+        doc.setFillColor(25, 35, 45);
+        doc.roundedRect(10, y, pageW - 20, 8 + countryArr.length * 5.5, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('ALERTS BY COUNTRY', 15, y + 6);
+        doc.setDrawColor(16, 185, 129);
+        doc.line(15, y + 8, 52, y + 8);
+        countryArr.forEach(([country, count], i) => {
+          const rowY = y + 13 + i * 5.5;
+          if (i % 2 === 0) { doc.setFillColor(20,35,30); doc.rect(11, rowY - 3.5, pageW - 22, 5, 'F'); }
+          const barLen = Math.max(2, (count / maxCt) * 80);
+          const pctStr = totalCt > 0 ? `${((count/totalCt)*100).toFixed(0)}%` : '0%';
+          doc.setFontSize(8);
+          doc.setTextColor(200, 220, 200);
+          doc.text(country, 15, rowY);
+          doc.setFillColor(16, 185, 129);
+          doc.roundedRect(55, rowY - 3, barLen, 3, 1, 1, 'F');
+          doc.setTextColor(140, 200, 160);
+          doc.text(pctStr, 140, rowY);
+          doc.text(String(count), 160, rowY);
+        });
+        y += 14 + countryArr.length * 5.5;
+      }
+
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      // Telegram Intel by Country
+      if (analytics.telegramByCountry && Object.keys(analytics.telegramByCountry).length > 0) {
+        doc.setFillColor(6, 182, 212);
+        doc.rect(10, y, pageW - 20, 0.5, 'F');
+        y += 2;
+        const tgArr = Object.entries(analytics.telegramByCountry as Record<string,number>).sort((a,b)=>b[1]-a[1]);
+        doc.setFillColor(15, 30, 40);
+        doc.roundedRect(10, y, pageW - 20, 8 + tgArr.length * 5.5, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('TELEGRAM INTEL BY COUNTRY', 15, y + 6);
+        doc.setDrawColor(6, 182, 212);
+        doc.line(15, y + 8, 58, y + 8);
+        tgArr.forEach(([country, count], i) => {
+          const rowY = y + 13 + i * 5.5;
+          if (i % 2 === 0) { doc.setFillColor(15,35,45); doc.rect(11, rowY - 3.5, pageW - 22, 5, 'F'); }
+          doc.setFontSize(8);
+          doc.setTextColor(150, 230, 240);
+          doc.text(country, 15, rowY);
+          doc.setTextColor(100, 200, 220);
+          doc.text(`${count} mentions`, 140, rowY);
+        });
+        y += 14 + tgArr.length * 5.5;
+      }
+
+      if (y > 240) { doc.addPage(); y = 15; }
+
+      // AI Patterns
+      const patternsData = analytics.patterns ?? [];
+      if (patternsData.length > 0) {
+        doc.setFillColor(168, 85, 247);
+        doc.rect(10, y, pageW - 20, 0.5, 'F');
+        y += 2;
+        doc.setFillColor(20, 15, 40);
+        doc.roundedRect(10, y, pageW - 20, 8 + patternsData.length * 6, 2, 2, 'F');
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('AI DETECTED PATTERNS', 15, y + 6);
+        doc.setDrawColor(168, 85, 247);
+        doc.line(15, y + 8, 55, y + 8);
+        patternsData.forEach((pat: {type:string;confidence:number;description:string}, i: number) => {
+          const rowY = y + 13 + i * 6;
+          if (i % 2 === 0) { doc.setFillColor(25,18,45); doc.rect(11, rowY - 3.5, pageW - 22, 5.5, 'F'); }
+          const conf = Math.round(pat.confidence * 100);
+          const confColor: [number,number,number] = conf > 70 ? [167,243,208] : conf > 40 ? [253,230,138] : [252,165,165];
+          doc.setFillColor(...confColor);
+          doc.roundedRect(15, rowY - 2.5, 16, 4, 1, 1, 'F');
+          doc.setFontSize(7);
+          doc.setTextColor(20, 20, 20);
+          doc.text(`${conf}%`, 23, rowY + 0.5, {align:'center'});
+          doc.setFontSize(8);
+          doc.setTextColor(200, 180, 255);
+          doc.text(pat.type.toUpperCase(), 34, rowY);
+          doc.setTextColor(160, 150, 200);
+          const desc = pat.description.length > 80 ? pat.description.slice(0, 77) + '...' : pat.description;
+          doc.text(desc, 34, rowY + 3.5);
+        });
+        y += 14 + patternsData.length * 6;
       }
 
       if (y > 240) { doc.addPage(); y = 15; }
@@ -4569,7 +4961,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
     } finally {
       setExportingPdf(false);
     }
-  }, [analytics, totalAlerts, peakHour, regionEntries, maxRegion, typeEntries]);
+  }, [analytics, totalAlerts, peakHour, regionEntries, maxRegion, typeEntries, computedThreatLevel]);
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
@@ -5742,7 +6134,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
 }
 
 // ── AI Prediction Panel ────────────────────────────────────────────────────────
-function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], ewEvents: liveEW = [], infraEvents: liveInfra = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
+function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], gpsSpoofZones: liveGPS = [], infraEvents: liveInfra = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -5752,14 +6144,79 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   sirens?: SirenAlert[];
   flights?: FlightData[];
   telegramMessages?: TelegramMessage[];
-  ewEvents?: EWEvent[];
+  gpsSpoofZones?: GPSSpoofingZone[];
   infraEvents?: InfraEvent[];
   events?: ConflictEvent[];
   commodities?: CommodityData[];
   ships?: ShipData[];
   thermalHotspots?: ThermalHotspot[];
 }) {
-  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern' | 'intel'>('forecast');
+  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern' | 'intel' | 'ask'>('forecast');
+
+  // ── ASK AI Chat State ──
+  type AIChatModel = 'claude' | 'openai' | 'grok' | 'gemini';
+  interface ChatMsg { role: 'user' | 'ai'; text: string; model?: AIChatModel; ts: number; }
+  const [chatModel, setChatModel] = useState<AIChatModel>('claude');
+  const [chatHistory, setChatHistory] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const AI_MODELS: { id: AIChatModel; label: string; color: string; icon: string; short: string }[] = [
+    { id: 'claude', label: 'Claude Opus', color: '#a78bfa', icon: '🔮', short: 'Claude' },
+    { id: 'openai', label: 'GPT-4.1',    color: '#4ade80', icon: '🤖', short: 'GPT-4' },
+    { id: 'grok',   label: 'Grok 3',     color: '#60a5fa', icon: '⚡', short: 'Grok'  },
+    { id: 'gemini', label: 'Gemini Flash',color: '#fb923c', icon: '💎', short: 'Gemini'},
+  ];
+
+  const sendQuestion = async (q?: string) => {
+    const question = (q || chatInput).trim();
+    if (!question || chatLoading) return;
+    setChatInput('');
+    setChatHistory(h => [...h, { role: 'user', text: question, ts: Date.now() }]);
+    setChatLoading(true);
+    setStreamingText('');
+
+    try {
+      const resp = await fetch('/api/ai-analyst', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, model: chatModel }),
+      });
+      if (!resp.body) throw new Error('No response body');
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const raw = line.slice(5).trim();
+          if (raw === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed.error) { accumulated = `Error: ${parsed.error}`; break; }
+            if (parsed.text) { accumulated += parsed.text; setStreamingText(accumulated); }
+          } catch {}
+        }
+      }
+
+      const finalText = accumulated || '(no response)';
+      setChatHistory(h => [...h, { role: 'ai', text: finalText, model: chatModel, ts: Date.now() }]);
+      setStreamingText('');
+    } catch (err: any) {
+      setChatHistory(h => [...h, { role: 'ai', text: `Error: ${err?.message || 'Failed to connect'}`, model: chatModel, ts: Date.now() }]);
+      setStreamingText('');
+    } finally {
+      setChatLoading(false);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }
+  };
 
   const threatColor = (level: string) => ({
     EXTREME: 'text-red-400', HIGH: 'text-orange-400', ELEVATED: 'text-yellow-400',
@@ -5826,14 +6283,14 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
         </div>
       </div>
 
-      <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(260 20% 11% / 0.8)' }}>
-        {(['forecast', 'vectors', 'pattern', 'intel'] as const).map(tab => (
+      <div className="flex border-b border-white/[0.05] shrink-0 overflow-x-auto scrollbar-none" style={{ background: 'hsl(260 20% 11% / 0.8)' }}>
+        {(['forecast', 'vectors', 'pattern', 'intel', 'ask'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-all ${
+            className={`shrink-0 flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-all ${
               activeTab === tab
-                ? 'text-violet-300 border-b-2 border-violet-400 bg-violet-500/[0.05]'
+                ? tab === 'ask' ? 'text-emerald-300 border-b-2 border-emerald-400 bg-emerald-500/[0.05]' : 'text-violet-300 border-b-2 border-violet-400 bg-violet-500/[0.05]'
                 : 'text-white/25 hover:text-white/55 hover:bg-white/[0.02]'
             }`}
             data-testid={`button-aipred-tab-${tab}`}
@@ -5841,7 +6298,8 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
             {tab === 'forecast' ? (language === 'ar' ? 'التوقع' : 'Forecast') :
              tab === 'vectors'  ? (language === 'ar' ? 'التهديدات' : 'Vectors') :
              tab === 'pattern'  ? (language === 'ar' ? 'النمط' : 'Pattern') :
-             (language === 'ar' ? 'المصادر' : 'Intel')}
+             tab === 'intel'    ? (language === 'ar' ? 'المصادر' : 'Intel') :
+             (language === 'ar' ? 'اسأل AI' : '✦ Ask AI')}
           </button>
         ))}
       </div>
@@ -6124,6 +6582,154 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
               </div>
             )}
 
+
+            {activeTab === 'ask' && (
+              <div className="flex flex-col h-full" style={{ minHeight: 300 }}>
+                {/* Model selector */}
+                <div className="shrink-0 px-3 pt-3 pb-2">
+                  <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5 text-white/30">AI Model</div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {AI_MODELS.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => setChatModel(m.id)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-mono font-bold transition-all active:scale-95"
+                        style={{
+                          background: chatModel === m.id ? `${m.color}18` : 'rgba(255,255,255,0.04)',
+                          border: chatModel === m.id ? `1px solid ${m.color}44` : '1px solid rgba(255,255,255,0.07)',
+                          color: chatModel === m.id ? m.color : 'rgba(255,255,255,0.35)',
+                          boxShadow: chatModel === m.id ? `0 0 8px ${m.color}22` : 'none',
+                        }}
+                      >
+                        <span style={{ fontSize: 12 }}>{m.icon}</span>
+                        {m.short}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Suggested questions */}
+                {chatHistory.length === 0 && !chatLoading && (
+                  <div className="shrink-0 px-3 pb-2">
+                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5 text-white/25">Suggested</div>
+                    <div className="flex flex-col gap-1">
+                      {[
+                        language === 'ar' ? 'ما هي أحدث التهديدات الآن؟' : 'What are the most active threats right now?',
+                        language === 'ar' ? 'هل الوضع يتصاعد أم مستقر؟' : 'Is the situation escalating or stable?',
+                        language === 'ar' ? 'ما هي المنطقة الأكثر خطراً؟' : 'Which region is at highest risk?',
+                        language === 'ar' ? 'ما احتمال توسع الصراع؟' : 'What is the likelihood of wider conflict?',
+                      ].map(q => (
+                        <button
+                          key={q}
+                          onClick={() => sendQuestion(q)}
+                          disabled={chatLoading}
+                          className="text-left px-2 py-1.5 rounded-lg text-[9px] font-mono transition-all active:scale-98 disabled:opacity-40"
+                          style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)', color: 'rgba(160,163,255,0.75)' }}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Chat history */}
+                <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-2 min-h-0">
+                  {chatHistory.map((msg, i) => {
+                    const m = AI_MODELS.find(x => x.id === msg.model);
+                    return (
+                      <div key={i} className={`flex flex-col gap-0.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        {msg.role === 'ai' && m && (
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span style={{ fontSize: 10 }}>{m.icon}</span>
+                            <span className="text-[7px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
+                          </div>
+                        )}
+                        <div
+                          className="max-w-[92%] px-2.5 py-2 rounded-xl text-[9px] font-mono leading-relaxed"
+                          style={{
+                            background: msg.role === 'user'
+                              ? 'rgba(99,102,241,0.15)'
+                              : 'rgba(255,255,255,0.05)',
+                            border: msg.role === 'user'
+                              ? '1px solid rgba(99,102,241,0.3)'
+                              : `1px solid ${m ? m.color + '22' : 'rgba(255,255,255,0.08)'}`,
+                            color: msg.role === 'user' ? 'rgba(200,200,255,0.9)' : 'rgba(255,255,255,0.8)',
+                            whiteSpace: 'pre-wrap',
+                          }}
+                        >
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Streaming indicator */}
+                  {chatLoading && (
+                    <div className="flex flex-col items-start gap-0.5">
+                      {(() => { const m = AI_MODELS.find(x => x.id === chatModel); return m ? (
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <span style={{ fontSize: 10 }}>{m.icon}</span>
+                          <span className="text-[7px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
+                        </div>
+                      ) : null; })()}
+                      <div
+                        className="max-w-[92%] px-2.5 py-2 rounded-xl text-[9px] font-mono leading-relaxed"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', whiteSpace: 'pre-wrap' }}
+                      >
+                        {streamingText || (
+                          <span className="flex items-center gap-1 text-white/30">
+                            <span className="animate-pulse">●</span>
+                            <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
+                            <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Input */}
+                <div className="shrink-0 px-3 pb-3 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex gap-2 items-end">
+                    <textarea
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); } }}
+                      placeholder={language === 'ar' ? 'اسأل المحلل الاستخباراتي...' : 'Ask the intelligence analyst...'}
+                      disabled={chatLoading}
+                      rows={2}
+                      className="flex-1 resize-none rounded-lg px-2.5 py-2 text-[9px] font-mono outline-none transition-all disabled:opacity-40"
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(99,102,241,0.25)',
+                        color: 'rgba(255,255,255,0.85)',
+                        lineHeight: 1.5,
+                      }}
+                    />
+                    <button
+                      onClick={() => sendQuestion()}
+                      disabled={chatLoading || !chatInput.trim()}
+                      className="shrink-0 px-3 py-2 rounded-lg font-mono font-black text-[9px] uppercase tracking-wider transition-all active:scale-95 disabled:opacity-30"
+                      style={{
+                        background: 'rgba(99,102,241,0.25)',
+                        border: '1px solid rgba(99,102,241,0.45)',
+                        color: '#a78bfa',
+                        minHeight: 52,
+                      }}
+                    >
+                      {chatLoading ? '...' : (language === 'ar' ? 'إرسال' : 'SEND')}
+                    </button>
+                  </div>
+                  <div className="text-[7px] font-mono text-white/20 mt-1 text-center">
+                    {language === 'ar' ? 'Enter للإرسال · Shift+Enter لسطر جديد' : 'Enter to send · Shift+Enter for newline'}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'intel' && (() => {
               // ── Compute raw signal scores from live data ──────────────────
               const now = Date.now();
@@ -6143,13 +6749,13 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
               const wSirens    = Math.min(liveSirens.length * 6, 35);
               const wFlights   = Math.min(milFlights.length * 5, 30);
               const wTelegram  = Math.min(recentTg.length * 1.5, 25);
-              const wEW        = Math.min(liveEW.length * 9, 22);
+              const wGPS       = Math.min(liveGPS.filter(z => z.active).length * 9, 22);
               const wInfra     = Math.min(liveInfra.length * 7, 18);
               const wMarkets   = Math.min(movingMarkets.length * 4 + stressedMarkets.length * 6, 20);
               const wThermal   = Math.min(liveThermal.length * 4, 15);
               const wShips     = Math.min(liveShips.length * 0.8, 10);
               const wEvents    = Math.min(liveEvents.length * 1.2, 12);
-              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wEW + wInfra + wMarkets + wThermal + wShips + wEvents || 1;
+              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wGPS + wInfra + wMarkets + wThermal + wShips + wEvents || 1;
 
               const pct = (w: number) => Math.round((w / totalRaw) * 100);
 
@@ -6229,18 +6835,19 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   ],
                 },
                 {
-                  id: 'ew',
-                  icon: <Radio className="w-4 h-4" style={{ color: '#a78bfa' }} />,
-                  label: language === 'ar' ? 'الحرب الإلكترونية' : 'Electronic Warfare',
+                  id: 'gps',
+                  icon: <Navigation className="w-4 h-4" style={{ color: '#a78bfa' }} />,
+                  label: language === 'ar' ? 'انتحال GPS' : 'GPS Spoofing',
                   color: '#a78bfa',
-                  raw: wEW,
-                  contribution: pct(wEW),
-                  quality: quality(wEW, 5, 2),
-                  count: liveEW.length,
-                  countLabel: language === 'ar' ? 'حدث' : 'EW events',
-                  detail: liveEW.length > 0 ? `${liveEW.length} EW events · jamming/spoofing detected` : 'No EW activity',
+                  raw: wGPS,
+                  contribution: pct(wGPS),
+                  quality: quality(wGPS, 5, 2),
+                  count: liveGPS.filter(z => z.active).length,
+                  countLabel: language === 'ar' ? 'منطقة' : 'zones',
+                  detail: liveGPS.filter(z => z.active).length > 0 ? `${liveGPS.filter(z => z.active).length} spoofing zones · ${liveGPS.reduce((s,z) => s + z.affectedAircraft, 0)} aircraft affected` : 'No GPS spoofing detected',
                   subMetrics: [
-                    { label: 'Active', value: String(liveEW.length), color: '#a78bfa' },
+                    { label: 'Active zones', value: String(liveGPS.filter(z => z.active).length), color: '#a78bfa' },
+                    { label: 'Aircraft', value: String(liveGPS.reduce((s,z) => s + z.affectedAircraft, 0)), color: '#c084fc' },
                   ],
                 },
                 {
@@ -6620,7 +7227,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
-  const bottomGroup: PanelId[] = ['events', 'markets', 'ew', 'infra', 'alertmap', 'analytics', 'osint'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'gpsspoof', 'netblack', 'notams', 'infra', 'alertmap', 'analytics', 'osint'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -7004,7 +7611,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, gpsSpoofZones, internetStatus, notams, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -7169,7 +7776,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'markets', 'ew', 'infra', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
+  const bottomRow: PanelId[] = ['events', 'markets', 'gpsspoof', 'netblack', 'notams', 'infra', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -7179,7 +7786,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
     events: 22, markets: 28,
-    ew: 22, infra: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
+    gpsspoof: 22, netblack: 22, notams: 22, infra: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -7289,7 +7896,7 @@ export default function Dashboard() {
     const panel = (() => {
       switch (id) {
         case 'aiprediction':
-          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} ewEvents={ewEvents} infraEvents={infraEvents} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
+          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} gpsSpoofZones={gpsSpoofZones} infraEvents={infraEvents} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alerts':
@@ -7298,8 +7905,12 @@ export default function Dashboard() {
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} soundEnabled={soundEnabled} silentMode={settings.silentMode} volume={settings.volume} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'ew':
-          return <EWPanel ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'gpsspoof':
+          return <GPSSpoofingPanel zones={gpsSpoofZones} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'netblack':
+          return <InternetBlackoutPanel statuses={internetStatus} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+        case 'notams':
+          return <NOTAMPanel notams={notams} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'infra':
           return <InfraPanel infraEvents={infraEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
@@ -7470,7 +8081,9 @@ export default function Dashboard() {
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
-              ew: ewEvents.filter(e => e.active).length > 0 ? `${ewEvents.filter(e => e.active).length} ACTIVE` : '',
+              gpsspoof: gpsSpoofZones.filter(z => z.active).length > 0 ? `${gpsSpoofZones.filter(z => z.active).length} ZONES` : '',
+              netblack: internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length > 0 ? `${internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length} DOWN` : '',
+              notams: notams.length > 0 ? `${notams.length}` : '',
               infra: infraEvents.length > 0 ? `${infraEvents.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
@@ -7510,7 +8123,7 @@ export default function Dashboard() {
             </div>
             <div className="border-t border-white/[0.05] px-3 py-2">
               <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
-                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
+                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, gpsSpoofZones.filter(z => z.active).length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
                 <span>·</span>
                 <span>EVT {events.length}</span>
                 <span className="ml-auto"><LiveClock /></span>
@@ -7646,7 +8259,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'ew' ? ewEvents.filter(e => e.active).length : id === 'infra' ? infraEvents.length : 0;
+                  const count = id === 'gpsspoof' ? gpsSpoofZones.filter(z => z.active).length : id === 'netblack' ? internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length : id === 'notams' ? notams.length : id === 'infra' ? infraEvents.length : 0;
                   return (
                     <button
                       key={id}
@@ -7871,7 +8484,7 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, ewEvents.filter(e => e.active).length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, gpsSpoofZones.filter(z => z.active).length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
 

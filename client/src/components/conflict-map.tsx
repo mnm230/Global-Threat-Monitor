@@ -4,7 +4,7 @@ import { Map as MapLibreMap } from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import { MapPin } from 'lucide-react';
-import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot, EWEvent } from '@shared/schema';
+import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot, GPSSpoofingZone } from '@shared/schema';
 
 // ── Map styles ────────────────────────────────────────────────────────────────
 const MAP_THEMES = {
@@ -72,9 +72,9 @@ const LAYER_GROUPS = [
     ],
   },
   {
-    id: 'ew', label: 'ELEC. WARFARE', color: '#22d3ee',
+    id: 'gpsspoof', label: 'GPS SPOOFING', color: '#f97316',
     layers: [
-      { key: 'ew', label: 'GPS/EW Jamming Zones', color: '#22d3ee', on: true },
+      { key: 'gpsspoof', label: 'GPS Spoofing Zones', color: '#f97316', on: true },
     ],
   },
 ] as const;
@@ -145,15 +145,14 @@ function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'
       color: '#3b82f6',
     };
   }
-  // EWEvent (has radiusKm + affectedSystems + source)
-  if ('radiusKm' in obj && 'affectedSystems' in obj) {
-    const e = obj as unknown as EWEvent;
-    const isSpoof = e.type === 'gps_spoofing' || e.type === 'radar_spoofing';
+  // GPSSpoofingZone (has radiusKm + affectedAircraft + avgNacP)
+  if ('radiusKm' in obj && 'affectedAircraft' in obj && 'avgNacP' in obj) {
+    const z = obj as unknown as GPSSpoofingZone;
     return {
-      title: `${e.type.replace(/_/g, ' ').toUpperCase()} · ${e.country}`,
-      sub: e.description,
-      badge: `${e.radiusKm}km · ${e.active ? 'ACTIVE' : 'INACTIVE'}`,
-      color: isSpoof ? '#22d3ee' : '#8b5cf6',
+      title: `GPS SPOOFING · ${z.region || z.country}`,
+      sub: `${z.affectedAircraft} aircraft affected · avg NACp ${z.avgNacP.toFixed(1)}`,
+      badge: `${z.radiusKm}km · ${z.severity.toUpperCase()}`,
+      color: z.severity === 'critical' ? '#ef4444' : z.severity === 'high' ? '#f97316' : '#eab308',
     };
   }
   // Nuclear
@@ -174,7 +173,7 @@ interface ConflictMapProps {
   flights?: FlightData[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
-  ewEvents?: EWEvent[];
+  gpsSpoofZones?: GPSSpoofingZone[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
   mapStyle?: string;
@@ -187,7 +186,7 @@ const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
-  events, flights = [], redAlerts = [], thermalHotspots = [], ewEvents = [],
+  events, flights = [], redAlerts = [], thermalHotspots = [], gpsSpoofZones = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation, isVisible = true,
 }: ConflictMapProps) {
   const containerRef      = useRef<HTMLDivElement>(null);
@@ -388,39 +387,41 @@ export default function ConflictMap({
       }));
     }
 
-    // ── EW / GPS Jamming zones ──
-    if (vis.ew && ewEvents.length > 0) {
-      // Outer translucent fill (zone radius)
+    // ── GPS Spoofing zones ──
+    if (vis.gpsspoof && gpsSpoofZones.length > 0) {
       layers.push(new ScatterplotLayer({
-        id: 'ew-fill',
-        data: ewEvents,
-        getPosition: (d: EWEvent) => [d.lng, d.lat],
-        getRadius: (d: EWEvent) => d.radiusKm * 1000,
-        getFillColor: (d: EWEvent) => {
+        id: 'gpsspoof-fill',
+        data: gpsSpoofZones,
+        getPosition: (d: GPSSpoofingZone) => [d.lng, d.lat],
+        getRadius: (d: GPSSpoofingZone) => d.radiusKm * 1000,
+        getFillColor: (d: GPSSpoofingZone) => {
           const alpha = d.active ? 28 : 12;
-          if (d.type === 'gps_spoofing' || d.type === 'radar_spoofing') return [34, 211, 238, alpha];
-          return [139, 92, 246, alpha];
+          if (d.severity === 'critical') return [239, 68, 68, alpha];
+          if (d.severity === 'high') return [249, 115, 22, alpha];
+          return [234, 179, 8, alpha];
         },
-        getLineColor: (d: EWEvent) => {
+        getLineColor: (d: GPSSpoofingZone) => {
           const alpha = d.active ? 160 : 60;
-          if (d.type === 'gps_spoofing' || d.type === 'radar_spoofing') return [34, 211, 238, alpha];
-          return [139, 92, 246, alpha];
+          if (d.severity === 'critical') return [239, 68, 68, alpha];
+          if (d.severity === 'high') return [249, 115, 22, alpha];
+          return [234, 179, 8, alpha];
         },
         stroked: true, lineWidthMinPixels: 1,
         radiusMinPixels: 10, radiusMaxPixels: 220,
         pickable: true,
       }));
 
-      // Center dot
       layers.push(new ScatterplotLayer({
-        id: 'ew-center',
-        data: ewEvents.filter(e => e.active),
-        getPosition: (d: EWEvent) => [d.lng, d.lat],
+        id: 'gpsspoof-center',
+        data: gpsSpoofZones.filter(z => z.active),
+        getPosition: (d: GPSSpoofingZone) => [d.lng, d.lat],
         getRadius: 3000,
-        getFillColor: (d: EWEvent) =>
-          d.type === 'gps_spoofing' || d.type === 'radar_spoofing'
-            ? [34, 211, 238, 220] as [number, number, number, number]
-            : [139, 92, 246, 220] as [number, number, number, number],
+        getFillColor: (d: GPSSpoofingZone) =>
+          d.severity === 'critical'
+            ? [239, 68, 68, 220] as [number, number, number, number]
+            : d.severity === 'high'
+              ? [249, 115, 22, 220] as [number, number, number, number]
+              : [234, 179, 8, 220] as [number, number, number, number],
         getLineColor: [0, 0, 0, 80] as [number, number, number, number],
         stroked: true, lineWidthMinPixels: 1,
         radiusMinPixels: 4, radiusMaxPixels: 8,
@@ -429,7 +430,7 @@ export default function ConflictMap({
     }
 
     return layers;
-  }, [vis, events, redAlerts, thermalHotspots, ewEvents]);
+  }, [vis, events, redAlerts, thermalHotspots, gpsSpoofZones]);
 
   // Keep refs current so the rAF loop can read latest data without closures
   useEffect(() => {

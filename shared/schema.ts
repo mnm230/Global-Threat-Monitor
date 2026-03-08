@@ -218,19 +218,62 @@ export interface CyberEvent {
   description: string;
 }
 
-export interface EWEvent {
+export interface GPSSpoofingZone {
   id: string;
-  type: 'gps_jamming' | 'gps_spoofing' | 'comms_jamming' | 'radar_spoofing' | 'drone_ew';
   lat: number;
   lng: number;
   radiusKm: number;
   severity: 'critical' | 'high' | 'medium' | 'low';
+  affectedAircraft: number;
+  avgNacP: number;
   country: string;
-  affectedSystems: string[];
-  timestamp: string;
-  description: string;
-  source: string;
+  region: string;
+  detectedAt: string;
   active: boolean;
+  aircraftSamples: { callsign: string; nacP: number; nic: number; sil: number; lat: number; lng: number }[];
+}
+
+export interface InternetOutage {
+  id: string;
+  country: string;
+  countryCode: string;
+  metric: 'bgp_hegemony' | 'network_delay' | 'disco_event';
+  normalValue: number;
+  currentValue: number;
+  dropPercent: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  affectedASNs: string[];
+  detectedAt: string;
+  active: boolean;
+  source: string;
+}
+
+export interface InternetCountryStatus {
+  country: string;
+  countryCode: string;
+  status: 'online' | 'degraded' | 'disrupted' | 'blackout';
+  healthScore: number;
+  topASN: string;
+  topASNHege: number;
+  asnCount: number;
+  lastChecked: string;
+  outages: InternetOutage[];
+}
+
+export interface NOTAMItem {
+  id: string;
+  location: string;
+  icao: string;
+  type: 'airspace_closure' | 'flight_restriction' | 'tfr' | 'hazard' | 'military_exercise' | 'navigation_warning';
+  text: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  country: string;
+  coordinates?: { lat: number; lng: number };
+  radiusNm?: number;
+  altitude?: string;
+  source: string;
 }
 
 export interface InfraEvent {

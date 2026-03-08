@@ -25,7 +25,9 @@
       "Bash(ls:*)",
       "Bash(npx vite:*)",
       "Bash(perl:*)",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(awk NR>=600 && NR<=900:*)",
+      "Skill(claude-api)"
     ]
   }
 }
