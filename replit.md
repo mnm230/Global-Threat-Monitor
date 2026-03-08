@@ -14,7 +14,7 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Typography:** Fira Sans for headers and Fira Mono for data readouts, with compact font sizes for high information density.
 - **Clocks:** Displays both UTC and Lebanon/Beirut time with timezone labels.
 - **Responsiveness:** Adaptive layouts for mobile, tablet, and desktop, with specific UI adjustments for each, including single-panel views for mobile and CSS grid layouts for tablets.
-- **Panel System:** Features customizable, resizable panels (`map`, `telegram`, `events`, `alerts`, `markets`, `netblack`, `notams`, `infra`, `livefeed`, `alertmap`, `analytics`, `osint`, `sitrep`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout.
+- **Panel System:** Features customizable, resizable panels (`map`, `telegram`, `events`, `alerts`, `markets`, `netblack`, `notams`, `livefeed`, `alertmap`, `analytics`, `osint`, `sitrep`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout.
 - **Alert Map:** Full-width panel leveraging MapLibre GL with responsive overlays for different screen sizes and a red alert heatmap visualization.
 
 **Technical Implementations:**

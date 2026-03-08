@@ -264,19 +264,6 @@ export interface NOTAMItem {
   source: string;
 }
 
-export interface InfraEvent {
-  id: string;
-  type: 'power' | 'water' | 'hospital' | 'bridge' | 'port' | 'fuel' | 'telecom' | 'airport';
-  lat: number;
-  lng: number;
-  country: string;
-  region: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  timestamp: string;
-  description: string;
-  source: string;
-  casualties?: number;
-}
 
 export interface ThermalHotspot {
   id: string;

@@ -25,7 +25,6 @@ import type {
   RedAlert,
   InternetCountryStatus,
   NOTAMItem,
-  InfraEvent,
   ThermalHotspot,
   BreakingNewsItem,
   Sitrep,
@@ -282,7 +281,6 @@ interface SSEData {
   telegramMessages: TelegramMessage[];
   internetStatus: InternetCountryStatus[];
   notams: NOTAMItem[];
-  infraEvents: InfraEvent[];
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
   attackPrediction: AttackPrediction | null;
@@ -294,7 +292,7 @@ function useSSE(): SSEData {
   const [state, setState] = useState<Omit<SSEData, 'connected'>>({
     news: [], commodities: [], events: [], flights: [], ships: [],
     sirens: [], redAlerts: [], telegramMessages: [],
-    internetStatus: [], notams: [], infraEvents: [], thermalHotspots: [], breakingNews: [],
+    internetStatus: [], notams: [], thermalHotspots: [], breakingNews: [],
     attackPrediction: null, rocketStats: null,
   });
   const [connected, setConnected] = useState(false);
@@ -355,9 +353,6 @@ function useSSE(): SSEData {
       });
       es.addEventListener('notams', (e) => {
         try { pending.current.notams = JSON.parse(e.data); scheduleFlush(); } catch {}
-      });
-      es.addEventListener('infra', (e) => {
-        try { pending.current.infraEvents = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('thermal', (e) => {
         try { pending.current.thermalHotspots = JSON.parse(e.data); scheduleFlush(); } catch {}
@@ -661,7 +656,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'netblack' | 'notams' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'netblack' | 'notams' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
@@ -672,7 +667,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
   netblack: { icon: Wifi, label: 'Internet Monitor', labelAr: 'مراقب الإنترنت' },
   notams: { icon: FileWarning, label: 'NOTAMs', labelAr: 'إشعارات الطيران' },
-  infra: { icon: Zap, label: 'Infrastructure', labelAr: 'البنية التحتية' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
@@ -843,6 +837,19 @@ const OSINT_SEVERITY_STYLE: Record<string, string> = {
   low:      'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
 };
 
+// Channels that feed the OSINT panel with elevated priority
+const OSINT_PRIORITY_CHANNELS = new Set([
+  '@wfwitness', '@ClashReport', '@clashreport', '@AjaNews', '@thewarreporter', '@channelnabatieh',
+  '@GeoConfirmed', '@ELINTNews', '@OSINTdefender', '@IntelCrab', '@CIG_telegram',
+  '@bintjbeilnews', '@almanarnews', '@AlAhedNews', '@BNONewsRoom', '@Middle_East_Spectator',
+]);
+// Arabic-language channels (messages come in Arabic, textAr = native)
+const ARABIC_CHANNELS = new Set([
+  '@AjaNews', '@channelnabatieh', '@almanarnews', '@AlAhedNews', '@QudsN',
+  '@bintjbeilnews', '@lebaborim', '@HezbollahWO', '@ResistanceLB', '@southlebanon',
+  '@nabatiehnews', '@mtaborim', '@alaborim', '@inaborim', '@Yemen_Press', '@AlMasiraaTV',
+]);
+
 function buildOsintEntries(
   alerts: RedAlert[],
   messages: TelegramMessage[],
@@ -864,16 +871,40 @@ function buildOsintEntries(
     icon: a.threatType === 'missiles' ? '🎯' : a.threatType === 'uav_intrusion' ? '🛸' : '🚨',
     borderColor: '#ef4444',
   }));
-  messages.forEach(m => entries.push({
-    id: `tg-${m.id}`,
-    source: 'telegram',
-    severity: 'medium',
-    title: m.channel,
-    body: lang === 'ar' && m.textAr ? m.textAr : m.text,
-    timestamp: m.timestamp,
-    icon: '📡',
-    borderColor: '#38bdf8',
-  }));
+  messages.forEach(m => {
+    const isPriority = OSINT_PRIORITY_CHANNELS.has(m.channel);
+    const isArabicCh = ARABIC_CHANNELS.has(m.channel);
+    const arRatio = m.text ? (m.text.match(/[\u0600-\u06FF]/g) || []).length / Math.max(m.text.length, 1) : 0;
+    const hasArabicText = isArabicCh || arRatio > 0.25;
+    // Critical Arabic urgency signals: عاجل / إنذار / إخلاء
+    const scan = m.text + (m.textAr || '');
+    const hasEajil = scan.includes('\u0639\u0627\u062c\u0644');   // عاجل
+    const hasInzar = scan.includes('\u0625\u0646\u0630\u0627\u0631'); // إنذار
+    const hasIkhla = scan.includes('\u0625\u062e\u0644\u0627\u0621'); // إخلاء
+    const isArabicUrgent = hasEajil || hasInzar || hasIkhla;
+    const isEnUrgent = /\bBREAKING\b|\bURGENT\b|\bEVACUATION\b/i.test(scan);
+    const bodyText = lang === 'ar'
+      ? (m.textAr || m.text)
+      : hasArabicText
+        ? (m.textAr ? `[AR] ${m.textAr}` : `[AR] ${m.text}`)
+        : m.text;
+    const severity: OsintEntry['severity'] =
+      isArabicUrgent || isEnUrgent ? 'critical' :
+      isPriority ? 'high' : 'medium';
+    const urgencyTag = hasEajil ? '⚡عاجل ' : hasInzar ? '🔔إنذار ' : hasIkhla ? '🚨إخلاء ' : '';
+    const icon = isArabicUrgent || isEnUrgent ? '🚨' : isPriority ? '🔴' : hasArabicText ? '📻' : '📡';
+    const borderColor = isArabicUrgent || isEnUrgent ? '#ef4444' : isPriority ? '#f97316' : hasArabicText ? '#a78bfa' : '#38bdf8';
+    entries.push({
+      id: `tg-${m.id}`,
+      source: 'telegram',
+      severity,
+      title: urgencyTag ? `${urgencyTag}${m.channel}` : hasArabicText ? `${m.channel} 🌍` : m.channel,
+      body: bodyText,
+      timestamp: m.timestamp,
+      icon,
+      borderColor,
+    });
+  });
   events.forEach(e => entries.push({
     id: `evt-${e.id}`,
     source: 'event',
@@ -1162,26 +1193,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, netblack: false, notams: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, netblack: 22, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, netblack: false, notams: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, netblack: false, notams: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, netblack: 22, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, netblack: false, notams: true, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, netblack: false, notams: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, netblack: 22, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, netblack: 100, notams: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, netblack: false, notams: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, netblack: 100, notams: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1199,10 +1230,9 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'markets',      x: 8, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
   // Zone 3 — Situational: Live Feed
   { i: 'livefeed',     x: 0, y: 15, w: 12, h: 4,  minW: 2, minH: 2 },
-  // Zone 4 — Analysis: Internet | NOTAMs | Infra
-  { i: 'netblack',     x: 0, y: 19, w: 4, h: 4,  minW: 2, minH: 2 },
-  { i: 'notams',       x: 4, y: 19, w: 4, h: 4,  minW: 2, minH: 2 },
-  { i: 'infra',        x: 8, y: 19, w: 4, h: 4,  minW: 2, minH: 2 },
+  // Zone 4 — Analysis: Internet | NOTAMs
+  { i: 'netblack',     x: 0, y: 19, w: 6, h: 4,  minW: 2, minH: 2 },
+  { i: 'notams',       x: 6, y: 19, w: 6, h: 4,  minW: 2, minH: 2 },
   // Zone 4b — Analytics | OSINT
   { i: 'analytics',    x: 0, y: 23, w: 6, h: 4,  minW: 2, minH: 2 },
   { i: 'osint',        x: 6, y: 23, w: 6, h: 4,  minW: 3, minH: 2 },
@@ -1220,7 +1250,6 @@ const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   analytics:    'hsl(185 75% 50%)',
   netblack:     'hsl(195 75% 50%)',
   notams:       'hsl(45 80% 55%)',
-  infra:        'hsl(345 75% 55%)',
   osint:        'hsl(240 65% 65%)',
   livefeed:     'hsl(215 60% 55%)',
   alertmap:     'hsl(15 80% 55%)',
@@ -2783,99 +2812,6 @@ const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaxim
   );
 });
 
-// ── Infrastructure Attacks Panel ──────────────────────────────────────────────
-const INFRA_TYPE_LABELS: Record<string, { en: string; ar: string; icon: string }> = {
-  power:    { en: 'POWER',    ar: 'طاقة',    icon: '⚡' },
-  water:    { en: 'WATER',    ar: 'مياه',    icon: '💧' },
-  hospital: { en: 'HOSPITAL', ar: 'مستشفى',  icon: '🏥' },
-  bridge:   { en: 'BRIDGE',   ar: 'جسر',     icon: '🌉' },
-  port:     { en: 'PORT',     ar: 'ميناء',   icon: '⚓' },
-  fuel:     { en: 'FUEL',     ar: 'وقود',    icon: '🛢' },
-  telecom:  { en: 'TELECOM',  ar: 'اتصالات', icon: '📡' },
-  airport:  { en: 'AIRPORT',  ar: 'مطار',    icon: '✈' },
-};
-const INFRA_TYPE_COLORS: Record<string, string> = {
-  power:    'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
-  water:    'text-blue-300   bg-blue-500/10   border-blue-500/30',
-  hospital: 'text-red-300    bg-red-500/10    border-red-500/30',
-  bridge:   'text-slate-300  bg-slate-500/10  border-slate-500/30',
-  port:     'text-cyan-300   bg-cyan-500/10   border-cyan-500/30',
-  fuel:     'text-orange-300 bg-orange-500/10 border-orange-500/30',
-  telecom:  'text-purple-300 bg-purple-500/10 border-purple-500/30',
-  airport:  'text-sky-300    bg-sky-500/10    border-sky-500/30',
-};
-
-const InfraPanel = memo(function InfraPanel({ infraEvents, language, onClose, onMaximize, isMaximized }: { infraEvents: InfraEvent[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const sevBorder = (s: string) => s === 'critical' ? 'rgb(239 68 68 / 0.55)' : s === 'high' ? 'rgb(249 115 22 / 0.45)' : 'transparent';
-  const sevText   = (s: string) => s === 'critical' ? 'text-red-400' : s === 'high' ? 'text-orange-400' : s === 'medium' ? 'text-yellow-400' : 'text-emerald-400';
-  const sorted    = [...infraEvents].sort((a, b) => {
-    const o: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-    return (o[a.severity] ?? 4) - (o[b.severity] ?? 4);
-  });
-
-  const totalCasualties = infraEvents.reduce((s, e) => s + (e.casualties ?? 0), 0);
-
-  return (
-    <div className="h-full flex flex-col min-h-0">
-      <PanelHeader
-        title={t('Infrastructure', 'البنية التحتية')}
-        icon={<Zap className="w-3.5 h-3.5" />}
-        live count={infraEvents.length}
-        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
-      />
-
-      {/* Summary strip */}
-      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3 flex-wrap" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
-        {(['power','water','hospital','telecom'] as const).map(type => {
-          const count = infraEvents.filter(e => e.type === type).length;
-          const cfg = INFRA_TYPE_LABELS[type];
-          return (
-            <div key={type} className="flex flex-col items-center">
-              <span className="text-[11px] font-black font-mono text-foreground/80">{cfg.icon} {count}</span>
-              <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{t(cfg.en, cfg.ar)}</span>
-            </div>
-          );
-        })}
-        {totalCasualties > 0 && (
-          <div className="flex flex-col items-center ml-auto">
-            <span className="text-[11px] font-black font-mono text-red-400">{totalCasualties}</span>
-            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{t('CAS', 'ضحايا')}</span>
-          </div>
-        )}
-      </div>
-
-      {infraEvents.length === 0 && (
-        <div className="px-3 py-6 text-center">
-          <Zap className="w-5 h-5 text-muted-foreground/20 mx-auto mb-2" />
-          <p className="text-[10px] text-foreground/25">{t('No infrastructure events', 'لا توجد أحداث بنية تحتية')}</p>
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-        {sorted.map((ev) => (
-          <div key={ev.id} className="px-3 py-2.5 hover-elevate border-l-2" style={{ borderLeftColor: sevBorder(ev.severity) }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 ${INFRA_TYPE_COLORS[ev.type] || 'text-foreground/50 bg-muted border-border'}`}>
-                {INFRA_TYPE_LABELS[ev.type]?.icon} {t(INFRA_TYPE_LABELS[ev.type]?.en || ev.type, INFRA_TYPE_LABELS[ev.type]?.ar || ev.type)}
-              </span>
-              <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{ev.region}, {ev.country}</span>
-              <span className={`text-[9px] font-mono font-bold shrink-0 ${sevText(ev.severity)}`}>{ev.severity.toUpperCase()}</span>
-            </div>
-            <p className="text-[11px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-1.5">{ev.description}</p>
-            <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/30">
-              {ev.casualties !== undefined && ev.casualties > 0 && (
-                <span className="text-red-400/70">{ev.casualties} {t('cas.', 'ضحايا')}</span>
-              )}
-              <span className="text-foreground/20">{ev.source}</span>
-              <span className="ml-auto">{timeAgo(ev.timestamp)}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-});
-
 const RED_ALERT_THREAT_LABELS: Record<string, { en: string; ar: string; he: string }> = {
   rockets: { en: 'Rocket Fire', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', he: '\u05D9\u05E8\u05D9 \u05E8\u05E7\u05D8\u05D5\u05EA' },
   missiles: { en: 'Missile Launch', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0627\u0631\u0648\u062E', he: '\u05D8\u05D9\u05DC \u05D1\u05DC\u05D9\u05E1\u05D8\u05D9' },
@@ -3481,6 +3417,20 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                             {isLive && (
                               <span className="ra-badge-xs shrink-0 ra-tracking-wider" style={{ background: '#15803d', color: '#fff' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
                             )}
+                            {alert.sourceChannel && (
+                              <a
+                                href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="ra-badge-xs shrink-0 ra-tracking-wider flex items-center gap-0.5"
+                                style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
+                                onClick={e => e.stopPropagation()}
+                                data-testid={`tg-source-${alert.id}`}
+                                title={`Source: ${alert.sourceChannel}`}
+                              >
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z"/></svg>
+                                TG
+                              </a>
+                            )}
                           </div>
                           <div className="ra-flex-center gap-1.5">
                             <span
@@ -3501,6 +3451,16 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                             <span className={`text-[10px] ra-tabular ra-font-mono font-medium ${isExpired ? 'text-white/[0.12]' : 'text-red-200/40'}`}>
                               {timeAgo(alert.timestamp)}
                             </span>
+                            {alert.sourceChannel && (
+                              <a
+                                href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-[9px] ra-font-mono font-medium truncate max-w-[70px]"
+                                style={{ color: '#0088cc99', textDecoration: 'none' }}
+                                onClick={e => e.stopPropagation()}
+                                title={alert.sourceChannel}
+                              >{alert.sourceChannel}</a>
+                            )}
                           </div>
                         </div>
                         <RedAlertCountdown alert={alert} />
@@ -3551,7 +3511,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   );
 });
 
-const DEFAULT_CHANNELS = ['@bintjbeilnews', '@wfwitness', '@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@rnintel', '@lebaborim', '@almanarnews', '@AlAhedNews', '@lebanonnews2', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews', '@ELINTNews', '@BNONewsRoom', '@Middle_East_Spectator', '@interbellumnews', '@QudsN', '@GazaNewsPlus', '@SouthFrontEng', '@MilitaryOSINT', '@LBCINews', '@NaharnetEnglish', '@ISWResearch', '@conflictnews', '@IranIntl_En', '@warmonitor3', '@WarSpottersINT'];
+const DEFAULT_CHANNELS = ['@bintjbeilnews', '@wfwitness', '@ClashReport', '@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@rnintel', '@lebaborim', '@almanarnews', '@AlAhedNews', '@lebanonnews2', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews', '@ELINTNews', '@BNONewsRoom', '@Middle_East_Spectator', '@interbellumnews', '@QudsN', '@GazaNewsPlus', '@SouthFrontEng', '@MilitaryOSINT', '@LBCINews', '@NaharnetEnglish', '@ISWResearch', '@conflictnews', '@IranIntl_En', '@warmonitor3', '@WarSpottersINT', '@AjaNews', '@thewarreporter', '@channelnabatieh'];
 
 const TelegramPanel = memo(function TelegramPanel({
   messages,
@@ -3639,7 +3599,6 @@ const TelegramPanel = memo(function TelegramPanel({
   }, [messages, customMessages, customOnly]);
 
   const clearNewMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastTgSoundRef = useRef(0);
   useEffect(() => {
     const currentIds = new Set(filteredMessages.map(m => m.id));
     if (prevMsgIdsRef.current.size > 0) {
@@ -3651,11 +3610,7 @@ const TelegramPanel = memo(function TelegramPanel({
         if (clearNewMsgTimerRef.current) clearTimeout(clearNewMsgTimerRef.current);
         setNewMsgIds(prev => new Set([...Array.from(prev), ...freshIds]));
         clearNewMsgTimerRef.current = setTimeout(() => setNewMsgIds(new Set()), 6000);
-        const now = Date.now();
-        if (soundEnabled && !silentMode && now - lastTgSoundRef.current > 8000) {
-          lastTgSoundRef.current = now;
-          playTelegramSound(volume);
-        }
+        // No sound for Telegram messages — sounds only fire on red alerts
       }
     }
     prevMsgIdsRef.current = currentIds;
@@ -6142,7 +6097,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
 }
 
 // ── AI Prediction Panel ────────────────────────────────────────────────────────
-function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], infraEvents: liveInfra = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
+function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -6152,7 +6107,6 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   sirens?: SirenAlert[];
   flights?: FlightData[];
   telegramMessages?: TelegramMessage[];
-  infraEvents?: InfraEvent[];
   events?: ConflictEvent[];
   commodities?: CommodityData[];
   ships?: ShipData[];
@@ -6756,12 +6710,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
               const wSirens    = Math.min(liveSirens.length * 6, 35);
               const wFlights   = Math.min(milFlights.length * 5, 30);
               const wTelegram  = Math.min(recentTg.length * 1.5, 25);
-              const wInfra     = Math.min(liveInfra.length * 7, 18);
               const wMarkets   = Math.min(movingMarkets.length * 4 + stressedMarkets.length * 6, 20);
               const wThermal   = Math.min(liveThermal.length * 4, 15);
               const wShips     = Math.min(liveShips.length * 0.8, 10);
               const wEvents    = Math.min(liveEvents.length * 1.2, 12);
-              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wInfra + wMarkets + wThermal + wShips + wEvents || 1;
+              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wMarkets + wThermal + wShips + wEvents || 1;
 
               const pct = (w: number) => Math.round((w / totalRaw) * 100);
 
@@ -6838,21 +6791,6 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   subMetrics: [
                     { label: '30m surge', value: String(recentTg.length), color: '#34d399' },
                     { label: 'Total', value: String(liveTelegram.length), color: '#6ee7b7' },
-                  ],
-                },
-                {
-                  id: 'infra',
-                  icon: <Zap className="w-4 h-4" style={{ color: '#fb923c' }} />,
-                  label: language === 'ar' ? 'البنية التحتية' : 'Infrastructure Events',
-                  color: '#fb923c',
-                  raw: wInfra,
-                  contribution: pct(wInfra),
-                  quality: quality(wInfra, 4, 1),
-                  count: liveInfra.length,
-                  countLabel: language === 'ar' ? 'حدث' : 'events',
-                  detail: liveInfra.length > 0 ? `${liveInfra.length} infrastructure disruptions` : 'No disruptions',
-                  subMetrics: [
-                    { label: 'Events', value: String(liveInfra.length), color: '#fb923c' },
                   ],
                 },
                 {
@@ -7217,7 +7155,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
-  const bottomGroup: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'infra', 'alertmap', 'analytics', 'osint'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'alertmap', 'analytics', 'osint'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -7552,7 +7490,7 @@ export default function Dashboard() {
 
 
 
-  const defaultVisible = { map: true, telegram: true, events: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
+  const defaultVisible = { map: true, telegram: true, events: true, alerts: true, markets: true, ew: true, livefeed: true, alertmap: false, analytics: false, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
@@ -7601,7 +7539,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, internetStatus, notams, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, internetStatus, notams, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -7766,7 +7704,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'infra', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
+  const bottomRow: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -7776,7 +7714,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
     events: 22, markets: 28,
-    netblack: 22, notams: 22, infra: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
+    netblack: 22, notams: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -7886,7 +7824,7 @@ export default function Dashboard() {
     const panel = (() => {
       switch (id) {
         case 'aiprediction':
-          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} infraEvents={infraEvents} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
+          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alerts':
@@ -7899,8 +7837,6 @@ export default function Dashboard() {
           return <InternetBlackoutPanel statuses={internetStatus} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'notams':
           return <NOTAMPanel notams={notams} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'infra':
-          return <InfraPanel infraEvents={infraEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
           return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alertmap':
@@ -8071,7 +8007,6 @@ export default function Dashboard() {
               markets: commodities.length > 0 ? `${commodities.length}` : '',
               netblack: internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length > 0 ? `${internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length} DOWN` : '',
               notams: notams.length > 0 ? `${notams.length}` : '',
-              infra: infraEvents.length > 0 ? `${infraEvents.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
             }}
@@ -8246,7 +8181,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'netblack' ? internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length : id === 'notams' ? notams.length : id === 'infra' ? infraEvents.length : 0;
+                  const count = id === 'netblack' ? internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length : id === 'notams' ? notams.length : 0;
                   return (
                     <button
                       key={id}

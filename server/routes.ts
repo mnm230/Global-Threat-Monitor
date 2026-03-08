@@ -13,7 +13,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, InternetCountryStatus, NOTAMItem } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, InternetCountryStatus, NOTAMItem } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -2223,17 +2223,28 @@ async function classifyThreatWithAI(text: string): Promise<ThreatClassification>
 function classifyThreatLocal(text: string): ThreatClassification {
   const lower = text.toLowerCase();
   const categories: Record<string, string[]> = {
-    missile_launch: ['missile', 'launch', 'ballistic', 'rocket fire', 'rockets fired', 'launches', 'salvo'],
-    airstrike: ['airstrike', 'air strike', 'bombing', 'bombed', 'sortie', 'f-35', 'f-15', 'jdam', 'bunker buster', 'strike on'],
-    naval_movement: ['navy', 'naval', 'warship', 'carrier', 'destroyer', 'frigate', 'strait', 'maritime', 'tanker'],
-    ground_offensive: ['troops', 'ground forces', 'infantry', 'armored', 'tank', 'incursion', 'crossing', 'offensive'],
-    air_defense: ['intercepted', 'intercept', 'iron dome', 'arrow', "david's sling", 'thaad', 'patriot', 'air defense', 'shot down', 'downed'],
-    drone_activity: ['drone', 'uav', 'shahed', 'hermes', 'reaper', 'heron', 'unmanned'],
-    nuclear_related: ['nuclear', 'enrichment', 'uranium', 'iaea', 'fordow', 'natanz', 'centrifuge'],
-    economic_impact: ['oil', 'crude', 'brent', 'gold', 'markets', 'sanctions', 'trade', 'price', 'commodity'],
-    diplomatic: ['diplomat', 'negotiations', 'ceasefire', 'embassy', 'un security council', 'summit'],
-    humanitarian: ['civilian', 'refugees', 'displaced', 'humanitarian', 'hospital', 'casualties', 'killed', 'wounded', 'dead'],
-    cyber_attack: ['cyber', 'hack', 'ddos', 'breach', 'malware'],
+    missile_launch: ['missile', 'launch', 'ballistic', 'rocket fire', 'rockets fired', 'launches', 'salvo',
+      'صاروخ', 'صواريخ', 'إطلاق', 'باليستي'],
+    airstrike: ['airstrike', 'air strike', 'bombing', 'bombed', 'sortie', 'f-35', 'f-15', 'jdam', 'bunker buster', 'strike on',
+      'غارة', 'قصف', 'قصفت', 'طيران', 'ضربة'],
+    naval_movement: ['navy', 'naval', 'warship', 'carrier', 'destroyer', 'frigate', 'strait', 'maritime', 'tanker',
+      'بحرية', 'سفينة', 'مضيق', 'بحر أحمر'],
+    ground_offensive: ['troops', 'ground forces', 'infantry', 'armored', 'tank', 'incursion', 'crossing', 'offensive',
+      'توغل', 'ميدانية', 'دبابات', 'تقدم'],
+    air_defense: ['intercepted', 'intercept', 'iron dome', 'arrow', "david's sling", 'thaad', 'patriot', 'air defense', 'shot down', 'downed',
+      'اعتراض', 'دفاع جوي', 'قبة حديدية'],
+    drone_activity: ['drone', 'uav', 'shahed', 'hermes', 'reaper', 'heron', 'unmanned',
+      'طائرة مسيرة', 'مسيرة', 'شاهد'],
+    nuclear_related: ['nuclear', 'enrichment', 'uranium', 'iaea', 'fordow', 'natanz', 'centrifuge',
+      'نووي', 'تخصيب', 'يورانيوم'],
+    economic_impact: ['oil', 'crude', 'brent', 'gold', 'markets', 'sanctions', 'trade', 'price', 'commodity',
+      'نفط', 'عقوبات', 'أسواق'],
+    diplomatic: ['diplomat', 'negotiations', 'ceasefire', 'embassy', 'un security council', 'summit',
+      'وقف إطلاق نار', 'تفاوض', 'سفارة'],
+    humanitarian: ['civilian', 'refugees', 'displaced', 'humanitarian', 'hospital', 'casualties', 'killed', 'wounded', 'dead',
+      'مدنيون', 'ضحايا', 'شهداء', 'جرحى', 'مستشفى'],
+    cyber_attack: ['cyber', 'hack', 'ddos', 'breach', 'malware',
+      'هجوم إلكتروني', 'اختراق'],
   };
 
   let bestCategory: ThreatClassification['category'] = 'unknown';
@@ -2264,9 +2275,14 @@ function classifyThreatLocal(text: string): ThreatClassification {
   const entMatches = text.match(entityPatterns) || [];
   entities.push(...[...new Set(entMatches.map(e => e.trim()))]);
 
+  const hasEvacuation = lower.includes('evacuation') || lower.includes('evacuate') || lower.includes('إخلاء');
+  const hasUrgency = lower.includes('عاجل') || lower.includes('خطير') || lower.includes('طوارئ');
+  const isBreaking = lower.includes('breaking') || lower.includes('عاجل');
+
   let severity: ThreatClassification['severity'] = 'low';
-  if (lower.includes('breaking') || lower.includes('urgent') || lower.includes('critical') || lower.includes('mass casualt')) severity = 'critical';
-  else if (lower.includes('confirmed') || lower.includes('multiple') || lower.includes('heavy')) severity = 'high';
+  if (hasEvacuation || (hasUrgency && bestCategory !== 'unknown')) severity = 'critical';
+  else if (lower.includes('breaking') || lower.includes('urgent') || lower.includes('critical') || lower.includes('mass casualt') || isBreaking) severity = 'critical';
+  else if (hasUrgency || lower.includes('confirmed') || lower.includes('multiple') || lower.includes('heavy')) severity = 'high';
   else if (maxScore >= 2) severity = 'medium';
 
   return {
@@ -3032,15 +3048,13 @@ async function generateSitrep(window: SitrepWindow): Promise<Sitrep> {
   const windowAlerts = alertHistory.filter(a => new Date(a.timestamp).getTime() >= cutoff);
   const windowMessages = classifiedMessageCache.filter(m => new Date(m.timestamp).getTime() >= cutoff);
 
-  const [conflictEvents, cyberEvents, infraEvents] = await Promise.all([
+  const [conflictEvents, cyberEvents] = await Promise.all([
     fetchGDELTConflictEvents(),
     fetchCyberEvents(),
-    fetchInfraEvents(),
   ]);
 
   const windowConflicts = conflictEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
   const windowCyber = cyberEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
-  const windowInfra = infraEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
 
   const alertSummary = windowAlerts.length > 0
     ? `${windowAlerts.length} alerts in ${[...new Set(windowAlerts.map(a => a.country))].join(', ')}. Threat types: ${[...new Set(windowAlerts.map(a => a.threatType))].join(', ')}. Locations: ${windowAlerts.slice(0, 10).map(a => `${a.city} (${a.countdown}s)`).join(', ')}.`
@@ -3053,10 +3067,6 @@ async function generateSitrep(window: SitrepWindow): Promise<Sitrep> {
   const cyberSummary = windowCyber.slice(0, 8)
     .map(e => `[CYBER/${e.severity.toUpperCase()}] ${e.type} on ${e.target} (${e.country}, sector: ${e.sector}): ${e.description}`)
     .join('\n') || 'No cyber events.';
-
-  const infraSummary = windowInfra.slice(0, 6)
-    .map(e => `[INFRA/${e.severity.toUpperCase()}] ${e.type} in ${e.region}, ${e.country}: ${e.description}`)
-    .join('\n') || 'No infrastructure events.';
 
   const intelDigest = windowMessages.slice(0, 12)
     .map(m => `[${m.channel || 'OSINT'}] ${m.text.slice(0, 200)}`)
@@ -3076,9 +3086,6 @@ ${conflictSummary}
 
 === CYBER DOMAIN (${windowCyber.length} events) ===
 ${cyberSummary}
-
-=== INFRASTRUCTURE (${windowInfra.length} events) ===
-${infraSummary}
 
 === OSINT INTELLIGENCE (${windowMessages.length} messages) ===
 ${intelDigest}
@@ -3199,9 +3206,7 @@ Return this exact JSON schema (all fields required, write in military prose — 
     : `No OSINT items in this window. Pattern-of-life baseline normal. ${windowConflicts.length > 0 ? `GDELT conflict mapping shows ${windowConflicts.length} events — cross-reference with ISR feed.` : 'No anomalous patterns detected.'}`;
 
   // Infrastructure
-  const infrastructure = windowInfra.length > 0
-    ? `${windowInfra.length} infrastructure event(s) recorded. ${windowInfra.slice(0, 3).map(e => `${e.type} in ${e.region}, ${e.country}`).join('; ')}.`
-    : 'No critical infrastructure incidents reported. Power, ports, and airport status nominal.';
+  const infrastructure = 'No critical infrastructure incidents reported. Power, ports, and airport status nominal.';
 
   // EW/Cyber
   const ewCyber = `${ewActive > 0 ? `${ewActive} active EW disruption zone(s): ${windowEW.slice(0, 2).map(e => `${e.type} in ${e.country} (r=${e.radiusKm}km)`).join(', ')}.` : 'No active EW jamming confirmed.'} ${windowCyber.length > 0 ? `${windowCyber.length} cyber incident(s): ${windowCyber.slice(0,2).map(e => `${e.type} on ${e.target}`).join(', ')}.` : 'Cyber domain: no active incidents.'}`;
@@ -3807,101 +3812,6 @@ async function fetchNOTAMs(): Promise<NOTAMItem[]> {
   return notams;
 }
 
-// ── Infrastructure Attacks (ACLED + simulation) ───────────────────────────────
-const INFRA_BASE_EVENTS: Array<{
-  id: string; type: InfraEvent['type']; lat: number; lng: number;
-  country: string; region: string; severity: InfraEvent['severity'];
-  description: string; source: string; casualties?: number;
-}> = [
-  { id: 'inf_gz_power',   type: 'power',    lat: 31.35, lng: 34.31, country: 'Palestine', region: 'Gaza Strip',      severity: 'critical', description: 'Gaza Power Plant — only operational turbine struck. 2.3 million affected. Backup generator fuel depleted within 24h.', source: 'OCHA / ACLED', casualties: 0 },
-  { id: 'inf_gz_water',   type: 'water',    lat: 31.52, lng: 34.46, country: 'Palestine', region: 'North Gaza',       severity: 'critical', description: 'North Gaza water pumping station destroyed. 400,000 residents without running water. WHO emergency response activated.', source: 'WHO / ACLED' },
-  { id: 'inf_gz_hosp',    type: 'hospital', lat: 31.52, lng: 34.46, country: 'Palestine', region: 'Gaza City',        severity: 'critical', description: 'Al-Shifa Medical Complex severely damaged — largest hospital in Gaza. ICU and surgery wards non-functional.', source: 'MSF / ACLED', casualties: 12 },
-  { id: 'inf_ye_hod',     type: 'port',     lat: 14.79, lng: 42.95, country: 'Yemen',     region: 'Hudaydah',         severity: 'critical', description: 'Hudaydah port crane infrastructure destroyed. 70% of Yemeni food imports routed through this facility.', source: 'WFP / ACLED', casualties: 3 },
-  { id: 'inf_ye_power',   type: 'power',    lat: 15.36, lng: 44.21, country: 'Yemen',     region: "Sana'a",           severity: 'high',     description: "Sana'a main power grid struck by coalition airstrike. 16-hour blackouts across capital district.', source: 'ACLED", casualties: 1 },
-  { id: 'inf_sy_bridge',  type: 'bridge',   lat: 36.20, lng: 37.16, country: 'Syria',     region: 'Aleppo',           severity: 'high',     description: 'M5 highway bridge northwest of Aleppo destroyed — primary supply route to north Syria cut. Humanitarian convoys rerouted.', source: 'ACLED / REACH' },
-  { id: 'inf_lb_fuel',    type: 'fuel',     lat: 33.82, lng: 35.49, country: 'Lebanon',   region: 'Beirut',           severity: 'high',     description: 'Fuel storage depot near Beirut port struck. Fire contained after 6 hours. Secondary explosion risk eliminated.', source: 'Lebanese Civil Defense / ACLED', casualties: 2 },
-  { id: 'inf_iq_telecom', type: 'telecom',  lat: 33.33, lng: 44.44, country: 'Iraq',      region: 'Baghdad',          severity: 'medium',   description: 'IED strike on fiber-optic relay station in southern Baghdad. Internet outage affecting 40,000 subscribers. ISP reports 18h repair timeline.', source: 'ACLED / NetBlocks' },
-  { id: 'inf_sy_hosp',    type: 'hospital', lat: 35.93, lng: 36.74, country: 'Syria',     region: 'Idlib',            severity: 'high',     description: 'MSF-supported hospital in Idlib struck in artillery barrage. OR destroyed. 23 patients evacuated. 4th health facility hit this month.', source: 'MSF / WHO / ACLED', casualties: 5 },
-  { id: 'inf_ye_airport', type: 'airport',  lat: 12.83, lng: 45.03, country: 'Yemen',     region: 'Aden',             severity: 'medium',   description: 'Aden International Airport runway damaged by mortar fire. Flights suspended 9 hours pending EOD clearance.', source: 'ACLED', casualties: 0 },
-  { id: 'inf_gz_telecom', type: 'telecom',  lat: 31.42, lng: 34.34, country: 'Palestine', region: 'Khan Younis',      severity: 'critical', description: 'Paltel telecommunications hub destroyed. Gaza internet connectivity near zero. Coordination for humanitarian aid severely impacted.', source: 'NetBlocks / ACLED' },
-  { id: 'inf_lb_water',   type: 'water',    lat: 33.55, lng: 35.37, country: 'Lebanon',   region: 'South Lebanon',    severity: 'high',     description: 'Litani River pumping station damaged by Israeli airstrike. 120,000 residents in Tyre district without water supply.', source: 'UNICEF / ACLED', casualties: 0 },
-];
-
-let infraCache: { data: InfraEvent[]; fetchedAt: number } | null = null;
-const INFRA_CACHE_TTL = 10 * 60 * 1000; // 10 min
-
-async function fetchInfraEvents(): Promise<InfraEvent[]> {
-  if (infraCache && Date.now() - infraCache.fetchedAt < INFRA_CACHE_TTL) return infraCache.data;
-
-  // Try ACLED API if credentials are available
-  const acledKey = process.env.ACLED_API_KEY;
-  const acledEmail = process.env.ACLED_EMAIL;
-  let acledEvents: InfraEvent[] = [];
-
-  if (acledKey && acledEmail) {
-    try {
-      const countries = 'Israel:Palestine:Lebanon:Syria:Iraq:Yemen:Iran:Jordan:Egypt:Saudi Arabia';
-      const url = `https://api.acleddata.com/acled/read?key=${acledKey}&email=${acledEmail}&country=${encodeURIComponent(countries)}&event_type=Explosions%2FRemote+violence&limit=40&fields=event_id_cnty,event_date,event_type,sub_event_type,country,admin1,latitude,longitude,notes,fatalities,source`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (res.ok) {
-        const json = await res.json() as { data?: Array<Record<string, unknown>> };
-        const infraKeywords = ['power', 'electric', 'water', 'hospital', 'medical', 'bridge', 'port', 'fuel', 'telecom', 'airport', 'infrastructure', 'facility'];
-        acledEvents = (json.data || [])
-          .filter((e: Record<string, unknown>) => infraKeywords.some(kw => String(e.notes || '').toLowerCase().includes(kw)))
-          .slice(0, 8)
-          .map((e: Record<string, unknown>, i: number) => {
-            const notes = String(e.notes || '');
-            const type: InfraEvent['type'] =
-              /power|electric/i.test(notes) ? 'power' :
-              /water|pump/i.test(notes) ? 'water' :
-              /hospital|medical|clinic/i.test(notes) ? 'hospital' :
-              /bridge/i.test(notes) ? 'bridge' :
-              /port|harbour|harbor/i.test(notes) ? 'port' :
-              /fuel|petrol|gas station/i.test(notes) ? 'fuel' :
-              /telecom|internet|fiber|mobile/i.test(notes) ? 'telecom' :
-              /airport|runway/i.test(notes) ? 'airport' : 'power';
-            const fatalities = parseInt(String(e.fatalities || '0'));
-            return {
-              id: `acled_${e.event_id_cnty || i}`,
-              type,
-              lat: parseFloat(String(e.latitude || '0')),
-              lng: parseFloat(String(e.longitude || '0')),
-              country: String(e.country || 'Unknown'),
-              region: String(e.admin1 || 'Unknown'),
-              severity: fatalities >= 10 ? 'critical' : fatalities >= 3 ? 'high' : fatalities >= 1 ? 'medium' : 'low',
-              timestamp: new Date(String(e.event_date || Date.now())).toISOString(),
-              description: notes.slice(0, 220),
-              source: `ACLED / ${e.source || 'Unknown'}`,
-              casualties: fatalities || undefined,
-            };
-          });
-        console.log(`[INFRA] ACLED returned ${acledEvents.length} infrastructure events`);
-      }
-    } catch (err) {
-      console.warn('[INFRA] ACLED fetch failed:', err instanceof Error ? err.message : err);
-    }
-  }
-
-  // Merge ACLED with base events, ACLED takes priority
-  const now = Date.now();
-  const baseWithTimestamps: InfraEvent[] = INFRA_BASE_EVENTS.map(e => {
-    const hoursAgo = Math.floor(Math.random() * 48);
-    const minutesAgo = Math.floor(Math.random() * 59);
-    return {
-      ...e,
-      timestamp: new Date(now - hoursAgo * 3600000 - minutesAgo * 60000).toISOString(),
-    };
-  });
-
-  const merged = acledEvents.length > 0
-    ? [...acledEvents, ...baseWithTimestamps].slice(0, 15)
-    : baseWithTimestamps;
-
-  infraCache = { data: merged, fetchedAt: Date.now() };
-  console.log(`[INFRA] Serving ${merged.length} infrastructure events`);
-  return merged;
-}
-
 // --- Tzevaadom WebSocket client for real-time push alerts ---
 let tzevaadomWsAlerts: RedAlert[] = [];
 let tzevaadomWsConnected = false;
@@ -4043,6 +3953,10 @@ export async function registerRoutes(
     'MilitaryOSINT',     // Military OSINT aggregator (EN)
     'Aurora_Intel',      // Aurora Intel — global conflict tracking (EN)
     'TheDeepStateCom',   // Deep State Map — geo-confirmed conflict (EN)
+    // --- Featured OSINT channels (bilingual EN/AR) ---
+    'AjaNews',           // Al Jazeera Arabic — live breaking news (AR)
+    'thewarreporter',    // The War Reporter — frontline coverage (EN)
+    'channelnabatieh',   // Nabatieh channel — south Lebanon village level (AR)
     // --- Priority fast-update channels (also in PRIORITY_TELEGRAM_CHANNELS below) ---
     'wfwitness',         // War footage witness — live ground video/reports (EN)
   ];
@@ -4079,6 +3993,9 @@ export async function registerRoutes(
     'ISWResearch',       // ISW — fast analysis updates
     'warmonitor3',       // War Monitor — global fast
     'Aurora_Intel',      // Aurora Intel — real-time tracking
+    'AjaNews',           // Al Jazeera Arabic — real-time breaking (AR)
+    'thewarreporter',    // The War Reporter — frontline fast (EN)
+    'channelnabatieh',   // Nabatieh — south Lebanon ground (AR)
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
@@ -4192,12 +4109,15 @@ export async function registerRoutes(
         }
         if (text) text = sanitizeText(text);
 
+        const arabicRatio = text ? (text.match(/[\u0600-\u06FF]/g) || []).length / Math.max(text.length, 1) : 0;
+        const isArabicMsg = arabicRatio > 0.25;
         msgs.push({
           id: `live_${channel}_${postId.replace('/', '_')}`,
           channel: `@${channel}`,
           text: text || (image ? '[Photo]' : ''),
           timestamp: datetime || new Date().toISOString(),
           ...(image ? { image } : {}),
+          ...(isArabicMsg && text ? { textAr: text } : {}),
         });
         count++;
       }
@@ -4219,11 +4139,13 @@ export async function registerRoutes(
         }
         const limit = Math.min(texts.length, times.length, 15);
         for (let i = 0; i < limit; i++) {
+          const arRatio = (texts[i].match(/[\u0600-\u06FF]/g) || []).length / Math.max(texts[i].length, 1);
           msgs.push({
             id: `live_${channel}_alt_${i}`,
             channel: `@${channel}`,
             text: texts[i],
             timestamp: times[i] || new Date().toISOString(),
+            ...(arRatio > 0.25 ? { textAr: texts[i] } : {}),
           });
         }
       }
@@ -4623,7 +4545,6 @@ export async function registerRoutes(
     });
     fetchInternetHealth().then(status => send('internet-status', status));
     fetchNOTAMs().then(notams => send('notams', notams));
-    fetchInfraEvents().then(events => send('infra', events));
     fetchXFeeds().then(xPosts => {
       latestXPosts = xPosts;
       const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
@@ -4669,7 +4590,6 @@ export async function registerRoutes(
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
     intervals.push(setInterval(() => fetchInternetHealth().then(status => send('internet-status', status)), 60000));
     intervals.push(setInterval(() => fetchNOTAMs().then(notams => send('notams', notams)), 120000));
-    intervals.push(setInterval(() => fetchInfraEvents().then(events => send('infra', events)), 120000));
 
     intervals.push(setInterval(async () => {
       const tgMsgs = latestTgMsgs.length > 0 ? latestTgMsgs : await fetchPriorityTelegram().catch(() => []);
@@ -4752,10 +4672,6 @@ export async function registerRoutes(
     res.json(data);
   });
 
-  app.get('/api/infra', async (_req, res) => {
-    const data = await fetchInfraEvents();
-    res.json(data);
-  });
 
   app.get('/api/x-feed', async (_req, res) => {
     const data = await fetchXFeeds();
