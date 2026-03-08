@@ -3,6 +3,7 @@ import GridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 import type { LayoutItem as GridItemLayout, Layout as GridLayout2 } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -2625,9 +2626,124 @@ const GPS_SEV_TEXT: Record<string, string> = {
 };
 const NACP_COLOR = (n: number) => n < 3 ? 'text-red-400' : n < 5 ? 'text-orange-400' : n < 7 ? 'text-yellow-400' : 'text-emerald-400';
 
+const GPS_SEV_FILL: Record<string, string> = {
+  critical: 'rgba(239,68,68,0.25)', high: 'rgba(249,115,22,0.20)', medium: 'rgba(234,179,8,0.15)', low: 'rgba(52,211,153,0.10)',
+};
+const GPS_SEV_STROKE: Record<string, string> = {
+  critical: 'rgba(239,68,68,0.7)', high: 'rgba(249,115,22,0.6)', medium: 'rgba(234,179,8,0.5)', low: 'rgba(52,211,153,0.4)',
+};
+const GPS_SEV_DOT: Record<string, string> = {
+  critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#34d399',
+};
+
+function GPSSpoofMap({ zones, onZoneClick }: { zones: GPSSpoofingZone[]; onZoneClick?: (id: string) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const zonesRef = useRef(zones);
+  zonesRef.current = zones;
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+    const m = new maplibregl.Map({
+      container: containerRef.current,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [44, 30],
+      zoom: 3.2,
+      attributionControl: false,
+      interactive: true,
+      pitchWithRotate: false,
+      dragRotate: false,
+    });
+    mapRef.current = m;
+
+    m.on('load', () => {
+      m.addSource('spoof-zones', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+      m.addLayer({
+        id: 'spoof-fill',
+        type: 'circle',
+        source: 'spoof-zones',
+        paint: {
+          'circle-radius': ['get', 'circleRadius'],
+          'circle-color': ['get', 'fillColor'],
+          'circle-opacity': 0.6,
+          'circle-stroke-color': ['get', 'strokeColor'],
+          'circle-stroke-width': 1.5,
+        },
+      });
+      m.addLayer({
+        id: 'spoof-labels',
+        type: 'symbol',
+        source: 'spoof-zones',
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': 10,
+          'text-font': ['Open Sans Bold'],
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(0,0,0,0.8)',
+          'text-halo-width': 1,
+        },
+      });
+      updateSource(m, zonesRef.current);
+    });
+
+    m.on('zoom', () => { updateSource(m, zonesRef.current); });
+    m.on('click', 'spoof-fill', (e) => {
+      const f = e.features?.[0];
+      if (f && onZoneClick) onZoneClick(f.properties?.zoneId);
+    });
+    m.on('mouseenter', 'spoof-fill', () => { m.getCanvas().style.cursor = 'pointer'; });
+    m.on('mouseleave', 'spoof-fill', () => { m.getCanvas().style.cursor = ''; });
+
+    const ro = new ResizeObserver(() => {
+      m.resize();
+      updateSource(m, zonesRef.current);
+    });
+    ro.observe(containerRef.current);
+
+    return () => { ro.disconnect(); m.remove(); mapRef.current = null; };
+  }, []);
+
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m || !m.isStyleLoaded()) return;
+    updateSource(m, zones);
+  }, [zones]);
+
+  return <div ref={containerRef} className="w-full h-full" data-testid="gpsspoof-map" />;
+}
+
+function updateSource(m: maplibregl.Map, zones: GPSSpoofingZone[]) {
+  const src = m.getSource('spoof-zones') as maplibregl.GeoJSONSource | undefined;
+  if (!src) return;
+  const features: GeoJSON.Feature[] = zones.map(z => {
+    const zoom = m.getZoom();
+    const metersPerPx = 156543.03392 * Math.cos(z.lat * Math.PI / 180) / Math.pow(2, zoom);
+    const radiusPx = Math.max(6, Math.min(80, (z.radiusKm * 1000) / metersPerPx));
+    return {
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [z.lng, z.lat] },
+      properties: {
+        zoneId: z.id,
+        circleRadius: radiusPx,
+        fillColor: GPS_SEV_FILL[z.severity] || GPS_SEV_FILL.medium,
+        strokeColor: GPS_SEV_STROKE[z.severity] || GPS_SEV_STROKE.medium,
+        label: `${z.affectedAircraft}`,
+      },
+    };
+  });
+  src.setData({ type: 'FeatureCollection', features });
+}
+
 const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClose, onMaximize, isMaximized }: { zones: GPSSpoofingZone[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   const [expandedZone, setExpandedZone] = useState<string | null>(null);
+  const [view, setView] = useState<'map' | 'list'>('map');
   const totalAffected = zones.reduce((s, z) => s + z.affectedAircraft, 0);
   const critCount = zones.filter(z => z.severity === 'critical').length;
   const highCount = zones.filter(z => z.severity === 'high').length;
@@ -2652,6 +2768,10 @@ const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClo
             <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
           </div>
         ))}
+        <div className="ml-auto flex items-center gap-0.5 bg-white/[0.04] rounded p-0.5">
+          <button onClick={() => setView('map')} className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${view === 'map' ? 'bg-orange-500/20 text-orange-300' : 'text-foreground/30 hover:text-foreground/50'}`} data-testid="gpsspoof-view-map">MAP</button>
+          <button onClick={() => setView('list')} className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${view === 'list' ? 'bg-orange-500/20 text-orange-300' : 'text-foreground/30 hover:text-foreground/50'}`} data-testid="gpsspoof-view-list">LIST</button>
+        </div>
       </div>
       {zones.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -2660,42 +2780,60 @@ const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClo
           <p className="text-[9px] text-foreground/20 mt-1">{t('All aircraft reporting normal NACp', 'جميع الطائرات تبلغ عن NACp طبيعي')}</p>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-        {zones.map((zone) => (
-          <div key={zone.id} className="px-3 py-2.5 hover-elevate border-l-2 relative cursor-pointer" style={{ borderLeftColor: GPS_SEV_BORDER[zone.severity] || 'transparent' }} onClick={() => setExpandedZone(expandedZone === zone.id ? null : zone.id)} data-testid={`gpsspoof-zone-${zone.id}`}>
-            <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-orange-500" style={{ boxShadow: '0 0 6px rgb(249 115 22 / 0.7)' }} />
-            <div className="flex items-center gap-1.5 mb-1 pr-4">
-              <span className="text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 text-orange-300 bg-orange-500/10 border-orange-500/30">GPS</span>
-              <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{zone.region}</span>
-              <span className={`text-[9px] font-mono font-bold shrink-0 ${GPS_SEV_TEXT[zone.severity]}`}>{zone.severity.toUpperCase()}</span>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/40 mb-1">
-              <span className="text-orange-400">{zone.affectedAircraft} aircraft</span>
-              <span>·</span>
-              <span>NACp avg <span className={NACP_COLOR(zone.avgNacP)}>{zone.avgNacP}</span></span>
-              <span>·</span>
-              <span>{zone.radiusKm}km</span>
-            </div>
-            <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
-              <span>{zone.country}</span>
-              <span className="ml-auto">{timeAgo(zone.detectedAt)}</span>
-            </div>
-            {expandedZone === zone.id && zone.aircraftSamples.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-white/[0.04]">
-                <div className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider mb-1.5">{t('AFFECTED AIRCRAFT', 'الطائرات المتأثرة')}</div>
-                {zone.aircraftSamples.map((ac, i) => (
-                  <div key={i} className="flex items-center gap-2 text-[10px] font-mono py-0.5">
-                    <span className="text-foreground/60 w-16 truncate">{ac.callsign || '---'}</span>
-                    <span className={`${NACP_COLOR(ac.nacP)}`}>NACp:{ac.nacP}</span>
-                    <span className="text-foreground/30">NIC:{ac.nic}</span>
-                    <span className="text-foreground/30">SIL:{ac.sil}</span>
-                  </div>
-                ))}
+      {view === 'map' && zones.length > 0 && (
+        <div className="flex-1 min-h-0 relative">
+          <GPSSpoofMap zones={zones} onZoneClick={(id) => { setExpandedZone(expandedZone === id ? null : id); setView('list'); }} />
+          <div className="absolute bottom-2 left-2 flex flex-col gap-1 pointer-events-none">
+            {(['critical', 'high', 'medium'] as const).map(sev => (
+              <div key={sev} className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full border" style={{ backgroundColor: GPS_SEV_FILL[sev], borderColor: GPS_SEV_STROKE[sev] }} />
+                <span className="text-[8px] font-mono text-foreground/40 uppercase">{sev}</span>
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
+          <div className="absolute top-2 right-2 text-[8px] font-mono text-foreground/30 bg-black/40 px-1.5 py-0.5 rounded">
+            {zones.length} {t('ZONES', 'مناطق')}
+          </div>
+        </div>
+      )}
+      {view === 'list' && (
+        <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
+          {zones.map((zone) => (
+            <div key={zone.id} className="px-3 py-2.5 hover-elevate border-l-2 relative cursor-pointer" style={{ borderLeftColor: GPS_SEV_BORDER[zone.severity] || 'transparent' }} onClick={() => setExpandedZone(expandedZone === zone.id ? null : zone.id)} data-testid={`gpsspoof-zone-${zone.id}`}>
+              <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: GPS_SEV_DOT[zone.severity], boxShadow: `0 0 6px ${GPS_SEV_DOT[zone.severity]}` }} />
+              <div className="flex items-center gap-1.5 mb-1 pr-4">
+                <span className="text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 text-orange-300 bg-orange-500/10 border-orange-500/30">GPS</span>
+                <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{zone.region}</span>
+                <span className={`text-[9px] font-mono font-bold shrink-0 ${GPS_SEV_TEXT[zone.severity]}`}>{zone.severity.toUpperCase()}</span>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/40 mb-1">
+                <span className="text-orange-400">{zone.affectedAircraft} aircraft</span>
+                <span>·</span>
+                <span>NACp avg <span className={NACP_COLOR(zone.avgNacP)}>{zone.avgNacP}</span></span>
+                <span>·</span>
+                <span>{zone.radiusKm}km</span>
+              </div>
+              <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
+                <span>{zone.country}</span>
+                <span className="ml-auto">{timeAgo(zone.detectedAt)}</span>
+              </div>
+              {expandedZone === zone.id && zone.aircraftSamples.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-white/[0.04]">
+                  <div className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider mb-1.5">{t('AFFECTED AIRCRAFT', 'الطائرات المتأثرة')}</div>
+                  {zone.aircraftSamples.map((ac, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[10px] font-mono py-0.5">
+                      <span className="text-foreground/60 w-16 truncate">{ac.callsign || '---'}</span>
+                      <span className={`${NACP_COLOR(ac.nacP)}`}>NACp:{ac.nacP}</span>
+                      <span className="text-foreground/30">NIC:{ac.nic}</span>
+                      <span className="text-foreground/30">SIL:{ac.sil}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 });
@@ -2763,8 +2901,7 @@ const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, la
               </div>
               <div className="flex items-center gap-2 mt-1 text-[9px] font-mono text-foreground/25">
                 <span className="truncate flex-1">{cs.topASN}</span>
-                <span>h={cs.topASNHege}</span>
-                <span>{cs.asnCount} ASNs</span>
+                <span>IODA</span>
               </div>
               {cs.outages.length > 0 && cs.outages.map((o) => (
                 <div key={o.id} className="mt-1.5 px-2 py-1.5 rounded border border-red-500/20 bg-red-500/5">
@@ -5027,6 +5164,73 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     </div>
                   )}
 
+                  {analytics && (
+                    <div className={`rounded border ${threatLevelConfig[computedThreatLevel].border} overflow-hidden ${threatLevelConfig[computedThreatLevel].glow}`}
+                      style={{background: threatLevelConfig[computedThreatLevel].gradient}} data-testid="section-threat-level">
+                      <div className="flex items-center justify-between px-3 py-2.5">
+                        <div className="flex flex-col gap-1">
+                          <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded self-start ${threatLevelConfig[computedThreatLevel].badge}`}>THREAT LEVEL</span>
+                          <span className="text-2xl font-black font-mono tracking-widest text-white leading-none">{computedThreatLevel}</span>
+                          <span className="text-[9px] font-mono text-white/50 max-w-[160px] leading-relaxed">{threatLevelConfig[computedThreatLevel].desc}</span>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[8px] font-mono text-white/40 uppercase tracking-wider">Active</span>
+                          <span className="text-4xl font-black font-mono text-white/90 leading-none tabular-nums">{analytics.activeAlertCount}</span>
+                          <span className={`text-[9px] font-mono font-bold ${trendColor}`}>{trendIcon} {analytics.threatTrend.toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {analytics.escalationForecast && (() => {
+                    const fc = analytics.escalationForecast;
+                    const dirConfig = {
+                      surging:    { label: 'SURGING',    color: 'text-red-400',    bg: 'bg-red-950/30 border-red-500/30',    icon: '▲▲', glow: 'shadow-[0_0_12px_rgb(239_68_68_/_0.25)]' },
+                      escalating: { label: 'ESCALATING', color: 'text-orange-400', bg: 'bg-orange-950/25 border-orange-500/25', icon: '▲', glow: '' },
+                      stable:     { label: 'STABLE',     color: 'text-yellow-400', bg: 'bg-yellow-950/20 border-yellow-500/20', icon: '●', glow: '' },
+                      cooling:    { label: 'COOLING',    color: 'text-emerald-400', bg: 'bg-emerald-950/20 border-emerald-500/20', icon: '▼', glow: '' },
+                    }[fc.direction];
+                    const confPct = Math.round(fc.confidence * 100);
+                    const velSign = fc.velocityPerHour >= 0 ? '+' : '';
+                    return (
+                      <div className={`rounded border p-2.5 ${dirConfig.bg} ${dirConfig.glow}`} data-testid="section-escalation-forecast">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${dirConfig.color}`} />
+                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Escalation Forecast', '\u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u062A\u0635\u0639\u064A\u062F')}</span>
+                          <div className="flex-1" />
+                          <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded ${dirConfig.color}`} style={{background:'rgb(0 0 0 / 0.25)'}}>
+                            {dirConfig.icon} {dirConfig.label}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5 mb-2">
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 1h</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.nextHour}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 3h</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.next3Hours}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Velocity</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{velSign}{Math.round(fc.velocityPerHour)}</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
+                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Peak</span>
+                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.projectedPeak || '--'}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[8px] font-mono text-foreground/30">{t('Confidence', '\u0627\u0644\u062B\u0642\u0629')}</span>
+                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${fc.confidence > 0.6 ? 'bg-emerald-400/70' : fc.confidence > 0.35 ? 'bg-yellow-400/70' : 'bg-red-400/50'}`} style={{ width: `${confPct}%` }} />
+                          </div>
+                          <span className={`text-[8px] font-black font-mono ${fc.confidence > 0.6 ? 'text-emerald-400' : fc.confidence > 0.35 ? 'text-yellow-400' : 'text-red-400/70'}`}>{confPct}%</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { label: t('ACTIVE','\u0646\u0634\u0637'), value: analytics.activeAlertCount, color: 'text-red-400', accent: 'hsl(0 72% 51%)', border: 'border-red-500/15', bg: 'bg-red-950/15', testid: 'text-active-alerts', tooltip: 'Oref red alerts currently within countdown window' },
@@ -5072,6 +5276,69 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         </TooltipContent>
                       </Tooltip>
                     ))}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2 pb-1 border-b border-white/[0.05]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Alert Timeline', '\u0627\u0644\u062C\u062F\u0648\u0644 \u0627\u0644\u0632\u0645\u0646\u064A 24 \u0633\u0627\u0639\u0629')}</span>
+                      <div className="flex items-center gap-2">
+                        {peakHour && peakHour.count > 0 && (
+                          <span className="text-[8px] font-mono text-red-400/70 font-bold">⚡ Peak {peakHour.time}</span>
+                        )}
+                        <span className="text-[8px] font-mono text-foreground/25">UTC · {totalAlerts}</span>
+                      </div>
+                    </div>
+                    <div className="rounded border border-white/[0.05] overflow-hidden" data-testid="chart-timeline">
+                      <div className="flex items-end gap-[2px] bg-white/[0.015] px-1.5 pt-2" style={{height: '72px'}}>
+                      {(analytics.alertTimeline ?? []).map((b, i) => {
+                        const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const topCountries = Object.entries(b.countries || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
+                        const isPeak = peakHour && b.time === peakHour.time && b.count === peakHour.count;
+                        const barColor = isPeak ? 'rgb(239 68 68 / 0.95)' : b.count > maxTimeline * 0.7 ? 'rgb(239 68 68 / 0.75)' : b.count > maxTimeline * 0.4 ? 'rgb(251 146 60 / 0.65)' : 'rgb(59 130 246 / 0.45)';
+                        return (
+                          <Tooltip key={i}>
+                            <TooltipTrigger asChild>
+                              <div className="flex-1 flex flex-col items-center justify-end h-full group cursor-default">
+                                <div className={`w-full rounded-t-sm transition-all group-hover:brightness-150 group-hover:scale-y-[1.08] min-h-[2px] origin-bottom ${isPeak ? 'ring-1 ring-red-400/60 shadow-[0_0_6px_rgb(239_68_68_/_0.4)]' : ''}`} style={{ height: `${Math.max(4, (b.count / maxTimeline) * 88)}%`, background: barColor }} />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-black/95 border-white/10 p-2 min-w-[130px]">
+                              <p className="text-[11px] font-black font-mono text-foreground/90 mb-1">{b.time} UTC {isPeak ? '(PEAK)' : ''}</p>
+                              <p className="text-[10px] font-mono text-foreground/60 mb-1.5">{b.count} alert{b.count !== 1 ? 's' : ''}</p>
+                              {topRegions.length > 0 && (
+                                <div className="mb-1">
+                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Regions</p>
+                                  {topRegions.map(([r, c]) => (<div key={r} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55">{r}</span><span className="text-[9px] font-bold font-mono text-orange-300/80">{c}</span></div>))}
+                                </div>
+                              )}
+                              {topTypes.length > 0 && (
+                                <div>
+                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Types</p>
+                                  {topTypes.map(([tp, c]) => (<div key={tp} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55 uppercase">{tp.replace(/_/g,' ')}</span><span className="text-[9px] font-bold font-mono text-blue-300/80">{c}</span></div>))}
+                                </div>
+                              )}
+                              {topCountries.length > 0 && (
+                                <div className="mt-1">
+                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Countries</p>
+                                  {topCountries.map(([c, ct]) => (<div key={c} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55">{c}</span><span className="text-[9px] font-bold font-mono text-emerald-300/80">{ct}</span></div>))}
+                                </div>
+                              )}
+                              {b.count === 0 && <p className="text-[9px] font-mono text-foreground/25 italic">No alerts this hour</p>}
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })}
+                      </div>
+                      {/* Hour axis labels */}
+                      <div className="flex items-center px-1.5 py-1 border-t border-white/[0.04]" style={{background: 'hsl(222 20% 10% / 0.5)'}}>
+                        {['0h','','','','','','6h','','','','','','12h','','','','','','18h','','','','','23h'].map((lbl, i) => (
+                          <div key={i} className="flex-1 text-center">
+                            {lbl && <span className="text-[7px] font-mono text-foreground/25 tabular-nums">{lbl}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   {analytics.eventsByType && Object.keys(analytics.eventsByType).length > 0 && (
@@ -5157,55 +5424,6 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     </div>
                   )}
 
-                  {analytics.escalationForecast && (() => {
-                    const fc = analytics.escalationForecast;
-                    const dirConfig = {
-                      surging:    { label: 'SURGING',    color: 'text-red-400',    bg: 'bg-red-950/30 border-red-500/30',    icon: '▲▲', glow: 'shadow-[0_0_12px_rgb(239_68_68_/_0.25)]' },
-                      escalating: { label: 'ESCALATING', color: 'text-orange-400', bg: 'bg-orange-950/25 border-orange-500/25', icon: '▲', glow: '' },
-                      stable:     { label: 'STABLE',     color: 'text-yellow-400', bg: 'bg-yellow-950/20 border-yellow-500/20', icon: '●', glow: '' },
-                      cooling:    { label: 'COOLING',    color: 'text-emerald-400', bg: 'bg-emerald-950/20 border-emerald-500/20', icon: '▼', glow: '' },
-                    }[fc.direction];
-                    const confPct = Math.round(fc.confidence * 100);
-                    const velSign = fc.velocityPerHour >= 0 ? '+' : '';
-                    return (
-                      <div className={`rounded border p-2.5 ${dirConfig.bg} ${dirConfig.glow}`} data-testid="section-escalation-forecast">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${dirConfig.color}`} />
-                          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/50 font-mono">{t('Escalation Forecast', '\u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u062A\u0635\u0639\u064A\u062F')}</span>
-                          <div className="flex-1" />
-                          <span className={`text-[9px] font-black font-mono px-2 py-0.5 rounded ${dirConfig.color}`} style={{background:'rgb(0 0 0 / 0.25)'}}>
-                            {dirConfig.icon} {dirConfig.label}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1.5 mb-2">
-                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
-                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 1h</span>
-                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.nextHour}</span>
-                          </div>
-                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
-                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Next 3h</span>
-                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.next3Hours}</span>
-                          </div>
-                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
-                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Velocity</span>
-                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{velSign}{Math.round(fc.velocityPerHour)}</span>
-                          </div>
-                          <div className="flex flex-col items-center gap-0.5 py-1 rounded bg-black/20">
-                            <span className="text-[7px] font-mono text-foreground/35 tracking-wider uppercase">Peak</span>
-                            <span className={`text-lg font-black font-mono leading-none ${dirConfig.color}`}>{fc.projectedPeak || '--'}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[8px] font-mono text-foreground/30">{t('Confidence', '\u0627\u0644\u062B\u0642\u0629')}</span>
-                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${fc.confidence > 0.6 ? 'bg-emerald-400/70' : fc.confidence > 0.35 ? 'bg-yellow-400/70' : 'bg-red-400/50'}`} style={{ width: `${confPct}%` }} />
-                          </div>
-                          <span className={`text-[8px] font-black font-mono ${fc.confidence > 0.6 ? 'text-emerald-400' : fc.confidence > 0.35 ? 'text-yellow-400' : 'text-red-400/70'}`}>{confPct}%</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
                   {analytics.regionAnomalies && analytics.regionAnomalies.length > 0 && (
                     <div data-testid="section-region-anomalies">
                       <div className="flex items-center gap-2 mb-2">
@@ -5236,69 +5454,6 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       </div>
                     </div>
                   )}
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2 pb-1 border-b border-white/[0.05]">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Alert Timeline', '\u0627\u0644\u062C\u062F\u0648\u0644 \u0627\u0644\u0632\u0645\u0646\u064A 24 \u0633\u0627\u0639\u0629')}</span>
-                      <div className="flex items-center gap-2">
-                        {peakHour && peakHour.count > 0 && (
-                          <span className="text-[8px] font-mono text-red-400/70 font-bold">⚡ Peak {peakHour.time}</span>
-                        )}
-                        <span className="text-[8px] font-mono text-foreground/25">UTC · {totalAlerts}</span>
-                      </div>
-                    </div>
-                    <div className="rounded border border-white/[0.05] overflow-hidden" data-testid="chart-timeline">
-                      <div className="flex items-end gap-[2px] bg-white/[0.015] px-1.5 pt-2" style={{height: '72px'}}>
-                      {(analytics.alertTimeline ?? []).map((b, i) => {
-                        const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
-                        const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
-                        const topCountries = Object.entries(b.countries || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
-                        const isPeak = peakHour && b.time === peakHour.time && b.count === peakHour.count;
-                        const barColor = isPeak ? 'rgb(239 68 68 / 0.95)' : b.count > maxTimeline * 0.7 ? 'rgb(239 68 68 / 0.75)' : b.count > maxTimeline * 0.4 ? 'rgb(251 146 60 / 0.65)' : 'rgb(59 130 246 / 0.45)';
-                        return (
-                          <Tooltip key={i}>
-                            <TooltipTrigger asChild>
-                              <div className="flex-1 flex flex-col items-center justify-end h-full group cursor-default">
-                                <div className={`w-full rounded-t-sm transition-all group-hover:brightness-150 group-hover:scale-y-[1.08] min-h-[2px] origin-bottom ${isPeak ? 'ring-1 ring-red-400/60 shadow-[0_0_6px_rgb(239_68_68_/_0.4)]' : ''}`} style={{ height: `${Math.max(4, (b.count / maxTimeline) * 88)}%`, background: barColor }} />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-black/95 border-white/10 p-2 min-w-[130px]">
-                              <p className="text-[11px] font-black font-mono text-foreground/90 mb-1">{b.time} UTC {isPeak ? '(PEAK)' : ''}</p>
-                              <p className="text-[10px] font-mono text-foreground/60 mb-1.5">{b.count} alert{b.count !== 1 ? 's' : ''}</p>
-                              {topRegions.length > 0 && (
-                                <div className="mb-1">
-                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Regions</p>
-                                  {topRegions.map(([r, c]) => (<div key={r} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55">{r}</span><span className="text-[9px] font-bold font-mono text-orange-300/80">{c}</span></div>))}
-                                </div>
-                              )}
-                              {topTypes.length > 0 && (
-                                <div>
-                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Types</p>
-                                  {topTypes.map(([tp, c]) => (<div key={tp} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55 uppercase">{tp.replace(/_/g,' ')}</span><span className="text-[9px] font-bold font-mono text-blue-300/80">{c}</span></div>))}
-                                </div>
-                              )}
-                              {topCountries.length > 0 && (
-                                <div className="mt-1">
-                                  <p className="text-[8px] font-mono text-foreground/35 uppercase tracking-wider mb-0.5">Countries</p>
-                                  {topCountries.map(([c, ct]) => (<div key={c} className="flex justify-between gap-3"><span className="text-[9px] font-mono text-foreground/55">{c}</span><span className="text-[9px] font-bold font-mono text-emerald-300/80">{ct}</span></div>))}
-                                </div>
-                              )}
-                              {b.count === 0 && <p className="text-[9px] font-mono text-foreground/25 italic">No alerts this hour</p>}
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
-                      </div>
-                      {/* Hour axis labels */}
-                      <div className="flex items-center px-1.5 py-1 border-t border-white/[0.04]" style={{background: 'hsl(222 20% 10% / 0.5)'}}>
-                        {['0h','','','','','','6h','','','','','','12h','','','','','','18h','','','','','23h'].map((lbl, i) => (
-                          <div key={i} className="flex-1 text-center">
-                            {lbl && <span className="text-[7px] font-mono text-foreground/25 tabular-nums">{lbl}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5" data-testid="section-quick-stats">
                     <div className="flex items-center gap-2 mb-2">

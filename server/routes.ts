@@ -3628,8 +3628,8 @@ async function fetchGPSSpoofingZones(): Promise<GPSSpoofingZone[]> {
   return zones;
 }
 
-// ── Internet Blackout Monitoring (IHR API) ───────────────────────────────────
-const IHR_COUNTRIES = [
+// ── Internet Blackout Monitoring (IODA + Cloudflare Radar) ───────────────────
+const INET_COUNTRIES = [
   { code: 'IR', name: 'Iran' },
   { code: 'IQ', name: 'Iraq' },
   { code: 'SY', name: 'Syria' },
@@ -3645,6 +3645,8 @@ const IHR_COUNTRIES = [
   { code: 'QA', name: 'Qatar' },
 ];
 
+const INET_BASELINES: Record<string, { bgp: number; ping: number }> = {};
+
 let internetCache: { data: InternetCountryStatus[]; fetchedAt: number } | null = null;
 const INTERNET_CACHE_TTL = 120_000;
 
@@ -3652,90 +3654,118 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
   if (internetCache && Date.now() - internetCache.fetchedAt < INTERNET_CACHE_TTL) return internetCache.data;
 
   const results: InternetCountryStatus[] = [];
+  const countryCodes = INET_COUNTRIES.map(c => c.code).join(',');
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - 7200;
 
-  await Promise.allSettled(
-    IHR_COUNTRIES.map(async (country) => {
-      try {
-        const resp = await fetch(
-          `https://ihr.iijlab.net/ihr/api/hegemony/countries/?country=${country.code}&af=4&format=json`,
-          { signal: AbortSignal.timeout(10000) }
-        );
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json() as { results?: Array<{ asn: number; hege: number; asn_name: string; weight: number; transitonly: boolean }> };
-        const entries = (data.results || []).filter((e: any) => e.transitonly === true);
+  try {
+    const resp = await fetch(
+      `https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/country/${countryCodes}?from=${from}&until=${now}`,
+      { signal: AbortSignal.timeout(15000) }
+    );
+    if (!resp.ok) throw new Error(`IODA HTTP ${resp.status}`);
+    const ioda = await resp.json() as {
+      data?: Array<Array<{
+        entityCode: string;
+        datasource: string;
+        values: Array<number | null | Record<string, unknown>>;
+      }>>;
+    };
 
-        if (entries.length === 0) {
-          results.push({
-            country: country.name,
-            countryCode: country.code,
-            status: 'online',
-            healthScore: 100,
-            topASN: 'Unknown',
-            topASNHege: 1.0,
-            asnCount: 0,
-            lastChecked: new Date().toISOString(),
-            outages: [],
-          });
-          return;
-        }
+    const signals: Record<string, { bgp: number[]; ping: number[]; merit: number[] }> = {};
+    for (const ds of (ioda.data || [])) {
+      for (const entry of ds) {
+        const cc = entry.entityCode;
+        if (!signals[cc]) signals[cc] = { bgp: [], ping: [], merit: [] };
+        const nums = entry.values
+          .filter((v): v is number => typeof v === 'number' && v !== null)
+          .filter(v => v >= 0);
+        if (entry.datasource === 'bgp') signals[cc].bgp = nums;
+        else if (entry.datasource === 'ping-slash24') signals[cc].ping = nums;
+        else if (entry.datasource === 'merit-nt') signals[cc].merit = nums;
+      }
+    }
 
-        const topEntry = entries.reduce((best: any, e: any) => e.hege > best.hege ? e : best, entries[0]);
-        const topHege = topEntry.hege;
-        const topASNName = (topEntry.asn_name || `AS${topEntry.asn}`).split(',')[0].trim();
+    for (const country of INET_COUNTRIES) {
+      const sig = signals[country.code] || { bgp: [], ping: [], merit: [] };
+      const bgpLatest = sig.bgp.length > 0 ? sig.bgp[sig.bgp.length - 1] : 0;
+      const pingLatest = sig.ping.length > 0 ? sig.ping[sig.ping.length - 1] : 0;
+      const bgpMax = sig.bgp.length > 0 ? Math.max(...sig.bgp) : 0;
+      const pingMax = sig.ping.length > 0 ? Math.max(...sig.ping) : 0;
 
-        const healthScore = Math.min(100, Math.round(topHege * 100));
-        const status: InternetCountryStatus['status'] =
-          topHege >= 0.7 ? 'online' :
-          topHege >= 0.4 ? 'degraded' :
-          topHege >= 0.15 ? 'disrupted' : 'blackout';
+      if (!INET_BASELINES[country.code] || bgpMax > INET_BASELINES[country.code].bgp) {
+        INET_BASELINES[country.code] = {
+          bgp: Math.max(bgpMax, INET_BASELINES[country.code]?.bgp || 0),
+          ping: Math.max(pingMax, INET_BASELINES[country.code]?.ping || 0),
+        };
+      }
+      const baseline = INET_BASELINES[country.code];
 
-        const outages: InternetCountryStatus['outages'] = [];
-        if (topHege < 0.7) {
-          const dropPct = Math.round((1 - topHege) * 100);
-          outages.push({
-            id: `inet_${country.code}_bgp`,
-            country: country.name,
-            countryCode: country.code,
-            metric: 'bgp_hegemony',
-            normalValue: 0.9,
-            currentValue: topHege,
-            dropPercent: dropPct,
-            severity: topHege < 0.15 ? 'critical' : topHege < 0.4 ? 'high' : 'medium',
-            affectedASNs: entries.slice(0, 5).map((e: any) => (e.asn_name || `AS${e.asn}`).split(',')[0].trim()),
-            detectedAt: new Date().toISOString(),
-            active: true,
-            source: 'IHR/IIJ Lab',
-          });
-        }
+      const bgpRatio = baseline.bgp > 0 ? bgpLatest / baseline.bgp : 1;
+      const pingRatio = baseline.ping > 0 ? pingLatest / baseline.ping : 1;
+      const healthRatio = baseline.ping > 10
+        ? bgpRatio * 0.4 + pingRatio * 0.6
+        : bgpRatio;
 
-        results.push({
+      const healthScore = Math.min(100, Math.max(0, Math.round(healthRatio * 100)));
+      const status: InternetCountryStatus['status'] =
+        healthRatio >= 0.90 ? 'online' :
+        healthRatio >= 0.70 ? 'degraded' :
+        healthRatio >= 0.30 ? 'disrupted' : 'blackout';
+
+      const outages: InternetCountryStatus['outages'] = [];
+      if (healthRatio < 0.90) {
+        const dropPct = Math.round((1 - healthRatio) * 100);
+        const primaryMetric = pingRatio < bgpRatio ? 'ping-slash24' : 'bgp';
+        outages.push({
+          id: `inet_${country.code}_ioda`,
           country: country.name,
           countryCode: country.code,
-          status,
-          healthScore,
-          topASN: topASNName,
-          topASNHege: Math.round(topHege * 1000) / 1000,
-          asnCount: entries.length,
-          lastChecked: new Date().toISOString(),
-          outages,
-        });
-      } catch (err) {
-        results.push({
-          country: country.name,
-          countryCode: country.code,
-          status: 'online',
-          healthScore: 100,
-          topASN: 'Unknown',
-          topASNHege: 1.0,
-          asnCount: 0,
-          lastChecked: new Date().toISOString(),
-          outages: [],
+          metric: primaryMetric === 'bgp' ? 'bgp_hegemony' : 'network_delay',
+          normalValue: primaryMetric === 'bgp' ? baseline.bgp : baseline.ping,
+          currentValue: primaryMetric === 'bgp' ? bgpLatest : pingLatest,
+          dropPercent: dropPct,
+          severity: healthRatio < 0.30 ? 'critical' : healthRatio < 0.50 ? 'high' : healthRatio < 0.70 ? 'medium' : 'low',
+          affectedASNs: [],
+          detectedAt: new Date().toISOString(),
+          active: true,
+          source: 'IODA/GaTech',
         });
       }
-    })
-  );
 
-  console.log(`[INTERNET] Checked ${results.length} countries: ${results.filter(r => r.status !== 'online').map(r => `${r.countryCode}=${r.status}`).join(', ') || 'all online'}`);
+      const topASNLabel = `${bgpLatest.toLocaleString()} pfx`;
+
+      results.push({
+        country: country.name,
+        countryCode: country.code,
+        status,
+        healthScore,
+        topASN: topASNLabel,
+        topASNHege: Math.round(healthRatio * 1000) / 1000,
+        asnCount: sig.bgp.length > 0 ? bgpLatest : 0,
+        lastChecked: new Date().toISOString(),
+        outages,
+      });
+    }
+  } catch (err) {
+    for (const country of INET_COUNTRIES) {
+      results.push({
+        country: country.name,
+        countryCode: country.code,
+        status: 'online',
+        healthScore: 100,
+        topASN: 'N/A',
+        topASNHege: 1.0,
+        asnCount: 0,
+        lastChecked: new Date().toISOString(),
+        outages: [],
+      });
+    }
+    console.log(`[INTERNET] IODA fetch error: ${(err as Error).message}`);
+  }
+
+  const issues = results.filter(r => r.status !== 'online');
+  console.log(`[INTERNET] IODA: ${results.length} countries — ${issues.length > 0 ? issues.map(r => `${r.countryCode}=${r.status}(${r.healthScore}%)`).join(', ') : 'all online'}`);
   internetCache = { data: results, fetchedAt: Date.now() };
   return results;
 }

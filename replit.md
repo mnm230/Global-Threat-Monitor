@@ -24,8 +24,8 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Real-time Data:** Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts, including visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data with auto-classification, detailed flight info, and server-side caching.
-- **GPS Spoofing Detection:** Analyzes ADS-B NACp/NIC/SIL fields to detect and cluster GPS spoofing/jamming zones with severity levels.
-- **Internet Blackout Monitoring:** Uses IHR API for real-time BGP routing health of 13 Middle Eastern countries with defined thresholds for online, degraded, disrupted, and blackout statuses.
+- **GPS Spoofing Detection:** Analyzes ADS-B NACp/NIC/SIL fields to detect and cluster GPS spoofing/jamming zones with severity levels. Panel includes MAP/LIST toggle with an embedded MapLibre mini-map showing spoofing zones as severity-colored circles with aircraft-count labels; clicking a zone switches to list view.
+- **Internet Blackout Monitoring:** Uses IODA (Georgia Tech) API for real-time internet connectivity health of 13 Middle Eastern countries, combining BGP prefix counts and active probing (ping-slash24) data with rolling baseline comparison. Thresholds: >=90% online, >=70% degraded, >=30% disrupted, <30% blackout.
 - **NOTAM Panel:** Fetches/generates NOTAMs for key ME airports, inferring airspace closures from red alerts and GPS interference.
 - **Telegram OSINT:** Scrapes 50+ public Telegram channels with server-side caching and filtering, focusing on near-real-time updates for priority channels.
 - **AI Intelligence:** AI world brief panel with risk assessment and forecasting, and an AI Attack Predictor panel using Anthropic Claude for probabilistic attack predictions.
