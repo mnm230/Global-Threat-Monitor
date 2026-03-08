@@ -3282,18 +3282,15 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
   const sortedAlerts = useMemo(() => {
     return [...filteredAlerts].sort((a, b) => {
+      const tsA = new Date(a.timestamp).getTime();
+      const tsB = new Date(b.timestamp).getTime();
       const nowMs = Date.now();
-      const remA = Math.max(0, a.countdown - Math.floor((nowMs - new Date(a.timestamp).getTime()) / 1000));
-      const remB = Math.max(0, b.countdown - Math.floor((nowMs - new Date(b.timestamp).getTime()) / 1000));
+      const remA = Math.max(0, a.countdown - Math.floor((nowMs - tsA) / 1000));
+      const remB = Math.max(0, b.countdown - Math.floor((nowMs - tsB) / 1000));
       const activeA = remA > 0 || a.countdown === 0 ? 1 : 0;
       const activeB = remB > 0 || b.countdown === 0 ? 1 : 0;
       if (activeA !== activeB) return activeB - activeA;
-      if (a.source !== b.source) return a.source === 'live' ? -1 : 1;
-      if (remA !== remB) return remA - remB;
-      const sevA = THREAT_SEVERITY_ORDER[a.threatType] ?? 9;
-      const sevB = THREAT_SEVERITY_ORDER[b.threatType] ?? 9;
-      if (sevA !== sevB) return sevA - sevB;
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      return tsB - tsA;
     });
   }, [filteredAlerts]);
 
@@ -3308,22 +3305,9 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
   const nowMs = Date.now();
   const sortedRegions = Object.entries(grouped).sort((a, b) => {
-    // Most recent alert (< 45s old) always floats to top regardless of country
-    const recentA = a[1].alerts.some(al => nowMs - new Date(al.timestamp).getTime() < 45000) ? 0 : 1;
-    const recentB = b[1].alerts.some(al => nowMs - new Date(al.timestamp).getTime() < 45000) ? 0 : 1;
-    if (recentA !== recentB) return recentA - recentB;
-    const isNonIsraelA = a[1].country !== 'Israel' ? 0 : 1;
-    const isNonIsraelB = b[1].country !== 'Israel' ? 0 : 1;
-    if (isNonIsraelA !== isNonIsraelB) return isNonIsraelA - isNonIsraelB;
-    const hasLiveA = a[1].alerts.some(al => al.source === 'live') ? 0 : 1;
-    const hasLiveB = b[1].alerts.some(al => al.source === 'live') ? 0 : 1;
-    if (hasLiveA !== hasLiveB) return hasLiveA - hasLiveB;
-    const countryIdxA = countryOrder.indexOf(a[1].country);
-    const countryIdxB = countryOrder.indexOf(b[1].country);
-    if (countryIdxA !== countryIdxB) return countryIdxA - countryIdxB;
-    const minA = Math.min(...a[1].alerts.map(a => a.countdown));
-    const minB = Math.min(...b[1].alerts.map(b => b.countdown));
-    return minA - minB;
+    const newestA = Math.max(...a[1].alerts.map(al => new Date(al.timestamp).getTime()));
+    const newestB = Math.max(...b[1].alerts.map(al => new Date(al.timestamp).getTime()));
+    return newestB - newestA;
   });
 
   const liveCount = alerts.filter(a => a.source === 'live').length;
