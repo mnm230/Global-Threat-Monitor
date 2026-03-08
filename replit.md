@@ -14,7 +14,7 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Typography:** Fira Sans for headers and Fira Mono for data readouts, with compact font sizes for high information density.
 - **Clocks:** Displays both UTC and Lebanon/Beirut time with timezone labels.
 - **Responsiveness:** Adaptive layouts for mobile, tablet, and desktop, with specific UI adjustments for each, including single-panel views for mobile and CSS grid layouts for tablets.
-- **Panel System:** Features 18 customizable, resizable panels (`map`, `telegram`, `events`, `alerts`, `markets`, `gpsspoof`, `netblack`, `notams`, `infra`, `livefeed`, `alertmap`, `analytics`, `osint`, `sitrep`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout.
+- **Panel System:** Features customizable, resizable panels (`map`, `telegram`, `events`, `alerts`, `markets`, `netblack`, `notams`, `infra`, `livefeed`, `alertmap`, `analytics`, `osint`, `sitrep`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout.
 - **Alert Map:** Full-width panel leveraging MapLibre GL with responsive overlays for different screen sizes and a red alert heatmap visualization.
 
 **Technical Implementations:**
@@ -24,7 +24,6 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Real-time Data:** Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts, including visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data with auto-classification, detailed flight info, and server-side caching.
-- **GPS Spoofing Detection:** Analyzes ADS-B NACp/NIC/SIL fields to detect and cluster GPS spoofing/jamming zones with severity levels. Uses GPSJam.org-compatible interference formula: `percent = 100 * (bad - 1) / total`. Severity thresholds: >=50% critical, >=25% high, >=10% medium. Panel includes MAP/LIST toggle with an embedded MapLibre mini-map showing spoofing zones as severity-colored circles with interference percentage labels; clicking a zone switches to list view. Links to gpsjam.org for cross-reference.
 - **Internet Blackout Monitoring:** Uses IODA (Georgia Tech) API for real-time internet connectivity health of 13 Middle Eastern countries, combining BGP prefix counts and active probing (ping-slash24) data with rolling baseline comparison. Thresholds: >=90% online, >=70% degraded, >=30% disrupted, <30% blackout.
 - **NOTAM Panel:** Fetches/generates NOTAMs for key ME airports, inferring airspace closures from red alerts and GPS interference.
 - **Telegram OSINT:** Scrapes 50+ public Telegram channels with server-side caching and filtering, focusing on near-real-time updates for priority channels.

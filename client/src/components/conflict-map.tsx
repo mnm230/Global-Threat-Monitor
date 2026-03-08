@@ -4,7 +4,7 @@ import { Map as MapLibreMap } from 'maplibre-gl';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import { MapPin } from 'lucide-react';
-import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot, GPSSpoofingZone } from '@shared/schema';
+import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot } from '@shared/schema';
 
 // ── Map styles ────────────────────────────────────────────────────────────────
 const MAP_THEMES = {
@@ -69,12 +69,6 @@ const LAYER_GROUPS = [
     layers: [
       { key: 'bases',   label: 'Military Bases',  color: '#3b82f6', on: false },
       { key: 'nuclear', label: 'Nuclear Sites',   color: '#a855f7', on: false },
-    ],
-  },
-  {
-    id: 'gpsspoof', label: 'GPS SPOOFING', color: '#f97316',
-    layers: [
-      { key: 'gpsspoof', label: 'GPS Spoofing Zones', color: '#f97316', on: true },
     ],
   },
 ] as const;
@@ -145,16 +139,6 @@ function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'
       color: '#3b82f6',
     };
   }
-  // GPSSpoofingZone (has radiusKm + affectedAircraft + avgNacP)
-  if ('radiusKm' in obj && 'affectedAircraft' in obj && 'avgNacP' in obj) {
-    const z = obj as unknown as GPSSpoofingZone;
-    return {
-      title: `GPS SPOOFING · ${z.region || z.country}`,
-      sub: `${z.affectedAircraft} aircraft affected · avg NACp ${z.avgNacP.toFixed(1)}`,
-      badge: `${z.radiusKm}km · ${z.severity.toUpperCase()}`,
-      color: z.severity === 'critical' ? '#ef4444' : z.severity === 'high' ? '#f97316' : '#eab308',
-    };
-  }
   // Nuclear
   if ('type' in obj && 'country' in obj && 'name' in obj) {
     return {
@@ -173,7 +157,6 @@ interface ConflictMapProps {
   flights?: FlightData[];
   redAlerts?: RedAlert[];
   thermalHotspots?: ThermalHotspot[];
-  gpsSpoofZones?: GPSSpoofingZone[];
   activeView: 'conflict' | 'flights' | 'maritime';
   language?: 'en' | 'ar';
   mapStyle?: string;
@@ -186,7 +169,7 @@ const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ConflictMap({
-  events, flights = [], redAlerts = [], thermalHotspots = [], gpsSpoofZones = [],
+  events, flights = [], redAlerts = [], thermalHotspots = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation, isVisible = true,
 }: ConflictMapProps) {
   const containerRef      = useRef<HTMLDivElement>(null);
@@ -387,50 +370,8 @@ export default function ConflictMap({
       }));
     }
 
-    // ── GPS Spoofing zones ──
-    if (vis.gpsspoof && gpsSpoofZones.length > 0) {
-      layers.push(new ScatterplotLayer({
-        id: 'gpsspoof-fill',
-        data: gpsSpoofZones,
-        getPosition: (d: GPSSpoofingZone) => [d.lng, d.lat],
-        getRadius: (d: GPSSpoofingZone) => d.radiusKm * 1000,
-        getFillColor: (d: GPSSpoofingZone) => {
-          const alpha = d.active ? 28 : 12;
-          if (d.severity === 'critical') return [239, 68, 68, alpha];
-          if (d.severity === 'high') return [249, 115, 22, alpha];
-          return [234, 179, 8, alpha];
-        },
-        getLineColor: (d: GPSSpoofingZone) => {
-          const alpha = d.active ? 160 : 60;
-          if (d.severity === 'critical') return [239, 68, 68, alpha];
-          if (d.severity === 'high') return [249, 115, 22, alpha];
-          return [234, 179, 8, alpha];
-        },
-        stroked: true, lineWidthMinPixels: 1,
-        radiusMinPixels: 10, radiusMaxPixels: 220,
-        pickable: true,
-      }));
-
-      layers.push(new ScatterplotLayer({
-        id: 'gpsspoof-center',
-        data: gpsSpoofZones.filter(z => z.active),
-        getPosition: (d: GPSSpoofingZone) => [d.lng, d.lat],
-        getRadius: 3000,
-        getFillColor: (d: GPSSpoofingZone) =>
-          d.severity === 'critical'
-            ? [239, 68, 68, 220] as [number, number, number, number]
-            : d.severity === 'high'
-              ? [249, 115, 22, 220] as [number, number, number, number]
-              : [234, 179, 8, 220] as [number, number, number, number],
-        getLineColor: [0, 0, 0, 80] as [number, number, number, number],
-        stroked: true, lineWidthMinPixels: 1,
-        radiusMinPixels: 4, radiusMaxPixels: 8,
-        pickable: false,
-      }));
-    }
-
     return layers;
-  }, [vis, events, redAlerts, thermalHotspots, gpsSpoofZones]);
+  }, [vis, events, redAlerts, thermalHotspots]);
 
   // Keep refs current so the rAF loop can read latest data without closures
   useEffect(() => {

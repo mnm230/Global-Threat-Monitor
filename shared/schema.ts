@@ -114,6 +114,8 @@ export interface RedAlert {
   lat: number;
   lng: number;
   source?: 'live' | 'sim';
+  sourceChannel?: string;   // e.g. "@wfwitness"
+  sourceUrl?: string;       // e.g. "https://t.me/wfwitness/12345"
 }
 
 export interface ThreatClassification {
@@ -218,22 +220,6 @@ export interface CyberEvent {
   description: string;
 }
 
-export interface GPSSpoofingZone {
-  id: string;
-  lat: number;
-  lng: number;
-  radiusKm: number;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  affectedAircraft: number;
-  totalAircraft: number;
-  interferencePercent: number;
-  avgNacP: number;
-  country: string;
-  region: string;
-  detectedAt: string;
-  active: boolean;
-  aircraftSamples: { callsign: string; nacP: number; nic: number; sil: number; lat: number; lng: number }[];
-}
 
 export interface InternetOutage {
   id: string;

@@ -23,7 +23,6 @@ import type {
   TelegramMessage,
   SirenAlert,
   RedAlert,
-  GPSSpoofingZone,
   InternetCountryStatus,
   NOTAMItem,
   InfraEvent,
@@ -102,7 +101,6 @@ import {
   CircleDot,
   Gauge,
   Swords,
-  Navigation,
   WifiOff,
   FileWarning,
 } from 'lucide-react';
@@ -282,7 +280,6 @@ interface SSEData {
   sirens: SirenAlert[];
   redAlerts: RedAlert[];
   telegramMessages: TelegramMessage[];
-  gpsSpoofZones: GPSSpoofingZone[];
   internetStatus: InternetCountryStatus[];
   notams: NOTAMItem[];
   infraEvents: InfraEvent[];
@@ -296,7 +293,7 @@ interface SSEData {
 function useSSE(): SSEData {
   const [state, setState] = useState<Omit<SSEData, 'connected'>>({
     news: [], commodities: [], events: [], flights: [], ships: [],
-    sirens: [], redAlerts: [], telegramMessages: [], gpsSpoofZones: [],
+    sirens: [], redAlerts: [], telegramMessages: [],
     internetStatus: [], notams: [], infraEvents: [], thermalHotspots: [], breakingNews: [],
     attackPrediction: null, rocketStats: null,
   });
@@ -352,9 +349,6 @@ function useSSE(): SSEData {
       });
       es.addEventListener('telegram', (e) => {
         try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
-      });
-      es.addEventListener('gps-spoofing', (e) => {
-        try { pending.current.gpsSpoofZones = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('internet-status', (e) => {
         try { pending.current.internetStatus = JSON.parse(e.data); scheduleFlush(); } catch {}
@@ -667,7 +661,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'gpsspoof' | 'netblack' | 'notams' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'netblack' | 'notams' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
@@ -676,7 +670,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
-  gpsspoof: { icon: Navigation, label: 'GPS Spoofing', labelAr: 'انتحال GPS' },
   netblack: { icon: Wifi, label: 'Internet Monitor', labelAr: 'مراقب الإنترنت' },
   notams: { icon: FileWarning, label: 'NOTAMs', labelAr: 'إشعارات الطيران' },
   infra: { icon: Zap, label: 'Infrastructure', labelAr: 'البنية التحتية' },
@@ -1169,26 +1162,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, gpsspoof: false, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, gpsspoof: 22, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, gpsspoof: false, netblack: false, notams: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, gpsspoof: 22, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, netblack: false, notams: false, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, gpsspoof: true, netblack: false, notams: true, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, gpsspoof: 22, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, netblack: false, notams: true, infra: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, netblack: 22, notams: 22, infra: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, gpsspoof: false, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, gpsspoof: 100, netblack: 100, notams: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, netblack: false, notams: false, infra: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, netblack: 100, notams: 100, infra: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1206,11 +1199,10 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'markets',      x: 8, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
   // Zone 3 — Situational: Live Feed
   { i: 'livefeed',     x: 0, y: 15, w: 12, h: 4,  minW: 2, minH: 2 },
-  // Zone 4 — Analysis: GPS Spoof | Internet | NOTAMs | Infra
-  { i: 'gpsspoof',     x: 0, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
-  { i: 'netblack',     x: 3, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
-  { i: 'notams',       x: 6, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
-  { i: 'infra',        x: 9, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  // Zone 4 — Analysis: Internet | NOTAMs | Infra
+  { i: 'netblack',     x: 0, y: 19, w: 4, h: 4,  minW: 2, minH: 2 },
+  { i: 'notams',       x: 4, y: 19, w: 4, h: 4,  minW: 2, minH: 2 },
+  { i: 'infra',        x: 8, y: 19, w: 4, h: 4,  minW: 2, minH: 2 },
   // Zone 4b — Analytics | OSINT
   { i: 'analytics',    x: 0, y: 23, w: 6, h: 4,  minW: 2, minH: 2 },
   { i: 'osint',        x: 6, y: 23, w: 6, h: 4,  minW: 3, minH: 2 },
@@ -1226,7 +1218,6 @@ const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   markets:      'hsl(265 70% 65%)',
   aiprediction: 'hsl(275 70% 65%)',
   analytics:    'hsl(185 75% 50%)',
-  gpsspoof:     'hsl(25 85% 55%)',
   netblack:     'hsl(195 75% 50%)',
   notams:       'hsl(45 80% 55%)',
   infra:        'hsl(345 75% 55%)',
@@ -2617,228 +2608,6 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
 const CYBER_TYPE_LABELS: Record<string, string> = { ddos: 'DDoS', intrusion: 'INTRU', malware: 'MALWR', phishing: 'PHISH', defacement: 'DEFAC', data_exfil: 'EXFIL', scada: 'SCADA' };
 const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-orange-950/40 border-orange-500/30', intrusion: 'text-red-400 bg-red-950/40 border-red-500/30', malware: 'text-purple-400 bg-purple-950/40 border-purple-500/30', phishing: 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30', defacement: 'text-blue-400 bg-blue-950/40 border-blue-500/30', data_exfil: 'text-red-400 bg-red-950/40 border-red-500/30', scada: 'text-red-400 bg-red-950/40 border-red-500/30' };
 
-// ── GPS Spoofing Panel ────────────────────────────────────────────────────────
-const GPS_SEV_BORDER: Record<string, string> = {
-  critical: 'rgb(239 68 68 / 0.55)', high: 'rgb(249 115 22 / 0.45)', medium: 'rgb(234 179 8 / 0.35)', low: 'transparent',
-};
-const GPS_SEV_TEXT: Record<string, string> = {
-  critical: 'text-red-400', high: 'text-orange-400', medium: 'text-yellow-400', low: 'text-emerald-400',
-};
-const NACP_COLOR = (n: number) => n < 3 ? 'text-red-400' : n < 5 ? 'text-orange-400' : n < 7 ? 'text-yellow-400' : 'text-emerald-400';
-
-const GPS_SEV_FILL: Record<string, string> = {
-  critical: 'rgba(239,68,68,0.25)', high: 'rgba(249,115,22,0.20)', medium: 'rgba(234,179,8,0.15)', low: 'rgba(52,211,153,0.10)',
-};
-const GPS_SEV_STROKE: Record<string, string> = {
-  critical: 'rgba(239,68,68,0.7)', high: 'rgba(249,115,22,0.6)', medium: 'rgba(234,179,8,0.5)', low: 'rgba(52,211,153,0.4)',
-};
-const GPS_SEV_DOT: Record<string, string> = {
-  critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#34d399',
-};
-
-function GPSSpoofMap({ zones, onZoneClick }: { zones: GPSSpoofingZone[]; onZoneClick?: (id: string) => void }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const zonesRef = useRef(zones);
-  zonesRef.current = zones;
-
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const m = new maplibregl.Map({
-      container: containerRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      center: [44, 30],
-      zoom: 3.2,
-      attributionControl: false,
-      interactive: true,
-      pitchWithRotate: false,
-      dragRotate: false,
-    });
-    mapRef.current = m;
-
-    m.on('load', () => {
-      m.addSource('spoof-zones', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      m.addLayer({
-        id: 'spoof-fill',
-        type: 'circle',
-        source: 'spoof-zones',
-        paint: {
-          'circle-radius': ['get', 'circleRadius'],
-          'circle-color': ['get', 'fillColor'],
-          'circle-opacity': 0.6,
-          'circle-stroke-color': ['get', 'strokeColor'],
-          'circle-stroke-width': 1.5,
-        },
-      });
-      m.addLayer({
-        id: 'spoof-labels',
-        type: 'symbol',
-        source: 'spoof-zones',
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-size': 10,
-          'text-font': ['Open Sans Bold'],
-          'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(0,0,0,0.8)',
-          'text-halo-width': 1,
-        },
-      });
-      updateSource(m, zonesRef.current);
-    });
-
-    m.on('zoom', () => { updateSource(m, zonesRef.current); });
-    m.on('click', 'spoof-fill', (e) => {
-      const f = e.features?.[0];
-      if (f && onZoneClick) onZoneClick(f.properties?.zoneId);
-    });
-    m.on('mouseenter', 'spoof-fill', () => { m.getCanvas().style.cursor = 'pointer'; });
-    m.on('mouseleave', 'spoof-fill', () => { m.getCanvas().style.cursor = ''; });
-
-    const ro = new ResizeObserver(() => {
-      m.resize();
-      updateSource(m, zonesRef.current);
-    });
-    ro.observe(containerRef.current);
-
-    return () => { ro.disconnect(); m.remove(); mapRef.current = null; };
-  }, []);
-
-  useEffect(() => {
-    const m = mapRef.current;
-    if (!m || !m.isStyleLoaded()) return;
-    updateSource(m, zones);
-  }, [zones]);
-
-  return <div ref={containerRef} className="w-full h-full" data-testid="gpsspoof-map" />;
-}
-
-function updateSource(m: maplibregl.Map, zones: GPSSpoofingZone[]) {
-  const src = m.getSource('spoof-zones') as maplibregl.GeoJSONSource | undefined;
-  if (!src) return;
-  const features: GeoJSON.Feature[] = zones.map(z => {
-    const zoom = m.getZoom();
-    const metersPerPx = 156543.03392 * Math.cos(z.lat * Math.PI / 180) / Math.pow(2, zoom);
-    const radiusPx = Math.max(6, Math.min(80, (z.radiusKm * 1000) / metersPerPx));
-    return {
-      type: 'Feature' as const,
-      geometry: { type: 'Point' as const, coordinates: [z.lng, z.lat] },
-      properties: {
-        zoneId: z.id,
-        circleRadius: radiusPx,
-        fillColor: GPS_SEV_FILL[z.severity] || GPS_SEV_FILL.medium,
-        strokeColor: GPS_SEV_STROKE[z.severity] || GPS_SEV_STROKE.medium,
-        label: `${z.interferencePercent ?? 0}%`,
-      },
-    };
-  });
-  src.setData({ type: 'FeatureCollection', features });
-}
-
-const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClose, onMaximize, isMaximized }: { zones: GPSSpoofingZone[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const [expandedZone, setExpandedZone] = useState<string | null>(null);
-  const [view, setView] = useState<'map' | 'list'>('map');
-  const totalAffected = zones.reduce((s, z) => s + z.affectedAircraft, 0);
-  const critCount = zones.filter(z => z.severity === 'critical').length;
-  const highCount = zones.filter(z => z.severity === 'high').length;
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="gpsspoof-panel">
-      <PanelHeader
-        title={t('GPS Spoofing', 'انتحال GPS')}
-        icon={<Navigation className="w-3.5 h-3.5" />}
-        live count={zones.length}
-        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
-      />
-      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
-        {[
-          { label: t('ZONES', 'مناطق'), count: zones.length, color: 'text-orange-400' },
-          { label: t('AIRCRAFT', 'طائرات'), count: totalAffected, color: 'text-yellow-400' },
-          { label: t('CRITICAL', 'حرج'), count: critCount, color: 'text-red-400' },
-          { label: t('HIGH', 'عالي'), count: highCount, color: 'text-amber-400' },
-        ].map(s => (
-          <div key={s.label} className="flex flex-col items-center" data-testid={`gpsspoof-stat-${s.label.toLowerCase()}`}>
-            <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
-            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
-          </div>
-        ))}
-        <div className="ml-auto flex items-center gap-0.5 bg-white/[0.04] rounded p-0.5">
-          <button onClick={() => setView('map')} className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${view === 'map' ? 'bg-orange-500/20 text-orange-300' : 'text-foreground/30 hover:text-foreground/50'}`} data-testid="gpsspoof-view-map">MAP</button>
-          <button onClick={() => setView('list')} className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-colors ${view === 'list' ? 'bg-orange-500/20 text-orange-300' : 'text-foreground/30 hover:text-foreground/50'}`} data-testid="gpsspoof-view-list">LIST</button>
-        </div>
-      </div>
-      {zones.length === 0 && (
-        <div className="px-3 py-6 text-center">
-          <Navigation className="w-5 h-5 text-emerald-400/20 mx-auto mb-2" />
-          <p className="text-[10px] text-emerald-400/40 font-mono">{t('NO GPS ANOMALIES DETECTED', 'لم يتم اكتشاف شذوذ GPS')}</p>
-          <p className="text-[9px] text-foreground/20 mt-1">{t('All aircraft reporting normal NACp', 'جميع الطائرات تبلغ عن NACp طبيعي')}</p>
-        </div>
-      )}
-      {view === 'map' && zones.length > 0 && (
-        <div className="flex-1 min-h-0 relative">
-          <GPSSpoofMap zones={zones} onZoneClick={(id) => { setExpandedZone(expandedZone === id ? null : id); setView('list'); }} />
-          <div className="absolute bottom-2 left-2 flex flex-col gap-1 pointer-events-none">
-            {(['critical', 'high', 'medium'] as const).map(sev => (
-              <div key={sev} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full border" style={{ backgroundColor: GPS_SEV_FILL[sev], borderColor: GPS_SEV_STROKE[sev] }} />
-                <span className="text-[8px] font-mono text-foreground/40 uppercase">{sev}</span>
-              </div>
-            ))}
-          </div>
-          <div className="absolute top-2 right-2 flex items-center gap-2 text-[8px] font-mono text-foreground/30 bg-black/40 px-1.5 py-0.5 rounded">
-            <span>{zones.length} {t('ZONES', 'مناطق')}</span>
-            <a href="https://gpsjam.org" target="_blank" rel="noopener noreferrer" className="text-orange-400/50 hover:text-orange-400 transition-colors" data-testid="gpsspoof-gpsjam-link" data-no-drag>gpsjam.org</a>
-          </div>
-        </div>
-      )}
-      {view === 'list' && (
-        <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-          {zones.map((zone) => (
-            <div key={zone.id} className="px-3 py-2.5 hover-elevate border-l-2 relative cursor-pointer" style={{ borderLeftColor: GPS_SEV_BORDER[zone.severity] || 'transparent' }} onClick={() => setExpandedZone(expandedZone === zone.id ? null : zone.id)} data-testid={`gpsspoof-zone-${zone.id}`}>
-              <div className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: GPS_SEV_DOT[zone.severity], boxShadow: `0 0 6px ${GPS_SEV_DOT[zone.severity]}` }} />
-              <div className="flex items-center gap-1.5 mb-1 pr-4">
-                <span className="text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 text-orange-300 bg-orange-500/10 border-orange-500/30">GPS</span>
-                <span className="text-[11px] font-bold font-mono text-foreground/80 truncate flex-1">{zone.region}</span>
-                <span className={`text-[9px] font-mono font-bold shrink-0 ${GPS_SEV_TEXT[zone.severity]}`}>{zone.severity.toUpperCase()}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/40 mb-1">
-                <span className="text-orange-400">{zone.affectedAircraft}/{zone.totalAircraft || zone.affectedAircraft} aircraft</span>
-                <span>·</span>
-                <span className={zone.interferencePercent >= 50 ? 'text-red-400' : zone.interferencePercent >= 25 ? 'text-orange-400' : 'text-yellow-400'}>{zone.interferencePercent ?? 0}% interference</span>
-                <span>·</span>
-                <span>{zone.radiusKm}km</span>
-              </div>
-              <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
-                <span>{zone.country}</span>
-                <span>NACp avg <span className={NACP_COLOR(zone.avgNacP)}>{zone.avgNacP}</span></span>
-                <span className="ml-auto">{timeAgo(zone.detectedAt)}</span>
-              </div>
-              {expandedZone === zone.id && zone.aircraftSamples.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-white/[0.04]">
-                  <div className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider mb-1.5">{t('AFFECTED AIRCRAFT', 'الطائرات المتأثرة')}</div>
-                  {zone.aircraftSamples.map((ac, i) => (
-                    <div key={i} className="flex items-center gap-2 text-[10px] font-mono py-0.5">
-                      <span className="text-foreground/60 w-16 truncate">{ac.callsign || '---'}</span>
-                      <span className={`${NACP_COLOR(ac.nacP)}`}>NACp:{ac.nacP}</span>
-                      <span className="text-foreground/30">NIC:{ac.nic}</span>
-                      <span className="text-foreground/30">SIL:{ac.sil}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
 
 // ── Internet Blackout Panel ──────────────────────────────────────────────────
 const INET_STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
@@ -3119,6 +2888,13 @@ const RED_ALERT_THREAT_COLORS: Record<string, string> = {
   missiles: 'bg-orange-600 border-orange-500/50',
   hostile_aircraft_intrusion: 'bg-purple-600 border-purple-500/50',
   uav_intrusion: 'bg-yellow-600 border-yellow-500/50',
+};
+
+const RED_ALERT_THREAT_ICONS: Record<string, string> = {
+  rockets: '🚀',
+  missiles: '⚡',
+  hostile_aircraft_intrusion: '✈️',
+  uav_intrusion: '🛸',
 };
 
 const THREAT_SEVERITY_ORDER: Record<string, number> = {
@@ -3407,6 +3183,13 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   });
 
   const liveCount = alerts.filter(a => a.source === 'live').length;
+  const activeCount = useMemo(() => alerts.filter(a => {
+    const elapsed = Math.floor((Date.now() - new Date(a.timestamp).getTime()) / 1000);
+    return a.countdown === 0 || elapsed < a.countdown;
+  }).length, [alerts]);
+  const recentCount = useMemo(() => alerts.filter(a =>
+    Date.now() - new Date(a.timestamp).getTime() < 300000
+  ).length, [alerts]);
   const hasActiveAlerts = alerts.length > 0;
 
   const FLAG_MAP: Record<string, string> = { Israel: '🇮🇱', Lebanon: '🇱🇧', Iran: '🇮🇷', Syria: '🇸🇾', Iraq: '🇮🇶', 'Saudi Arabia': '🇸🇦', Yemen: '🇾🇪', UAE: '🇦🇪', Jordan: '🇯🇴', Kuwait: '🇰🇼', Bahrain: '🇧🇭', Qatar: '🇶🇦' };
@@ -3462,6 +3245,50 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           </div>
         </div>
       </div>
+
+      {/* ── STATS STRIP ── */}
+      {hasActiveAlerts && (
+        <div className="shrink-0 px-3 py-2" style={{ background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">TOTAL</span>
+              <span className="text-[17px] font-black text-white ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{alerts.length}</span>
+            </div>
+            <div className="w-px h-5 bg-white/[0.08]" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-red-500 eas-flash shrink-0" />
+              <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">ACTIVE</span>
+              <span className="text-[17px] font-black text-red-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{activeCount}</span>
+            </div>
+            {liveCount > 0 && (
+              <>
+                <div className="w-px h-5 bg-white/[0.08]" />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px #22c55e' }} />
+                  <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">LIVE</span>
+                  <span className="text-[17px] font-black text-green-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{liveCount}</span>
+                </div>
+              </>
+            )}
+            {nonIsraelAlerts.length > 0 && (
+              <>
+                <div className="w-px h-5 bg-white/[0.08]" />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px]">🌍</span>
+                  <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">REGIONAL</span>
+                  <span className="text-[17px] font-black text-amber-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{nonIsraelAlerts.length}</span>
+                </div>
+              </>
+            )}
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="text-[9px] text-white/20 ra-font-mono font-semibold">5MIN</span>
+              <span className="text-[12px] font-black ra-font-mono" style={{ color: recentCount > 5 ? '#f87171' : recentCount > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
+                {recentCount > 0 ? `+${recentCount}` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── FILTERS ── */}
       {hasActiveAlerts && (
@@ -3619,9 +3446,16 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                     : tier === 'warning' ? '#eab308'
                     : alertAccent + '80';
 
+                  const ageMs = Date.now() - new Date(alert.timestamp).getTime();
+                  const isIncoming = ageMs < 9000 && isActive;
                   return (
+                    <div key={alert.id}>
+                    {isIncoming && (
+                      <div className="eas-flash text-[9px] font-black text-red-500 tracking-[0.25em] ra-font-mono text-center py-0.5 mb-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)' }}>
+                        ⚠ INCOMING THREAT ⚠
+                      </div>
+                    )}
                     <div
-                      key={alert.id}
                       data-testid={`red-alert-${alert.id}`}
                       className="alert-slide-in ra-card"
                       style={{
@@ -3657,7 +3491,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                                 border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
                               }}
                             >
-                              {language === 'ar' ? threat.ar : threat.en}
+                              {RED_ALERT_THREAT_ICONS[alert.threatType] || ''}{' '}{language === 'ar' ? threat.ar : threat.en}
                             </span>
                             {isActive && !isExpired && (
                               <span className="ra-badge-xs" style={{ borderRadius: 10, background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55` }}>
@@ -3672,6 +3506,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                         <RedAlertCountdown alert={alert} />
                       </div>
                     </div>
+                    </div>
                   );
                 })}
               </div>
@@ -3682,24 +3517,30 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── SIRENS FOOTER ── */}
       {sirens.length > 0 && (
-        <div className="shrink-0 border-t" style={{ borderColor: 'rgba(217,119,6,0.30)', background: 'hsl(30 25% 7%)' }}>
-          <div className="ra-flex-center gap-2 px-3 py-1.5">
-            <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0 eas-flash" />
-            <span className="text-[12px] font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display">
-              {language === 'ar' ? 'صفارات' : 'SIRENS'}
+        <div className="shrink-0 border-t" style={{ borderColor: 'rgba(217,119,6,0.40)', background: 'linear-gradient(to bottom, hsl(30 35% 8%), hsl(30 25% 6%))' }}>
+          <div className="px-3 py-2 flex items-center gap-2">
+            <div className="relative shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 eas-flash" />
+              <div className="absolute inset-0 rounded-full bg-amber-400/40 animate-ping" style={{ animationDuration: '1.2s' }} />
+            </div>
+            <span className="text-[11px] font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display">
+              {language === 'ar' ? 'صفارات الإنذار' : 'ACTIVE SIRENS'}
             </span>
-            <span className="text-[12px] font-extrabold text-white ra-tabular ra-font-mono rounded-md px-2 py-px" style={{ background: 'rgba(180,83,9,0.5)' }}>{sirens.length}</span>
+            <span className="text-[13px] font-black text-white ra-tabular ra-font-mono rounded-md px-2 py-px" style={{ background: 'rgba(180,83,9,0.6)', border: '1px solid rgba(217,119,6,0.4)' }}>{sirens.length}</span>
+            <span className="text-[9px] text-amber-400/40 ra-font-mono font-semibold ml-auto tracking-widest uppercase">OREF</span>
           </div>
-          <div className="max-h-[100px] overflow-y-auto pb-1">
+          <div className="max-h-[110px] overflow-y-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
+              const sirenIcon = s.threatType === 'missile' ? '⚡' : s.threatType === 'uav' ? '🛸' : s.threatType === 'hostile_aircraft' ? '✈️' : '🚀';
               return (
-                <div key={s.id} className="ra-flex-center gap-2 px-3 py-1.5 border-t border-amber-600/[0.12]" data-testid={`siren-panel-${s.id}`}>
-                  <div className="eas-flash w-1.5 h-1.5 rounded-sm bg-amber-400 shrink-0" />
-                  <span className="text-[12px] font-semibold text-amber-50 flex-1 truncate ra-font-display">
+                <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 border-t border-amber-600/[0.15]" data-testid={`siren-panel-${s.id}`}
+                  style={{ background: 'rgba(217,119,6,0.04)' }}>
+                  <span className="text-[11px] shrink-0">{sirenIcon}</span>
+                  <span className="text-[12px] font-bold text-amber-100 flex-1 truncate ra-font-display">
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span className="text-[9px] text-amber-400/55 ra-font-mono font-semibold" style={{ letterSpacing: '0.08em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span className="text-[9px] text-amber-400/60 ra-font-mono font-semibold shrink-0" style={{ letterSpacing: '0.08em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
@@ -3710,7 +3551,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   );
 });
 
-const DEFAULT_CHANNELS = ['@bintjbeilnews', '@wfwitness', '@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@rnintel', '@lebaborim', '@almanarnews', '@AlAhedNews', '@lebanonnews2', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews'];
+const DEFAULT_CHANNELS = ['@bintjbeilnews', '@wfwitness', '@OSINTdefender', '@IntelCrab', '@GeoConfirmed', '@CIG_telegram', '@sentaborim', '@AviationIntel', '@rnintel', '@lebaborim', '@almanarnews', '@AlAhedNews', '@lebanonnews2', '@NewsInIsrael', '@alaborim', '@AbuAliEnglish', '@Yemen_Press', '@clashreport', '@inaborim', '@MEConflictNews', '@ELINTNews', '@BNONewsRoom', '@Middle_East_Spectator', '@interbellumnews', '@QudsN', '@GazaNewsPlus', '@SouthFrontEng', '@MilitaryOSINT', '@LBCINews', '@NaharnetEnglish', '@ISWResearch', '@conflictnews', '@IranIntl_En', '@warmonitor3', '@WarSpottersINT'];
 
 const TelegramPanel = memo(function TelegramPanel({
   messages,
@@ -4396,7 +4237,6 @@ const MapSection = memo(function MapSection({
   flights,
   redAlerts,
   thermalHotspots,
-  gpsSpoofZones = [],
   language,
   onClose,
   onMaximize,
@@ -4408,7 +4248,6 @@ const MapSection = memo(function MapSection({
   flights: FlightData[];
   redAlerts: RedAlert[];
   thermalHotspots: ThermalHotspot[];
-  gpsSpoofZones?: GPSSpoofingZone[];
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -4585,7 +4424,6 @@ const MapSection = memo(function MapSection({
                 flights={flights}
                 redAlerts={redAlerts}
                 thermalHotspots={thermalHotspots}
-                gpsSpoofZones={gpsSpoofZones}
                 activeView={activeView}
                 language={language}
                 mapStyle={mapStyleUrl}
@@ -6304,7 +6142,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
 }
 
 // ── AI Prediction Panel ────────────────────────────────────────────────────────
-function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], gpsSpoofZones: liveGPS = [], infraEvents: liveInfra = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
+function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], infraEvents: liveInfra = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
@@ -6314,7 +6152,6 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   sirens?: SirenAlert[];
   flights?: FlightData[];
   telegramMessages?: TelegramMessage[];
-  gpsSpoofZones?: GPSSpoofingZone[];
   infraEvents?: InfraEvent[];
   events?: ConflictEvent[];
   commodities?: CommodityData[];
@@ -6919,13 +6756,12 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
               const wSirens    = Math.min(liveSirens.length * 6, 35);
               const wFlights   = Math.min(milFlights.length * 5, 30);
               const wTelegram  = Math.min(recentTg.length * 1.5, 25);
-              const wGPS       = Math.min(liveGPS.filter(z => z.active).length * 9, 22);
               const wInfra     = Math.min(liveInfra.length * 7, 18);
               const wMarkets   = Math.min(movingMarkets.length * 4 + stressedMarkets.length * 6, 20);
               const wThermal   = Math.min(liveThermal.length * 4, 15);
               const wShips     = Math.min(liveShips.length * 0.8, 10);
               const wEvents    = Math.min(liveEvents.length * 1.2, 12);
-              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wGPS + wInfra + wMarkets + wThermal + wShips + wEvents || 1;
+              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wInfra + wMarkets + wThermal + wShips + wEvents || 1;
 
               const pct = (w: number) => Math.round((w / totalRaw) * 100);
 
@@ -7002,22 +6838,6 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   subMetrics: [
                     { label: '30m surge', value: String(recentTg.length), color: '#34d399' },
                     { label: 'Total', value: String(liveTelegram.length), color: '#6ee7b7' },
-                  ],
-                },
-                {
-                  id: 'gps',
-                  icon: <Navigation className="w-4 h-4" style={{ color: '#a78bfa' }} />,
-                  label: language === 'ar' ? 'انتحال GPS' : 'GPS Spoofing',
-                  color: '#a78bfa',
-                  raw: wGPS,
-                  contribution: pct(wGPS),
-                  quality: quality(wGPS, 5, 2),
-                  count: liveGPS.filter(z => z.active).length,
-                  countLabel: language === 'ar' ? 'منطقة' : 'zones',
-                  detail: liveGPS.filter(z => z.active).length > 0 ? `${liveGPS.filter(z => z.active).length} spoofing zones · ${liveGPS.reduce((s,z) => s + z.affectedAircraft, 0)} aircraft affected` : 'No GPS spoofing detected',
-                  subMetrics: [
-                    { label: 'Active zones', value: String(liveGPS.filter(z => z.active).length), color: '#a78bfa' },
-                    { label: 'Aircraft', value: String(liveGPS.reduce((s,z) => s + z.affectedAircraft, 0)), color: '#c084fc' },
                   ],
                 },
                 {
@@ -7397,7 +7217,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
-  const bottomGroup: PanelId[] = ['events', 'markets', 'gpsspoof', 'netblack', 'notams', 'infra', 'alertmap', 'analytics', 'osint'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'infra', 'alertmap', 'analytics', 'osint'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -7781,7 +7601,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, gpsSpoofZones, internetStatus, notams, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, internetStatus, notams, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -7946,7 +7766,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'markets', 'gpsspoof', 'netblack', 'notams', 'infra', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
+  const bottomRow: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'infra', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -7956,7 +7776,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
     events: 22, markets: 28,
-    gpsspoof: 22, netblack: 22, notams: 22, infra: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
+    netblack: 22, notams: 22, infra: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -8066,7 +7886,7 @@ export default function Dashboard() {
     const panel = (() => {
       switch (id) {
         case 'aiprediction':
-          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} gpsSpoofZones={gpsSpoofZones} infraEvents={infraEvents} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
+          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} infraEvents={infraEvents} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alerts':
@@ -8075,8 +7895,6 @@ export default function Dashboard() {
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} soundEnabled={soundEnabled} silentMode={settings.silentMode} volume={settings.volume} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'gpsspoof':
-          return <GPSSpoofingPanel zones={gpsSpoofZones} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'netblack':
           return <InternetBlackoutPanel statuses={internetStatus} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'notams':
@@ -8251,7 +8069,6 @@ export default function Dashboard() {
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
-              gpsspoof: gpsSpoofZones.filter(z => z.active).length > 0 ? `${gpsSpoofZones.filter(z => z.active).length} ZONES` : '',
               netblack: internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length > 0 ? `${internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length} DOWN` : '',
               notams: notams.length > 0 ? `${notams.length}` : '',
               infra: infraEvents.length > 0 ? `${infraEvents.length}` : '',
@@ -8293,7 +8110,7 @@ export default function Dashboard() {
             </div>
             <div className="border-t border-white/[0.05] px-3 py-2">
               <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
-                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, gpsSpoofZones.filter(z => z.active).length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
+                <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
                 <span>·</span>
                 <span>EVT {events.length}</span>
                 <span className="ml-auto"><LiveClock /></span>
@@ -8429,7 +8246,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'gpsspoof' ? gpsSpoofZones.filter(z => z.active).length : id === 'netblack' ? internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length : id === 'notams' ? notams.length : id === 'infra' ? infraEvents.length : 0;
+                  const count = id === 'netblack' ? internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length : id === 'notams' ? notams.length : id === 'infra' ? infraEvents.length : 0;
                   return (
                     <button
                       key={id}
@@ -8654,7 +8471,7 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-3 bg-white/[0.04]" />
           <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, gpsSpoofZones.filter(z => z.active).length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
+            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
             <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
 

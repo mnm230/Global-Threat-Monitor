@@ -13,7 +13,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, GPSSpoofingZone, InternetCountryStatus, NOTAMItem } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, InfraEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, InternetCountryStatus, NOTAMItem } from "@shared/schema";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -2075,6 +2075,14 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
           cityAr = knownPool.cityAr || cityAr;
         }
 
+        const channelName = msg.channel.replace(/^@/, '');
+        // Extract numeric post ID from msg.id format: live_{channel}_{postId}
+        const postIdMatch = msg.id.match(/(\d+)(?:_[^_]*)?$/);
+        const postId = postIdMatch ? postIdMatch[1] : null;
+        const sourceUrl = postId
+          ? `https://t.me/${channelName}/${postId}`
+          : `https://t.me/s/${channelName}`;
+
         alerts.push({
           id: `tg-alert-${msg.id}-${threatType}`,
           city: cityEn,
@@ -2092,6 +2100,8 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
           lat,
           lng,
           source: 'telegram' as any,
+          sourceChannel: msg.channel,
+          sourceUrl,
         });
         break;
       }
@@ -3022,16 +3032,14 @@ async function generateSitrep(window: SitrepWindow): Promise<Sitrep> {
   const windowAlerts = alertHistory.filter(a => new Date(a.timestamp).getTime() >= cutoff);
   const windowMessages = classifiedMessageCache.filter(m => new Date(m.timestamp).getTime() >= cutoff);
 
-  const [conflictEvents, cyberEvents, gpsSpoofZones, infraEvents] = await Promise.all([
+  const [conflictEvents, cyberEvents, infraEvents] = await Promise.all([
     fetchGDELTConflictEvents(),
     fetchCyberEvents(),
-    fetchGPSSpoofingZones(),
     fetchInfraEvents(),
   ]);
 
   const windowConflicts = conflictEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
   const windowCyber = cyberEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
-  const windowGPS = gpsSpoofZones.filter(z => z.active);
   const windowInfra = infraEvents.filter(e => new Date(e.timestamp).getTime() >= cutoff);
 
   const alertSummary = windowAlerts.length > 0
@@ -3045,10 +3053,6 @@ async function generateSitrep(window: SitrepWindow): Promise<Sitrep> {
   const cyberSummary = windowCyber.slice(0, 8)
     .map(e => `[CYBER/${e.severity.toUpperCase()}] ${e.type} on ${e.target} (${e.country}, sector: ${e.sector}): ${e.description}`)
     .join('\n') || 'No cyber events.';
-
-  const gpsSummary = windowGPS.slice(0, 6)
-    .map(z => `[GPS-SPOOF/${z.severity.toUpperCase()}] ${z.region} (${z.country}): ${z.affectedAircraft} aircraft with degraded GPS integrity (avg NACp=${z.avgNacP}), radius ${z.radiusKm}km`)
-    .join('\n') || 'No GPS spoofing activity detected.';
 
   const infraSummary = windowInfra.slice(0, 6)
     .map(e => `[INFRA/${e.severity.toUpperCase()}] ${e.type} in ${e.region}, ${e.country}: ${e.description}`)
@@ -3072,9 +3076,6 @@ ${conflictSummary}
 
 === CYBER DOMAIN (${windowCyber.length} events) ===
 ${cyberSummary}
-
-=== GPS SPOOFING / JAMMING (${windowGPS.length} active zones) ===
-${gpsSummary}
 
 === INFRASTRUCTURE (${windowInfra.length} events) ===
 ${infraSummary}
@@ -3509,137 +3510,6 @@ Return ONLY a valid JSON array. No markdown, no explanation.`;
   }
 }
 
-// ── GPS Spoofing Detection (from ADS-B telemetry) ────────────────────────────
-const ADSB_QUERY_POINTS = [
-  { lat: 32.0, lng: 35.0, r: 250, label: 'Israel/Palestine' },
-  { lat: 33.8, lng: 35.8, r: 150, label: 'Lebanon' },
-  { lat: 26.5, lng: 56.0, r: 200, label: 'Strait of Hormuz' },
-  { lat: 25.0, lng: 55.0, r: 200, label: 'UAE/Gulf' },
-  { lat: 33.3, lng: 44.3, r: 200, label: 'Iraq' },
-  { lat: 34.8, lng: 38.0, r: 200, label: 'Syria' },
-  { lat: 15.0, lng: 43.0, r: 200, label: 'Yemen/Red Sea' },
-  { lat: 35.5, lng: 51.4, r: 150, label: 'Tehran' },
-  { lat: 31.5, lng: 34.5, r: 100, label: 'Gaza' },
-];
-
-const GPS_REGION_COUNTRIES: Record<string, string> = {
-  'Israel/Palestine': 'Israel', 'Lebanon': 'Lebanon', 'Strait of Hormuz': 'Iran',
-  'UAE/Gulf': 'UAE', 'Iraq': 'Iraq', 'Syria': 'Syria', 'Yemen/Red Sea': 'Yemen',
-  'Tehran': 'Iran', 'Gaza': 'Palestine',
-};
-
-let gpsSpoofCache: { data: GPSSpoofingZone[]; fetchedAt: number } | null = null;
-const GPS_SPOOF_CACHE_TTL = 30_000;
-
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-async function fetchGPSSpoofingZones(): Promise<GPSSpoofingZone[]> {
-  if (gpsSpoofCache && Date.now() - gpsSpoofCache.fetchedAt < GPS_SPOOF_CACHE_TTL) return gpsSpoofCache.data;
-
-  const allAircraft: Array<{ callsign: string; nacP: number; nic: number; sil: number; lat: number; lng: number; region: string }> = [];
-
-  await Promise.allSettled(
-    ADSB_QUERY_POINTS.map(async (pt) => {
-      try {
-        const resp = await fetch(`https://api.adsb.lol/v2/point/${pt.lat}/${pt.lng}/${pt.r}`, {
-          headers: { 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!resp.ok) return;
-        const data = await resp.json() as { ac?: Array<Record<string, any>> };
-        for (const ac of data.ac || []) {
-          const nacP = typeof ac.nac_p === 'number' ? ac.nac_p : -1;
-          const nic = typeof ac.nic === 'number' ? ac.nic : -1;
-          const sil = typeof ac.sil === 'number' ? ac.sil : -1;
-          const lat = typeof ac.lat === 'number' ? ac.lat : null;
-          const lng = typeof ac.lon === 'number' ? ac.lon : null;
-          if (lat === null || lng === null) continue;
-          const callsign = (ac.flight || ac.hex || '').trim();
-          if (nacP >= 0 || nic >= 0 || sil >= 0) {
-            allAircraft.push({ callsign, nacP, nic, sil, lat, lng, region: pt.label });
-          }
-        }
-      } catch {}
-    })
-  );
-
-  const isDegraded = (ac: typeof allAircraft[0]) =>
-    (ac.nacP >= 0 && ac.nacP < 7) || (ac.nic >= 0 && ac.nic < 6) || (ac.sil >= 0 && ac.sil < 2);
-
-  const degraded = allAircraft.filter(isDegraded);
-
-  const zones: GPSSpoofingZone[] = [];
-  const assigned = new Set<number>();
-
-  for (let i = 0; i < degraded.length; i++) {
-    if (assigned.has(i)) continue;
-    const cluster = [degraded[i]];
-    assigned.add(i);
-    for (let j = i + 1; j < degraded.length; j++) {
-      if (assigned.has(j)) continue;
-      if (haversineKm(degraded[i].lat, degraded[i].lng, degraded[j].lat, degraded[j].lng) < 200) {
-        cluster.push(degraded[j]);
-        assigned.add(j);
-      }
-    }
-
-    const avgLat = cluster.reduce((s, a) => s + a.lat, 0) / cluster.length;
-    const avgLng = cluster.reduce((s, a) => s + a.lng, 0) / cluster.length;
-    const avgNacP = cluster.reduce((s, a) => s + (a.nacP >= 0 ? a.nacP : 5), 0) / cluster.length;
-    const maxDist = Math.max(30, ...cluster.map(a => haversineKm(avgLat, avgLng, a.lat, a.lng)));
-
-    const nearbyAll = allAircraft.filter(ac =>
-      haversineKm(avgLat, avgLng, ac.lat, ac.lng) < maxDist + 50
-    );
-    const totalInZone = nearbyAll.length;
-    const badInZone = cluster.length;
-    const interferencePercent = totalInZone > 1
-      ? Math.round(100 * (badInZone - 1) / totalInZone)
-      : (badInZone > 0 ? 100 : 0);
-
-    const severity: GPSSpoofingZone['severity'] =
-      interferencePercent >= 50 || (cluster.length >= 8 && avgNacP < 3) ? 'critical' :
-      interferencePercent >= 25 || (cluster.length >= 4 && avgNacP < 5) ? 'high' :
-      interferencePercent >= 10 || cluster.length >= 2 ? 'medium' : 'low';
-
-    const region = cluster[0].region;
-    zones.push({
-      id: `gps_${region.toLowerCase().replace(/[^a-z]/g, '_')}_${i}`,
-      lat: avgLat,
-      lng: avgLng,
-      radiusKm: Math.round(maxDist),
-      severity,
-      affectedAircraft: cluster.length,
-      totalAircraft: totalInZone,
-      interferencePercent,
-      avgNacP: Math.round(avgNacP * 10) / 10,
-      country: GPS_REGION_COUNTRIES[region] || region,
-      region,
-      detectedAt: new Date().toISOString(),
-      active: true,
-      aircraftSamples: cluster.slice(0, 8).map(a => ({
-        callsign: a.callsign,
-        nacP: a.nacP,
-        nic: a.nic,
-        sil: a.sil,
-        lat: a.lat,
-        lng: a.lng,
-      })),
-    });
-  }
-
-  const totalAffected = zones.reduce((s, z) => s + z.affectedAircraft, 0);
-  console.log(`[GPS-SPOOF] Scanned ${allAircraft.length} aircraft, found ${degraded.length} degraded → ${zones.length} zones (${totalAffected} affected)`);
-  gpsSpoofCache = { data: zones, fetchedAt: Date.now() };
-  return zones;
-}
-
 // ── Internet Blackout Monitoring (IODA + Cloudflare Radar) ───────────────────
 const INET_COUNTRIES = [
   { code: 'IR', name: 'Iran' },
@@ -3930,30 +3800,6 @@ async function fetchNOTAMs(): Promise<NOTAMItem[]> {
       }
     }
 
-    const gpsZones = gpsSpoofCache?.data || [];
-    for (const zone of gpsZones) {
-      if (zone.affectedAircraft >= 3) {
-        const nearestAirport = ME_AIRPORTS.reduce((best, apt) => {
-          const dist = haversineKm(zone.lat, zone.lng, apt.lat, apt.lng);
-          return dist < best.dist ? { apt, dist } : best;
-        }, { apt: ME_AIRPORTS[0], dist: Infinity });
-
-        notams.push({
-          id: `notam_gps_${zone.id}`,
-          location: nearestAirport.apt.name,
-          icao: nearestAirport.apt.icao,
-          type: 'navigation_warning',
-          text: `NAV WARNING: GPS/GNSS INTERFERENCE detected ${Math.round(nearestAirport.dist)}NM from ${nearestAirport.apt.icao}. ${zone.affectedAircraft} aircraft reporting degraded NACp (avg ${zone.avgNacP}). Radius approx ${zone.radiusKm}km. RNAV/RNP approaches unreliable. Use conventional navigation.`,
-          effectiveFrom: zone.detectedAt,
-          effectiveTo: new Date(new Date(zone.detectedAt).getTime() + 6 * 3600000).toISOString(),
-          severity: zone.severity === 'critical' ? 'critical' : 'high',
-          country: nearestAirport.apt.country,
-          coordinates: { lat: zone.lat, lng: zone.lng },
-          radiusNm: Math.round(zone.radiusKm * 0.54),
-          source: 'ADS-B GPS integrity analysis',
-        });
-      }
-    }
   }
 
   console.log(`[NOTAM] ${notams.length} NOTAMs (${notams.filter(n => n.severity === 'critical').length} critical)`);
@@ -4138,8 +3984,14 @@ export async function registerRoutes(
     'CIG_telegram', 'IntelCrab', 'GeoConfirmed', 'sentaborim', 'OSINTdefender', 'AviationIntel', 'rnintel',
     'ELINTNews', 'BNONewsRoom', 'FirstSquawk', 'Middle_East_Spectator', 'interbellumnews',
     'WarMonitor3', 'claboriau', 'clashreport', 'MEConflictNews', 'AbuAliEnglish',
+    'conflictnews',      // Conflict News — fast breaking (EN)
+    'ISWResearch',       // Institute for the Study of War (EN)
+    'warmonitor3',       // War Monitor — global conflict tracker (EN)
+    'WarSpottersINT',    // WarSpotters International — geo-tagged conflict (EN)
+    'IntelSlava',        // Intel Slava — Slavic/ME conflict intel (EN/RU)
     // --- Israeli side ---
     'NewsInIsrael', 'alaborim', 'inaborim', 'IsraelWarRoom',
+    'Israeli_Army_Spokesperson', // IDF official updates (EN/HE)
     // --- Lebanon ground invasion — Lebanese / Hezbollah perspective ---
     'almanarnews',       // Al-Manar TV (Hezbollah) — ground ops, south Lebanon (AR)
     'AlAhedNews',        // Al-Ahed News — Hezbollah-linked, front-line updates (AR)
@@ -4171,15 +4023,26 @@ export async function registerRoutes(
     'Yemen_Press',       // Regional conflict updates (AR)
     'YemenUpdate',       // Yemen live updates (EN/AR)
     'AlMasiraaTV',       // Al-Masirah TV — Houthi-aligned, Red Sea attacks (AR)
+    'RedSeaMonitor',     // Red Sea shipping attacks tracker (EN)
+    'HouthiWatch',       // Houthi operations monitor (EN)
     // --- Gaza / Palestine ---
     'GazaNewsPlus',      // Gaza frontline reports (AR/EN)
     'PalestineChron',    // Palestine Chronicle — conflict updates (EN)
+    'PalestineResists',  // Palestine resistance updates (AR/EN)
+    'GazaWarUpdates',    // Gaza war live updates (EN/AR)
+    'QudsNewsNetwork',   // Quds News Network — Palestine coverage (AR/EN)
     // --- Iraq / Syria / Iran ---
     'SyrianObservatry',  // Syrian Observatory for Human Rights (EN/AR)
     'IraqLiveUpdate',    // Iraq live conflict reports (AR/EN)
+    'IranIntl_En',       // Iran International English — Iran regime news (EN)
+    'IranWire',          // IranWire — independent Iran news (EN)
+    'IraqiPMF',          // Iraqi Popular Mobilization Forces updates (AR)
+    'SyriaDirectNews',   // Syria Direct — on-ground Syria reporting (EN)
     // --- Broader ME OSINT ---
     'SouthFrontEng',     // South Front — military analysis ME/global (EN)
     'MilitaryOSINT',     // Military OSINT aggregator (EN)
+    'Aurora_Intel',      // Aurora Intel — global conflict tracking (EN)
+    'TheDeepStateCom',   // Deep State Map — geo-confirmed conflict (EN)
     // --- Priority fast-update channels (also in PRIORITY_TELEGRAM_CHANNELS below) ---
     'wfwitness',         // War footage witness — live ground video/reports (EN)
   ];
@@ -4209,6 +4072,13 @@ export async function registerRoutes(
     'Middle_East_Spectator', // ME conflict fast
     'interbellumnews',   // InterBellum — fast conflict
     'lebanonnews2',      // Lebanon news aggregator — fast
+    'conflictnews',      // Conflict News — fast breaking
+    'GazaWarUpdates',    // Gaza war — real-time
+    'IranIntl_En',       // Iran International — fast Iran news
+    'PalestineResists',  // Palestine resistance — real-time
+    'ISWResearch',       // ISW — fast analysis updates
+    'warmonitor3',       // War Monitor — global fast
+    'Aurora_Intel',      // Aurora Intel — real-time tracking
   ];
 
   const telegramCache = new Map<string, { data: TelegramMessage[]; fetchedAt: number }>();
@@ -4751,7 +4621,6 @@ export async function registerRoutes(
     }).catch(() => {
       send('telegram', []);
     });
-    fetchGPSSpoofingZones().then(zones => send('gps-spoofing', zones));
     fetchInternetHealth().then(status => send('internet-status', status));
     fetchNOTAMs().then(notams => send('notams', notams));
     fetchInfraEvents().then(events => send('infra', events));
@@ -4798,7 +4667,6 @@ export async function registerRoutes(
     }), 60000));
 
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
-    intervals.push(setInterval(() => fetchGPSSpoofingZones().then(zones => send('gps-spoofing', zones)), 15000));
     intervals.push(setInterval(() => fetchInternetHealth().then(status => send('internet-status', status)), 60000));
     intervals.push(setInterval(() => fetchNOTAMs().then(notams => send('notams', notams)), 120000));
     intervals.push(setInterval(() => fetchInfraEvents().then(events => send('infra', events)), 120000));
@@ -4873,10 +4741,6 @@ export async function registerRoutes(
     res.json(data);
   });
 
-  app.get('/api/gps-spoofing', async (_req, res) => {
-    const data = await fetchGPSSpoofingZones();
-    res.json(data);
-  });
 
   app.get('/api/internet-status', async (_req, res) => {
     const data = await fetchInternetHealth();
