@@ -2733,7 +2733,7 @@ function updateSource(m: maplibregl.Map, zones: GPSSpoofingZone[]) {
         circleRadius: radiusPx,
         fillColor: GPS_SEV_FILL[z.severity] || GPS_SEV_FILL.medium,
         strokeColor: GPS_SEV_STROKE[z.severity] || GPS_SEV_STROKE.medium,
-        label: `${z.affectedAircraft}`,
+        label: `${z.interferencePercent ?? 0}%`,
       },
     };
   });
@@ -2791,8 +2791,9 @@ const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClo
               </div>
             ))}
           </div>
-          <div className="absolute top-2 right-2 text-[8px] font-mono text-foreground/30 bg-black/40 px-1.5 py-0.5 rounded">
-            {zones.length} {t('ZONES', 'مناطق')}
+          <div className="absolute top-2 right-2 flex items-center gap-2 text-[8px] font-mono text-foreground/30 bg-black/40 px-1.5 py-0.5 rounded">
+            <span>{zones.length} {t('ZONES', 'مناطق')}</span>
+            <a href="https://gpsjam.org" target="_blank" rel="noopener noreferrer" className="text-orange-400/50 hover:text-orange-400 transition-colors" data-testid="gpsspoof-gpsjam-link" data-no-drag>gpsjam.org</a>
           </div>
         </div>
       )}
@@ -2807,14 +2808,15 @@ const GPSSpoofingPanel = memo(function GPSSpoofingPanel({ zones, language, onClo
                 <span className={`text-[9px] font-mono font-bold shrink-0 ${GPS_SEV_TEXT[zone.severity]}`}>{zone.severity.toUpperCase()}</span>
               </div>
               <div className="flex items-center gap-2 text-[10px] font-mono text-foreground/40 mb-1">
-                <span className="text-orange-400">{zone.affectedAircraft} aircraft</span>
+                <span className="text-orange-400">{zone.affectedAircraft}/{zone.totalAircraft || zone.affectedAircraft} aircraft</span>
                 <span>·</span>
-                <span>NACp avg <span className={NACP_COLOR(zone.avgNacP)}>{zone.avgNacP}</span></span>
+                <span className={zone.interferencePercent >= 50 ? 'text-red-400' : zone.interferencePercent >= 25 ? 'text-orange-400' : 'text-yellow-400'}>{zone.interferencePercent ?? 0}% interference</span>
                 <span>·</span>
                 <span>{zone.radiusKm}km</span>
               </div>
               <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
                 <span>{zone.country}</span>
+                <span>NACp avg <span className={NACP_COLOR(zone.avgNacP)}>{zone.avgNacP}</span></span>
                 <span className="ml-auto">{timeAgo(zone.detectedAt)}</span>
               </div>
               {expandedZone === zone.id && zone.aircraftSamples.length > 0 && (
@@ -5245,6 +5247,11 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                               <span className="text-[8px] text-foreground/40 font-mono tracking-wider leading-none">{stat.label}</span>
                               <span className={`text-lg font-black font-mono leading-tight tabular-nums ${stat.color}`} data-testid={stat.testid}>{stat.value}</span>
                               {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-60`}>{stat.sub}</span>}
+                              {sparkPath && (
+                                <svg width="40" height="10" className="mt-1 opacity-35" viewBox="0 0 40 10">
+                                  <path d={sparkPath} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={stat.color} />
+                                </svg>
+                              )}
                             </div>
                           </div>
                         </TooltipTrigger>
@@ -5268,6 +5275,11 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                               <span className="text-[8px] text-foreground/40 font-mono tracking-wider leading-none truncate">{stat.label}</span>
                               <span className={`text-lg font-black font-mono leading-tight tabular-nums ${stat.color}`}>{stat.value}</span>
                               {stat.sub && <span className={`text-[8px] font-mono ${stat.color} opacity-60 truncate max-w-full`}>{stat.sub}</span>}
+                              {sparkPath && (
+                                <svg width="40" height="10" className="mt-1 opacity-35" viewBox="0 0 40 10">
+                                  <path d={sparkPath} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={stat.color} />
+                                </svg>
+                              )}
                             </div>
                           </div>
                         </TooltipTrigger>
@@ -5289,7 +5301,10 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       </div>
                     </div>
                     <div className="rounded border border-white/[0.05] overflow-hidden" data-testid="chart-timeline">
-                      <div className="flex items-end gap-[2px] bg-white/[0.015] px-1.5 pt-2" style={{height: '72px'}}>
+                      <div className="relative flex items-end gap-[2px] bg-white/[0.015] px-1.5 pt-2" style={{height: '72px'}}>
+                      {[25,50,75].map(pct => (
+                        <div key={pct} className="absolute pointer-events-none" style={{bottom:`${pct}%`,left:0,right:0,borderTop:'1px dotted rgba(255,255,255,0.05)'}} />
+                      ))}
                       {(analytics.alertTimeline ?? []).map((b, i) => {
                         const topRegions = Object.entries(b.regions || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);
                         const topTypes = Object.entries(b.types || {}).sort((a,b)=>b[1]-a[1]).slice(0,4);

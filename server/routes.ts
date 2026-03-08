@@ -3569,9 +3569,10 @@ async function fetchGPSSpoofingZones(): Promise<GPSSpoofingZone[]> {
     })
   );
 
-  const degraded = allAircraft.filter(ac =>
-    (ac.nacP >= 0 && ac.nacP < 7) || (ac.nic >= 0 && ac.nic < 6) || (ac.sil >= 0 && ac.sil < 2)
-  );
+  const isDegraded = (ac: typeof allAircraft[0]) =>
+    (ac.nacP >= 0 && ac.nacP < 7) || (ac.nic >= 0 && ac.nic < 6) || (ac.sil >= 0 && ac.sil < 2);
+
+  const degraded = allAircraft.filter(isDegraded);
 
   const zones: GPSSpoofingZone[] = [];
   const assigned = new Set<number>();
@@ -3593,10 +3594,19 @@ async function fetchGPSSpoofingZones(): Promise<GPSSpoofingZone[]> {
     const avgNacP = cluster.reduce((s, a) => s + (a.nacP >= 0 ? a.nacP : 5), 0) / cluster.length;
     const maxDist = Math.max(30, ...cluster.map(a => haversineKm(avgLat, avgLng, a.lat, a.lng)));
 
+    const nearbyAll = allAircraft.filter(ac =>
+      haversineKm(avgLat, avgLng, ac.lat, ac.lng) < maxDist + 50
+    );
+    const totalInZone = nearbyAll.length;
+    const badInZone = cluster.length;
+    const interferencePercent = totalInZone > 1
+      ? Math.round(100 * (badInZone - 1) / totalInZone)
+      : (badInZone > 0 ? 100 : 0);
+
     const severity: GPSSpoofingZone['severity'] =
-      cluster.length >= 8 || avgNacP < 3 ? 'critical' :
-      cluster.length >= 4 || avgNacP < 5 ? 'high' :
-      cluster.length >= 2 ? 'medium' : 'low';
+      interferencePercent >= 50 || (cluster.length >= 8 && avgNacP < 3) ? 'critical' :
+      interferencePercent >= 25 || (cluster.length >= 4 && avgNacP < 5) ? 'high' :
+      interferencePercent >= 10 || cluster.length >= 2 ? 'medium' : 'low';
 
     const region = cluster[0].region;
     zones.push({
@@ -3606,6 +3616,8 @@ async function fetchGPSSpoofingZones(): Promise<GPSSpoofingZone[]> {
       radiusKm: Math.round(maxDist),
       severity,
       affectedAircraft: cluster.length,
+      totalAircraft: totalInZone,
+      interferencePercent,
       avgNacP: Math.round(avgNacP * 10) / 10,
       country: GPS_REGION_COUNTRIES[region] || region,
       region,

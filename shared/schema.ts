@@ -225,6 +225,8 @@ export interface GPSSpoofingZone {
   radiusKm: number;
   severity: 'critical' | 'high' | 'medium' | 'low';
   affectedAircraft: number;
+  totalAircraft: number;
+  interferencePercent: number;
   avgNacP: number;
   country: string;
   region: string;
