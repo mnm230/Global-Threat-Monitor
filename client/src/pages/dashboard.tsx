@@ -3338,13 +3338,15 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   }, [filteredAlerts]);
 
   const grouped = sortedAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>((acc, alert) => {
+    const regionKey = language === 'ar' ? alert.regionAr : alert.region;
     const country = alert.country || 'Unknown';
-    if (!acc[country]) acc[country] = { country, alerts: [] };
-    acc[country].alerts.push(alert);
+    const key = `${country}::${regionKey}`;
+    if (!acc[key]) acc[key] = { country, alerts: [] };
+    acc[key].alerts.push(alert);
     return acc;
   }, {});
 
-  const sortedCountries = Object.entries(grouped).sort((a, b) => {
+  const sortedRegions = Object.entries(grouped).sort((a, b) => {
     const newestA = Math.max(...a[1].alerts.map(al => new Date(al.timestamp).getTime()));
     const newestB = Math.max(...b[1].alerts.map(al => new Date(al.timestamp).getTime()));
     return newestB - newestA;
