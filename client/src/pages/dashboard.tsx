@@ -268,6 +268,19 @@ interface AttackPrediction {
     isEscalating: boolean;
     topRegions: Array<{ region: string; count: number }>;
   };
+  nextAttackWindow?: {
+    estimatedMinutes: number;
+    confidence: number;
+    basis: string;
+    label: string;
+  };
+  locationProbabilities?: Array<{
+    location: string;
+    country: string;
+    probability: number;
+    threatType: string;
+    countryFlag: string;
+  }>;
 }
 
 interface SSEData {
@@ -2741,15 +2754,153 @@ const NOTAM_SEV_BORDER: Record<string, string> = {
   critical: 'rgb(239 68 68 / 0.55)', high: 'rgb(249 115 22 / 0.45)', medium: 'rgb(234 179 8 / 0.35)', low: 'transparent',
 };
 
+const NOTAM_SEV_COLOR: Record<string, string> = {
+  critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#22d3ee',
+};
+const NOTAM_TYPE_HEX: Record<string, string> = {
+  airspace_closure: '#ef4444', tfr: '#f97316', flight_restriction: '#f59e0b',
+  military_exercise: '#a855f7', hazard: '#eab308', navigation_warning: '#22d3ee',
+};
+
 const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaximize, isMaximized }: { notams: NOTAMItem[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
   const [filterType, setFilterType] = useState<string>('all');
-  const now = Date.now();
-  const activeNotams = notams.filter(n => new Date(n.effectiveTo).getTime() > now);
-  const filtered = filterType === 'all' ? activeNotams : activeNotams.filter(n => n.type === filterType);
-  const closureCount = activeNotams.filter(n => n.type === 'airspace_closure').length;
-  const tfrCount = activeNotams.filter(n => n.type === 'tfr' || n.type === 'flight_restriction').length;
-  const navCount = activeNotams.filter(n => n.type === 'navigation_warning').length;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const layerGroupRef = useRef<any>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const mapReadyRef = useRef(false);
+  const [mapReady, setMapReady] = useState(false);
+
+  const activeNotams = useMemo(() => {
+    const now = Date.now();
+    return notams.filter(n => new Date(n.effectiveTo).getTime() > now);
+  }, [notams]);
+
+  const filtered = useMemo(() =>
+    filterType === 'all' ? activeNotams : activeNotams.filter(n => n.type === filterType),
+    [activeNotams, filterType]
+  );
+
+  const closureCount = useMemo(() => activeNotams.filter(n => n.type === 'airspace_closure').length, [activeNotams]);
+  const tfrCount = useMemo(() => activeNotams.filter(n => n.type === 'tfr' || n.type === 'flight_restriction').length, [activeNotams]);
+  const navCount = useMemo(() => activeNotams.filter(n => n.type === 'navigation_warning').length, [activeNotams]);
+
+  // Init Leaflet map — delay slightly so the container has a real pixel height
+  useEffect(() => {
+    if (mapReadyRef.current) return;
+    const timer = setTimeout(() => {
+      const el = mapContainerRef.current;
+      if (!el || mapRef.current) return;
+      const Lf = (window as any).L;
+      if (!Lf) return;
+
+      mapReadyRef.current = true;
+      const map = Lf.map(el, {
+        center: [30, 42],
+        zoom: 4,
+        zoomControl: false,
+        attributionControl: false,
+      });
+
+      Lf.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18,
+        subdomains: 'abcd',
+        attribution: '© OpenStreetMap · CartoDB',
+      }).addTo(map);
+
+      Lf.control.zoom({ position: 'topright' }).addTo(map);
+
+      layerGroupRef.current = Lf.layerGroup().addTo(map);
+      mapRef.current = map;
+      setMapReady(true);
+
+      setTimeout(() => map.invalidateSize(), 200);
+    }, 80);
+
+    return () => {
+      clearTimeout(timer);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        layerGroupRef.current = null;
+        mapReadyRef.current = false;
+        setMapReady(false);
+      }
+    };
+  }, []);
+
+  // Re-plot NOTAM circles whenever filtered list or selection changes
+  useEffect(() => {
+    const Lf = (window as any).L;
+    if (!Lf || !mapRef.current || !layerGroupRef.current) return;
+    layerGroupRef.current.clearLayers();
+
+    const withCoords = filtered.filter(n => n.coordinates);
+    const bounds: [number, number][] = [];
+
+    withCoords.forEach(n => {
+      const { lat, lng } = n.coordinates!;
+      const typeColor = NOTAM_TYPE_HEX[n.type] || NOTAM_SEV_COLOR[n.severity] || '#22d3ee';
+      const radiusM = (n.radiusNm ?? 15) * 1852;
+      const isSelected = n.id === selectedId;
+
+      const circle = Lf.circle([lat, lng], {
+        radius: radiusM,
+        color: typeColor,
+        fillColor: typeColor,
+        fillOpacity: isSelected ? 0.35 : 0.12,
+        weight: isSelected ? 2.5 : 1.5,
+        opacity: isSelected ? 1 : 0.65,
+        dashArray: n.type === 'military_exercise' ? '6 4' : undefined,
+      }).addTo(layerGroupRef.current);
+
+      const typeLabel = NOTAM_TYPE_LABELS[n.type]?.en || n.type;
+      const fmt = (d: string) => new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+      const popupEl = document.createElement('div');
+      popupEl.style.cssText = `font-family:monospace;font-size:11px;min-width:180px;color:#e2e8f0;background:#0f172a;padding:8px;border-radius:6px;border:1px solid ${typeColor}55`;
+      const title = document.createElement('b');
+      title.style.color = typeColor;
+      title.textContent = `${n.icao} \u00B7 ${n.location}`;
+      const badge = document.createElement('span');
+      badge.style.cssText = `font-size:9px;background:${typeColor}22;border:1px solid ${typeColor}44;border-radius:3px;padding:1px 5px;color:${typeColor};display:inline-block;margin-top:4px`;
+      badge.textContent = typeLabel.toUpperCase();
+      const desc = document.createElement('span');
+      desc.style.cssText = 'color:#94a3b8;font-size:10px;display:block;margin-top:6px';
+      desc.textContent = n.text.slice(0, 180) + (n.text.length > 180 ? '\u2026' : '');
+      const dates = document.createElement('span');
+      dates.style.cssText = 'color:#475569;font-size:9px;display:block;margin-top:4px';
+      dates.textContent = `${fmt(n.effectiveFrom)} \u2192 ${fmt(n.effectiveTo)}`;
+      const meta = document.createElement('span');
+      meta.style.cssText = 'color:#475569;font-size:9px;display:block';
+      meta.textContent = `${n.country} \u00B7 ${n.radiusNm ?? 15} NM`;
+      popupEl.append(title, document.createElement('br'), badge, desc, dates, meta);
+      circle.bindPopup(popupEl, { maxWidth: 260, className: 'notam-popup' });
+
+      circle.on('click', () => {
+        setSelectedId(n.id);
+        setTimeout(() => {
+          const el = listRef.current?.querySelector(`[data-notam-id="${n.id}"]`) as HTMLElement | null;
+          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 60);
+      });
+
+      bounds.push([lat, lng]);
+    });
+
+    // Fit bounds only when there are circles and filter changed (not on every re-render)
+    if (bounds.length > 0 && !selectedId) {
+      try { mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 }); } catch {}
+    }
+  }, [filtered, selectedId, mapReady]);
+
+  // Invalidate map size on maximize toggle or after first render
+  useEffect(() => {
+    const t = setTimeout(() => mapRef.current?.invalidateSize(), 150);
+    return () => clearTimeout(t);
+  }, [isMaximized]);
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="notams-panel">
@@ -2759,58 +2910,115 @@ const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaxim
         live count={activeNotams.length}
         onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
       />
-      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
+
+      {/* Stat pills — click to filter */}
+      <div className="shrink-0 px-3 py-1.5 border-b border-white/[0.05] flex items-center gap-3" style={{ background: 'hsl(222 28% 11% / 0.7)' }}>
         {[
-          { label: t('ACTIVE', 'نشط'), count: activeNotams.length, color: 'text-cyan-400' },
-          { label: t('CLOSURES', 'إغلاق'), count: closureCount, color: 'text-red-400' },
-          { label: t('TFR', 'TFR'), count: tfrCount, color: 'text-orange-400' },
-          { label: t('NAV', 'ملاحة'), count: navCount, color: 'text-yellow-400' },
+          { label: 'ACTIVE', count: activeNotams.length, color: '#22d3ee', filter: 'all' },
+          { label: 'CLOSURE', count: closureCount, color: '#ef4444', filter: 'airspace_closure' },
+          { label: 'TFR', count: tfrCount, color: '#f97316', filter: 'tfr' },
+          { label: 'NAV', count: navCount, color: '#eab308', filter: 'navigation_warning' },
         ].map(s => (
-          <div key={s.label} className="flex flex-col items-center" data-testid={`notam-stat-${s.label.toLowerCase()}`}>
-            <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
-            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
-          </div>
+          <button key={s.label} onClick={() => setFilterType(s.filter)}
+            className="flex flex-col items-center gap-0 transition-opacity"
+            style={{ opacity: filterType === s.filter ? 1 : 0.45 }}
+            data-testid={`notam-stat-${s.label.toLowerCase()}`}>
+            <span className="text-[13px] font-black font-mono leading-tight" style={{ color: s.color }}>{s.count}</span>
+            <span className="text-[7px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>{s.label}</span>
+          </button>
         ))}
-      </div>
-      <div className="shrink-0 px-3 py-1.5 border-b border-white/[0.04] flex items-center gap-1 overflow-x-auto" style={{ background: 'hsl(222 28% 11% / 0.5)' }}>
-        {['all', 'airspace_closure', 'tfr', 'flight_restriction', 'military_exercise', 'navigation_warning', 'hazard'].map(ft => (
-          <button key={ft} onClick={() => setFilterType(ft)} data-testid={`notam-filter-${ft}`}
-            className={`ra-pill text-[9px] font-mono font-bold uppercase whitespace-nowrap ${filterType === ft ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'text-foreground/30 border-white/[0.06]'}`}>
-            {ft === 'all' ? t('ALL', 'الكل') : (NOTAM_TYPE_LABELS[ft]?.[language === 'ar' ? 'ar' : 'en'] || ft)}
+        <div className="flex-1" />
+        {['military_exercise', 'hazard', 'flight_restriction'].map(ft => (
+          <button key={ft} onClick={() => setFilterType(filterType === ft ? 'all' : ft)}
+            data-testid={`notam-filter-${ft}`}
+            className="text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border transition-colors whitespace-nowrap"
+            style={{
+              background: filterType === ft ? (NOTAM_TYPE_HEX[ft] || '#888') + '22' : 'transparent',
+              color: filterType === ft ? (NOTAM_TYPE_HEX[ft] || '#888') : 'rgba(255,255,255,0.25)',
+              borderColor: filterType === ft ? (NOTAM_TYPE_HEX[ft] || '#888') + '66' : 'rgba(255,255,255,0.08)',
+            }}>
+            {NOTAM_TYPE_LABELS[ft]?.[language === 'ar' ? 'ar' : 'en'] || ft}
           </button>
         ))}
       </div>
-      {filtered.length === 0 && (
-        <div className="px-3 py-6 text-center">
-          <FileWarning className="w-5 h-5 text-emerald-400/20 mx-auto mb-2" />
-          <p className="text-[10px] text-emerald-400/40 font-mono">{t('NO ACTIVE NOTAMs', 'لا توجد إشعارات نشطة')}</p>
+
+      {/* Map — fixed 200px, always visible */}
+      <div className="shrink-0 relative" style={{ height: 200, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+
+        {/* Legend */}
+        <div className="absolute bottom-1.5 left-1.5 z-[1000] flex flex-col gap-0.5 pointer-events-none"
+          style={{ background: 'rgba(10,15,28,0.88)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 4, padding: '3px 6px' }}>
+          {[['CLOSURE','#ef4444'],['TFR','#f97316'],['MIL EX','#a855f7'],['NAV','#22d3ee'],['HAZARD','#eab308']].map(([lbl, col]) => (
+            <div key={lbl} className="flex items-center gap-1">
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: col as string }} />
+              <span style={{ fontSize: 6, fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>{lbl}</span>
+            </div>
+          ))}
         </div>
-      )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
-        {filtered.map((n) => (
-          <div key={n.id} className="px-3 py-2.5 hover-elevate border-l-2" style={{ borderLeftColor: NOTAM_SEV_BORDER[n.severity] || 'transparent' }} data-testid={`notam-item-${n.id}`}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-black font-mono bg-white/[0.06] text-foreground/50 border border-white/[0.08]">{n.icao}</span>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded border font-black font-mono shrink-0 ${NOTAM_TYPE_COLORS[n.type] || 'text-foreground/50 bg-muted border-border'}`}>
-                {NOTAM_TYPE_LABELS[n.type]?.[language === 'ar' ? 'ar' : 'en'] || n.type}
-              </span>
-              <span className="text-[10px] font-mono text-foreground/40 truncate flex-1">{n.location}</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground/60 leading-relaxed line-clamp-3 mb-1.5 font-mono">{n.text}</p>
-            <div className="flex items-center gap-2 text-[9px] font-mono text-foreground/25">
-              <span>{n.country}</span>
-              <span>·</span>
-              <span>{t('FROM', 'من')} {new Date(n.effectiveFrom).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-              <span>·</span>
-              <span>{t('TO', 'إلى')} {new Date(n.effectiveTo).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-              <span className="ml-auto text-foreground/20">{n.source}</span>
-            </div>
+
+        {/* No-coords placeholder */}
+        {filtered.filter(n => n.coordinates).length === 0 && filtered.length > 0 && (
+          <div className="absolute inset-0 flex items-end justify-center pb-2 z-[999] pointer-events-none">
+            <span className="text-[8px] font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.25)' }}>
+              No coordinates — showing list only
+            </span>
           </div>
-        ))}
+        )}
+      </div>
+
+      {/* Scrollable list */}
+      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]" style={{ overscrollBehavior: 'contain' }}>
+        {filtered.length === 0 && (
+          <div className="px-3 py-8 text-center">
+            <FileWarning className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(34,211,238,0.15)' }} />
+            <p className="text-[10px] font-mono" style={{ color: 'rgba(34,211,238,0.3)' }}>{t('NO ACTIVE NOTAMs', 'لا توجد إشعارات نشطة')}</p>
+          </div>
+        )}
+        {filtered.map(n => {
+          const isSelected = n.id === selectedId;
+          const typeColor = NOTAM_TYPE_HEX[n.type] || '#888';
+          return (
+            <div
+              key={n.id}
+              data-notam-id={n.id}
+              data-testid={`notam-item-${n.id}`}
+              onClick={() => {
+                setSelectedId(isSelected ? null : n.id);
+                if (n.coordinates && mapRef.current) {
+                  mapRef.current.setView([n.coordinates.lat, n.coordinates.lng], 6, { animate: true });
+                }
+              }}
+              className="px-3 py-2 border-l-2 cursor-pointer transition-colors hover:bg-white/[0.02]"
+              style={{
+                borderLeftColor: NOTAM_SEV_BORDER[n.severity] || 'transparent',
+                background: isSelected ? typeColor + '0e' : 'transparent',
+              }}
+            >
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] px-1 py-px rounded font-black font-mono bg-white/[0.06] text-white/40 border border-white/[0.07] shrink-0">{n.icao}</span>
+                <span className={`text-[8px] px-1 py-px rounded border font-black font-mono shrink-0 ${NOTAM_TYPE_COLORS[n.type] || 'text-foreground/50 bg-muted border-border'}`}>
+                  {NOTAM_TYPE_LABELS[n.type]?.[language === 'ar' ? 'ar' : 'en'] || n.type}
+                </span>
+                <span className="text-[9px] font-mono text-foreground/40 truncate flex-1">{n.location}</span>
+                {n.coordinates && <span style={{ fontSize: 9, opacity: 0.4 }}>📍</span>}
+              </div>
+              <p className="text-[9px] text-foreground/50 leading-relaxed line-clamp-2 font-mono mb-0.5">{n.text}</p>
+              <div className="flex items-center gap-1.5 text-[8px] font-mono text-foreground/20">
+                <span>{n.country}</span>
+                <span>·</span>
+                <span>{new Date(n.effectiveFrom).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                <span>→</span>
+                <span>{new Date(n.effectiveTo).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                {n.radiusNm && <span className="ml-auto">{n.radiusNm} NM</span>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-});
+})
 
 const RED_ALERT_THREAT_LABELS: Record<string, { en: string; ar: string; he: string }> = {
   rockets: { en: 'Rocket Fire', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', he: '\u05D9\u05E8\u05D9 \u05E8\u05E7\u05D8\u05D5\u05EA' },
@@ -6143,7 +6351,21 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
       const resp = await fetch('/api/ai-analyst', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, model: chatModel }),
+        body: JSON.stringify({
+          question,
+          model: chatModel,
+          clientContext: prediction ? {
+            threatLevel: prediction.overallThreatLevel,
+            confidence: prediction.confidence,
+            nextTarget: prediction.nextLikelyTarget,
+            nextAttackWindow: prediction.nextAttackWindow,
+            locationProbabilities: prediction.locationProbabilities?.slice(0, 5),
+            escalationVector: prediction.escalationVector,
+            velocity30m: prediction.dataPoints?.velocity30m,
+            velocityPerHour: prediction.dataPoints?.velocityPerHour,
+            isEscalating: prediction.dataPoints?.isEscalating,
+          } : undefined,
+        }),
       });
       if (!resp.body) throw new Error('No response body');
       const reader = resp.body.getReader();
@@ -6548,7 +6770,18 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
               <div className="flex flex-col h-full" style={{ minHeight: 300 }}>
                 {/* Model selector */}
                 <div className="shrink-0 px-3 pt-3 pb-2">
-                  <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5 text-white/30">AI Model</div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest text-white/30">{language === 'ar' ? 'نموذج الذكاء الاصطناعي' : 'AI Model'}</div>
+                    {chatHistory.length > 0 && (
+                      <button
+                        onClick={() => { setChatHistory([]); setStreamingText(''); }}
+                        className="text-[7px] font-mono text-white/25 hover:text-red-400/70 transition-colors px-1.5 py-0.5 rounded"
+                        style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+                      >
+                        {language === 'ar' ? 'مسح' : 'Clear'}
+                      </button>
+                    )}
+                  </div>
                   <div className="flex gap-1.5 flex-wrap">
                     {AI_MODELS.map(m => (
                       <button
@@ -6572,20 +6805,28 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 {/* Suggested questions */}
                 {chatHistory.length === 0 && !chatLoading && (
                   <div className="shrink-0 px-3 pb-2">
-                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5 text-white/25">Suggested</div>
+                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5 text-white/25">{language === 'ar' ? 'أسئلة مقترحة' : 'Suggested'}</div>
                     <div className="flex flex-col gap-1">
-                      {[
-                        language === 'ar' ? 'ما هي أحدث التهديدات الآن؟' : 'What are the most active threats right now?',
-                        language === 'ar' ? 'هل الوضع يتصاعد أم مستقر؟' : 'Is the situation escalating or stable?',
-                        language === 'ar' ? 'ما هي المنطقة الأكثر خطراً؟' : 'Which region is at highest risk?',
-                        language === 'ar' ? 'ما احتمال توسع الصراع؟' : 'What is the likelihood of wider conflict?',
-                      ].map(q => (
+                      {(language === 'ar' ? [
+                        'ما هي أحدث التهديدات الآن؟',
+                        'هل الوضع يتصاعد أم مستقر؟',
+                        'ما هي المنطقة الأكثر خطراً؟',
+                        'متى سيكون الهجوم القادم المتوقع؟',
+                        'ما احتمال توسع الصراع؟',
+                      ] : [
+                        'What are the most active threats right now?',
+                        'When is the next attack likely and where?',
+                        'Which locations have the highest strike probability?',
+                        'Is the situation escalating or stable?',
+                        'Analyze the current threat pattern and predict next moves.',
+                        'What does the OSINT say about Iran right now?',
+                      ]).map(q => (
                         <button
                           key={q}
                           onClick={() => sendQuestion(q)}
                           disabled={chatLoading}
-                          className="text-left px-2 py-1.5 rounded-lg text-[9px] font-mono transition-all active:scale-98 disabled:opacity-40"
-                          style={{ background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)', color: 'rgba(160,163,255,0.75)' }}
+                          className="text-left px-2 py-1.5 rounded-lg text-[9px] font-mono transition-all hover:bg-indigo-500/10 active:scale-98 disabled:opacity-40"
+                          style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)', color: 'rgba(160,163,255,0.75)' }}
                         >
                           {q}
                         </button>
@@ -7032,6 +7273,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
           </div>
         ) : (
           <>
+            {/* Threat Level Banner */}
             <div className={`flex items-center justify-between p-2 rounded border ${threatBgs[prediction.overallThreatLevel] || threatBgs.HIGH}`} data-testid="threat-level-banner">
               <div className="flex items-center gap-2">
                 <ShieldAlert className={`w-4 h-4 ${threatColors[prediction.overallThreatLevel] || 'text-orange-400'}`} />
@@ -7050,6 +7292,40 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
               </div>
             </div>
 
+            {/* ═══ NEXT ATTACK WINDOW ═══ */}
+            {prediction.nextAttackWindow && (
+              <div className={`rounded border p-2.5 ${prediction.nextAttackWindow.label === 'imminent' ? 'border-red-500/50 bg-red-500/10' : prediction.nextAttackWindow.label === '~15min' ? 'border-orange-500/40 bg-orange-500/8' : 'border-yellow-500/25 bg-yellow-500/5'}`} data-testid="next-attack-window">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Clock className="w-3 h-3 text-yellow-400/80" />
+                  <span className="text-[9px] font-bold text-white/70 uppercase tracking-widest">{language === 'ar' ? 'توقيت الهجوم القادم' : 'Next Attack Window'}</span>
+                  {prediction.nextAttackWindow.label === 'imminent' && (
+                    <span className="px-1 py-0.5 text-[8px] font-black text-red-400 bg-red-500/20 rounded border border-red-500/40 animate-pulse tracking-wider">⚠ IMMINENT</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className={`text-[22px] font-black font-mono leading-none ${prediction.nextAttackWindow.label === 'imminent' ? 'text-red-400' : prediction.nextAttackWindow.estimatedMinutes <= 30 ? 'text-orange-400' : 'text-yellow-300'}`}>
+                      {prediction.nextAttackWindow.label === 'imminent' ? '< 5 MIN' : prediction.nextAttackWindow.label === 'unknown' ? '---' : prediction.nextAttackWindow.label.toUpperCase()}
+                    </div>
+                    <div className="text-[8px] text-white/40 mt-0.5 leading-tight max-w-[160px]">{prediction.nextAttackWindow.basis}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[9px] text-white/40 mb-1">Timing confidence</div>
+                    <div className="flex items-center gap-1 justify-end">
+                      <div className="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${prediction.nextAttackWindow.confidence >= 0.7 ? 'bg-orange-400' : prediction.nextAttackWindow.confidence >= 0.45 ? 'bg-yellow-400' : 'bg-white/30'}`}
+                          style={{ width: `${Math.round(prediction.nextAttackWindow.confidence * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] font-mono text-white/50">{Math.round(prediction.nextAttackWindow.confidence * 100)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Velocity Strip */}
             <div className="flex items-center gap-2 px-1">
               <div className="flex items-center gap-1.5 flex-1">
                 <Activity className="w-3 h-3 text-cyan-400/70" />
@@ -7065,6 +7341,35 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
               </div>
             </div>
 
+            {/* ═══ STRIKE PROBABILITY BY LOCATION ═══ */}
+            {prediction.locationProbabilities && prediction.locationProbabilities.length > 0 && (
+              <div className="space-y-1.5" data-testid="location-probabilities">
+                <div className="flex items-center gap-1.5 px-1">
+                  <MapPin className="w-3 h-3 text-red-400/70" />
+                  <span className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">{language === 'ar' ? 'احتمالية الاستهداف بالموقع' : 'Strike Probability by Location'}</span>
+                </div>
+                {prediction.locationProbabilities.sort((a, b) => b.probability - a.probability).map((lp, i) => (
+                  <div key={i} className="px-1" data-testid={`loc-prob-${i}`}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[11px] leading-none">{lp.countryFlag}</span>
+                      <span className="text-[9px] font-medium text-white/80 flex-1 truncate">{lp.location}</span>
+                      <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${lp.probability >= 0.7 ? 'bg-red-500/25 text-red-300' : lp.probability >= 0.4 ? 'bg-orange-500/20 text-orange-300' : 'bg-white/8 text-white/40'}`}>
+                        {Math.round(lp.probability * 100)}%
+                      </span>
+                      <span className="text-[8px] text-white/25 font-mono">{lp.threatType.replace('_', ' ')}</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-white/8 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${lp.probability >= 0.7 ? 'bg-gradient-to-r from-red-500 to-red-400' : lp.probability >= 0.5 ? 'bg-gradient-to-r from-orange-500 to-orange-400' : lp.probability >= 0.3 ? 'bg-gradient-to-r from-yellow-500/80 to-yellow-400/60' : 'bg-white/20'}`}
+                        style={{ width: `${Math.round(lp.probability * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Threat Predictions */}
             <div className="space-y-1.5">
               <div className="text-[10px] font-semibold text-white/60 uppercase tracking-wider px-1">{language === 'ar' ? 'توقعات التهديد' : 'Threat Predictions'}</div>
               {prediction.predictions.map((p, i) => (

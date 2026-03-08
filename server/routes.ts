@@ -3659,27 +3659,113 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
 
 // ── NOTAM Monitoring (Middle East Airspace) ──────────────────────────────────
 const ME_AIRPORTS: Array<{ icao: string; name: string; country: string; lat: number; lng: number }> = [
+  // Israel
   { icao: 'LLBG', name: 'Ben Gurion Intl', country: 'Israel', lat: 32.01, lng: 34.87 },
   { icao: 'LLSD', name: 'Sde Dov', country: 'Israel', lat: 32.11, lng: 34.78 },
   { icao: 'LLOV', name: 'Ovda', country: 'Israel', lat: 29.94, lng: 34.94 },
+  // Lebanon
   { icao: 'OLBA', name: 'Beirut Rafic Hariri', country: 'Lebanon', lat: 33.82, lng: 35.49 },
+  // Iran
   { icao: 'OIIE', name: 'Tehran Imam Khomeini', country: 'Iran', lat: 35.42, lng: 51.15 },
   { icao: 'OIII', name: 'Tehran Mehrabad', country: 'Iran', lat: 35.69, lng: 51.31 },
   { icao: 'OISS', name: 'Shiraz Intl', country: 'Iran', lat: 29.54, lng: 52.59 },
-  { icao: 'OIBB', name: 'Bandar Abbas', country: 'Iran', lat: 27.22, lng: 56.38 },
+  { icao: 'OIBB', name: 'Bandar Abbas Intl', country: 'Iran', lat: 27.22, lng: 56.38 },
+  { icao: 'OIKB', name: 'Birjand Intl', country: 'Iran', lat: 32.90, lng: 59.27 },
+  // Iraq
   { icao: 'ORBI', name: 'Baghdad Intl', country: 'Iraq', lat: 33.26, lng: 44.23 },
   { icao: 'ORER', name: 'Erbil Intl', country: 'Iraq', lat: 36.24, lng: 43.96 },
+  { icao: 'ORSU', name: 'Sulaymaniyah Intl', country: 'Iraq', lat: 35.56, lng: 45.31 },
+  // Syria
   { icao: 'OSDI', name: 'Damascus Intl', country: 'Syria', lat: 33.41, lng: 36.52 },
+  { icao: 'OSAP', name: 'Aleppo Intl', country: 'Syria', lat: 36.18, lng: 37.22 },
+  // Jordan
   { icao: 'OJAI', name: 'Amman Queen Alia', country: 'Jordan', lat: 31.72, lng: 35.99 },
-  { icao: 'OEJN', name: 'Jeddah King Abdulaziz', country: 'Saudi Arabia', lat: 21.68, lng: 39.16 },
-  { icao: 'OERK', name: 'Riyadh King Khalid', country: 'Saudi Arabia', lat: 24.96, lng: 46.70 },
+  // Yemen
   { icao: 'OYAA', name: "Sana'a Intl", country: 'Yemen', lat: 15.48, lng: 44.22 },
   { icao: 'OYSN', name: 'Aden Intl', country: 'Yemen', lat: 12.83, lng: 45.03 },
+  { icao: 'OYHN', name: 'Hodeidah Intl', country: 'Yemen', lat: 14.75, lng: 43.00 },
+  // --- GCC ---
+  // Saudi Arabia
+  { icao: 'OEJN', name: 'Jeddah King Abdulaziz', country: 'Saudi Arabia', lat: 21.68, lng: 39.16 },
+  { icao: 'OERK', name: 'Riyadh King Khalid', country: 'Saudi Arabia', lat: 24.96, lng: 46.70 },
+  { icao: 'OEMA', name: 'Madinah Prince Mohammad', country: 'Saudi Arabia', lat: 24.55, lng: 39.70 },
+  { icao: 'OEGN', name: 'Jizan Regional', country: 'Saudi Arabia', lat: 16.90, lng: 42.59 },
+  { icao: 'OEBH', name: 'Bisha', country: 'Saudi Arabia', lat: 19.98, lng: 42.62 },
+  { icao: 'OEDM', name: 'King Salman Air Base', country: 'Saudi Arabia', lat: 24.46, lng: 44.13 },
+  { icao: 'OEDF', name: 'Dammam King Fahd Intl', country: 'Saudi Arabia', lat: 26.47, lng: 49.80 },
+  { icao: 'OETB', name: 'Tabuk Regional', country: 'Saudi Arabia', lat: 28.37, lng: 36.62 },
+  // UAE
   { icao: 'OMDB', name: 'Dubai Intl', country: 'UAE', lat: 25.25, lng: 55.36 },
   { icao: 'OMAA', name: 'Abu Dhabi Intl', country: 'UAE', lat: 24.43, lng: 54.65 },
+  { icao: 'OMDW', name: 'Dubai World Central (Al Maktoum)', country: 'UAE', lat: 24.90, lng: 55.17 },
+  { icao: 'OMFJ', name: 'Fujairah Intl', country: 'UAE', lat: 25.11, lng: 56.32 },
+  { icao: 'OMAD', name: 'Al Dhafra Air Base', country: 'UAE', lat: 24.25, lng: 54.55 },
+  { icao: 'OMRK', name: 'Ras Al Khaimah Intl', country: 'UAE', lat: 25.61, lng: 55.94 },
+  // Qatar
   { icao: 'OTHH', name: 'Doha Hamad Intl', country: 'Qatar', lat: 25.27, lng: 51.61 },
+  { icao: 'OTBH', name: 'Al Udeid Air Base', country: 'Qatar', lat: 25.12, lng: 51.31 },
+  // Bahrain
   { icao: 'OBBI', name: 'Bahrain Intl', country: 'Bahrain', lat: 26.27, lng: 50.63 },
+  { icao: 'OBBS', name: 'Isa Air Base (Sakhir)', country: 'Bahrain', lat: 26.02, lng: 50.59 },
+  // Kuwait
   { icao: 'OKBK', name: 'Kuwait Intl', country: 'Kuwait', lat: 29.23, lng: 47.97 },
+  { icao: 'OKAJ', name: 'Ali Al Salem Air Base', country: 'Kuwait', lat: 29.35, lng: 47.52 },
+  // Oman
+  { icao: 'OOMS', name: 'Muscat Intl', country: 'Oman', lat: 23.59, lng: 58.28 },
+  { icao: 'OOSA', name: 'Salalah Intl', country: 'Oman', lat: 17.04, lng: 54.09 },
+  { icao: 'OOSH', name: 'Sohar Intl', country: 'Oman', lat: 24.40, lng: 56.63 },
+  { icao: 'OOMX', name: 'Masirah Air Base', country: 'Oman', lat: 20.67, lng: 58.89 },
+];
+
+// GCC-specific NOTAM data: known standing restrictions, GPS issues, exercise areas
+const GCC_STANDING_NOTAMS: Array<{
+  icao: string; country: string; lat: number; lng: number;
+  type: NOTAMItem['type']; severity: NOTAMItem['severity'];
+  radiusNm: number; text: string; location: string;
+}> = [
+  // UAE — Persian Gulf GPS/GNSS spoofing (well-documented ongoing condition)
+  { icao: 'OMDB', country: 'UAE', lat: 25.25, lng: 55.36, type: 'navigation_warning', severity: 'high', radiusNm: 150,
+    location: 'Dubai/Persian Gulf FIR',
+    text: 'NAV WARNING: GPS/GNSS SPOOFING REPORTED THROUGHOUT OMAE FIR AND PERSIAN GULF. RNAV/RNP APPROACHES MAY BE UNRELIABLE. POSITION ERRORS UP TO 60NM OBSERVED. PILOTS REPORT ALL ANOMALIES TO ATC. USE CONVENTIONAL NAVIGATION BACKUP. VALID UNTIL FURTHER NOTICE.' },
+  { icao: 'OMAA', country: 'UAE', lat: 24.43, lng: 54.65, type: 'military_exercise', severity: 'high', radiusNm: 80,
+    location: 'Abu Dhabi / Al Dhafra',
+    text: 'MIL EXERCISE: MILITARY EXERCISE IN PROGRESS WITHIN 80NM OF OMAA. AL DHAFRA AIR BASE OPERATIONAL TEMPO ELEVATED. INCREASED MILITARY TRAFFIC. COORDINATE ALL OVERFLIGHT REQUESTS WITH UAE MILITARY ATC PRIOR TO ENTRY. AIRSPACE D-OMAA ACTIVE.' },
+  // Qatar — Al Udeid restricted zone
+  { icao: 'OTBH', country: 'Qatar', lat: 25.12, lng: 51.31, type: 'flight_restriction', severity: 'critical', radiusNm: 30,
+    location: 'Al Udeid Air Base Qatar',
+    text: 'PROHIBITED AREA QA-P01: AIRSPACE WITHIN 30NM/FL600 OF AL UDEID AIR BASE (OTBH) PROHIBITED TO CIVIL AIRCRAFT WITHOUT PRIOR COORDINATION. USAF/QEAF OPERATIONS IN PROGRESS. VIOLATORS SUBJECT TO INTERCEPT. COORDINATE VIA DOHA ATC.' },
+  // Saudi Arabia — Empty Quarter military exercise area
+  { icao: 'OEDM', country: 'Saudi Arabia', lat: 24.46, lng: 44.13, type: 'military_exercise', severity: 'high', radiusNm: 200,
+    location: 'Rub Al Khali (Empty Quarter)',
+    text: 'MIL EXERCISE: SAUDI ARABIAN AIR FORCE EXERCISE "FALCON SHIELD" — ACTIVE WITHIN 200NM OF KING SALMAN AIR BASE (OEDM). LIVE WEAPONS RANGE ACTIVE BELOW FL250. OVERFLIGHTS REQUIRE PRIOR COORDINATION WITH RSAF. DANGER AREA SA-D201 ACTIVE.' },
+  // Saudi Arabia — Red Sea naval corridor
+  { icao: 'OEJN', country: 'Saudi Arabia', lat: 21.68, lng: 39.16, type: 'navigation_warning', severity: 'medium', radiusNm: 120,
+    location: 'Red Sea / Jeddah FIR',
+    text: 'NAV WARNING: RED SEA FIR — HOUTHI MARITIME DRONE AND ANTI-SHIP MISSILE ACTIVITY ONGOING. VESSELS AND AIRCRAFT OPERATING BELOW 5000FT OVER RED SEA SOUTH OF N20° EXERCISE EXTREME CAUTION. GPS JAMMING REPORTED. SEA LANES BAIS/SUEZ TRANSIT ELEVATED THREAT.' },
+  // Saudi Arabia — Jizan/Yemen border restriction
+  { icao: 'OEGN', country: 'Saudi Arabia', lat: 16.90, lng: 42.59, type: 'airspace_closure', severity: 'critical', radiusNm: 60,
+    location: 'Jizan / Saudi-Yemen Border',
+    text: 'AIRSPACE CLOSURE: PROHIBITED AREA SA-P05 — AIRSPACE WITHIN 60NM OF JIZAN (OEGN) AND ALONG SAUDI-YEMEN BORDER CORRIDOR CLOSED TO CIVIL AVIATION. ACTIVE HOUTHI CROSS-BORDER FIRE. BALLISTIC MISSILE AND UAV THREAT IN AREA. AVOIDANCE MANDATORY.' },
+  // Bahrain — US 5th Fleet/Naval Air Station
+  { icao: 'OBBS', country: 'Bahrain', lat: 26.02, lng: 50.59, type: 'military_exercise', severity: 'high', radiusNm: 40,
+    location: 'Isa Air Base / NSA Bahrain',
+    text: 'MIL EXERCISE: CENTCOM JOINT MARITIME EXERCISE IN PROGRESS. NSA BAHRAIN (OBBS/ISA AIR BASE) OPERATIONAL. CARRIER STRIKE GROUP OPERATIONS IN PERSIAN GULF. AIRSPACE BELOW FL180 WITHIN 40NM SUBJECT TO TEMPORARY FLIGHT RESTRICTIONS. COORDINATE WITH BAHRAIN ATC.' },
+  // Kuwait — Ali Al Salem (USAF forward base)
+  { icao: 'OKAJ', country: 'Kuwait', lat: 29.35, lng: 47.52, type: 'flight_restriction', severity: 'high', radiusNm: 25,
+    location: 'Ali Al Salem Air Base Kuwait',
+    text: 'FLIGHT RESTRICTION: ALI AL SALEM AIR BASE (OKAJ) — RESTRICTED AIRSPACE WITHIN 25NM. USAF OPERATIONS IN PROGRESS. CIVIL AIRCRAFT PROHIBITED WITHOUT ADVANCE CLEARANCE FROM KUWAIT CIVIL AVIATION. ACTIVE MILITARY TRAFFIC IN CIRCUIT.' },
+  // Oman — Masirah Island (strategic air base)
+  { icao: 'OOMX', country: 'Oman', lat: 20.67, lng: 58.89, type: 'military_exercise', severity: 'medium', radiusNm: 50,
+    location: 'Masirah Island Air Base Oman',
+    text: 'MIL EXERCISE: ROYAL AIR FORCE OF OMAN EXERCISE ACTIVE AT MASIRAH AIR BASE (OOMX). INCREASED MILITARY TRAFFIC. RESTRICTED AREA OM-R07 ACTIVE SURFACE TO FL200. NON-PARTICIPATING AIRCRAFT MAINTAIN CLEAR OF RESTRICTED AREA. DURATION: 72HR.' },
+  // UAE/Oman — Strait of Hormuz navigation warning
+  { icao: 'OMFJ', country: 'UAE', lat: 25.11, lng: 56.32, type: 'navigation_warning', severity: 'critical', radiusNm: 100,
+    location: 'Strait of Hormuz / Fujairah FIR',
+    text: 'NAV WARNING: STRAIT OF HORMUZ AND GULF OF OMAN — IRGCN NAVAL ACTIVITY ELEVATED. MARITIME DRONE OPERATIONS REPORTED. GPS JAMMING/SPOOFING ACTIVE. AIRCRAFT BELOW FL100 OVER STRAIT EXERCISE EXTREME CAUTION. IRANIAN INTERCEPT ACTIVITY REPORTED. OMFJ/OOMS FIR TRANSITION REQUIRES ATC COORDINATION.' },
+  // Qatar — GPS interference (documented around Doha)
+  { icao: 'OTHH', country: 'Qatar', lat: 25.27, lng: 51.61, type: 'navigation_warning', severity: 'medium', radiusNm: 60,
+    location: 'Doha / Qatar FIR',
+    text: 'NAV WARNING: GPS INTERFERENCE REPORTED WITHIN OTBD/OTHH TERMINAL AREA AND QATAR FIR. POSITION DEGRADATION OBSERVED ON APPROACH. RNAV/RNP APPROACHES NOT GUARANTEED RELIABLE. CONVENTIONAL ILS BACKUP IN USE AT OTHH. PILOTS REPORT ALL NAV ANOMALIES TO DOHA ATC 119.850.' },
 ];
 
 let notamCache: { data: NOTAMItem[]; fetchedAt: number } | null = null;
@@ -3805,6 +3891,26 @@ async function fetchNOTAMs(): Promise<NOTAMItem[]> {
       }
     }
 
+  }
+
+  // Always include GCC standing NOTAMs
+  for (const g of GCC_STANDING_NOTAMS) {
+    if (!notams.find(n => n.icao === g.icao && n.type === g.type)) {
+      notams.push({
+        id: `gcc_standing_${g.icao}_${g.type}`,
+        location: g.location,
+        icao: g.icao,
+        type: g.type,
+        text: g.text,
+        effectiveFrom: new Date(now.getTime() - 24 * 3600000).toISOString(),
+        effectiveTo: new Date(now.getTime() + 72 * 3600000).toISOString(),
+        severity: g.severity,
+        country: g.country,
+        coordinates: { lat: g.lat, lng: g.lng },
+        radiusNm: g.radiusNm,
+        source: 'GCC Standing NOTAM',
+      });
+    }
   }
 
   console.log(`[NOTAM] ${notams.length} NOTAMs (${notams.filter(n => n.severity === 'critical').length} critical)`);
@@ -5089,6 +5195,23 @@ export async function registerRoutes(
     const velocityPerHour = last2h.length > 0 ? last2h.length / 2 : 0;
     const isEscalating = velocity30m > (velocity2h / 4) * 1.3;
 
+    // Timing analysis: compute inter-alert intervals to estimate next attack window
+    const sortedRecent = [...last2h].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const intervals: number[] = [];
+    for (let i = 1; i < sortedRecent.length; i++) {
+      const gap = (new Date(sortedRecent[i].timestamp).getTime() - new Date(sortedRecent[i-1].timestamp).getTime()) / 60000;
+      if (gap > 0.5 && gap < 90) intervals.push(gap);
+    }
+    const avgIntervalMin = intervals.length >= 2 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 20;
+    const lastAlertTs = sortedRecent.length > 0 ? new Date(sortedRecent[sortedRecent.length - 1].timestamp).getTime() : now - 3600000;
+    const minutesSinceLast = (now - lastAlertTs) / 60000;
+    const rawEstMin = Math.max(0, Math.round(avgIntervalMin - minutesSinceLast));
+    const timingBasis = intervals.length >= 2
+      ? `Median interval ${avgIntervalMin.toFixed(0)} min across ${intervals.length} events; last alert ${minutesSinceLast.toFixed(0)} min ago`
+      : `Insufficient interval data; using velocity-based estimate`;
+    const timingLabel = rawEstMin <= 5 ? 'imminent' : rawEstMin <= 15 ? '~15min' : rawEstMin <= 30 ? '~30min' : rawEstMin <= 60 ? '~1h' : rawEstMin <= 120 ? '~2h' : 'unknown';
+    const timingConfidence = Math.min(0.9, 0.3 + (Math.min(intervals.length, 10) / 10) * 0.6);
+
     const intelDigest = classifiedMessageCache
       .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
       .slice(0, 10)
@@ -5112,9 +5235,24 @@ export async function registerRoutes(
   "escalationVector": "string (brief description of escalation direction)",
   "nextLikelyTarget": "string (most probable next target region)",
   "confidence": 0.0-1.0,
-  "patternSummary": "string (2-3 sentence pattern analysis)"
+  "patternSummary": "string (2-3 sentence pattern analysis)",
+  "nextAttackWindow": {
+    "estimatedMinutes": 0-240,
+    "confidence": 0.0-1.0,
+    "basis": "string (1 sentence: why this timing estimate)",
+    "label": "imminent|~15min|~30min|~1h|~2h|~4h|tonight|unknown"
+  },
+  "locationProbabilities": [
+    {
+      "location": "string (specific city or district name)",
+      "country": "IL|LB|IQ|YE|SY|IR|SA|JO|PS",
+      "probability": 0.0-1.0,
+      "threatType": "rockets|missiles|uav|airstrike|ground",
+      "countryFlag": "🇮🇱|🇱🇧|🇮🇶|🇾🇪|🇸🇾|🇮🇷|🇸🇦|🇯🇴|🇵🇸"
+    }
+  ]
 }
-Generate 3-6 predictions ordered by probability. Base predictions on actual alert velocity, geographic patterns, and threat type distribution.`;
+Generate 3-6 predictions and 5-8 location probabilities ordered by probability. For nextAttackWindow, analyze the inter-alert timing pattern provided. Base all predictions on actual alert velocity, geographic patterns, and threat type distribution.`;
 
     const userPrompt = `REAL-TIME ALERT DATA (last 6h):
 Total alerts: ${alerts.length}
@@ -5122,6 +5260,12 @@ Last 30min: ${velocity30m} alerts
 Last 2h: ${velocity2h} alerts
 Velocity: ${velocityPerHour.toFixed(1)} alerts/hour
 Trend: ${isEscalating ? 'ESCALATING' : 'STABLE/DECLINING'}
+
+TIMING ANALYSIS:
+Average inter-alert interval: ${avgIntervalMin.toFixed(1)} min (from ${intervals.length} measured gaps)
+Minutes since last alert: ${minutesSinceLast.toFixed(1)} min
+Statistical next-attack estimate: ${rawEstMin} min (${timingLabel})
+Timing confidence: ${(timingConfidence * 100).toFixed(0)}%
 
 TOP TARGETED REGIONS:
 ${topRegions.map(([r, c]) => `- ${r}: ${c} alerts`).join('\n')}
@@ -5147,6 +5291,7 @@ ${intelDigest || 'Limited OSINT available.'}`;
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+        const naw = parsed.nextAttackWindow;
         const result = {
           predictions: Array.isArray(parsed.predictions) ? parsed.predictions.slice(0, 6).map((p: any) => ({
             region: p.region || 'Unknown',
@@ -5171,6 +5316,19 @@ ${intelDigest || 'Limited OSINT available.'}`;
             isEscalating,
             topRegions: topRegions.map(([r, c]) => ({ region: r, count: c })),
           },
+          nextAttackWindow: naw ? {
+            estimatedMinutes: typeof naw.estimatedMinutes === 'number' ? Math.max(0, Math.round(naw.estimatedMinutes)) : rawEstMin,
+            confidence: Math.min(1, Math.max(0, naw.confidence || timingConfidence)),
+            basis: naw.basis || timingBasis,
+            label: naw.label || timingLabel,
+          } : { estimatedMinutes: rawEstMin, confidence: timingConfidence, basis: timingBasis, label: timingLabel },
+          locationProbabilities: Array.isArray(parsed.locationProbabilities) ? parsed.locationProbabilities.slice(0, 8).map((lp: any) => ({
+            location: lp.location || 'Unknown',
+            country: lp.country || 'IL',
+            probability: Math.min(1, Math.max(0, lp.probability || 0.3)),
+            threatType: lp.threatType || 'rockets',
+            countryFlag: lp.countryFlag || '🌍',
+          })) : [],
         };
         attackPredictionCache = { data: result, fetchedAt: Date.now() };
         return result;
@@ -5202,6 +5360,14 @@ ${intelDigest || 'Limited OSINT available.'}`;
           isEscalating,
           topRegions: topRegions.map(([r, c]) => ({ region: r, count: c })),
         },
+        nextAttackWindow: { estimatedMinutes: rawEstMin, confidence: timingConfidence, basis: timingBasis, label: timingLabel },
+        locationProbabilities: topRegions.slice(0, 6).map(([region, count], i) => ({
+          location: region,
+          country: 'IL',
+          probability: Math.min(0.95, 0.3 + (count as number / Math.max(alerts.length, 1)) * 0.65),
+          threatType: topTypes[i]?.[0] || 'rockets',
+          countryFlag: '🇮🇱',
+        })),
       };
       attackPredictionCache = { data: fallback, fetchedAt: Date.now() };
       return fallback;
@@ -5256,79 +5422,135 @@ ${intelDigest || 'Limited OSINT available.'}`;
 
   // ── AI Analyst Chat Endpoint ─────────────────────────────────────────────
   app.post('/api/ai-analyst', async (req, res) => {
-    const { question, model: modelId = 'claude' } = req.body as { question?: string; model?: string };
+    const { question, model: modelId = 'claude', clientContext } = req.body as { question?: string; model?: string; clientContext?: any };
     if (!question || typeof question !== 'string' || question.trim().length === 0) {
       return res.status(400).json({ error: 'question is required' });
     }
-    const q = question.trim().slice(0, 500);
+    const q = question.trim().slice(0, 600);
 
-    // Build live intelligence context from server caches
+    // ── Build rich live intelligence context ──────────────────────────────
     const now = Date.now();
-    const alerts = (alertHistory.length > 0 ? alertHistory : latestAlerts).slice(-100);
+    const alerts = (alertHistory.length > 0 ? alertHistory : latestAlerts).slice(-200);
+    const last10m = alerts.filter(a => now - new Date(a.timestamp).getTime() < 10 * 60000);
     const last30m = alerts.filter(a => now - new Date(a.timestamp).getTime() < 30 * 60000);
     const last2h  = alerts.filter(a => now - new Date(a.timestamp).getTime() < 2 * 3600000);
+    const last6h  = alerts.filter(a => now - new Date(a.timestamp).getTime() < 6 * 3600000);
 
     const regionCounts: Record<string, number> = {};
     const typeCounts:   Record<string, number> = {};
-    alerts.forEach(a => {
+    last6h.forEach(a => {
       const r = a.region || a.country || 'Unknown';
       regionCounts[r] = (regionCounts[r] || 0) + 1;
       typeCounts[a.threatType] = (typeCounts[a.threatType] || 0) + 1;
     });
-    const topRegions = Object.entries(regionCounts).sort(([,a],[,b]) => b-a).slice(0,5).map(([r,c]) => `${r}: ${c}`).join(', ');
-    const topTypes   = Object.entries(typeCounts).sort(([,a],[,b]) => b-a).slice(0,5).map(([t,c]) => `${t}: ${c}`).join(', ');
+    const topRegions = Object.entries(regionCounts).sort(([,a],[,b]) => b-a).slice(0,6).map(([r,c]) => `${r}: ${c}`).join(' | ');
+    const topTypes   = Object.entries(typeCounts).sort(([,a],[,b]) => b-a).slice(0,5).map(([t,c]) => `${t}×${c}`).join(', ');
     const velocity30m = last30m.length;
     const velocity2h  = last2h.length;
     const isEscalating = velocity30m > (velocity2h / 4) * 1.3;
 
-    const recentAlertLines = last30m.slice(0,12).map(a => `  • ${a.city} (${a.country}) — ${a.threatType}, countdown ${a.countdown}s`).join('\n') || '  (none in last 30min)';
+    // Inter-alert timing estimate
+    const sorted6h = [...last6h].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const intervals: number[] = [];
+    for (let i = 1; i < sorted6h.length; i++) {
+      const gap = (new Date(sorted6h[i].timestamp).getTime() - new Date(sorted6h[i-1].timestamp).getTime()) / 60000;
+      if (gap > 0.5 && gap < 90) intervals.push(gap);
+    }
+    const avgIntervalMin = intervals.length >= 3 ? (intervals.reduce((a,b)=>a+b,0)/intervals.length).toFixed(1) : 'unknown';
+    const lastAlertMin = sorted6h.length > 0 ? ((now - new Date(sorted6h[sorted6h.length-1].timestamp).getTime()) / 60000).toFixed(0) : 'N/A';
 
-    const intelSnippets = classifiedMessageCache
-      .filter(m => m.classification && ['critical','high'].includes(m.classification.severity))
+    // Recent alerts — show last 15, most recent first
+    const recentAlertLines = [...last30m].reverse().slice(0,15)
+      .map(a => `  • ${a.city} (${a.region || a.country}) — ${a.threatType} | cdwn:${a.countdown}s | ${a.source || 'live'}`)
+      .join('\n') || '  (none in last 30min)';
+
+    // OSINT — critical & high severity
+    const criticalOsint = classifiedMessageCache
+      .filter(m => m.classification?.severity === 'critical')
+      .slice(0, 6)
+      .map(m => `  [CRIT][${m.channel}] ${m.text.slice(0, 160)}`)
+      .join('\n');
+    const highOsint = classifiedMessageCache
+      .filter(m => m.classification?.severity === 'high')
       .slice(0, 8)
-      .map(m => `  [${m.channel}] ${m.text.slice(0, 140)}`)
-      .join('\n') || '  (no high-severity OSINT)';
+      .map(m => `  [HIGH][${m.channel}] ${m.text.slice(0, 140)}`)
+      .join('\n');
+    const osintBlock = [criticalOsint, highOsint].filter(Boolean).join('\n') || '  (no high-severity OSINT)';
 
-    const tgSnippets = latestTgMsgs.slice(0, 6).map(m => `  [${m.channel || 'tg'}] ${(m.text || '').slice(0, 120)}`).join('\n') || '  (no recent Telegram)';
+    // Telegram — last 10 messages with channel
+    const tgSnippets = [...latestTgMsgs].slice(0, 10)
+      .map(m => `  [${m.channel || 'tg'}] ${(m.text || '').slice(0, 140)}`)
+      .join('\n') || '  (no recent Telegram)';
 
-    const systemPrompt = `You are ORACLE, an elite AI military intelligence analyst specialising in Middle East conflicts, geopolitics, and threat assessment. You have access to live operational data. Provide sharp, concise analysis — be direct, use precise military/intelligence language, and highlight what matters most. Keep responses under 300 words unless the question demands depth. Format clearly with bullet points or short paragraphs. Today's date: ${new Date().toISOString().split('T')[0]}.`;
+    // Client-supplied prediction context (fresh from UI)
+    const clientPredBlock = clientContext ? `
+Client prediction snapshot:
+  Threat Level: ${clientContext.threatLevel} | Conf: ${Math.round((clientContext.confidence||0)*100)}%
+  Next target: ${clientContext.nextTarget} | Window: ${clientContext.nextAttackWindow?.label || 'N/A'} (~${clientContext.nextAttackWindow?.estimatedMinutes ?? '?'}min)
+  Escalating: ${clientContext.isEscalating ? 'YES' : 'NO'} | Velocity: ${clientContext.velocityPerHour}/hr (${clientContext.velocity30m}/30m)
+  Location probs: ${(clientContext.locationProbabilities || []).map((lp: any) => `${lp.countryFlag}${lp.location} ${Math.round(lp.probability*100)}%`).join(', ') || 'N/A'}` : '';
 
-    const context = `\n\n[LIVE OPERATIONAL PICTURE — ${new Date().toUTCString()}]
-Total alerts on record: ${alerts.length}
-Last 30min: ${velocity30m} alerts | Last 2h: ${velocity2h} alerts
-Trend: ${isEscalating ? '⬆ ESCALATING' : '→ STABLE/DECLINING'}
-Top regions: ${topRegions || 'N/A'}
-Threat types: ${topTypes || 'N/A'}
+    // Cached prediction summary
+    const pred = attackPredictionCache?.data;
+    const predBlock = pred ? `
+AI Prediction (cached):
+  Threat Level: ${pred.overallThreatLevel} | Confidence: ${Math.round((pred.confidence||0)*100)}%
+  Next likely target: ${pred.nextLikelyTarget}
+  Next attack window: ${pred.nextAttackWindow?.label || 'unknown'} (${pred.nextAttackWindow?.estimatedMinutes ?? '?'} min est.)
+  Escalation: ${pred.escalationVector}
+  Pattern: ${pred.patternSummary?.slice(0,200)}
+  Top predictions: ${pred.predictions?.slice(0,3).map((p: any) => `${p.region} ${Math.round(p.probability*100)}% (${p.timeframe})`).join(', ')}
+  Location probabilities: ${pred.locationProbabilities?.slice(0,5).map((lp: any) => `${lp.countryFlag}${lp.location} ${Math.round(lp.probability*100)}%`).join(', ') || 'N/A'}` : '';
 
-Recent alerts (last 30min):
+    const systemPrompt = `You are ORACLE, an elite AI military intelligence analyst with real-time access to live conflict data for the Middle East theatre. Your capabilities:
+- Real-time red alert data from Israel (OREF system), Lebanon, Gaza, Iraq, Yemen
+- Live OSINT from Telegram channels (@wfwitness, @ClashReport, @AjaNews, @thewarreporter, @GeoConfirmed, @ELINTNews and 30+ more)
+- AI-generated attack predictions with timing and location probability analysis
+- Pattern recognition across rocket/missile/UAV/airstrike campaigns
+
+Tone: Direct, precise, intelligence-grade language. No hedging. Short punchy answers unless depth is requested. Use military terminology. Bullet points for structured data. Flag CRITICAL items prominently. Acknowledge uncertainty where appropriate.
+Date/Time: ${new Date().toUTCString()}`;
+
+    const context = `
+
+════════════ LIVE OPERATIONAL PICTURE ════════════
+Timestamp: ${new Date().toUTCString()}
+Alert history (6h): ${last6h.length} | Last 2h: ${velocity2h} | Last 30m: ${velocity30m} | Last 10m: ${last10m.length}
+Trend: ${isEscalating ? '▲ ESCALATING' : '→ STABLE/DECLINING'}
+Avg inter-alert interval: ${avgIntervalMin} min | Last alert: ${lastAlertMin} min ago
+Top targeted regions (6h): ${topRegions || 'N/A'}
+Threat type breakdown: ${topTypes || 'N/A'}
+
+━━━ RECENT ALERTS (last 30min) ━━━
 ${recentAlertLines}
+${predBlock}
+━━━ HIGH-SEVERITY OSINT (classified) ━━━
+${osintBlock}
 
-High-severity OSINT:
-${intelSnippets}
+━━━ LATEST TELEGRAM INTELLIGENCE ━━━
+${tgSnippets}
+══════════════════════════════════════════════════`;
 
-Latest Telegram intelligence:
-${tgSnippets}`;
+    const userMessage = `${q}${context}${clientPredBlock}`;
 
-    const userMessage = `${q}${context}`;
-
-    // Set SSE headers for streaming
+    // ── SSE streaming setup ────────────────────────────────────────────────
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    const sendChunk = (text: string) => res.write(`data: ${JSON.stringify({ text })}\\n\\n`);
-    const sendDone  = ()             => res.write(`data: [DONE]\\n\\n`);
-    const sendError = (msg: string)  => res.write(`data: ${JSON.stringify({ error: msg })}\\n\\n`);
+    // IMPORTANT: SSE format requires actual newlines (\n), not escaped \\n
+    const sendChunk = (text: string) => res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    const sendDone  = ()             => res.write(`data: [DONE]\n\n`);
+    const sendError = (msg: string)  => res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
 
     try {
       if (modelId === 'claude') {
-        // Claude Opus 4.6 with adaptive thinking
+        // Claude Opus 4.6 — streaming, no adaptive thinking (too slow for chat)
         const stream = anthropic.messages.stream({
           model: 'claude-opus-4-6',
-          max_tokens: 1024,
-          thinking: { type: 'adaptive' },
+          max_tokens: 1200,
           system: systemPrompt,
           messages: [{ role: 'user', content: userMessage }],
         });
@@ -5343,8 +5565,8 @@ ${tgSnippets}`;
         const stream = await openai.chat.completions.create({
           model: 'gpt-4.1',
           messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }],
-          max_tokens: 800,
-          temperature: 0.35,
+          max_tokens: 900,
+          temperature: 0.3,
           stream: true,
         });
         for await (const chunk of stream) {
@@ -5357,8 +5579,8 @@ ${tgSnippets}`;
         const stream = await grok.chat.completions.create({
           model: 'x-ai/grok-3',
           messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMessage }],
-          max_tokens: 800,
-          temperature: 0.35,
+          max_tokens: 900,
+          temperature: 0.3,
           stream: true,
         });
         for await (const chunk of stream) {
@@ -5367,20 +5589,20 @@ ${tgSnippets}`;
         }
 
       } else if (modelId === 'gemini') {
-        // Gemini 2.5 Flash — non-streaming (collect then send)
+        // Gemini 2.5 Flash — collect then stream token-by-token for UX
         const resp = await gemini.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: `${systemPrompt}\n\n${userMessage}`,
-          config: { maxOutputTokens: 900, temperature: 0.35, thinkingConfig: { thinkingBudget: 0 } },
+          config: { maxOutputTokens: 1000, temperature: 0.3, thinkingConfig: { thinkingBudget: 0 } },
         });
         let text = '';
         if (resp.candidates?.[0]?.content?.parts) {
           for (const part of resp.candidates[0].content.parts) { if (part.text) text += part.text; }
         }
-        text = text.trim() || resp.text?.trim() || 'No response generated.';
-        // Stream it word-by-word for UX
-        const words = text.split(/(?<=\s)/);
-        for (const word of words) sendChunk(word);
+        text = text.trim() || (resp as any).text?.trim() || 'No response generated.';
+        // Chunk by word groups for smooth streaming effect
+        const tokens = text.match(/\S+\s*/g) || [text];
+        for (const token of tokens) sendChunk(token);
 
       } else {
         sendError('Unknown model');
@@ -5388,6 +5610,7 @@ ${tgSnippets}`;
 
       sendDone();
     } catch (err: any) {
+      console.error('[AI-ANALYST] Error:', err?.message);
       sendError(err?.message || 'AI analyst error');
     } finally {
       res.end();
