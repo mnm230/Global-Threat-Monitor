@@ -736,10 +736,17 @@ async function fetchLiveFxRates(): Promise<Record<string, number>> {
 
 let liveCommodityPrices: Record<string, { price: number; change: number; changePercent: number }> = {};
 let liveCommodityFetchedAt = 0;
-const COMMODITY_PRICE_TTL = 60_000;
+const COMMODITY_PRICE_TTL = 15_000;
+let commodityFetchInFlight: Promise<void> | null = null;
 
 async function fetchLiveCommodityPrices(): Promise<void> {
   if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
+  if (commodityFetchInFlight) return commodityFetchInFlight;
+  commodityFetchInFlight = _doFetchCommodityPrices().finally(() => { commodityFetchInFlight = null; });
+  return commodityFetchInFlight;
+}
+
+async function _doFetchCommodityPrices(): Promise<void> {
 
   const stooqItems = COMMODITY_META
     .filter(m => (m as any).stooqSymbol)
@@ -830,7 +837,7 @@ function generateCommodities(): CommodityData[] {
 fetchLiveFxRates();
 fetchLiveCommodityPrices();
 setInterval(() => fetchLiveFxRates(), 10_000);
-setInterval(() => fetchLiveCommodityPrices(), 60_000);
+setInterval(() => fetchLiveCommodityPrices(), 15_000);
 
 const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
   'tel aviv': { lat: 32.085, lng: 34.782 }, 'jerusalem': { lat: 31.769, lng: 35.216 },

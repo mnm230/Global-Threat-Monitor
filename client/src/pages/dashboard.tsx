@@ -2121,31 +2121,54 @@ const CATEGORY_STYLES: Record<string, { variant: 'destructive' | 'default' | 'se
 };
 
 
-const CommodityRow = memo(function CommodityRow({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
+const MarketTile = memo(function MarketTile({ c, language }: { c: CommodityData; language: 'en' | 'ar' }) {
+  const up = c.change >= 0;
+  const pctAbs = Math.abs(c.changePercent);
+  const isHot = pctAbs >= 1.5;
+  const borderColor = up ? 'rgba(52,211,153,0.25)' : 'rgba(248,113,113,0.25)';
+  const glowColor = isHot ? (up ? 'rgba(52,211,153,0.06)' : 'rgba(248,113,113,0.06)') : 'transparent';
+
   return (
     <div
-      className={`grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2.5 font-mono text-xs items-center hover:bg-white/[0.02] transition-colors duration-150 border-l-2 border-l-transparent ${c.change >= 0 ? 'border-l-emerald-500/20' : 'border-l-red-500/20'}`}
+      className="relative overflow-hidden rounded-md border transition-all duration-200 hover:border-opacity-60 group"
+      style={{ borderColor, background: `linear-gradient(135deg, ${glowColor}, transparent 70%)` }}
       data-testid={`commodity-${c.symbol}`}
     >
-      <div className="flex flex-col min-w-0">
-        <span className="text-foreground/90 font-bold text-xs truncate">{c.symbol}</span>
-        <span className="text-[9px] text-foreground/40 leading-tight truncate">{language === 'ar' ? c.nameAr : c.name}</span>
+      <div className="px-2.5 py-2 flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[10px] font-black tracking-wide text-foreground/80 font-mono truncate">{c.symbol}</span>
+          <div
+            className={`flex items-center gap-0.5 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${up ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}
+          >
+            <TrendingUp className={`w-2.5 h-2.5 ${up ? '' : 'rotate-180'}`} />
+            <span>{up ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
+          </div>
+        </div>
+        <div className="flex items-end justify-between gap-1">
+          <span className="text-sm font-bold tabular-nums text-foreground/95 font-mono leading-none">
+            {formatPrice(c)}
+          </span>
+          <span className="text-[8px] text-foreground/30 font-mono truncate max-w-[60px] text-right leading-tight">
+            {language === 'ar' ? c.nameAr : c.name}
+          </span>
+        </div>
       </div>
-      <span className="text-foreground/80 tabular-nums text-right font-bold whitespace-nowrap text-xs">
-        {formatPrice(c)}
-      </span>
-      <div className={`flex items-center gap-0.5 justify-end tabular-nums font-bold whitespace-nowrap min-w-[48px] text-xs ${c.change >= 0 ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
-        <span>{c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%</span>
-      </div>
+      {isHot && (
+        <div
+          className="absolute top-0 right-0 w-1 h-full"
+          style={{ background: up ? 'rgba(52,211,153,0.5)' : 'rgba(248,113,113,0.5)' }}
+        />
+      )}
     </div>
   );
 });
 
-function SectionLabel({ label }: { label: string }) {
+function MarketSectionHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div className="px-3.5 py-1.5 bg-card/40 border-y border-border/20 flex items-center gap-2">
-      <div className="w-1 h-1 rounded-full bg-primary/35 shrink-0" />
-      <span className="text-[9px] uppercase tracking-[0.2em] text-foreground/30 font-bold font-mono">{label}</span>
+    <div className="flex items-center gap-2 px-2 pt-2 pb-1">
+      <div className="h-px flex-1 bg-white/[0.06]" />
+      <span className="text-[8px] uppercase tracking-[0.25em] text-foreground/25 font-bold font-mono shrink-0">{label} ({count})</span>
+      <div className="h-px flex-1 bg-white/[0.06]" />
     </div>
   );
 }
@@ -2167,6 +2190,10 @@ const CommoditiesPanel = memo(function CommoditiesPanel({
   const fxMajor = commodities.filter(c => c.category === 'fx-major');
   const fxRegional = commodities.filter(c => c.category === 'fx');
 
+  const gainers = commodities.filter(c => c.changePercent > 0).length;
+  const losers = commodities.filter(c => c.changePercent < 0).length;
+  const topMover = [...commodities].sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent))[0];
+
   return (
     <div className="h-full flex flex-col min-h-0">
       <PanelHeader
@@ -2177,23 +2204,39 @@ const CommoditiesPanel = memo(function CommoditiesPanel({
         onMaximize={onMaximize}
         isMaximized={isMaximized}
       />
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1 text-[9px] uppercase tracking-[0.2em] text-foreground/20 font-bold border-b border-white/[0.03] shrink-0">
-        <span>{language === 'en' ? 'Symbol' : '\u0627\u0644\u0631\u0645\u0632'}</span>
-        <span className="text-right">{language === 'en' ? 'Price' : '\u0627\u0644\u0633\u0639\u0631'}</span>
-        <span className="text-right">{language === 'en' ? 'Chg%' : '\u0627\u0644\u062A\u063A\u064A\u064A\u0631%'}</span>
+      <div className="shrink-0 px-2.5 py-2 border-b border-white/[0.04] flex items-center gap-2 flex-wrap" data-testid="market-summary-bar">
+        <div className="flex items-center gap-1.5 text-[10px] font-mono">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className="text-emerald-400/80 font-bold">{gainers}</span>
+          <span className="text-foreground/25">{language === 'en' ? 'up' : '\u0635\u0639\u0648\u062F'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-mono">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+          <span className="text-red-400/80 font-bold">{losers}</span>
+          <span className="text-foreground/25">{language === 'en' ? 'down' : '\u0647\u0628\u0648\u0637'}</span>
+        </div>
+        {topMover && (
+          <div className="ml-auto flex items-center gap-1 text-[9px] font-mono text-foreground/35">
+            <Zap className="w-2.5 h-2.5 text-amber-400/60" />
+            <span className="text-foreground/50 font-bold">{topMover.symbol}</span>
+            <span className={topMover.change >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}>
+              {topMover.change >= 0 ? '+' : ''}{topMover.changePercent.toFixed(2)}%
+            </span>
+          </div>
+        )}
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <SectionLabel label={language === 'en' ? '\u25B8 Commodities' : '\u25B8 \u0627\u0644\u0633\u0644\u0639'} />
-        <div className="divide-y divide-white/[0.02]">
-          {cmdty.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+      <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2">
+        <MarketSectionHeader label={language === 'en' ? 'Commodities' : '\u0627\u0644\u0633\u0644\u0639'} count={cmdty.length} />
+        <div className="grid grid-cols-2 gap-1.5">
+          {cmdty.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
         </div>
-        <SectionLabel label={language === 'en' ? '\u25B8 Major FX' : '\u25B8 \u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} />
-        <div className="divide-y divide-white/[0.02]">
-          {fxMajor.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+        <MarketSectionHeader label={language === 'en' ? 'Major FX' : '\u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} count={fxMajor.length} />
+        <div className="grid grid-cols-2 gap-1.5">
+          {fxMajor.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
         </div>
-        <SectionLabel label={language === 'en' ? '\u25B8 Regional FX' : '\u25B8 \u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} />
-        <div className="divide-y divide-white/[0.02]">
-          {fxRegional.map(c => <CommodityRow key={c.symbol} c={c} language={language} />)}
+        <MarketSectionHeader label={language === 'en' ? 'Regional FX' : '\u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} count={fxRegional.length} />
+        <div className="grid grid-cols-2 gap-1.5">
+          {fxRegional.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
         </div>
       </div>
     </div>
