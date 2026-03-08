@@ -482,80 +482,185 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
 }
 
 const audioCtxRef = { current: null as AudioContext | null };
+const masterCompRef = { current: null as DynamicsCompressorNode | null };
 
-function playEASTone(ctx: AudioContext, freq1: number, freq2: number, startTime: number, duration: number, vol: number) {
-  [freq1, freq2].forEach(freq => {
+function getAudio(): { ctx: AudioContext; out: AudioNode } | null {
+  try {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext();
+      const comp = audioCtxRef.current.createDynamicsCompressor();
+      comp.threshold.value = -16;
+      comp.knee.value = 6;
+      comp.ratio.value = 5;
+      comp.attack.value = 0.002;
+      comp.release.value = 0.15;
+      comp.connect(audioCtxRef.current.destination);
+      masterCompRef.current = comp;
+    }
+    if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+    return { ctx: audioCtxRef.current, out: masterCompRef.current! };
+  } catch { return null; }
+}
+
+// Single tone with full ADSR envelope + optional frequency glide
+function tone(
+  ctx: AudioContext, out: AudioNode,
+  type: OscillatorType, freqStart: number, freqEnd: number | null,
+  start: number, dur: number, peak: number,
+  attack = 0.007, release = 0.055,
+) {
+  const osc = ctx.createOscillator();
+  const g   = ctx.createGain();
+  osc.connect(g); g.connect(out);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freqStart, start);
+  if (freqEnd !== null) osc.frequency.linearRampToValueAtTime(freqEnd, start + dur);
+  g.gain.setValueAtTime(0, start);
+  g.gain.linearRampToValueAtTime(peak, start + attack);
+  g.gain.setValueAtTime(peak, Math.max(start + attack, start + dur - release));
+  g.gain.linearRampToValueAtTime(0, start + dur);
+  osc.start(start);
+  osc.stop(start + dur + 0.01);
+}
+
+// ── ROCKETS — Israeli Pikud HaOref 3-note ascending pattern ×2 ───────────────
+// Sounds like: BEE-BEE-BEE ... BEE-BEE-BEE (C6 E6 G6 musical triad)
+function playRocketAlert(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  const notes = [1047, 1319, 1568]; // C6 – E6 – G6
+  for (let rep = 0; rep < 2; rep++) {
+    const b = t + rep * 0.75;
+    notes.forEach((freq, i) => {
+      const s = b + i * 0.20;
+      tone(ctx, out, 'square',   freq,         null, s, 0.15, vol * 0.72, 0.004, 0.04);
+      tone(ctx, out, 'triangle', freq * 2,     null, s, 0.15, vol * 0.18, 0.004, 0.04); // octave shimmer
+      tone(ctx, out, 'sine',     freq * 0.998, null, s, 0.15, vol * 0.22, 0.004, 0.04); // slight detune body
+    });
+  }
+}
+
+// ── MISSILES — NATO naval klaxon: beating pair of sawtooth + sub thud ×3 ─────
+// Sounds like: AHOOGA-AHOOGA-AHOOGA (classic warship alarm)
+function playMissileKlaxon(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  for (let i = 0; i < 3; i++) {
+    const s = t + i * 0.52;
+    tone(ctx, out, 'sawtooth', 440, null, s, 0.44, vol * 0.60, 0.01, 0.06);
+    tone(ctx, out, 'sawtooth', 463, null, s, 0.44, vol * 0.60, 0.01, 0.06); // 23 Hz beat = 43ms throb
+    tone(ctx, out, 'sine',     220, null, s, 0.44, vol * 0.30, 0.01, 0.06); // sub undertone
+    tone(ctx, out, 'sine',      75,  30,  s, 0.18, vol * 1.00, 0.004, 0.12); // deep impact thud
+  }
+}
+
+// ── UAV / DRONE — four detuned rotors (beating texture) + electronics whine ──
+// Sounds like: buzzing quadcopter + alert beeps
+function playDroneBuzz(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  // Four rotor oscillators — close frequencies create complex beating
+  [87, 93, 98, 104].forEach((freq, idx) => {
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, startTime);
-    gain.gain.setValueAtTime(0, startTime);
-    gain.gain.linearRampToValueAtTime(vol, startTime + 0.005);
-    gain.gain.setValueAtTime(vol, startTime + duration - 0.01);
-    gain.gain.linearRampToValueAtTime(0, startTime + duration);
-    osc.start(startTime);
-    osc.stop(startTime + duration + 0.01);
+    const g   = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    osc.connect(g); g.connect(out);
+    // Slow amplitude swell in/out
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol * 0.26, t + 0.12 + idx * 0.03);
+    g.gain.setValueAtTime(vol * 0.26, t + 1.05);
+    g.gain.linearRampToValueAtTime(0, t + 1.35);
+    osc.start(t); osc.stop(t + 1.4);
   });
+  // High-pitched electronics whine (simulates ESC/motor controller)
+  tone(ctx, out, 'sine', 3600, 4400, t + 0.05, 1.20, vol * 0.10, 0.18, 0.25);
+  // Warning beep trio
+  [0.55, 0.78, 1.01].forEach(off =>
+    tone(ctx, out, 'square', 1175, null, t + off, 0.16, vol * 0.55, 0.005, 0.05)
+  );
+}
+
+// ── AIRCRAFT INTRUSION — TCAS/GPWS "WHOOP WHOOP" rapid ascending sweep ×3 ───
+// Sounds like: cockpit GPWS alarm — urgent rising sweeps then two-tone alarm
+function playAircraftAlert(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  for (let i = 0; i < 3; i++) {
+    const s = t + i * 0.40;
+    tone(ctx, out, 'sawtooth', 520, 1080, s,        0.32, vol * 0.78, 0.008, 0.04);
+    tone(ctx, out, 'sine',     516, 1072, s + 0.01, 0.30, vol * 0.32, 0.008, 0.04);
+  }
+  // Alternating two-tone tail
+  [1.28, 1.52, 1.76, 2.00].forEach((off, i) =>
+    tone(ctx, out, 'square', i % 2 === 0 ? 870 : 650, null, t + off, 0.20, vol * 0.52, 0.006, 0.04)
+  );
+}
+
+// ── BALLISTIC MISSILE — DEFCON: deep sub BOOM + ascending civil wail + beeps ─
+// Sounds like: impact, then rising air-raid siren, then rapid alarm
+function playBallisticAlert(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  // Sub-bass impact punch
+  tone(ctx, out, 'sine',     42,  20, t,        0.55, vol * 1.10, 0.004, 0.40);
+  tone(ctx, out, 'sawtooth', 58,  28, t + 0.01, 0.50, vol * 0.55, 0.005, 0.38);
+  // Ascending civil-defense wail (two layers — fundamental + octave)
+  tone(ctx, out, 'sawtooth', 280, 1380, t + 0.50, 1.05, vol * 0.80, 0.05, 0.08);
+  tone(ctx, out, 'sine',     270, 1360, t + 0.50, 1.05, vol * 0.38, 0.05, 0.08);
+  // Five escalating staccato beeps
+  for (let i = 0; i < 5; i++)
+    tone(ctx, out, 'square', 1740 + i * 65, null, t + 1.65 + i * 0.13, 0.09, vol * 0.72, 0.003, 0.04);
+}
+
+// ── CRUISE MISSILE — Doppler shift: high-to-low sweep + urgent pulses ────────
+// Sounds like: fast incoming jet (Doppler effect) then alarm
+function playCruiseMissile(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  tone(ctx, out, 'sawtooth', 1700, 280, t,        0.95, vol * 0.68, 0.02, 0.14);
+  tone(ctx, out, 'sine',     1680, 275, t + 0.02, 0.92, vol * 0.30, 0.02, 0.14);
+  [1.05, 1.30, 1.55].forEach(off =>
+    tone(ctx, out, 'square', 940, null, t + off, 0.20, vol * 0.62, 0.006, 0.04)
+  );
+}
+
+// ── SIREN — smooth civil-defense wail with harmonic layers ───────────────────
+// Sounds like: classic outdoor air-raid siren up/down sweep
+function playSirenWail(ctx: AudioContext, out: AudioNode, t: number, vol: number, cycles = 2) {
+  for (let c = 0; c < cycles; c++) {
+    const s = t + c * 2.1;
+    tone(ctx, out, 'sawtooth', 360, 1180, s,        1.05, vol * 0.68, 0.08, 0.10);
+    tone(ctx, out, 'sawtooth', 1180, 360, s + 1.05, 1.00, vol * 0.68, 0.04, 0.10);
+    tone(ctx, out, 'sine',     720, 2360, s,        1.05, vol * 0.22, 0.08, 0.10);
+    tone(ctx, out, 'sine',     2360, 720, s + 1.05, 1.00, vol * 0.22, 0.04, 0.10);
+  }
 }
 
 function playAlertSound(threatType?: string, volume: number = 70) {
   try {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext();
-    }
-    const ctx = audioCtxRef.current;
-    if (ctx.state === 'suspended') ctx.resume();
-    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.18;
+    const audio = getAudio();
+    if (!audio) return;
+    const { ctx, out } = audio;
+    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.22;
     const t = ctx.currentTime;
+    if      (threatType === 'ballistic_missile')          playBallisticAlert(ctx, out, t, vol);
+    else if (threatType === 'cruise_missile')             playCruiseMissile(ctx, out, t, vol);
+    else if (threatType === 'missiles')                   playMissileKlaxon(ctx, out, t, vol);
+    else if (threatType === 'uav_intrusion' ||
+             threatType === 'drone_swarm')                playDroneBuzz(ctx, out, t, vol);
+    else if (threatType === 'hostile_aircraft_intrusion') playAircraftAlert(ctx, out, t, vol);
+    else                                                  playRocketAlert(ctx, out, t, vol);
+  } catch (_) {}
+}
 
-    if (threatType === 'missiles') {
-      for (let i = 0; i < 3; i++) {
-        const s = t + i * 0.33;
-        playEASTone(ctx, 853, 960, s, 0.25, vol);
-      }
-      playEASTone(ctx, 960, 1050, t + 1.1, 0.4, vol * 0.8);
-    } else if (threatType === 'uav_intrusion') {
-      for (let i = 0; i < 4; i++) {
-        playEASTone(ctx, 853, 960, t + i * 0.22, 0.15, vol * 0.9);
-      }
-      playEASTone(ctx, 760, 853, t + 1.0, 0.2, vol * 0.6);
-    } else if (threatType === 'hostile_aircraft_intrusion') {
-      for (let i = 0; i < 3; i++) {
-        playEASTone(ctx, 853, 960, t + i * 0.4, 0.3, vol);
-      }
-      playEASTone(ctx, 760, 960, t + 1.3, 0.35, vol * 0.7);
-    } else {
-      playEASTone(ctx, 853, 960, t, 0.2, vol);
-      playEASTone(ctx, 853, 960, t + 0.3, 0.2, vol);
-      playEASTone(ctx, 760, 853, t + 0.6, 0.25, vol * 0.7);
-    }
+// Siren: two-cycle civil-defense wail
+function playSirenAlert(volume: number = 70) {
+  try {
+    const audio = getAudio();
+    if (!audio) return;
+    playSirenWail(audio.ctx, audio.out, audio.ctx.currentTime, Math.max(0, Math.min(1, volume / 100)) * 0.20, 2);
   } catch (_) {}
 }
 
 function playTelegramSound(volume: number = 70) {
   try {
-    if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
-    const ctx = audioCtxRef.current;
-    if (ctx.state === 'suspended') ctx.resume();
+    const audio = getAudio();
+    if (!audio) return;
+    const { ctx, out } = audio;
     const vol = Math.max(0, Math.min(1, volume / 100)) * 0.12;
     const t = ctx.currentTime;
-    const freqs = [1200, 1560, 1800];
-    freqs.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, t + i * 0.09);
-      gain.gain.setValueAtTime(0, t + i * 0.09);
-      gain.gain.linearRampToValueAtTime(vol * (1 - i * 0.2), t + i * 0.09 + 0.008);
-      gain.gain.setValueAtTime(vol * (1 - i * 0.2), t + i * 0.09 + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.09 + 0.12);
-      osc.start(t + i * 0.09);
-      osc.stop(t + i * 0.09 + 0.13);
-    });
+    [1200, 1560, 1800].forEach((freq, i) =>
+      tone(ctx, out, 'sine', freq, null, t + i * 0.09, 0.11, vol * (1 - i * 0.18), 0.007, 0.05)
+    );
   } catch (_) {}
 }
 
@@ -1115,25 +1220,44 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
 const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
-  // Row 1 — PRIORITY: Red Alerts + Telegram + Map  (y=0, h=9 = 720px)
-  { i: 'alerts',    x: 0, y: 0,  w: 4, h: 9, minW: 2, minH: 4 },
-  { i: 'telegram',  x: 4, y: 0,  w: 4, h: 9, minW: 2, minH: 3 },
-  { i: 'map',       x: 8, y: 0,  w: 4, h: 9, minW: 3, minH: 3 },
-  // Row 2 — AI Prediction + LiveFeed + Events  (y=9, h=5)
-  { i: 'aiprediction', x: 0, y: 9,  w: 4, h: 5, minW: 2, minH: 2 },
-  { i: 'livefeed',  x: 4, y: 9,  w: 4, h: 5, minW: 2, minH: 2 },
-  { i: 'events',    x: 8, y: 9,  w: 4, h: 5, minW: 2, minH: 2 },
-  // Row 3 — AlertMap & Markets  (y=14, h=4)
-  { i: 'alertmap',  x: 0, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
-  { i: 'markets',   x: 6, y: 14, w: 6, h: 4, minW: 2, minH: 2 },
-  // Row 4 — Analysis  (y=18, h=4)
-  { i: 'ew',        x: 0, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'infra',     x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'analytics', x: 4, y: 18, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'osint',     x: 8, y: 18, w: 4, h: 4, minW: 3, minH: 2 },
-  { i: 'attackpred',   x: 0, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
-  { i: 'rocketstats',  x: 4, y: 22, w: 4, h: 6, minW: 2, minH: 3 },
+  // Zone 1 — Hero: Alerts sidebar | Dominant Map | Telegram sidebar
+  { i: 'alerts',       x: 0, y: 0,  w: 3, h: 10, minW: 2, minH: 4 },
+  { i: 'map',          x: 3, y: 0,  w: 6, h: 10, minW: 3, minH: 4 },
+  { i: 'telegram',     x: 9, y: 0,  w: 3, h: 10, minW: 2, minH: 3 },
+  // Zone 2 — Intelligence: AI Prediction | Events | Markets
+  { i: 'aiprediction', x: 0, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
+  { i: 'events',       x: 4, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
+  { i: 'markets',      x: 8, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
+  // Zone 3 — Situational: Alert Map | Live Feed
+  { i: 'alertmap',     x: 0, y: 15, w: 6, h: 4,  minW: 2, minH: 2 },
+  { i: 'livefeed',     x: 6, y: 15, w: 6, h: 4,  minW: 2, minH: 2 },
+  // Zone 4 — Analysis: EW | Infra | Analytics | OSINT
+  { i: 'ew',           x: 0, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  { i: 'infra',        x: 3, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  { i: 'analytics',    x: 6, y: 19, w: 3, h: 4,  minW: 2, minH: 2 },
+  { i: 'osint',        x: 9, y: 19, w: 3, h: 4,  minW: 3, minH: 2 },
+  // Zone 5 — Predictions
+  { i: 'attackpred',   x: 0, y: 23, w: 6, h: 5,  minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 6, y: 23, w: 6, h: 5,  minW: 2, minH: 3 },
 ];
+
+const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
+  alerts:       'hsl(0 80% 55%)',
+  telegram:     'hsl(200 80% 60%)',
+  map:          'hsl(152 65% 45%)',
+  events:       'hsl(38 90% 55%)',
+  markets:      'hsl(265 70% 65%)',
+  aiprediction: 'hsl(275 70% 65%)',
+  analytics:    'hsl(185 75% 50%)',
+  ew:           'hsl(25 85% 55%)',
+  infra:        'hsl(345 75% 55%)',
+  osint:        'hsl(240 65% 65%)',
+  livefeed:     'hsl(215 60% 55%)',
+  alertmap:     'hsl(15 80% 55%)',
+  attackpred:   'hsl(28 88% 55%)',
+  rocketstats:  'hsl(175 70% 50%)',
+  sitrep:       'hsl(220 65% 55%)',
+};
 
 interface Correlation {
   id: string;
@@ -2994,53 +3118,49 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel" style={{ background: '#0c0000' }}>
+    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel" style={{ background: 'hsl(240 15% 5%)' }}>
 
-      {/* ── EBS HEADER — Warning stripes + bold title ── */}
+      {/* ── HEADER ── */}
       <div className="shrink-0">
-        {hasActiveAlerts && (
-          <div className="eas-stripes" style={{ height: 6, background: '#dc2626' }} />
-        )}
         <div
-          className={hasActiveAlerts ? 'eas-pulse-border' : ''}
           style={{
-            padding: '10px 12px',
-            background: hasActiveAlerts ? '#7f1d1d' : 'rgba(127,29,29,0.3)',
-            borderBottom: '2px solid',
-            borderColor: hasActiveAlerts ? '#dc2626' : 'rgba(220,38,38,0.15)',
+            padding: '10px 14px',
+            background: hasActiveAlerts
+              ? 'linear-gradient(135deg, hsl(0 80% 12%) 0%, hsl(0 70% 9%) 100%)'
+              : 'hsl(240 14% 7%)',
+            borderBottom: `2px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}`,
             display: 'flex', alignItems: 'center', gap: 10,
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <AlertOctagon
-                className={hasActiveAlerts ? 'eas-flash' : ''}
-                style={{ width: 20, height: 20, color: hasActiveAlerts ? '#fca5a5' : 'rgba(239,68,68,0.3)', flexShrink: 0 }}
-              />
-              <span style={{ fontSize: 16, fontWeight: 900, letterSpacing: '0.14em', color: hasActiveAlerts ? '#fff' : 'rgba(239,68,68,0.35)', textTransform: 'uppercase', fontFamily: 'var(--font-display)' }}>
-                {language === 'ar' ? '\u0627\u0644\u0625\u0646\u0630\u0627\u0631 \u0627\u0644\u0623\u062D\u0645\u0631' : 'EMERGENCY ALERT'}
+              {/* Pulse dot */}
+              <div style={{ position: 'relative', width: 12, height: 12, flexShrink: 0 }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: hasActiveAlerts ? '#ef4444' : 'rgba(239,68,68,0.2)', boxShadow: hasActiveAlerts ? '0 0 10px rgba(239,68,68,0.6)' : 'none' }} />
+                {hasActiveAlerts && <div className="alert-dot-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#ef4444' }} />}
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: '0.12em', color: hasActiveAlerts ? '#fff' : 'rgba(239,68,68,0.3)', textTransform: 'uppercase', fontFamily: 'var(--font-display)' }}>
+                {language === 'ar' ? 'الإنذار الأحمر' : 'EMERGENCY ALERT'}
               </span>
               {hasActiveAlerts && (
                 <span style={{
-                  fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
-                  padding: '2px 10px', borderRadius: 3, fontFamily: 'var(--font-mono)',
-                  background: '#dc2626', border: '2px solid rgba(0,0,0,0.3)',
-                  boxShadow: '0 2px 8px rgba(220,38,38,0.5)',
+                  fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                  padding: '3px 10px', borderRadius: 6, fontFamily: 'var(--font-mono)',
+                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                  boxShadow: '0 2px 12px rgba(220,38,38,0.5)',
                 }} data-testid="text-alert-count">{alerts.length}</span>
               )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 9, color: hasActiveAlerts ? 'rgba(254,202,202,0.6)' : 'rgba(239,68,68,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                OREF HOME FRONT COMMAND
-              </span>
               {liveCount > 0 && (
-                <span style={{ fontSize: 9, padding: '1px 6px', fontWeight: 800, background: '#15803d', color: '#fff', borderRadius: 2, letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>LIVE {liveCount}</span>
+                <span className="eas-flash" style={{ fontSize: 9, padding: '2px 7px', fontWeight: 900, background: '#15803d', color: '#fff', borderRadius: 4, letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>LIVE {liveCount}</span>
               )}
             </div>
+            <span style={{ fontSize: 9, color: hasActiveAlerts ? 'rgba(254,202,202,0.5)' : 'rgba(239,68,68,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+              OREF HOME FRONT COMMAND
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {onShowHistory && (
-              <button onClick={onShowHistory} style={{ width: 30, height: 30, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }} title="Alert History" data-testid="button-alert-history">
+              <button onClick={onShowHistory} style={{ width: 30, height: 30, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }} title="Alert History" data-testid="button-alert-history">
                 <History style={{ width: 14, height: 14 }} />
               </button>
             )}
@@ -3048,61 +3168,60 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             {onClose && <PanelMinimizeButton onMinimize={onClose} />}
           </div>
         </div>
-        {hasActiveAlerts && (
-          <div className="eas-stripes" style={{ height: 4, background: '#dc2626' }} />
-        )}
       </div>
 
       {/* ── FILTERS ── */}
       {hasActiveAlerts && (
-        <div style={{ flexShrink: 0, borderBottom: '2px solid rgba(220,38,38,0.2)', background: '#1a0505', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'hsl(240 14% 7%)', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Search */}
           <div style={{ position: 'relative' }}>
             <input
               type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'ar' ? '\u0627\u0628\u062D\u062B \u0639\u0646 \u0645\u062F\u064A\u0646\u0629...' : 'Search city, region...'}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 32px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(220,38,38,0.25)', borderRadius: 3, color: '#fca5a5', outline: 'none', fontWeight: 600 }}
+              placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search city, region...'}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 32px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, color: '#fca5a5', outline: 'none', fontWeight: 500 }}
               data-testid="input-red-alert-search"
             />
-            <Search style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'rgba(220,38,38,0.4)' }} />
+            <Search style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'rgba(220,38,38,0.35)' }} />
           </div>
-          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {/* Threat type pills */}
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {([['all','ALL'],['rockets','ROCKETS'],['missiles','MISSILES'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','AIRCRAFT']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
-                style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, letterSpacing: '0.1em', cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
-                  background: threatFilter === key ? '#dc2626' : 'transparent',
-                  borderColor: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.2)',
-                  color: threatFilter === key ? '#fff' : 'rgba(220,38,38,0.5)',
+                style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, letterSpacing: '0.08em', cursor: 'pointer', border: '1px solid', fontFamily: 'var(--font-mono)', transition: 'all 0.12s ease',
+                  background: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.08)',
+                  borderColor: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.20)',
+                  color: threatFilter === key ? '#fff' : 'rgba(220,38,38,0.55)',
                 }}
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+          {/* Country pill tabs — horizontal scroll */}
+          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
             <button onClick={() => setCountryFilter('ALL')}
-              style={{ fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
-                background: countryFilter === 'ALL' ? '#991b1b' : 'transparent',
-                borderColor: countryFilter === 'ALL' ? '#991b1b' : 'rgba(255,255,255,0.1)',
-                color: countryFilter === 'ALL' ? '#fff' : 'rgba(255,255,255,0.35)',
+              style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: '1px solid', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0,
+                background: countryFilter === 'ALL' ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.04)',
+                borderColor: countryFilter === 'ALL' ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.08)',
+                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.35)',
               }}
               data-testid="button-country-filter-all"
             >ALL ({alerts.length})</button>
             {countryOrder.map(c => {
               const count = countryCounts[c] || 0;
-              const isActive = count > 0;
+              if (!count) return null;
               const isSelected = countryFilter === c;
               const accent: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
               const color = accent[c] || '#dc2626';
               return (
                 <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
                   style={{
-                    fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 2, cursor: 'pointer', border: '2px solid', fontFamily: 'var(--font-mono)',
-                    background: isSelected ? color : isActive ? color + '20' : 'transparent',
-                    borderColor: isSelected ? color : isActive ? color + '55' : 'rgba(255,255,255,0.06)',
-                    color: isSelected ? '#fff' : isActive ? color : 'rgba(255,255,255,0.18)',
-                    opacity: isActive || isSelected ? 1 : 0.6,
+                    fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 20, cursor: 'pointer', border: '1px solid', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.12s ease',
+                    background: isSelected ? color + '33' : 'rgba(255,255,255,0.03)',
+                    borderColor: isSelected ? color : color + '40',
+                    color: isSelected ? '#fff' : color,
                   }}
                   data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
-                >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c}{isActive ? ` (${count})` : ''}</button>
+                >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c} ({count})</button>
               );
             })}
           </div>
@@ -3111,15 +3230,17 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── EMPTY STATE ── */}
       {!hasActiveAlerts && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center', background: '#0c0000' }}>
-          <Shield style={{ width: 44, height: 44, color: '#15803d', marginBottom: 14 }} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.10)', border: '2px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+            <Shield style={{ width: 26, height: 26, color: '#22c55e' }} />
+          </div>
           <p style={{ fontSize: 16, fontWeight: 900, color: '#22c55e', marginBottom: 4, letterSpacing: '0.1em', fontFamily: 'var(--font-display)' }}>
-            {language === 'ar' ? '\u0644\u0627 \u062A\u0646\u0628\u064A\u0647\u0627\u062A \u0646\u0634\u0637\u0629' : 'ALL CLEAR'}
+            {language === 'ar' ? 'لا تنبيهات نشطة' : 'ALL CLEAR'}
           </p>
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
             No active threats detected
           </p>
-          <div style={{ marginTop: 14, padding: '5px 16px', borderRadius: 2, background: '#14532d', border: '2px solid #15803d', fontSize: 10, color: '#4ade80', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
+          <div style={{ marginTop: 14, padding: '5px 16px', borderRadius: 20, background: 'rgba(21,128,61,0.15)', border: '1px solid rgba(34,197,94,0.30)', fontSize: 10, color: '#4ade80', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
             MONITORING ACTIVE
           </div>
         </div>
@@ -3127,24 +3248,22 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── NON-ISRAEL ALERT BANNER ── */}
       {nonIsraelAlerts.length > 0 && countryFilter === 'ALL' && (
-        <div className="shrink-0" style={{ borderBottom: '2px solid #d97706', background: '#1a0f00' }}>
-          <div className="eas-stripes-static" style={{ height: 3, background: '#d97706' }} />
+        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(217,119,6,0.25)', background: 'hsl(30 30% 7%)' }}>
           <div style={{ padding: '8px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <TriangleAlert style={{ width: 14, height: 14, color: '#fbbf24', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
-                {language === 'ar' ? '\u062A\u0646\u0628\u064A\u0647\u0627\u062A \u062E\u0627\u0631\u062C \u0625\u0633\u0631\u0627\u0626\u064A\u0644' : 'REGIONAL ALERTS'}
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+                {language === 'ar' ? 'تنبيهات خارج إسرائيل' : 'REGIONAL ALERTS'}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 900, color: '#fff', background: '#b45309', borderRadius: 2, padding: '1px 7px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{nonIsraelAlerts.length}</span>
+              <span style={{ fontSize: 12, fontWeight: 900, color: '#fff', background: 'rgba(180,83,9,0.6)', borderRadius: 6, padding: '1px 8px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{nonIsraelAlerts.length}</span>
             </div>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {activeCountries.filter(c => c !== 'Israel').map(c => {
                 const accent: Record<string, string> = { Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
                 return (
                   <button key={c} onClick={() => setCountryFilter(c)}
-                    style={{ fontSize: 10, fontWeight: 800, padding: '4px 8px', borderRadius: 2, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em',
-                      background: accent[c] || '#b45309', color: '#fff', border: '1px solid rgba(0,0,0,0.2)',
-                      boxShadow: `0 1px 6px ${accent[c] || '#b45309'}44`,
+                    style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em',
+                      background: (accent[c] || '#b45309') + '22', color: accent[c] || '#fbbf24', border: `1px solid ${accent[c] || '#b45309'}55`,
                     }}
                     data-testid={`button-regional-${c}`}
                   >{FLAG_MAP[c]} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
@@ -3155,9 +3274,9 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         </div>
       )}
 
-      {/* ── ALERT LIST ── */}
+      {/* ── ALERT CARDS ── */}
       <ScrollArea className="flex-1 min-h-0">
-        <div>
+        <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
             const regionName = compositeKey.split('::')[1];
             const prevCountry = idx > 0 ? sortedRegions[idx - 1][1].country : null;
@@ -3167,40 +3286,28 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             const COUNTRY_ACCENT: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
             const isNonIsrael = country !== 'Israel';
             const isGCC = GCC_COUNTRIES.has(country);
+            const accentColor = COUNTRY_ACCENT[country] || '#dc2626';
 
             return (
               <div key={compositeKey}>
                 {showCountryHeader && (
                   <div style={{
-                    padding: isNonIsrael ? '10px 12px' : '7px 12px',
-                    position: 'sticky', top: 0, zIndex: 110,
-                    background: isNonIsrael ? (isGCC ? '#0c2d48' : '#1a1400') : '#1c1917',
-                    borderBottom: `2px solid ${COUNTRY_ACCENT[country] || '#dc2626'}`,
-                    borderTop: idx > 0 ? `2px solid ${isNonIsrael ? COUNTRY_ACCENT[country] || '#dc2626' : 'rgba(255,255,255,0.06)'}` : 'none',
+                    padding: '6px 10px',
                     display: 'flex', alignItems: 'center', gap: 8,
-                    borderLeft: `4px solid ${COUNTRY_ACCENT[country] || '#dc2626'}`,
+                    marginBottom: 4, marginTop: idx > 0 ? 4 : 0,
+                    borderRadius: 8,
+                    background: isNonIsrael ? accentColor + '14' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${accentColor}30`,
                   }}>
-                    <span style={{ fontSize: isNonIsrael ? 20 : 15 }}>{FLAG_MAP[country]}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: isNonIsrael ? 15 : 13, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', fontFamily: 'var(--font-display)' }}>{country}</span>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', background: COUNTRY_ACCENT[country] || '#dc2626', padding: '1px 7px', borderRadius: 2 }}>{countryAlertCount}</span>
-                        {isGCC && (
-                          <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 5px', borderRadius: 2, background: '#0ea5e9', color: '#fff', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>GCC</span>
-                        )}
-                      </div>
-                      {isNonIsrael && (
-                        <span style={{ fontSize: 9, color: COUNTRY_ACCENT[country] || 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 700, marginTop: 2, display: 'block' }}>
-                          UNDER ATTACK
-                        </span>
-                      )}
-                    </div>
+                    <span style={{ fontSize: isNonIsrael ? 18 : 14 }}>{FLAG_MAP[country]}</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: isNonIsrael ? accentColor : 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-display)' }}>{country}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', background: accentColor + '33', border: `1px solid ${accentColor}55`, padding: '1px 8px', borderRadius: 10 }}>{countryAlertCount}</span>
+                    {isGCC && <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 6px', borderRadius: 4, background: '#0ea5e920', color: '#0ea5e9', border: '1px solid #0ea5e940', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>GCC</span>}
+                    {isNonIsrael && <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.15)', color: '#f87171', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>UNDER ATTACK</span>}
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 600, marginLeft: 'auto' }}>{regionName}</span>
                   </div>
                 )}
-                <div style={{ padding: '4px 12px', background: isNonIsrael ? 'rgba(255,255,255,0.03)' : 'rgba(220,38,38,0.06)', borderBottom: '1px solid rgba(220,38,38,0.12)', position: 'sticky', top: showCountryHeader ? (isNonIsrael ? 50 : 37) : 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: `4px solid ${isNonIsrael ? (COUNTRY_ACCENT[country] || '#dc2626') + '66' : 'rgba(220,38,38,0.25)'}` }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: isNonIsrael ? (COUNTRY_ACCENT[country] || 'rgba(254,202,202,0.65)') : 'rgba(254,202,202,0.65)', fontFamily: 'var(--font-mono)' }}>{regionName}</span>
-                  <span style={{ fontSize: 10, color: 'rgba(220,38,38,0.4)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{regionAlerts.length}</span>
-                </div>
+
                 {regionAlerts.map((alert) => {
                   const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
                   const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
@@ -3211,51 +3318,54 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                   const band = TIER_BAND[tier];
                   const isCrit = tier === 'critical';
                   const isExpired = tier === 'expired';
-                  const alertCountryAccent = COUNTRY_ACCENT[alert.country] || '#dc2626';
+                  const alertAccent = COUNTRY_ACCENT[alert.country] || '#dc2626';
+
+                  const cardBorderColor = isExpired ? 'rgba(255,255,255,0.05)'
+                    : isCrit ? '#ef4444'
+                    : tier === 'urgent' ? '#f97316'
+                    : tier === 'warning' ? '#eab308'
+                    : alertAccent + '80';
 
                   return (
                     <div
                       key={alert.id}
                       data-testid={`red-alert-${alert.id}`}
-                      className={`alert-slide-in${isCrit ? ' eas-pulse-border' : ''}`}
+                      className="alert-slide-in"
                       style={{
-                        padding: '0',
-                        borderBottom: `1px solid ${isNonIsrael ? alertCountryAccent + '22' : 'rgba(255,255,255,0.04)'}`,
-                        borderLeft: `4px solid ${isNonIsrael ? alertCountryAccent : isCrit ? '#dc2626' : tier === 'urgent' ? '#ea580c' : tier === 'warning' ? '#d97706' : isExpired ? 'rgba(220,38,38,0.1)' : '#991b1b'}`,
-                        background: isNonIsrael
-                          ? (isCrit ? alertCountryAccent + '25' : alertCountryAccent + '10')
-                          : (isCrit ? 'rgba(127,29,29,0.5)' : isExpired ? 'transparent' : 'rgba(127,29,29,0.15)'),
+                        borderRadius: 8,
+                        border: `1px solid ${cardBorderColor}`,
+                        background: isExpired
+                          ? 'rgba(255,255,255,0.02)'
+                          : isCrit
+                          ? 'linear-gradient(135deg, rgba(127,29,29,0.35) 0%, rgba(69,10,10,0.25) 100%)'
+                          : isNonIsrael
+                          ? alertAccent + '12'
+                          : 'rgba(127,29,29,0.15)',
+                        boxShadow: isCrit && !isExpired ? `0 0 16px ${alertAccent}25, 0 2px 8px rgba(0,0,0,0.3)` : '0 2px 6px rgba(0,0,0,0.25)',
                         cursor: 'pointer',
-                        transition: 'background 0.15s ease',
+                        overflow: 'hidden',
                       }}
                     >
-                      {isCrit && <div className="eas-stripes" style={{ height: 3, background: isNonIsrael ? alertCountryAccent : '#dc2626' }} />}
-                      <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {isCrit && !isExpired && <div className="eas-stripes" style={{ height: 3, background: alertAccent }} />}
+                      <div style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                            {isNonIsrael && (
-                              <span style={{ fontSize: 13, flexShrink: 0 }}>{FLAG_MAP[alert.country]}</span>
-                            )}
+                            {isNonIsrael && <span style={{ fontSize: 14, flexShrink: 0 }}>{FLAG_MAP[alert.country]}</span>}
                             <span style={{
-                              fontSize: isCrit ? 16 : 14, fontWeight: 900, color: isExpired ? 'rgba(255,255,255,0.2)' : '#fff',
+                              fontSize: isCrit ? 15 : 13, fontWeight: 800, color: isExpired ? 'rgba(255,255,255,0.25)' : '#fff',
                               lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              fontFamily: 'var(--font-display)', letterSpacing: '0.02em',
+                              fontFamily: 'var(--font-display)',
                             }}>
                               {language === 'ar' ? alert.cityAr : alert.city}
                             </span>
-                            {isNonIsrael && !isExpired && (
-                              <span style={{ fontSize: 8, padding: '2px 5px', fontWeight: 900, background: alertCountryAccent, color: '#fff', borderRadius: 2, letterSpacing: '0.08em', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
-                                {SHORT_NAMES[alert.country] || alert.country.toUpperCase()}
-                              </span>
-                            )}
                             {isLive && (
-                              <span style={{ fontSize: 8, padding: '2px 5px', fontWeight: 900, background: '#15803d', color: '#fff', borderRadius: 2, letterSpacing: '0.12em', flexShrink: 0, fontFamily: 'var(--font-mono)' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
+                              <span style={{ fontSize: 8, padding: '2px 6px', fontWeight: 800, background: '#15803d', color: '#fff', borderRadius: 4, letterSpacing: '0.12em', flexShrink: 0, fontFamily: 'var(--font-mono)' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
                             )}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <span style={{
-                              fontSize: 9, fontWeight: 900, padding: '2px 7px', borderRadius: 2, letterSpacing: '0.1em', textTransform: 'uppercase',
-                              background: isActive ? band.bg : 'transparent',
+                              fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
+                              background: isActive ? band.bg + 'cc' : 'transparent',
                               color: isActive ? band.text : 'rgba(255,255,255,0.2)',
                               border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
                               fontFamily: 'var(--font-mono)',
@@ -3263,11 +3373,11 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                               {language === 'ar' ? threat.ar : threat.en}
                             </span>
                             {isActive && !isExpired && (
-                              <span style={{ fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 2, letterSpacing: '0.1em', background: band.bg, color: band.text, opacity: 0.7, fontFamily: 'var(--font-mono)' }}>
+                              <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 10, letterSpacing: '0.08em', background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55`, fontFamily: 'var(--font-mono)' }}>
                                 {band.label}
                               </span>
                             )}
-                            <span style={{ fontSize: 10, color: isExpired ? 'rgba(255,255,255,0.12)' : 'rgba(254,202,202,0.45)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                            <span style={{ fontSize: 10, color: isExpired ? 'rgba(255,255,255,0.12)' : 'rgba(254,202,202,0.4)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
                               {timeAgo(alert.timestamp)}
                             </span>
                           </div>
@@ -3283,41 +3393,32 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         </div>
       </ScrollArea>
 
-      {/* ── SIRENS ── */}
+      {/* ── SIRENS FOOTER ── */}
       {sirens.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: '2px solid #d97706', background: '#451a03' }}>
-          <div className="eas-stripes-static" style={{ height: 3, background: '#d97706' }} />
-          <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Siren style={{ width: 15, height: 15, color: '#fbbf24' }} />
-            <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#fff', fontFamily: 'var(--font-display)' }}>
-              {language === 'ar' ? '\u0635\u0641\u0627\u0631\u0627\u062A' : 'SIRENS'}
+        <div style={{ flexShrink: 0, borderTop: '1px solid rgba(217,119,6,0.30)', background: 'hsl(30 25% 7%)' }}>
+          <div style={{ padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', flexShrink: 0 }} className="eas-flash" />
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+              {language === 'ar' ? 'صفارات' : 'SIRENS'}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', background: '#d97706', borderRadius: 2, padding: '1px 7px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{sirens.length}</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', background: 'rgba(180,83,9,0.5)', borderRadius: 6, padding: '1px 8px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{sirens.length}</span>
           </div>
-          <div style={{ maxHeight: 100, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 100, overflowY: 'auto', paddingBottom: 4 }}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
-                <div key={s.id} style={{ padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(217,119,6,0.15)' }} data-testid={`siren-panel-${s.id}`}>
-                  <div className="eas-flash" style={{ width: 8, height: 8, borderRadius: 2, background: '#fbbf24', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fef3c7', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)' }}>
+                <div key={s.id} style={{ padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(217,119,6,0.12)' }} data-testid={`siren-panel-${s.id}`}>
+                  <div className="eas-flash" style={{ width: 6, height: 6, borderRadius: 2, background: '#fbbf24', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#fef3c7', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)' }}>
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span style={{ fontSize: 9, color: 'rgba(251,191,36,0.6)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span style={{ fontSize: 9, color: 'rgba(251,191,36,0.55)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
           </div>
         </div>
       )}
-
-      {/* ── FOOTER ── */}
-      <div style={{ flexShrink: 0, padding: '5px 12px', borderTop: '2px solid rgba(220,38,38,0.2)', background: '#0a0000', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 9, color: 'rgba(220,38,38,0.35)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>TZEVAADOM.CO.IL</span>
-        <span style={{ fontSize: 9, color: 'rgba(220,38,38,0.35)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-          {hasActiveAlerts ? (filteredAlerts.length !== alerts.length ? `${filteredAlerts.length}/${alerts.length}` : `${alerts.length} ALERTS`) : 'STANDBY'} | 3s
-        </span>
-      </div>
     </div>
   );
 });
@@ -3479,10 +3580,10 @@ const TelegramPanel = memo(function TelegramPanel({
         >
           ALL ({filteredMessages.length})
         </button>
-        {allChannels.slice(0, 10).map(ch => {
+        {allChannels.map(ch => {
           const count = filteredMessages.filter(m => m.channel === ch).length;
           if (count === 0) return null;
-          const shortName = ch.replace('@', '').slice(0, 10);
+          const shortName = ch.replace('@', '').slice(0, 12);
           return (
             <button
               key={ch}
@@ -6054,14 +6155,24 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
 }
 
 // ── AI Prediction Panel ────────────────────────────────────────────────────────
-function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, brief }: {
+function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, prediction, alerts: liveAlerts = [], sirens: liveSirens = [], flights: liveFlights = [], telegramMessages: liveTelegram = [], ewEvents: liveEW = [], infraEvents: liveInfra = [], events: liveEvents = [], commodities: liveCommodities = [], ships: liveShips = [], thermalHotspots: liveThermal = [] }: {
   language: 'en' | 'ar';
   onClose?: () => void;
   onMaximize?: () => void;
   isMaximized?: boolean;
   prediction: AttackPrediction | null;
+  alerts?: RedAlert[];
+  sirens?: SirenAlert[];
+  flights?: FlightData[];
+  telegramMessages?: TelegramMessage[];
+  ewEvents?: EWEvent[];
+  infraEvents?: InfraEvent[];
+  events?: ConflictEvent[];
+  commodities?: CommodityData[];
+  ships?: ShipData[];
+  thermalHotspots?: ThermalHotspot[];
 }) {
-  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern'>('forecast');
+  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern' | 'intel'>('forecast');
 
   const threatColor = (level: string) => ({
     EXTREME: 'text-red-400', HIGH: 'text-orange-400', ELEVATED: 'text-yellow-400',
@@ -6129,7 +6240,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
       </div>
 
       <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(260 20% 11% / 0.8)' }}>
-        {(['forecast', 'vectors', 'pattern'] as const).map(tab => (
+        {(['forecast', 'vectors', 'pattern', 'intel'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -6140,9 +6251,10 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
             }`}
             data-testid={`button-aipred-tab-${tab}`}
           >
-            {tab === 'forecast' ? (language === 'ar' ? '\u0627\u0644\u062A\u0648\u0642\u0639' : 'Forecast') :
-             tab === 'vectors' ? (language === 'ar' ? '\u0627\u0644\u062A\u0647\u062F\u064A\u062F\u0627\u062A' : 'Vectors') :
-             (language === 'ar' ? '\u0627\u0644\u0646\u0645\u0637' : 'Intel')}
+            {tab === 'forecast' ? (language === 'ar' ? 'التوقع' : 'Forecast') :
+             tab === 'vectors'  ? (language === 'ar' ? 'التهديدات' : 'Vectors') :
+             tab === 'pattern'  ? (language === 'ar' ? 'النمط' : 'Pattern') :
+             (language === 'ar' ? 'المصادر' : 'Intel')}
           </button>
         ))}
       </div>
@@ -6417,13 +6529,319 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" />
                     <span className="text-[8px] font-mono text-white/20">
-                      {language === 'ar' ? '\u0622\u062E\u0631 \u062A\u062D\u062F\u064A\u062B' : 'Updated'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '\u2014'}
+                      {language === 'ar' ? 'آخر تحديث' : 'Updated'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                     </span>
                     <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: '500ms' }} />
                   </div>
                 </div>
               </div>
             )}
+
+            {activeTab === 'intel' && (() => {
+              // ── Compute raw signal scores from live data ──────────────────
+              const now = Date.now();
+              const milFlights = liveFlights.filter(f => f.type === 'military' || f.type === 'surveillance');
+              const recentTg = liveTelegram.filter(m => (now - new Date(m.timestamp).getTime()) < 30 * 60 * 1000);
+              const movingMarkets = liveCommodities.filter(c => Math.abs(c.changePercent) > 0.8);
+              const stressedMarkets = liveCommodities.filter(c => Math.abs(c.changePercent) > 2.5);
+              const activeAlerts = liveAlerts.filter(a => {
+                const elapsed = (now - new Date(a.timestamp).getTime()) / 1000;
+                return elapsed < a.countdown || a.countdown === 0;
+              });
+              const alertsByType = liveAlerts.reduce<Record<string,number>>((acc, a) => { acc[a.threatType] = (acc[a.threatType]||0)+1; return acc; }, {});
+              const dominantThreat = Object.entries(alertsByType).sort((a,b)=>b[1]-a[1])[0];
+
+              // Raw weights — scale with actual data intensity
+              const wAlerts    = Math.min(liveAlerts.length * 4, 45);
+              const wSirens    = Math.min(liveSirens.length * 6, 35);
+              const wFlights   = Math.min(milFlights.length * 5, 30);
+              const wTelegram  = Math.min(recentTg.length * 1.5, 25);
+              const wEW        = Math.min(liveEW.length * 9, 22);
+              const wInfra     = Math.min(liveInfra.length * 7, 18);
+              const wMarkets   = Math.min(movingMarkets.length * 4 + stressedMarkets.length * 6, 20);
+              const wThermal   = Math.min(liveThermal.length * 4, 15);
+              const wShips     = Math.min(liveShips.length * 0.8, 10);
+              const wEvents    = Math.min(liveEvents.length * 1.2, 12);
+              const totalRaw = wAlerts + wSirens + wFlights + wTelegram + wEW + wInfra + wMarkets + wThermal + wShips + wEvents || 1;
+
+              const pct = (w: number) => Math.round((w / totalRaw) * 100);
+
+              // Signal quality
+              const quality = (raw: number, hi: number, med: number): 'STRONG' | 'MODERATE' | 'WEAK' | 'NONE' =>
+                raw === 0 ? 'NONE' : raw >= hi ? 'STRONG' : raw >= med ? 'MODERATE' : 'WEAK';
+
+              const sources = [
+                {
+                  id: 'alerts',
+                  icon: <AlertOctagon className="w-4 h-4" style={{ color: '#ef4444' }} />,
+                  label: language === 'ar' ? 'إنذارات الأوريف' : 'OREF Red Alerts',
+                  color: '#ef4444',
+                  raw: wAlerts,
+                  contribution: pct(wAlerts),
+                  quality: quality(wAlerts, 20, 8),
+                  count: liveAlerts.length,
+                  countLabel: language === 'ar' ? 'إنذار' : 'alerts',
+                  detail: activeAlerts.length > 0
+                    ? `${activeAlerts.length} active · ${dominantThreat ? dominantThreat[0].replace(/_/g,' ') + ' dominant' : ''}`
+                    : liveAlerts.length > 0 ? `${liveAlerts.length} total logged` : 'No alerts',
+                  subMetrics: [
+                    { label: 'Active', value: String(activeAlerts.length), color: '#ef4444' },
+                    { label: '30m velocity', value: String(prediction?.dataPoints?.velocity30m ?? 0), color: '#f97316' },
+                    { label: '2h velocity', value: String(prediction?.dataPoints?.velocity2h ?? 0), color: '#eab308' },
+                  ],
+                },
+                {
+                  id: 'sirens',
+                  icon: <Siren className="w-4 h-4" style={{ color: '#fbbf24' }} />,
+                  label: language === 'ar' ? 'صفارات الإنذار' : 'Siren Activity',
+                  color: '#fbbf24',
+                  raw: wSirens,
+                  contribution: pct(wSirens),
+                  quality: quality(wSirens, 18, 6),
+                  count: liveSirens.length,
+                  countLabel: language === 'ar' ? 'صفارة' : 'sirens',
+                  detail: liveSirens.length > 0
+                    ? `${new Set(liveSirens.map(s => s.region)).size} regions · ${liveSirens.filter(s => s.threatType === 'rocket' || s.threatType === 'rockets').length} rocket sirens`
+                    : 'No siren data',
+                  subMetrics: [
+                    { label: 'Regions', value: String(new Set(liveSirens.map(s => s.region)).size), color: '#fbbf24' },
+                    { label: 'Clustered', value: String(Object.values(liveSirens.reduce<Record<string,number>>((a,s)=>{a[s.region]=(a[s.region]||0)+1;return a;},{})).filter(c=>c>=2).length), color: '#f97316' },
+                  ],
+                },
+                {
+                  id: 'flights',
+                  icon: <Plane className="w-4 h-4" style={{ color: '#60a5fa' }} />,
+                  label: language === 'ar' ? 'استخبارات الطيران' : 'Flight Intelligence',
+                  color: '#60a5fa',
+                  raw: wFlights,
+                  contribution: pct(wFlights),
+                  quality: quality(wFlights, 15, 5),
+                  count: milFlights.length,
+                  countLabel: language === 'ar' ? 'طائرة' : 'mil/surv',
+                  detail: `${milFlights.length} military/surveillance · ${liveFlights.filter(f=>f.type==='fighter').length} fighters · ${liveFlights.filter(f=>f.type==='tanker'||f.type==='refueling').length} tankers`,
+                  subMetrics: [
+                    { label: 'Military', value: String(liveFlights.filter(f=>f.type==='military').length), color: '#ef4444' },
+                    { label: 'Surveillance', value: String(liveFlights.filter(f=>f.type==='surveillance').length), color: '#60a5fa' },
+                    { label: 'Total tracked', value: String(liveFlights.length), color: '#94a3b8' },
+                  ],
+                },
+                {
+                  id: 'telegram',
+                  icon: <Send className="w-4 h-4" style={{ color: '#34d399' }} />,
+                  label: language === 'ar' ? 'تلغرام SIGINT' : 'Telegram SIGINT',
+                  color: '#34d399',
+                  raw: wTelegram,
+                  contribution: pct(wTelegram),
+                  quality: quality(wTelegram, 20, 6),
+                  count: recentTg.length,
+                  countLabel: language === 'ar' ? 'رسالة' : 'msgs/30m',
+                  detail: `${recentTg.length} msgs in last 30m · ${liveTelegram.length} total monitored`,
+                  subMetrics: [
+                    { label: '30m surge', value: String(recentTg.length), color: '#34d399' },
+                    { label: 'Total', value: String(liveTelegram.length), color: '#6ee7b7' },
+                  ],
+                },
+                {
+                  id: 'ew',
+                  icon: <Radio className="w-4 h-4" style={{ color: '#a78bfa' }} />,
+                  label: language === 'ar' ? 'الحرب الإلكترونية' : 'Electronic Warfare',
+                  color: '#a78bfa',
+                  raw: wEW,
+                  contribution: pct(wEW),
+                  quality: quality(wEW, 5, 2),
+                  count: liveEW.length,
+                  countLabel: language === 'ar' ? 'حدث' : 'EW events',
+                  detail: liveEW.length > 0 ? `${liveEW.length} EW events · jamming/spoofing detected` : 'No EW activity',
+                  subMetrics: [
+                    { label: 'Active', value: String(liveEW.length), color: '#a78bfa' },
+                  ],
+                },
+                {
+                  id: 'infra',
+                  icon: <Zap className="w-4 h-4" style={{ color: '#fb923c' }} />,
+                  label: language === 'ar' ? 'البنية التحتية' : 'Infrastructure Events',
+                  color: '#fb923c',
+                  raw: wInfra,
+                  contribution: pct(wInfra),
+                  quality: quality(wInfra, 4, 1),
+                  count: liveInfra.length,
+                  countLabel: language === 'ar' ? 'حدث' : 'events',
+                  detail: liveInfra.length > 0 ? `${liveInfra.length} infrastructure disruptions` : 'No disruptions',
+                  subMetrics: [
+                    { label: 'Events', value: String(liveInfra.length), color: '#fb923c' },
+                  ],
+                },
+                {
+                  id: 'markets',
+                  icon: <TrendingUp className="w-4 h-4" style={{ color: '#facc15' }} />,
+                  label: language === 'ar' ? 'ضغط الأسواق' : 'Market Stress Index',
+                  color: '#facc15',
+                  raw: wMarkets,
+                  contribution: pct(wMarkets),
+                  quality: quality(wMarkets, 12, 4),
+                  count: movingMarkets.length,
+                  countLabel: language === 'ar' ? 'أصل متحرك' : 'moving assets',
+                  detail: (() => {
+                    const oil = liveCommodities.find(c => c.symbol === 'OIL' || c.symbol === 'CRUDE' || c.name?.toLowerCase().includes('oil'));
+                    const gold = liveCommodities.find(c => c.symbol === 'GOLD' || c.name?.toLowerCase().includes('gold'));
+                    const parts: string[] = [];
+                    if (oil) parts.push(`Oil ${oil.changePercent > 0 ? '+' : ''}${oil.changePercent.toFixed(1)}%`);
+                    if (gold) parts.push(`Gold ${gold.changePercent > 0 ? '+' : ''}${gold.changePercent.toFixed(1)}%`);
+                    if (stressedMarkets.length > 0) parts.push(`${stressedMarkets.length} assets >2.5% move`);
+                    return parts.length ? parts.join(' · ') : `${liveCommodities.length} assets monitored`;
+                  })(),
+                  subMetrics: [
+                    { label: 'Moving', value: String(movingMarkets.length), color: '#facc15' },
+                    { label: 'Stressed', value: String(stressedMarkets.length), color: '#ef4444' },
+                    { label: 'Total', value: String(liveCommodities.length), color: '#94a3b8' },
+                  ],
+                },
+                {
+                  id: 'thermal',
+                  icon: <Flame className="w-4 h-4" style={{ color: '#f87171' }} />,
+                  label: language === 'ar' ? 'النقاط الحرارية' : 'Thermal Hotspots',
+                  color: '#f87171',
+                  raw: wThermal,
+                  contribution: pct(wThermal),
+                  quality: quality(wThermal, 6, 2),
+                  count: liveThermal.length,
+                  countLabel: language === 'ar' ? 'نقطة' : 'hotspots',
+                  detail: liveThermal.length > 0 ? `${liveThermal.length} active thermal signatures (MODIS/VIIRS)` : 'No thermal data',
+                  subMetrics: [
+                    { label: 'Active', value: String(liveThermal.length), color: '#f87171' },
+                  ],
+                },
+                {
+                  id: 'maritime',
+                  icon: <Ship className="w-4 h-4" style={{ color: '#38bdf8' }} />,
+                  label: language === 'ar' ? 'الحركة البحرية' : 'Maritime Activity',
+                  color: '#38bdf8',
+                  raw: wShips,
+                  contribution: pct(wShips),
+                  quality: quality(wShips, 10, 3),
+                  count: liveShips.length,
+                  countLabel: language === 'ar' ? 'سفينة' : 'vessels',
+                  detail: `${liveShips.length} vessels in monitored straits`,
+                  subMetrics: [
+                    { label: 'Tracked', value: String(liveShips.length), color: '#38bdf8' },
+                  ],
+                },
+              ].filter(s => s.raw > 0 || s.count > 0);
+
+              const qualityColor = (q: string) =>
+                q === 'STRONG' ? '#22c55e' : q === 'MODERATE' ? '#eab308' : q === 'WEAK' ? '#f97316' : '#4b5563';
+              const qualityBg = (q: string) =>
+                q === 'STRONG' ? 'rgba(34,197,94,0.12)' : q === 'MODERATE' ? 'rgba(234,179,8,0.12)' : q === 'WEAK' ? 'rgba(249,115,22,0.12)' : 'rgba(75,85,99,0.10)';
+
+              const totalActive = sources.filter(s => s.quality !== 'NONE').length;
+              const strongCount = sources.filter(s => s.quality === 'STRONG').length;
+
+              return (
+                <div className="p-3 space-y-3">
+                  {/* ── Header card ── */}
+                  <div className="rounded-lg border border-violet-500/20 overflow-hidden" style={{ background: 'linear-gradient(135deg, hsl(260 35% 12% / 0.8), hsl(260 25% 9% / 0.6))' }}>
+                    <div className="px-3 py-2 flex items-center gap-2 border-b border-white/[0.06]">
+                      <Activity className="w-3.5 h-3.5 text-violet-400" />
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-violet-300/70">
+                        {language === 'ar' ? 'تفاصيل مصادر الاستخبارات' : 'INTEL SOURCE ATTRIBUTION'}
+                      </span>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <span className="text-[8px] font-mono text-white/25">{totalActive}/{sources.length} sources</span>
+                        <span className="text-[8px] font-black font-mono px-1.5 py-0.5 rounded" style={{ background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.25)' }}>
+                          {strongCount} STRONG
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-[16px] font-black font-mono text-violet-300">{confPct}%</div>
+                        <div className="text-[7px] font-mono text-white/30 uppercase tracking-wider">Overall Conf.</div>
+                      </div>
+                      <div className="text-center border-x border-white/[0.06]">
+                        <div className="text-[16px] font-black font-mono" style={{ color: prediction?.dataPoints?.isEscalating ? '#ef4444' : '#22c55e' }}>
+                          {prediction?.dataPoints?.isEscalating ? '↑' : '→'}
+                        </div>
+                        <div className="text-[7px] font-mono text-white/30 uppercase tracking-wider">
+                          {prediction?.dataPoints?.isEscalating ? 'Escalating' : 'Stable'}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-[16px] font-black font-mono text-yellow-400">{prediction?.dataPoints?.velocityPerHour ?? 0}</div>
+                        <div className="text-[7px] font-mono text-white/30 uppercase tracking-wider">Alerts/hr</div>
+                      </div>
+                    </div>
+                    {/* Combined source bar */}
+                    <div className="px-3 pb-2.5">
+                      <div className="text-[7px] font-mono text-white/25 uppercase tracking-wider mb-1">Signal Composition</div>
+                      <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                        {sources.filter(s => s.contribution > 0).map(s => (
+                          <div key={s.id} style={{ width: `${s.contribution}%`, background: s.color, opacity: s.quality === 'NONE' ? 0.15 : s.quality === 'WEAK' ? 0.4 : 0.75, transition: 'width 0.6s ease' }} title={`${s.label}: ${s.contribution}%`} />
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                        {sources.slice(0, 5).map(s => (
+                          <div key={s.id} className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }} />
+                            <span className="text-[7px] font-mono text-white/30">{s.contribution}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Source rows ── */}
+                  <div className="space-y-2">
+                    {sources.map(source => (
+                      <div key={source.id} className="rounded-lg border overflow-hidden" style={{ borderColor: source.color + '25', background: qualityBg(source.quality) }}>
+                        {/* Main row */}
+                        <div className="px-2.5 py-2 flex items-center gap-2.5">
+                          <div className="shrink-0" style={{ color: source.color, opacity: source.quality === 'NONE' ? 0.25 : 1 }}>
+                            {source.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[10px] font-bold text-white/80 truncate">{source.label}</span>
+                              <span className="text-[8px] font-black font-mono px-1.5 py-px rounded shrink-0" style={{ background: qualityColor(source.quality) + '22', color: qualityColor(source.quality), border: `1px solid ${qualityColor(source.quality)}44` }}>
+                                {source.quality}
+                              </span>
+                            </div>
+                            <p className="text-[8px] font-mono text-white/35 truncate">{source.detail}</p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-[15px] font-black font-mono leading-none" style={{ color: source.color }}>{source.contribution}%</div>
+                            <div className="text-[7px] font-mono text-white/25">of signal</div>
+                          </div>
+                        </div>
+                        {/* Contribution bar */}
+                        <div className="mx-2.5 mb-1.5 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${source.contribution}%`, background: `linear-gradient(90deg, ${source.color}88, ${source.color})` }} />
+                        </div>
+                        {/* Sub-metrics */}
+                        {source.subMetrics.length > 1 && (
+                          <div className="flex divide-x divide-white/[0.05] border-t border-white/[0.04]">
+                            {source.subMetrics.map(m => (
+                              <div key={m.label} className="flex-1 px-2 py-1 text-center">
+                                <div className="text-[11px] font-black font-mono" style={{ color: m.color }}>{m.value}</div>
+                                <div className="text-[7px] font-mono text-white/25 uppercase tracking-wide">{m.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Footer timestamp ── */}
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" />
+                    <span className="text-[8px] font-mono text-white/20">
+                      {language === 'ar' ? 'آخر تحديث' : 'Last computed'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
+                    </span>
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: '500ms' }} />
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
@@ -6900,7 +7318,62 @@ export default function Dashboard() {
     return () => { el.removeEventListener('scroll', onScroll); if (rafId) cancelAnimationFrame(rafId); };
   }, []);
 
-  
+  // Smooth wheel scroll: inner panels with overscroll-behavior:contain block scroll chaining,
+  // so we intercept wheel events and manually ease-scroll the outer container.
+  useEffect(() => {
+    if (isMobile || isTablet) return;
+    const container = panelsScrollRef.current;
+    if (!container) return;
+
+    let targetY = container.scrollTop;
+    let raf: number | null = null;
+
+    const tick = () => {
+      const current = container.scrollTop;
+      const delta = targetY - current;
+      if (Math.abs(delta) < 1) {
+        container.scrollTop = targetY;
+        raf = null;
+        return;
+      }
+      container.scrollTop = current + delta * 0.28;
+      raf = requestAnimationFrame(tick);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      // Walk from event target up to the container.
+      // If any inner scrollable element can still absorb this delta, let it.
+      let el = e.target as HTMLElement;
+      while (el && el !== container) {
+        const oy = window.getComputedStyle(el).overflowY;
+        if (oy === 'auto' || oy === 'scroll') {
+          const canScroll = e.deltaY > 0
+            ? el.scrollTop + el.clientHeight < el.scrollHeight - 1
+            : el.scrollTop > 0;
+          if (canScroll) return;
+        }
+        el = el.parentElement as HTMLElement;
+      }
+      // No inner element can scroll — take over and smooth-scroll the outer container.
+      e.preventDefault();
+      const max = container.scrollHeight - container.clientHeight;
+      targetY = Math.max(0, Math.min(max, targetY + e.deltaY));
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
+    // Keep targetY in sync when the container scrolls via scrollbar or keyboard.
+    const syncTarget = () => { targetY = container.scrollTop; };
+
+    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener('scroll', syncTarget, { passive: true });
+    return () => {
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('scroll', syncTarget);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [isMobile, isTablet]);
+
+
 
 
   const defaultVisible = { map: true, telegram: true, events: true, alerts: true, markets: true, ew: true, infra: true, livefeed: true, alertmap: false, analytics: false, osint: true, sitrep: false, attackpred: true, rocketstats: true, aiprediction: true };
@@ -7237,7 +7710,7 @@ export default function Dashboard() {
     const panel = (() => {
       switch (id) {
         case 'aiprediction':
-          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} />;
+          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} ewEvents={ewEvents} infraEvents={infraEvents} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
         case 'map':
           return <MapSection events={events} flights={flights} redAlerts={redAlerts} thermalHotspots={thermalHotspots} ewEvents={ewEvents} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} focusLocation={mapFocusLocation} />;
         case 'events':
@@ -7273,33 +7746,52 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile || isTablet ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
-      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-12'} border-b border-white/[0.04] flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'linear-gradient(180deg, hsl(222 30% 11% / 0.98) 0%, hsl(222 28% 9% / 0.99) 100%)', borderBottom:'1px solid hsl(175 40% 30% / 0.18)'}}>
-        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent 5%, hsl(175 80% 44% / 0.15) 25%, hsl(175 80% 44% / 0.30) 50%, hsl(175 80% 44% / 0.15) 75%, transparent 95%)'}} />
-        <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(175 80% 44% / 0.08) 30%, hsl(175 80% 44% / 0.12) 50%, hsl(175 80% 44% / 0.08) 70%, transparent)'}} />
+      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-14'} border-b flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'linear-gradient(180deg, hsl(222 32% 10% / 0.99) 0%, hsl(222 28% 8% / 1) 100%)', borderBottom:'1px solid hsl(175 40% 28% / 0.22)'}}>
+        {/* Bottom glow line */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent 5%, hsl(175 80% 44% / 0.20) 20%, hsl(175 80% 44% / 0.45) 50%, hsl(175 80% 44% / 0.20) 80%, transparent 95%)'}} />
+        {/* Left — Branding */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <span className={`${isMobile ? 'text-[13px]' : 'text-[16px]'} font-bold tracking-[0.28em] text-primary select-none whitespace-nowrap`} style={{fontFamily:'var(--font-display)', filter:'drop-shadow(0 0 8px hsl(175 80% 44% / 0.40))', textShadow:'0 0 20px hsl(175 80% 44% / 0.2)'}}>
-            <span className="text-primary/40 mr-1" style={{fontSize:'0.7em'}}>&#x25C8;</span>WARROOM
-          </span>
-          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.10), hsl(0 80% 50% / 0.03))', border:'1px solid hsl(0 70% 50% / 0.22)', boxShadow:'0 0 12px hsl(0 80% 50% / 0.08)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 8px rgb(239 68 68 / 0.7)'}} />
-            <span className="text-[8px] text-red-400/90 font-bold tracking-[0.2em] uppercase" style={{fontFamily:'var(--font-display)'}}>LIVE</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(175 80% 44% / 0.18), hsl(175 80% 44% / 0.06))', border:'1px solid hsl(175 80% 44% / 0.25)'}}>
+              <span className="text-primary text-[14px]" style={{filter:'drop-shadow(0 0 6px hsl(175 80% 44% / 0.6))'}}>&#x25C8;</span>
+            </div>
+            <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-bold tracking-[0.30em] text-primary select-none whitespace-nowrap`} style={{fontFamily:'var(--font-display)', filter:'drop-shadow(0 0 10px hsl(175 80% 44% / 0.35))'}}>
+              WARROOM
+            </span>
           </div>
-          {isMobile && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm" style={{background:'linear-gradient(135deg, hsl(0 80% 50% / 0.10), transparent)', border:'1px solid hsl(0 70% 50% / 0.20)'}}>
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 5px rgb(239 68 68 / 0.6)'}} />
-              <span className="text-[8px] text-red-400/80 font-bold tracking-wider uppercase" style={{fontFamily:'var(--font-display)'}}>LIVE</span>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded" style={{background:'hsl(0 80% 50% / 0.08)', border:'1px solid hsl(0 70% 50% / 0.20)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.7)'}} />
+            <span className="text-[8px] text-red-400/90 font-bold tracking-[0.22em] uppercase" style={{fontFamily:'var(--font-display)'}}>LIVE</span>
+          </div>
+          {(isMobile || isTablet) && (
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
+              <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
+              <span className={`text-[8px] font-bold tracking-[0.15em] uppercase ${threatLevel.color}`} style={{fontFamily:'var(--font-display)'}}>{threatLevel.level}</span>
             </div>
           )}
-          <div className="w-px h-5 bg-white/[0.06] hidden sm:block" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.2), inset 0 0 20px rgb(239 68 68 / 0.05)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.12)' : 'none'}}>
-            <ShieldAlert className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${threatLevel.color}`} />
-            <span className={`text-[8px] font-bold tracking-[0.15em] uppercase ${threatLevel.color}`} style={{fontFamily:'var(--font-display)'}}>{threatLevel.level}</span>
-          </div>
         </div>
+        {/* Center — Key status (desktop only) */}
+        {!isMobile && !isTablet && (
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.25)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.15)' : 'none'}}>
+              <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
+              <span className={`text-[9px] font-bold tracking-[0.18em] uppercase ${threatLevel.color}`} style={{fontFamily:'var(--font-display)'}}>{threatLevel.level}</span>
+            </div>
+            {redAlerts.length > 0 && (
+              <>
+                <div className="w-px h-4 bg-white/[0.06]" />
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{background:'hsl(0 80% 50% / 0.07)', border:'1px solid hsl(0 70% 50% / 0.18)'}}>
+                  <span className="text-[9px] font-mono font-bold text-red-400/80">{redAlerts.length}</span>
+                  <span className="text-[8px] text-red-400/50 tracking-wider uppercase font-mono">ALERTS</span>
+                </div>
+              </>
+            )}
+            <div className="w-px h-4 bg-white/[0.06]" />
+            <LiveClock />
+          </div>
+        )}
         <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center"><LiveClock /></div>
-          <div className="w-px h-5 bg-border/30 hidden md:block" />
+          {(isMobile || isTablet) && <div className="flex items-center"><LiveClock /></div>}
           {isMobile || isTablet ? (
             <div className="warroom-mobile-menu-anchor">
               <button
@@ -7481,7 +7973,7 @@ export default function Dashboard() {
       <div
         ref={panelsScrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ minHeight: 0, overscrollBehavior: 'contain' }}
+        style={{ minHeight: 0, overscrollBehavior: 'contain', scrollBehavior: 'smooth' }}
         data-testid="resizable-panels"
       >
         {isMobile ? (
@@ -7661,12 +8153,12 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={110}
+            rowHeight={100}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[4, 4]}
-            containerPadding={[4, 4]}
+            margin={[6, 6]}
+            containerPadding={[6, 6]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ paddingBottom: 80 }}
           >
@@ -7679,22 +8171,27 @@ export default function Dashboard() {
                   key={id}
                   className="group flex flex-col overflow-hidden"
                   style={{
-                    borderRadius: 10,
+                    borderRadius: 8,
                     background: isFloating
                       ? 'rgba(8,12,22,0.35)'
                       : hasAlertGlow
-                        ? 'hsl(0 25% 11% / 0.97)'
-                        : 'hsl(222 28% 11% / 0.97)',
+                        ? 'hsl(0 22% 10% / 0.98)'
+                        : 'hsl(222 30% 10% / 0.98)',
                     border: isFloating
                       ? '1px dashed rgba(255,255,255,0.06)'
                       : hasAlertGlow
-                        ? '1px solid hsl(0 80% 55% / 0.5)'
-                        : '1px solid rgba(255,255,255,0.07)',
+                        ? '1px solid hsl(0 80% 55% / 0.45)'
+                        : '1px solid rgba(255,255,255,0.06)',
+                    borderTop: isFloating
+                      ? undefined
+                      : hasAlertGlow
+                        ? '2px solid hsl(0 80% 55% / 0.8)'
+                        : `2px solid ${PANEL_ACCENTS[id] ? `${PANEL_ACCENTS[id].replace(')', ' / 0.7)')}` : 'rgba(255,255,255,0.10)'}`,
                     boxShadow: isFloating
                       ? 'none'
                       : hasAlertGlow
-                        ? '0 0 40px rgb(239 68 68 / 0.20), 0 0 80px rgb(239 68 68 / 0.07), inset 0 0 24px rgb(239 68 68 / 0.05), inset 0 1px 0 rgba(255,255,255,0.07)'
-                        : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)',
+                        ? '0 0 40px rgb(239 68 68 / 0.18), 0 0 80px rgb(239 68 68 / 0.06), inset 0 0 24px rgb(239 68 68 / 0.04)'
+                        : `0 6px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04)`,
                     transition: 'border-color 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s cubic-bezier(0.4,0,0.2,1), background 0.22s cubic-bezier(0.4,0,0.2,1)',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,

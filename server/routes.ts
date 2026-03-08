@@ -4004,7 +4004,7 @@ export async function registerRoutes(
 
     const all = [...freshMsgs, ...otherMsgs];
     all.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    return all.slice(0, 200);
+    return all.slice(0, 300);
   }
 
   app.get('/api/telegram', async (_req, res) => {

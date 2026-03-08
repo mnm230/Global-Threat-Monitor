@@ -75,53 +75,53 @@
 }
 
 .dark {
-  --button-outline: rgba(0, 255, 255, .05);
-  --badge-outline: rgba(0, 255, 255, .04);
+  --button-outline: rgba(99, 102, 241, .08);
+  --badge-outline: rgba(99, 102, 241, .05);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(0, 255, 255, .015);
-  --elevate-2: rgba(0, 255, 255, .035);
-  --background: 222 28% 9%;
-  --foreground: 185 15% 93%;
-  --border: 190 22% 20%;
-  --card: 222 25% 12%;
-  --card-foreground: 185 14% 92%;
-  --card-border: 190 20% 19%;
-  --sidebar: 222 30% 8%;
-  --sidebar-foreground: 185 14% 90%;
-  --sidebar-border: 190 20% 16%;
-  --sidebar-primary: 175 90% 44%;
-  --sidebar-primary-foreground: 222 100% 4%;
-  --sidebar-accent: 222 22% 15%;
-  --sidebar-accent-foreground: 185 14% 90%;
-  --sidebar-ring: 175 90% 44%;
-  --popover: 222 25% 12%;
-  --popover-foreground: 185 12% 90%;
-  --popover-border: 190 20% 20%;
-  --primary: 175 90% 44%;
-  --primary-foreground: 222 100% 4%;
-  --secondary: 222 22% 16%;
-  --secondary-foreground: 185 12% 90%;
-  --muted: 222 20% 16%;
-  --muted-foreground: 185 14% 55%;
-  --accent: 222 22% 15%;
-  --accent-foreground: 185 10% 86%;
+  --elevate-1: rgba(99, 102, 241, .018);
+  --elevate-2: rgba(99, 102, 241, .038);
+  --background: 240 15% 4%;
+  --foreground: 240 5% 94%;
+  --border: 240 14% 18%;
+  --card: 240 12% 8%;
+  --card-foreground: 240 5% 93%;
+  --card-border: 240 12% 16%;
+  --sidebar: 240 18% 5%;
+  --sidebar-foreground: 240 5% 91%;
+  --sidebar-border: 240 14% 14%;
+  --sidebar-primary: 239 84% 67%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 12% 12%;
+  --sidebar-accent-foreground: 240 5% 91%;
+  --sidebar-ring: 239 84% 67%;
+  --popover: 240 12% 8%;
+  --popover-foreground: 240 5% 91%;
+  --popover-border: 240 12% 18%;
+  --primary: 239 84% 67%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 12% 14%;
+  --secondary-foreground: 240 5% 88%;
+  --muted: 240 10% 13%;
+  --muted-foreground: 240 5% 52%;
+  --accent: 240 12% 13%;
+  --accent-foreground: 240 5% 86%;
   --destructive: 0 90% 58%;
   --destructive-foreground: 0 0% 100%;
-  --input: 190 18% 18%;
-  --ring: 175 90% 44%;
-  --chart-1: 175 90% 44%;
+  --input: 240 12% 16%;
+  --ring: 239 84% 67%;
+  --chart-1: 239 84% 67%;
   --chart-2: 145 80% 40%;
   --chart-3: 0 90% 58%;
-  --chart-4: 270 80% 62%;
+  --chart-4: 280 80% 62%;
   --chart-5: 48 100% 52%;
-  --shadow-2xs: 0px 2px 0px 0px hsl(185 60% 20% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(185 60% 20% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 1px 2px -1px hsl(185 60% 20% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 1px 2px -1px hsl(185 60% 20% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 2px 4px -1px hsl(185 60% 20% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 4px 6px -1px hsl(185 60% 20% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(185 60% 20% / 0.00), 0px 8px 10px -1px hsl(185 60% 20% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(185 60% 20% / 0.00);
+  --shadow-2xs: 0px 2px 0px 0px hsl(240 20% 2% / 0.40);
+  --shadow-xs: 0px 2px 4px 0px hsl(240 20% 2% / 0.45);
+  --shadow-sm: 0px 2px 4px 0px hsl(240 20% 2% / 0.45), 0px 1px 2px -1px hsl(240 20% 2% / 0.35);
+  --shadow: 0px 4px 8px 0px hsl(240 20% 2% / 0.45), 0px 2px 4px -1px hsl(240 20% 2% / 0.35);
+  --shadow-md: 0px 6px 16px 0px hsl(240 20% 2% / 0.50), 0px 2px 4px -1px hsl(240 20% 2% / 0.35);
+  --shadow-lg: 0px 8px 24px 0px hsl(240 20% 2% / 0.55), 0px 4px 6px -1px hsl(240 20% 2% / 0.40);
+  --shadow-xl: 0px 12px 32px 0px hsl(240 20% 2% / 0.60), 0px 8px 10px -1px hsl(240 20% 2% / 0.45);
+  --shadow-2xl: 0px 20px 48px 0px hsl(240 20% 2% / 0.65);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -165,7 +165,7 @@
   /* Firefox scrollbar styling */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(185 30% 28% / 0.6) transparent;
+    scrollbar-color: hsl(239 40% 35% / 0.6) transparent;
   }
 
   .react-grid-item ::-webkit-scrollbar {
@@ -176,11 +176,11 @@
     background: transparent;
   }
   .react-grid-item ::-webkit-scrollbar-thumb {
-    background: hsl(185 30% 30% / 0.35);
+    background: hsl(239 40% 30% / 0.35);
     border-radius: 4px;
   }
   .react-grid-item ::-webkit-scrollbar-thumb:hover {
-    background: hsl(185 30% 40% / 0.55);
+    background: hsl(239 50% 45% / 0.55);
   }
   .react-grid-item ::-webkit-scrollbar-corner {
     background: transparent;
@@ -205,7 +205,7 @@
   .text-sm       { font-size: 14px !important; }
 
   ::selection {
-    background: hsl(185 100% 42% / 0.18);
+    background: hsl(239 84% 67% / 0.18);
     color: hsl(var(--foreground));
   }
 
@@ -218,15 +218,15 @@
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb {
-    background: hsl(185 30% 28% / 0.6);
+    background: hsl(239 40% 35% / 0.6);
     border-radius: 3px;
     transition: background 0.2s ease;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(185 50% 38% / 0.8);
+    background: hsl(239 50% 45% / 0.8);
   }
   ::-webkit-scrollbar-thumb:active {
-    background: hsl(185 60% 45% / 0.9);
+    background: hsl(239 60% 55% / 0.9);
   }
 
   /* Dot-grid overlay — subtle. Use contain and layer isolation to avoid scroll repaints */
@@ -236,7 +236,7 @@
     inset: 0;
     background-image: radial-gradient(
       circle,
-      hsl(185 100% 42% / 0.022) 1px,
+      hsl(239 84% 67% / 0.025) 1px,
       transparent 1px
     );
     background-size: 32px 32px;
@@ -273,7 +273,7 @@
   }
   .warroom-panel-maximize:hover {
     opacity: 1 !important;
-    box-shadow: 0 0 8px hsl(185 100% 42% / 0.25);
+    box-shadow: 0 0 8px hsl(239 84% 67% / 0.25);
   }
 
   /* RGL panel items */
@@ -304,7 +304,7 @@
 
   /* Smooth focus rings */
   :focus-visible {
-    outline: 2px solid hsl(185 100% 42% / 0.55);
+    outline: 2px solid hsl(239 84% 67% / 0.60);
     outline-offset: 3px;
     border-radius: 4px;
     transition: outline-color 0.15s ease;
@@ -313,36 +313,37 @@
 
 @layer utilities {
   .warroom-panel-surface {
-    background: hsl(222 25% 11% / 0.97);
-    border: 1px solid hsl(175 30% 28% / 0.18);
-    border-radius: 6px;
+    background: hsl(240 12% 8% / 0.97);
+    border: 1px solid hsl(240 20% 20% / 0.55);
+    border-radius: 10px;
     overflow: hidden;
     box-shadow:
-      0 4px 24px hsl(222 40% 3% / 0.55),
-      0 1px 4px hsl(222 40% 3% / 0.25),
-      inset 0 1px 0 hsl(175 80% 50% / 0.04);
+      0 4px 24px hsl(240 20% 2% / 0.60),
+      0 1px 4px hsl(240 20% 2% / 0.30),
+      inset 0 1px 0 hsl(239 80% 70% / 0.04);
     contain: style paint;
     transform: translateZ(0);
   }
 
   .warroom-panel-surface:focus-within {
-    border-color: hsl(175 80% 44% / 0.28);
+    border-color: hsl(239 84% 67% / 0.35);
     box-shadow:
-      0 4px 24px hsl(222 40% 3% / 0.55),
-      0 0 0 1px hsl(175 80% 44% / 0.08),
-      0 0 20px hsl(175 80% 44% / 0.06),
-      inset 0 1px 0 hsl(175 80% 44% / 0.07);
+      0 4px 24px hsl(240 20% 2% / 0.60),
+      0 0 0 1px hsl(239 84% 67% / 0.10),
+      0 0 20px hsl(239 84% 67% / 0.07),
+      inset 0 1px 0 hsl(239 84% 67% / 0.06);
   }
 
   .warroom-grid-gap {
     gap: 1px;
-    background: hsl(175 30% 42% / 0.04);
+    background: hsl(239 30% 42% / 0.06);
   }
 
   .dark [data-testid="resizable-panels"] {
-    background: hsl(222 30% 6% / 0.8);
+    background: hsl(240 18% 4% / 0.9);
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
   }
 
   /* Wide, visible scrollbar on the main panels scroll container */
@@ -354,19 +355,19 @@
     border-radius: 0;
   }
   [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
-    background: hsl(185 40% 28% / 0.7);
+    background: hsl(239 40% 32% / 0.7);
     border-radius: 5px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
   [data-testid="resizable-panels"]::-webkit-scrollbar-thumb:hover {
-    background: hsl(185 60% 42% / 0.9);
+    background: hsl(239 60% 55% / 0.9);
     background-clip: content-box;
   }
   /* Firefox */
   [data-testid="resizable-panels"] {
     scrollbar-width: auto;
-    scrollbar-color: hsl(185 40% 28% / 0.7) hsl(222 30% 8% / 0.8);
+    scrollbar-color: hsl(239 40% 32% / 0.7) hsl(222 30% 8% / 0.8);
   }
 
   .dark [data-testid="resizable-panels"] .overflow-y-auto {
@@ -375,12 +376,12 @@
   }
 
   .warroom-glass-panel {
-    background: hsl(222 25% 11% / 0.95);
-    border: 1px solid hsl(175 28% 26% / 0.20);
-    border-radius: 6px;
+    background: hsl(240 12% 8% / 0.95);
+    border: 1px solid hsl(240 20% 20% / 0.50);
+    border-radius: 10px;
     box-shadow:
-      inset 0 1px 0 hsl(175 80% 50% / 0.05),
-      0 8px 32px hsl(222 40% 3% / 0.5);
+      inset 0 1px 0 hsl(239 80% 70% / 0.05),
+      0 8px 32px hsl(240 20% 2% / 0.55);
     contain: style paint;
     transform: translateZ(0);
   }
@@ -389,8 +390,11 @@
     box-shadow: 0 0 24px hsl(48 100% 52% / 0.10), 0 0 6px hsl(48 100% 52% / 0.06);
   }
 
+  .warroom-glow-indigo {
+    box-shadow: 0 0 24px hsl(239 84% 67% / 0.18), 0 0 6px hsl(239 84% 67% / 0.10);
+  }
   .warroom-glow-cyan {
-    box-shadow: 0 0 24px hsl(175 80% 44% / 0.14), 0 0 6px hsl(175 80% 44% / 0.08);
+    box-shadow: 0 0 24px hsl(239 84% 67% / 0.18), 0 0 6px hsl(239 84% 67% / 0.10);
   }
 
   .warroom-glow-red {
@@ -711,8 +715,8 @@
 
   .warroom-mobile-tabs {
     display: flex;
-    background: hsl(222 30% 9% / 0.96);
-    border-top: 1px solid hsl(185 40% 28% / 0.14);
+    background: hsl(240 15% 5% / 0.97);
+    border-top: 1px solid hsl(239 30% 28% / 0.20);
     min-height: 56px;
   }
 
@@ -762,8 +766,8 @@
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
     padding: 4px 10px;
-    background: hsl(222 30% 9% / 0.9);
-    border-bottom: 1px solid hsl(185 40% 28% / 0.12);
+    background: hsl(240 15% 5% / 0.92);
+    border-bottom: 1px solid hsl(239 30% 25% / 0.18);
     min-height: 28px;
   }
 
@@ -787,15 +791,15 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: hsl(185 25% 28%);
+    background: hsl(239 25% 32%);
     transition: all 0.2s ease;
   }
 
   .warroom-mobile-swipe-dots .dot.active {
     width: 16px;
     border-radius: 3px;
-    background: hsl(185 100% 42%);
-    box-shadow: 0 0 6px hsl(185 100% 42% / 0.5);
+    background: hsl(239 84% 67%);
+    box-shadow: 0 0 6px hsl(239 84% 67% / 0.5);
   }
 
   .warroom-mobile-panel-transition {
@@ -925,19 +929,19 @@
   z-index: 100;
   box-shadow:
     0 24px 64px rgba(0,0,0,0.75),
-    0 0 0 1px hsl(185 100% 42% / 0.35),
-    0 0 48px hsl(185 100% 42% / 0.1),
-    inset 0 1px 0 hsl(185 100% 42% / 0.1);
+    0 0 0 1px hsl(239 84% 67% / 0.40),
+    0 0 48px hsl(239 84% 67% / 0.12),
+    inset 0 1px 0 hsl(239 84% 67% / 0.10);
   cursor: grabbing !important;
   border-radius: 8px;
   transition: none !important;
 }
 .react-grid-item.react-grid-placeholder {
-  background: hsl(185 100% 42% / 0.04) !important;
-  border: 1px dashed hsl(185 100% 42% / 0.3) !important;
+  background: hsl(239 84% 67% / 0.04) !important;
+  border: 1px dashed hsl(239 84% 67% / 0.3) !important;
   border-radius: 2px !important;
   opacity: 1 !important;
-  box-shadow: inset 0 0 20px hsl(185 100% 42% / 0.04) !important;
+  box-shadow: inset 0 0 20px hsl(239 84% 67% / 0.04) !important;
 }
 .react-resizable-handle {
   opacity: 0;
@@ -948,13 +952,13 @@
   opacity: 0.7;
 }
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(185 100% 42% / 0.55) !important;
+  border-color: hsl(239 84% 67% / 0.55) !important;
   border-width: 2px !important;
   width: 10px !important;
   height: 10px !important;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(185 100% 42% / 0.9) !important;
+  border-color: hsl(239 84% 67% / 0.9) !important;
 }
 .react-resizable-handle-se {
   bottom: 2px !important;
@@ -983,13 +987,13 @@
 }
 
 .warroom-bottom-sheet {
-  background: hsl(222 28% 11% / 0.94);
-  border-top: 1px solid hsl(185 40% 28% / 0.18);
+  background: hsl(240 14% 7% / 0.97);
+  border-top: 1px solid hsl(239 30% 28% / 0.22);
   border-radius: 16px 16px 0 0;
   transform: translateY(100%);
   transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 hsl(185 100% 42% / 0.08);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 hsl(239 84% 67% / 0.10);
 }
 
 .warroom-bottom-sheet--open {
