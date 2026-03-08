@@ -286,23 +286,28 @@ interface SSEData {
 }
 
 function useSSE(): SSEData {
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [commodities, setCommodities] = useState<CommodityData[]>([]);
-  const [events, setEvents] = useState<ConflictEvent[]>([]);
-  const [flights, setFlights] = useState<FlightData[]>([]);
-  const [ships, setShips] = useState<ShipData[]>([]);
-  const [sirens, setSirens] = useState<SirenAlert[]>([]);
-  const [redAlerts, setRedAlerts] = useState<RedAlert[]>([]);
-  const [telegramMessages, setTelegramMessages] = useState<TelegramMessage[]>([]);
-  const [ewEvents, setEwEvents] = useState<EWEvent[]>([]);
-  const [infraEvents, setInfraEvents] = useState<InfraEvent[]>([]);
-  const [thermalHotspots, setThermalHotspots] = useState<ThermalHotspot[]>([]);
-  const [breakingNews, setBreakingNews] = useState<BreakingNewsItem[]>([]);
-  const [attackPrediction, setAttackPrediction] = useState<AttackPrediction | null>(null);
-  const [rocketStats, setRocketStats] = useState<RocketStats | null>(null);
+  const [state, setState] = useState<Omit<SSEData, 'connected'>>({
+    news: [], commodities: [], events: [], flights: [], ships: [],
+    sirens: [], redAlerts: [], telegramMessages: [], ewEvents: [],
+    infraEvents: [], thermalHotspots: [], breakingNews: [],
+    attackPrediction: null, rocketStats: null,
+  });
   const [connected, setConnected] = useState(false);
   const retryCount = useRef(0);
   const maxRetries = 5;
+  const pending = useRef<Partial<Omit<SSEData, 'connected'>>>({});
+  const rafId = useRef<number | null>(null);
+
+  const scheduleFlush = useCallback(() => {
+    if (rafId.current !== null) return;
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      const batch = pending.current;
+      pending.current = {};
+      if (Object.keys(batch).length === 0) return;
+      setState(prev => ({ ...prev, ...batch }));
+    });
+  }, []);
 
   useEffect(() => {
     let es: EventSource | null = null;
@@ -317,48 +322,49 @@ function useSSE(): SSEData {
       };
 
       es.addEventListener('commodities', (e) => {
-        try { setCommodities(JSON.parse(e.data)); } catch {}
+        try { pending.current.commodities = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('events', (e) => {
         try {
           const d = JSON.parse(e.data);
-          setEvents(d.events || []);
-          setFlights(d.flights || []);
-          setShips(d.ships || []);
+          pending.current.events = d.events || [];
+          pending.current.flights = d.flights || [];
+          pending.current.ships = d.ships || [];
+          scheduleFlush();
         } catch {}
       });
       es.addEventListener('news', (e) => {
-        try { setNews(JSON.parse(e.data)); } catch {}
+        try { pending.current.news = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('sirens', (e) => {
-        try { setSirens(JSON.parse(e.data)); } catch {}
+        try { pending.current.sirens = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('red-alerts', (e) => {
-        try { setRedAlerts(JSON.parse(e.data)); } catch {}
+        try { pending.current.redAlerts = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('telegram', (e) => {
-        try { setTelegramMessages(JSON.parse(e.data)); } catch {}
+        try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('ew', (e) => {
-        try { setEwEvents(JSON.parse(e.data)); } catch {}
+        try { pending.current.ewEvents = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('infra', (e) => {
-        try { setInfraEvents(JSON.parse(e.data)); } catch {}
+        try { pending.current.infraEvents = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('thermal', (e) => {
-        try { setThermalHotspots(JSON.parse(e.data)); } catch {}
+        try { pending.current.thermalHotspots = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('breaking-news', (e) => {
-        try { setBreakingNews(JSON.parse(e.data)); } catch {}
+        try { pending.current.breakingNews = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('analytics', (e) => {
         try { queryClient.setQueryData(['/api/analytics'], (old: any) => ({ ...old, ...JSON.parse(e.data) })); } catch {}
       });
       es.addEventListener('attack-prediction', (e) => {
-        try { setAttackPrediction(JSON.parse(e.data)); } catch {}
+        try { pending.current.attackPrediction = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('rocket-stats', (e) => {
-        try { setRocketStats(JSON.parse(e.data)); } catch {}
+        try { pending.current.rocketStats = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
 
       es.onerror = () => {
@@ -377,10 +383,11 @@ function useSSE(): SSEData {
     return () => {
       es?.close();
       if (retryTimeout) clearTimeout(retryTimeout);
+      if (rafId.current !== null) cancelAnimationFrame(rafId.current);
     };
-  }, []);
+  }, [scheduleFlush]);
 
-  return { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, ewEvents, infraEvents, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected };
+  return useMemo(() => ({ ...state, connected }), [state, connected]);
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -523,105 +530,64 @@ function tone(
   osc.stop(start + dur + 0.01);
 }
 
-// ── ROCKETS — Israeli Pikud HaOref 3-note ascending pattern ×2 ───────────────
-// Sounds like: BEE-BEE-BEE ... BEE-BEE-BEE (C6 E6 G6 musical triad)
+// ── ROCKETS — soft 3-note sine chime ×2 (C5 E5 G5) ─────────────────────────
 function playRocketAlert(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
-  const notes = [1047, 1319, 1568]; // C6 – E6 – G6
-  for (let rep = 0; rep < 2; rep++) {
-    const b = t + rep * 0.75;
-    notes.forEach((freq, i) => {
-      const s = b + i * 0.20;
-      tone(ctx, out, 'square',   freq,         null, s, 0.15, vol * 0.72, 0.004, 0.04);
-      tone(ctx, out, 'triangle', freq * 2,     null, s, 0.15, vol * 0.18, 0.004, 0.04); // octave shimmer
-      tone(ctx, out, 'sine',     freq * 0.998, null, s, 0.15, vol * 0.22, 0.004, 0.04); // slight detune body
-    });
-  }
-}
-
-// ── MISSILES — NATO naval klaxon: beating pair of sawtooth + sub thud ×3 ─────
-// Sounds like: AHOOGA-AHOOGA-AHOOGA (classic warship alarm)
-function playMissileKlaxon(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
-  for (let i = 0; i < 3; i++) {
-    const s = t + i * 0.52;
-    tone(ctx, out, 'sawtooth', 440, null, s, 0.44, vol * 0.60, 0.01, 0.06);
-    tone(ctx, out, 'sawtooth', 463, null, s, 0.44, vol * 0.60, 0.01, 0.06); // 23 Hz beat = 43ms throb
-    tone(ctx, out, 'sine',     220, null, s, 0.44, vol * 0.30, 0.01, 0.06); // sub undertone
-    tone(ctx, out, 'sine',      75,  30,  s, 0.18, vol * 1.00, 0.004, 0.12); // deep impact thud
-  }
-}
-
-// ── UAV / DRONE — four detuned rotors (beating texture) + electronics whine ──
-// Sounds like: buzzing quadcopter + alert beeps
-function playDroneBuzz(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
-  // Four rotor oscillators — close frequencies create complex beating
-  [87, 93, 98, 104].forEach((freq, idx) => {
-    const osc = ctx.createOscillator();
-    const g   = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.value = freq;
-    osc.connect(g); g.connect(out);
-    // Slow amplitude swell in/out
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(vol * 0.26, t + 0.12 + idx * 0.03);
-    g.gain.setValueAtTime(vol * 0.26, t + 1.05);
-    g.gain.linearRampToValueAtTime(0, t + 1.35);
-    osc.start(t); osc.stop(t + 1.4);
+  [523, 659, 784].forEach((freq, i) => {
+    const s = t + i * 0.18;
+    tone(ctx, out, 'sine',     freq,     null, s,        0.24, vol * 0.55, 0.012, 0.12);
+    tone(ctx, out, 'triangle', freq * 2, null, s,        0.20, vol * 0.10, 0.012, 0.12);
+    tone(ctx, out, 'sine',     freq,     null, s + 0.68, 0.22, vol * 0.45, 0.012, 0.12);
   });
-  // High-pitched electronics whine (simulates ESC/motor controller)
-  tone(ctx, out, 'sine', 3600, 4400, t + 0.05, 1.20, vol * 0.10, 0.18, 0.25);
-  // Warning beep trio
-  [0.55, 0.78, 1.01].forEach(off =>
-    tone(ctx, out, 'square', 1175, null, t + off, 0.16, vol * 0.55, 0.005, 0.05)
+}
+
+// ── MISSILES — soft ding-dong descending pair ×3 ─────────────────────────────
+function playMissileKlaxon(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  [[659, 494], [587, 440], [659, 494]].forEach(([hi, lo], i) => {
+    const s = t + i * 0.46;
+    tone(ctx, out, 'sine', hi, null, s,        0.28, vol * 0.48, 0.015, 0.20);
+    tone(ctx, out, 'sine', lo, null, s + 0.15, 0.26, vol * 0.38, 0.015, 0.20);
+  });
+}
+
+// ── UAV / DRONE — light pulsing sine beeps ────────────────────────────────────
+function playDroneBuzz(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  [0, 0.18, 0.36, 0.58, 0.76].forEach((off, i) =>
+    tone(ctx, out, 'sine', i % 2 === 0 ? 880 : 660, null, t + off, 0.13, vol * 0.42, 0.010, 0.08)
   );
 }
 
-// ── AIRCRAFT INTRUSION — TCAS/GPWS "WHOOP WHOOP" rapid ascending sweep ×3 ───
-// Sounds like: cockpit GPWS alarm — urgent rising sweeps then two-tone alarm
+// ── AIRCRAFT — gentle 4-note ascending sine chime ────────────────────────────
 function playAircraftAlert(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
-  for (let i = 0; i < 3; i++) {
-    const s = t + i * 0.40;
-    tone(ctx, out, 'sawtooth', 520, 1080, s,        0.32, vol * 0.78, 0.008, 0.04);
-    tone(ctx, out, 'sine',     516, 1072, s + 0.01, 0.30, vol * 0.32, 0.008, 0.04);
-  }
-  // Alternating two-tone tail
-  [1.28, 1.52, 1.76, 2.00].forEach((off, i) =>
-    tone(ctx, out, 'square', i % 2 === 0 ? 870 : 650, null, t + off, 0.20, vol * 0.52, 0.006, 0.04)
-  );
+  [523, 659, 784, 1047].forEach((freq, i) => {
+    const s = t + i * 0.20;
+    tone(ctx, out, 'sine',     freq, null, s, 0.28, vol * 0.46, 0.015, 0.18);
+    tone(ctx, out, 'triangle', freq, null, s, 0.24, vol * 0.10, 0.015, 0.18);
+  });
 }
 
-// ── BALLISTIC MISSILE — DEFCON: deep sub BOOM + ascending civil wail + beeps ─
-// Sounds like: impact, then rising air-raid siren, then rapid alarm
+// ── BALLISTIC — low soft tone + gentle ascending sweep + 3 light beeps ───────
 function playBallisticAlert(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
-  // Sub-bass impact punch
-  tone(ctx, out, 'sine',     42,  20, t,        0.55, vol * 1.10, 0.004, 0.40);
-  tone(ctx, out, 'sawtooth', 58,  28, t + 0.01, 0.50, vol * 0.55, 0.005, 0.38);
-  // Ascending civil-defense wail (two layers — fundamental + octave)
-  tone(ctx, out, 'sawtooth', 280, 1380, t + 0.50, 1.05, vol * 0.80, 0.05, 0.08);
-  tone(ctx, out, 'sine',     270, 1360, t + 0.50, 1.05, vol * 0.38, 0.05, 0.08);
-  // Five escalating staccato beeps
-  for (let i = 0; i < 5; i++)
-    tone(ctx, out, 'square', 1740 + i * 65, null, t + 1.65 + i * 0.13, 0.09, vol * 0.72, 0.003, 0.04);
-}
-
-// ── CRUISE MISSILE — Doppler shift: high-to-low sweep + urgent pulses ────────
-// Sounds like: fast incoming jet (Doppler effect) then alarm
-function playCruiseMissile(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
-  tone(ctx, out, 'sawtooth', 1700, 280, t,        0.95, vol * 0.68, 0.02, 0.14);
-  tone(ctx, out, 'sine',     1680, 275, t + 0.02, 0.92, vol * 0.30, 0.02, 0.14);
-  [1.05, 1.30, 1.55].forEach(off =>
-    tone(ctx, out, 'square', 940, null, t + off, 0.20, vol * 0.62, 0.006, 0.04)
+  tone(ctx, out, 'sine', 220, 260, t,        0.50, vol * 0.40, 0.035, 0.30);
+  tone(ctx, out, 'sine', 330, 740, t + 0.45, 0.75, vol * 0.38, 0.060, 0.15);
+  [1.30, 1.50, 1.70].forEach((off, i) =>
+    tone(ctx, out, 'sine', 880 + i * 110, null, t + off, 0.14, vol * 0.36, 0.010, 0.09)
   );
 }
 
-// ── SIREN — smooth civil-defense wail with harmonic layers ───────────────────
-// Sounds like: classic outdoor air-raid siren up/down sweep
-function playSirenWail(ctx: AudioContext, out: AudioNode, t: number, vol: number, cycles = 2) {
+// ── CRUISE MISSILE — soft descending sine glide + two light pulses ───────────
+function playCruiseMissile(ctx: AudioContext, out: AudioNode, t: number, vol: number) {
+  tone(ctx, out, 'sine', 880, 330, t, 0.65, vol * 0.40, 0.025, 0.20);
+  [0.75, 0.98].forEach(off =>
+    tone(ctx, out, 'sine', 660, null, t + off, 0.18, vol * 0.36, 0.012, 0.10)
+  );
+}
+
+// ── SIREN — single soft sine sweep up then down ───────────────────────────────
+function playSirenWail(ctx: AudioContext, out: AudioNode, t: number, vol: number, cycles = 1) {
   for (let c = 0; c < cycles; c++) {
-    const s = t + c * 2.1;
-    tone(ctx, out, 'sawtooth', 360, 1180, s,        1.05, vol * 0.68, 0.08, 0.10);
-    tone(ctx, out, 'sawtooth', 1180, 360, s + 1.05, 1.00, vol * 0.68, 0.04, 0.10);
-    tone(ctx, out, 'sine',     720, 2360, s,        1.05, vol * 0.22, 0.08, 0.10);
-    tone(ctx, out, 'sine',     2360, 720, s + 1.05, 1.00, vol * 0.22, 0.04, 0.10);
+    const s = t + c * 1.8;
+    tone(ctx, out, 'sine', 330, 880, s,        0.88, vol * 0.45, 0.12, 0.14);
+    tone(ctx, out, 'sine', 880, 330, s + 0.88, 0.85, vol * 0.45, 0.06, 0.14);
   }
 }
 
@@ -630,7 +596,7 @@ function playAlertSound(threatType?: string, volume: number = 70) {
     const audio = getAudio();
     if (!audio) return;
     const { ctx, out } = audio;
-    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.22;
+    const vol = Math.max(0, Math.min(1, volume / 100)) * 0.10;
     const t = ctx.currentTime;
     if      (threatType === 'ballistic_missile')          playBallisticAlert(ctx, out, t, vol);
     else if (threatType === 'cruise_missile')             playCruiseMissile(ctx, out, t, vol);
@@ -647,7 +613,7 @@ function playSirenAlert(volume: number = 70) {
   try {
     const audio = getAudio();
     if (!audio) return;
-    playSirenWail(audio.ctx, audio.out, audio.ctx.currentTime, Math.max(0, Math.min(1, volume / 100)) * 0.20, 2);
+    playSirenWail(audio.ctx, audio.out, audio.ctx.currentTime, Math.max(0, Math.min(1, volume / 100)) * 0.09, 1);
   } catch (_) {}
 }
 
@@ -687,7 +653,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'map' | 'events' | 'alerts' | 'markets' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'sitrep' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'map' | 'events' | 'alerts' | 'markets' | 'telegram' | 'ew' | 'infra' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
@@ -702,7 +668,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
   osint: { icon: Activity, label: 'OSINT Feed', labelAr: 'تغذية OSINT' },
-  sitrep: { icon: FileDown, label: 'SITREP', labelAr: 'تقرير الوضع' },
   attackpred: { icon: Crosshair, label: 'Attack Predictor', labelAr: 'توقع الهجوم' },
   rocketstats: { icon: Rocket, label: 'Rocket Stats', labelAr: 'إحصائيات الصواريخ' },
 };
@@ -1762,7 +1727,7 @@ const TickerBar = memo(function TickerBar({ commodities }: { commodities: Commod
   const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
-    <div className="h-8 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(222 30% 8% / 0.92)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)'}}>
+    <div className="h-8 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(222 30% 8% / 0.97)'}}>
       <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(222 30% 8% / 0.97) 60%, transparent)'}}>
         <span className="text-[8px] font-bold tracking-[0.3em] text-primary/40" style={{fontFamily:'var(--font-display)'}}>MKT</span>
       </div>
@@ -2053,9 +2018,7 @@ const FloatingWindow = memo(function FloatingWindow({
         width: size.w, height: size.h, zIndex: state.z,
         display: 'flex', flexDirection: 'column',
         borderRadius: 10, overflow: 'hidden',
-        background: 'hsl(222 30% 10% / 0.92)',
-        backdropFilter: 'blur(28px) saturate(1.5)',
-        WebkitBackdropFilter: 'blur(28px) saturate(1.5)',
+        background: 'hsl(222 30% 10% / 0.98)',
         border: '1px solid rgba(255,255,255,0.11)',
         boxShadow: '0 28px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)',
         pointerEvents: 'auto',
@@ -3118,50 +3081,37 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0" data-testid="red-alert-panel" style={{ background: 'hsl(240 15% 5%)' }}>
+    <div className="h-full flex flex-col min-h-0 ra-panel-bg" data-testid="red-alert-panel">
 
       {/* ── HEADER ── */}
       <div className="shrink-0">
         <div
-          style={{
-            padding: '10px 14px',
-            background: hasActiveAlerts
-              ? 'linear-gradient(135deg, hsl(0 80% 12%) 0%, hsl(0 70% 9%) 100%)'
-              : 'hsl(240 14% 7%)',
-            borderBottom: `2px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}`,
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}
+          className={`ra-flex-center gap-2.5 px-3.5 py-2.5 ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
+          style={{ borderBottom: `2px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}` }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Pulse dot */}
-              <div style={{ position: 'relative', width: 12, height: 12, flexShrink: 0 }}>
-                <div style={{ width: 12, height: 12, borderRadius: '50%', background: hasActiveAlerts ? '#ef4444' : 'rgba(239,68,68,0.2)', boxShadow: hasActiveAlerts ? '0 0 10px rgba(239,68,68,0.6)' : 'none' }} />
-                {hasActiveAlerts && <div className="alert-dot-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#ef4444' }} />}
+          <div className="ra-flex-col gap-0.5 flex-1 min-w-0">
+            <div className="ra-flex-center gap-2">
+              <div className={`ra-glow-dot ${hasActiveAlerts ? 'ra-glow-dot--active' : 'ra-glow-dot--inactive'}`}>
+                {hasActiveAlerts && <div className="alert-dot-ping absolute inset-0 rounded-full bg-red-500" />}
               </div>
-              <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: '0.12em', color: hasActiveAlerts ? '#fff' : 'rgba(239,68,68,0.3)', textTransform: 'uppercase', fontFamily: 'var(--font-display)' }}>
+              <span className={`text-[15px] font-black ra-tracking-wider uppercase ra-font-display ${hasActiveAlerts ? 'text-white' : 'text-red-500/30'}`}>
                 {language === 'ar' ? 'الإنذار الأحمر' : 'EMERGENCY ALERT'}
               </span>
               {hasActiveAlerts && (
-                <span style={{
-                  fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
-                  padding: '3px 10px', borderRadius: 6, fontFamily: 'var(--font-mono)',
-                  background: 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                  boxShadow: '0 2px 12px rgba(220,38,38,0.5)',
-                }} data-testid="text-alert-count">{alerts.length}</span>
+                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 2px 12px rgba(220,38,38,0.5)' }} data-testid="text-alert-count">{alerts.length}</span>
               )}
               {liveCount > 0 && (
-                <span className="eas-flash" style={{ fontSize: 9, padding: '2px 7px', fontWeight: 900, background: '#15803d', color: '#fff', borderRadius: 4, letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>LIVE {liveCount}</span>
+                <span className="eas-flash ra-badge-xs" style={{ background: '#15803d', color: '#fff' }}>LIVE {liveCount}</span>
               )}
             </div>
-            <span style={{ fontSize: 9, color: hasActiveAlerts ? 'rgba(254,202,202,0.5)' : 'rgba(239,68,68,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+            <span className={`text-[9px] ra-tracking-wide uppercase ra-font-mono font-bold ${hasActiveAlerts ? 'text-red-200/50' : 'text-red-500/25'}`}>
               OREF HOME FRONT COMMAND
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className="ra-flex-center gap-1">
             {onShowHistory && (
-              <button onClick={onShowHistory} style={{ width: 30, height: 30, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }} title="Alert History" data-testid="button-alert-history">
-                <History style={{ width: 14, height: 14 }} />
+              <button onClick={onShowHistory} className="w-[30px] h-[30px] rounded-md flex items-center justify-center bg-white/[0.06] border border-white/[0.12] text-white/50 cursor-pointer" title="Alert History" data-testid="button-alert-history">
+                <History className="w-3.5 h-3.5" />
               </button>
             )}
             {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -3172,22 +3122,21 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── FILTERS ── */}
       {hasActiveAlerts && (
-        <div style={{ flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'hsl(240 14% 7%)', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* Search */}
-          <div style={{ position: 'relative' }}>
+        <div className="shrink-0 border-b border-white/[0.06] ra-section-bg px-3 py-2 ra-flex-col gap-1.5">
+          <div className="relative">
             <input
               type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search city, region...'}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 32px', fontSize: 12, fontFamily: 'var(--font-mono)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, color: '#fca5a5', outline: 'none', fontWeight: 500 }}
+              className="ra-search-input"
               data-testid="input-red-alert-search"
             />
-            <Search style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'rgba(220,38,38,0.35)' }} />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-600/35" />
           </div>
-          {/* Threat type pills */}
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          <div className="flex gap-1 flex-wrap">
             {([['all','ALL'],['rockets','ROCKETS'],['missiles','MISSILES'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','AIRCRAFT']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
-                style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, letterSpacing: '0.08em', cursor: 'pointer', border: '1px solid', fontFamily: 'var(--font-mono)', transition: 'all 0.12s ease',
+                className="ra-pill"
+                style={{
                   background: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.08)',
                   borderColor: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.20)',
                   color: threatFilter === key ? '#fff' : 'rgba(220,38,38,0.55)',
@@ -3196,10 +3145,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               >{label}</button>
             ))}
           </div>
-          {/* Country pill tabs — horizontal scroll */}
-          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
+          <div className="flex gap-1 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
             <button onClick={() => setCountryFilter('ALL')}
-              style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: '1px solid', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0,
+              className="ra-pill"
+              style={{
                 background: countryFilter === 'ALL' ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.04)',
                 borderColor: countryFilter === 'ALL' ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.08)',
                 color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.35)',
@@ -3214,8 +3163,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               const color = accent[c] || '#dc2626';
               return (
                 <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
+                  className="ra-pill"
                   style={{
-                    fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 20, cursor: 'pointer', border: '1px solid', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.12s ease',
                     background: isSelected ? color + '33' : 'rgba(255,255,255,0.03)',
                     borderColor: isSelected ? color : color + '40',
                     color: isSelected ? '#fff' : color,
@@ -3230,17 +3179,17 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── EMPTY STATE ── */}
       {!hasActiveAlerts && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.10)', border: '2px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-            <Shield style={{ width: 26, height: 26, color: '#22c55e' }} />
+        <div className="flex-1 ra-flex-col items-center justify-center px-4 py-8 text-center">
+          <div className="ra-empty-circle">
+            <Shield className="w-[26px] h-[26px] text-green-500" />
           </div>
-          <p style={{ fontSize: 16, fontWeight: 900, color: '#22c55e', marginBottom: 4, letterSpacing: '0.1em', fontFamily: 'var(--font-display)' }}>
+          <p className="text-[16px] font-black text-green-500 mb-1 ra-tracking-wide ra-font-display">
             {language === 'ar' ? 'لا تنبيهات نشطة' : 'ALL CLEAR'}
           </p>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+          <p className="text-[11px] text-white/30 tracking-wide uppercase ra-font-mono font-semibold">
             No active threats detected
           </p>
-          <div style={{ marginTop: 14, padding: '5px 16px', borderRadius: 20, background: 'rgba(21,128,61,0.15)', border: '1px solid rgba(34,197,94,0.30)', fontSize: 10, color: '#4ade80', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+          <div className="mt-3.5 px-4 py-1.5 rounded-full ra-font-mono font-bold text-[10px] text-green-400 ra-tracking-wider" style={{ background: 'rgba(21,128,61,0.15)', border: '1px solid rgba(34,197,94,0.30)' }}>
             MONITORING ACTIVE
           </div>
         </div>
@@ -3249,21 +3198,22 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       {/* ── NON-ISRAEL ALERT BANNER ── */}
       {nonIsraelAlerts.length > 0 && countryFilter === 'ALL' && (
         <div className="shrink-0" style={{ borderBottom: '1px solid rgba(217,119,6,0.25)', background: 'hsl(30 30% 7%)' }}>
-          <div style={{ padding: '8px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-              <TriangleAlert style={{ width: 14, height: 14, color: '#fbbf24', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+          <div className="px-3 py-2">
+            <div className="ra-flex-center gap-1.5 mb-1.5">
+              <TriangleAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-[11px] font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display">
                 {language === 'ar' ? 'تنبيهات خارج إسرائيل' : 'REGIONAL ALERTS'}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 900, color: '#fff', background: 'rgba(180,83,9,0.6)', borderRadius: 6, padding: '1px 8px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{nonIsraelAlerts.length}</span>
+              <span className="text-[12px] font-black text-white ra-tabular ra-font-mono rounded-md px-2 py-px" style={{ background: 'rgba(180,83,9,0.6)' }}>{nonIsraelAlerts.length}</span>
             </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div className="flex gap-1 flex-wrap">
               {activeCountries.filter(c => c !== 'Israel').map(c => {
                 const accent: Record<string, string> = { Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
                 return (
                   <button key={c} onClick={() => setCountryFilter(c)}
-                    style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em',
-                      background: (accent[c] || '#b45309') + '22', color: accent[c] || '#fbbf24', border: `1px solid ${accent[c] || '#b45309'}55`,
+                    className="ra-pill"
+                    style={{
+                      background: (accent[c] || '#b45309') + '22', color: accent[c] || '#fbbf24', borderColor: (accent[c] || '#b45309') + '55',
                     }}
                     data-testid={`button-regional-${c}`}
                   >{FLAG_MAP[c]} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
@@ -3276,7 +3226,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── ALERT CARDS ── */}
       <ScrollArea className="flex-1 min-h-0">
-        <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="p-2.5 ra-flex-col gap-1.5">
           {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
             const regionName = compositeKey.split('::')[1];
             const prevCountry = idx > 0 ? sortedRegions[idx - 1][1].country : null;
@@ -3291,20 +3241,20 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             return (
               <div key={compositeKey}>
                 {showCountryHeader && (
-                  <div style={{
-                    padding: '6px 10px',
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    marginBottom: 4, marginTop: idx > 0 ? 4 : 0,
-                    borderRadius: 8,
-                    background: isNonIsrael ? accentColor + '14' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${accentColor}30`,
-                  }}>
-                    <span style={{ fontSize: isNonIsrael ? 18 : 14 }}>{FLAG_MAP[country]}</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: isNonIsrael ? accentColor : 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-display)' }}>{country}</span>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', background: accentColor + '33', border: `1px solid ${accentColor}55`, padding: '1px 8px', borderRadius: 10 }}>{countryAlertCount}</span>
-                    {isGCC && <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 6px', borderRadius: 4, background: '#0ea5e920', color: '#0ea5e9', border: '1px solid #0ea5e940', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)' }}>GCC</span>}
-                    {isNonIsrael && <span style={{ fontSize: 8, fontWeight: 900, padding: '2px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.15)', color: '#f87171', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>UNDER ATTACK</span>}
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 600, marginLeft: 'auto' }}>{regionName}</span>
+                  <div
+                    className="ra-country-header"
+                    style={{
+                      marginBottom: 4, marginTop: idx > 0 ? 4 : 0,
+                      background: isNonIsrael ? accentColor + '14' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${accentColor}30`,
+                    }}
+                  >
+                    <span className={isNonIsrael ? 'text-[18px]' : 'text-[14px]'}>{FLAG_MAP[country]}</span>
+                    <span className="text-[13px] font-extrabold ra-tracking-wide uppercase ra-font-display" style={{ color: isNonIsrael ? accentColor : 'rgba(255,255,255,0.7)' }}>{country}</span>
+                    <span className="text-[11px] font-extrabold text-white ra-tabular ra-font-mono rounded-xl px-2 py-px" style={{ background: accentColor + '33', border: `1px solid ${accentColor}55` }}>{countryAlertCount}</span>
+                    {isGCC && <span className="ra-badge-xs" style={{ background: '#0ea5e920', color: '#0ea5e9', border: '1px solid #0ea5e940' }}>GCC</span>}
+                    {isNonIsrael && <span className="ra-badge-xs" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>UNDER ATTACK</span>}
+                    <span className="text-[9px] text-white/30 ra-font-mono font-semibold ml-auto" style={{ letterSpacing: '0.08em' }}>{regionName}</span>
                   </div>
                 )}
 
@@ -3330,9 +3280,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                     <div
                       key={alert.id}
                       data-testid={`red-alert-${alert.id}`}
-                      className="alert-slide-in"
+                      className="alert-slide-in ra-card"
                       style={{
-                        borderRadius: 8,
                         border: `1px solid ${cardBorderColor}`,
                         background: isExpired
                           ? 'rgba(255,255,255,0.02)'
@@ -3342,42 +3291,37 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                           ? alertAccent + '12'
                           : 'rgba(127,29,29,0.15)',
                         boxShadow: isCrit && !isExpired ? `0 0 16px ${alertAccent}25, 0 2px 8px rgba(0,0,0,0.3)` : '0 2px 6px rgba(0,0,0,0.25)',
-                        cursor: 'pointer',
-                        overflow: 'hidden',
                       }}
                     >
-                      {isCrit && !isExpired && <div className="eas-stripes" style={{ height: 3, background: alertAccent }} />}
-                      <div style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                            {isNonIsrael && <span style={{ fontSize: 14, flexShrink: 0 }}>{FLAG_MAP[alert.country]}</span>}
-                            <span style={{
-                              fontSize: isCrit ? 15 : 13, fontWeight: 800, color: isExpired ? 'rgba(255,255,255,0.25)' : '#fff',
-                              lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                              fontFamily: 'var(--font-display)',
-                            }}>
+                      {isCrit && !isExpired && <div className="eas-stripes h-[3px]" style={{ background: alertAccent }} />}
+                      <div className="ra-card-body">
+                        <div className="flex-1 min-w-0">
+                          <div className="ra-flex-center gap-1.5 mb-1">
+                            {isNonIsrael && <span className="text-[14px] shrink-0">{FLAG_MAP[alert.country]}</span>}
+                            <span className={`ra-city-name ${isCrit ? 'text-[15px]' : 'text-[13px]'} ${isExpired ? 'text-white/25' : 'text-white'}`}>
                               {language === 'ar' ? alert.cityAr : alert.city}
                             </span>
                             {isLive && (
-                              <span style={{ fontSize: 8, padding: '2px 6px', fontWeight: 800, background: '#15803d', color: '#fff', borderRadius: 4, letterSpacing: '0.12em', flexShrink: 0, fontFamily: 'var(--font-mono)' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
+                              <span className="ra-badge-xs shrink-0 ra-tracking-wider" style={{ background: '#15803d', color: '#fff' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
                             )}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{
-                              fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 10, letterSpacing: '0.08em', textTransform: 'uppercase',
-                              background: isActive ? band.bg + 'cc' : 'transparent',
-                              color: isActive ? band.text : 'rgba(255,255,255,0.2)',
-                              border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
-                              fontFamily: 'var(--font-mono)',
-                            }}>
+                          <div className="ra-flex-center gap-1.5">
+                            <span
+                              className="ra-badge-sm"
+                              style={{
+                                background: isActive ? band.bg + 'cc' : 'transparent',
+                                color: isActive ? band.text : 'rgba(255,255,255,0.2)',
+                                border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                              }}
+                            >
                               {language === 'ar' ? threat.ar : threat.en}
                             </span>
                             {isActive && !isExpired && (
-                              <span style={{ fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 10, letterSpacing: '0.08em', background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55`, fontFamily: 'var(--font-mono)' }}>
+                              <span className="ra-badge-xs" style={{ borderRadius: 10, background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55` }}>
                                 {band.label}
                               </span>
                             )}
-                            <span style={{ fontSize: 10, color: isExpired ? 'rgba(255,255,255,0.12)' : 'rgba(254,202,202,0.4)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                            <span className={`text-[10px] ra-tabular ra-font-mono font-medium ${isExpired ? 'text-white/[0.12]' : 'text-red-200/40'}`}>
                               {timeAgo(alert.timestamp)}
                             </span>
                           </div>
@@ -3395,24 +3339,24 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── SIRENS FOOTER ── */}
       {sirens.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: '1px solid rgba(217,119,6,0.30)', background: 'hsl(30 25% 7%)' }}>
-          <div style={{ padding: '7px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24', flexShrink: 0 }} className="eas-flash" />
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>
+        <div className="shrink-0 border-t" style={{ borderColor: 'rgba(217,119,6,0.30)', background: 'hsl(30 25% 7%)' }}>
+          <div className="ra-flex-center gap-2 px-3 py-1.5">
+            <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0 eas-flash" />
+            <span className="text-[12px] font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display">
               {language === 'ar' ? 'صفارات' : 'SIRENS'}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', background: 'rgba(180,83,9,0.5)', borderRadius: 6, padding: '1px 8px', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-mono)' }}>{sirens.length}</span>
+            <span className="text-[12px] font-extrabold text-white ra-tabular ra-font-mono rounded-md px-2 py-px" style={{ background: 'rgba(180,83,9,0.5)' }}>{sirens.length}</span>
           </div>
-          <div style={{ maxHeight: 100, overflowY: 'auto', paddingBottom: 4 }}>
+          <div className="max-h-[100px] overflow-y-auto pb-1">
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               return (
-                <div key={s.id} style={{ padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(217,119,6,0.12)' }} data-testid={`siren-panel-${s.id}`}>
-                  <div className="eas-flash" style={{ width: 6, height: 6, borderRadius: 2, background: '#fbbf24', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#fef3c7', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)' }}>
+                <div key={s.id} className="ra-flex-center gap-2 px-3 py-1.5 border-t border-amber-600/[0.12]" data-testid={`siren-panel-${s.id}`}>
+                  <div className="eas-flash w-1.5 h-1.5 rounded-sm bg-amber-400 shrink-0" />
+                  <span className="text-[12px] font-semibold text-amber-50 flex-1 truncate ra-font-display">
                     {language === 'ar' ? s.locationAr : s.location}
                   </span>
-                  <span style={{ fontSize: 9, color: 'rgba(251,191,36,0.55)', letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{language === 'ar' ? threat.ar : threat.en}</span>
+                  <span className="text-[9px] text-amber-400/55 ra-font-mono font-semibold" style={{ letterSpacing: '0.08em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
@@ -3822,7 +3766,7 @@ function MapLegend({ activeView, language }: { activeView: string; language: 'en
       dir="ltr"
       style={{
         position: 'absolute', bottom: 14, left: 14, zIndex: 1000,
-        background: 'rgba(4,7,16,0.88)', backdropFilter: 'blur(16px)',
+        background: 'rgba(4,7,16,0.96)',
         border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 10, padding: '10px 12px',
         boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
@@ -5063,7 +5007,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                 <>
                   {analytics.lastUpdated && (
                     <div className="flex items-center gap-1.5 cursor-default -mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                       <span className="text-[9px] font-mono text-foreground/30">
                         Updated {timeAgo(analytics.lastUpdated)}
                       </span>
@@ -5756,7 +5700,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
         <div className="h-full rounded-full" style={{ width: `${Math.max(4, (c.totalLaunches / Math.max(maxLaunches, 1)) * 100)}%`, background: c.active ? barColor : barColor + '55' }} />
       </div>
       <span className="text-foreground/80 font-mono font-bold w-[36px] text-right">{c.totalLaunches.toLocaleString()}</span>
-      {c.active && <div className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" style={{ background: barColor }} />}
+      {c.active && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: barColor }} />}
     </div>
   );
 
@@ -6217,7 +6161,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
         <div className="flex items-center gap-2">
           <div className="relative">
             <Brain className="w-4 h-4 text-violet-400" />
-            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-violet-400 animate-pulse" style={{ boxShadow: '0 0 6px rgba(167,139,250,0.6)' }} />
+            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-violet-400" style={{ boxShadow: '0 0 6px rgba(167,139,250,0.6)' }} />
           </div>
           <span className="text-[11px] font-black tracking-[0.2em] uppercase text-white/90" style={{ fontFamily: 'var(--font-display)' }}>
             {language === 'ar' ? '\u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A' : 'AI ORACLE'}
@@ -6263,13 +6207,13 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
         {!prediction ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
             <div className="relative">
-              <Brain className="w-8 h-8 text-violet-400/30 animate-pulse" />
+              <Brain className="w-8 h-8 text-violet-400/30" />
               <Loader2 className="w-4 h-4 text-violet-400/60 animate-spin absolute -bottom-1 -right-1" />
             </div>
             <span className="text-[10px] text-white/30 font-mono tracking-wider">{language === 'ar' ? '\u062C\u0627\u0631\u064D \u062A\u0648\u0644\u064A\u062F \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A\u2026' : 'Neural networks analyzing...'}</span>
             <div className="flex gap-1">
               {[0,1,2,3,4].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-400/40" />
               ))}
             </div>
           </div>
@@ -6527,11 +6471,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
 
                 <div className="pt-1 border-t border-white/[0.04]">
                   <div className="flex items-center justify-center gap-2">
-                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" />
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40" />
                     <span className="text-[8px] font-mono text-white/20">
                       {language === 'ar' ? 'آخر تحديث' : 'Updated'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                     </span>
-                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: '500ms' }} />
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40" />
                   </div>
                 </div>
               </div>
@@ -6833,11 +6777,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
 
                   {/* ── Footer timestamp ── */}
                   <div className="flex items-center justify-center gap-2 pt-1">
-                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" />
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40" />
                     <span className="text-[8px] font-mono text-white/20">
                       {language === 'ar' ? 'آخر تحديث' : 'Last computed'}: {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
                     </span>
-                    <div className="w-1 h-1 rounded-full bg-violet-400/40 animate-pulse" style={{ animationDelay: '500ms' }} />
+                    <div className="w-1 h-1 rounded-full bg-violet-400/40" />
                   </div>
                 </div>
               );
@@ -7201,7 +7145,7 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
         <div className="absolute top-0 left-0 right-0 z-[1000] flex items-center justify-between px-3 py-2 bg-[#080c14]/95 border-b border-cyan-500/15">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-cyan-400" />
               <span className="text-[11px] font-mono font-bold text-cyan-300">{language === 'en' ? 'LIVE TRACKING' : 'تتبع مباشر'}</span>
             </div>
             <span className={`text-sm font-mono font-bold ${typeColor}`}>{liveData.callsign}</span>
@@ -7229,7 +7173,7 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
             <span className="text-[11px] font-mono text-foreground/70 tabular-nums">{liveData.lat.toFixed(4)}, {liveData.lng.toFixed(4)}</span>
           </div>
           <div className="flex items-center gap-1 ml-auto">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
             <span className="text-[9px] font-mono text-green-400/70">{language === 'en' ? 'LIVE' : 'مباشر'}</span>
           </div>
         </div>
@@ -7318,8 +7262,6 @@ export default function Dashboard() {
     return () => { el.removeEventListener('scroll', onScroll); if (rafId) cancelAnimationFrame(rafId); };
   }, []);
 
-  // Smooth wheel scroll: inner panels with overscroll-behavior:contain block scroll chaining,
-  // so we intercept wheel events and manually ease-scroll the outer container.
   useEffect(() => {
     if (isMobile || isTablet) return;
     const container = panelsScrollRef.current;
@@ -7329,46 +7271,40 @@ export default function Dashboard() {
     let raf: number | null = null;
 
     const tick = () => {
-      const current = container.scrollTop;
-      const delta = targetY - current;
+      const delta = targetY - container.scrollTop;
       if (Math.abs(delta) < 1) {
         container.scrollTop = targetY;
         raf = null;
         return;
       }
-      container.scrollTop = current + delta * 0.28;
+      container.scrollTop += delta * 0.3;
       raf = requestAnimationFrame(tick);
     };
 
     const onWheel = (e: WheelEvent) => {
-      // Walk from event target up to the container.
-      // If any inner scrollable element can still absorb this delta, let it.
       let el = e.target as HTMLElement;
       while (el && el !== container) {
-        const oy = window.getComputedStyle(el).overflowY;
-        if (oy === 'auto' || oy === 'scroll') {
-          const canScroll = e.deltaY > 0
-            ? el.scrollTop + el.clientHeight < el.scrollHeight - 1
-            : el.scrollTop > 0;
-          if (canScroll) return;
+        if (el.scrollHeight > el.clientHeight + 1) {
+          const oy = window.getComputedStyle(el).overflowY;
+          if (oy === 'auto' || oy === 'scroll') {
+            const canScroll = e.deltaY > 0
+              ? el.scrollTop + el.clientHeight < el.scrollHeight - 1
+              : el.scrollTop > 0;
+            if (canScroll) return;
+          }
         }
         el = el.parentElement as HTMLElement;
       }
-      // No inner element can scroll — take over and smooth-scroll the outer container.
       e.preventDefault();
+      if (!raf) targetY = container.scrollTop;
       const max = container.scrollHeight - container.clientHeight;
       targetY = Math.max(0, Math.min(max, targetY + e.deltaY));
       if (!raf) raf = requestAnimationFrame(tick);
     };
 
-    // Keep targetY in sync when the container scrolls via scrollbar or keyboard.
-    const syncTarget = () => { targetY = container.scrollTop; };
-
     container.addEventListener('wheel', onWheel, { passive: false });
-    container.addEventListener('scroll', syncTarget, { passive: true });
     return () => {
       container.removeEventListener('wheel', onWheel);
-      container.removeEventListener('scroll', syncTarget);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [isMobile, isTablet]);
@@ -7973,7 +7909,7 @@ export default function Dashboard() {
       <div
         ref={panelsScrollRef}
         className="flex-1 overflow-y-auto"
-        style={{ minHeight: 0, overscrollBehavior: 'contain', scrollBehavior: 'smooth' }}
+        style={{ minHeight: 0, overscrollBehavior: 'contain' }}
         data-testid="resizable-panels"
       >
         {isMobile ? (
@@ -8265,7 +8201,7 @@ export default function Dashboard() {
                 background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.25)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(0,220,180,0.12)',
-                backdropFilter: 'blur(8px)', transition: 'opacity 0.2s, transform 0.2s',
+                transition: 'opacity 0.2s, transform 0.2s',
               }}
               title="Scroll to top"
               aria-label="Scroll to top"
@@ -8283,8 +8219,7 @@ export default function Dashboard() {
                 background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 14px rgba(0,220,180,0.15)',
-                backdropFilter: 'blur(8px)', transition: 'opacity 0.2s, transform 0.2s',
-                animation: 'pulse 2s ease-in-out infinite',
+                transition: 'opacity 0.2s, transform 0.2s',
               }}
               title="Scroll down"
               aria-label="Scroll down"
@@ -8302,7 +8237,7 @@ export default function Dashboard() {
       {!isMobile && <NewsTicker news={news} language={language} />}
 
       {!isMobile && (
-        <div className="h-8 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(222 30% 10% / 0.92)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)'}}>
+        <div className="h-8 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(222 30% 10% / 0.97)'}}>
           <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 60% 50% / 0.05) 30%, hsl(185 80% 50% / 0.1) 50%, hsl(185 60% 50% / 0.05) 70%, transparent)'}} />
           <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
             <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
