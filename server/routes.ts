@@ -3539,8 +3539,6 @@ const INET_COUNTRIES = [
   { code: 'QA', name: 'Qatar' },
 ];
 
-const INET_BASELINES: Record<string, { bgp: number; ping: number }> = {};
-
 let internetCache: { data: InternetCountryStatus[]; fetchedAt: number } | null = null;
 const INTERNET_CACHE_TTL = 120_000;
 
@@ -3566,40 +3564,47 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
       }>>;
     };
 
-    const signals: Record<string, { bgp: number[]; ping: number[]; merit: number[] }> = {};
+    const signals: Record<string, { bgp: number[]; ping: number[]; gtrNorm: number[]; merit: number[] }> = {};
     for (const ds of (ioda.data || [])) {
       for (const entry of ds) {
         const cc = entry.entityCode;
-        if (!signals[cc]) signals[cc] = { bgp: [], ping: [], merit: [] };
+        if (!signals[cc]) signals[cc] = { bgp: [], ping: [], gtrNorm: [], merit: [] };
         const nums = entry.values
           .filter((v): v is number => typeof v === 'number' && v !== null)
           .filter(v => v >= 0);
         if (entry.datasource === 'bgp') signals[cc].bgp = nums;
         else if (entry.datasource === 'ping-slash24') signals[cc].ping = nums;
+        else if (entry.datasource === 'gtr-norm') signals[cc].gtrNorm = nums;
         else if (entry.datasource === 'merit-nt') signals[cc].merit = nums;
       }
     }
 
     for (const country of INET_COUNTRIES) {
-      const sig = signals[country.code] || { bgp: [], ping: [], merit: [] };
-      const bgpLatest = sig.bgp.length > 0 ? sig.bgp[sig.bgp.length - 1] : 0;
-      const pingLatest = sig.ping.length > 0 ? sig.ping[sig.ping.length - 1] : 0;
-      const bgpMax = sig.bgp.length > 0 ? Math.max(...sig.bgp) : 0;
-      const pingMax = sig.ping.length > 0 ? Math.max(...sig.ping) : 0;
+      const sig = signals[country.code] || { bgp: [], ping: [], gtrNorm: [], merit: [] };
 
-      if (!INET_BASELINES[country.code] || bgpMax > INET_BASELINES[country.code].bgp) {
-        INET_BASELINES[country.code] = {
-          bgp: Math.max(bgpMax, INET_BASELINES[country.code]?.bgp || 0),
-          ping: Math.max(pingMax, INET_BASELINES[country.code]?.ping || 0),
-        };
+      const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+      const last = (arr: number[]) => arr.length > 0 ? arr[arr.length - 1] : 0;
+
+      const bgpVals = sig.bgp.filter(v => v > 0);
+      const pingVals = sig.ping.filter(v => v > 0);
+      const bgpLatest = last(bgpVals);
+      const bgpAvg = avg(bgpVals);
+      const pingLatest = last(pingVals);
+      const pingAvg = avg(pingVals);
+
+      const bgpRatio = bgpAvg > 0 ? Math.min(bgpLatest / bgpAvg, 1.2) : 1;
+      const pingRatio = pingAvg > 0 ? Math.min(pingLatest / pingAvg, 1.2) : 1;
+
+      let healthRatio: number;
+      if (sig.gtrNorm.length > 0) {
+        const gtrLatest = last(sig.gtrNorm);
+        healthRatio = gtrLatest * 0.4 + Math.min(bgpRatio, 1) * 0.3 + Math.min(pingRatio, 1) * 0.3;
+      } else if (pingAvg > 5) {
+        healthRatio = bgpRatio * 0.5 + pingRatio * 0.5;
+      } else {
+        healthRatio = bgpRatio;
       }
-      const baseline = INET_BASELINES[country.code];
-
-      const bgpRatio = baseline.bgp > 0 ? bgpLatest / baseline.bgp : 1;
-      const pingRatio = baseline.ping > 0 ? pingLatest / baseline.ping : 1;
-      const healthRatio = baseline.ping > 10
-        ? bgpRatio * 0.4 + pingRatio * 0.6
-        : bgpRatio;
+      healthRatio = Math.min(1, healthRatio);
 
       const healthScore = Math.min(100, Math.max(0, Math.round(healthRatio * 100)));
       const status: InternetCountryStatus['status'] =
@@ -3610,14 +3615,14 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
       const outages: InternetCountryStatus['outages'] = [];
       if (healthRatio < 0.90) {
         const dropPct = Math.round((1 - healthRatio) * 100);
-        const primaryMetric = pingRatio < bgpRatio ? 'ping-slash24' : 'bgp';
+        const worstMetric = pingRatio < bgpRatio ? 'ping' : 'bgp';
         outages.push({
           id: `inet_${country.code}_ioda`,
           country: country.name,
           countryCode: country.code,
-          metric: primaryMetric === 'bgp' ? 'bgp_hegemony' : 'network_delay',
-          normalValue: primaryMetric === 'bgp' ? baseline.bgp : baseline.ping,
-          currentValue: primaryMetric === 'bgp' ? bgpLatest : pingLatest,
+          metric: worstMetric === 'bgp' ? 'bgp_hegemony' : 'network_delay',
+          normalValue: worstMetric === 'bgp' ? Math.round(bgpAvg) : Math.round(pingAvg),
+          currentValue: worstMetric === 'bgp' ? bgpLatest : pingLatest,
           dropPercent: dropPct,
           severity: healthRatio < 0.30 ? 'critical' : healthRatio < 0.50 ? 'high' : healthRatio < 0.70 ? 'medium' : 'low',
           affectedASNs: [],
@@ -3627,7 +3632,7 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
         });
       }
 
-      const topASNLabel = `${bgpLatest.toLocaleString()} pfx`;
+      const topASNLabel = `${Math.round(bgpLatest).toLocaleString()} pfx`;
 
       results.push({
         country: country.name,
@@ -3636,7 +3641,7 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
         healthScore,
         topASN: topASNLabel,
         topASNHege: Math.round(healthRatio * 1000) / 1000,
-        asnCount: sig.bgp.length > 0 ? bgpLatest : 0,
+        asnCount: bgpLatest > 0 ? Math.round(bgpLatest) : 0,
         lastChecked: new Date().toISOString(),
         outages,
       });
