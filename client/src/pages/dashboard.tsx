@@ -3337,18 +3337,23 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
     });
   }, [filteredAlerts]);
 
-  const grouped = sortedAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>((acc, alert) => {
-    const regionKey = language === 'ar' ? alert.regionAr : alert.region;
-    const country = alert.country || 'Unknown';
-    const key = `${country}::${regionKey}`;
-    if (!acc[key]) acc[key] = { country, alerts: [] };
-    acc[key].alerts.push(alert);
-    return acc;
-  }, {});
+  const grouped = sortedAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>(
+    (acc, alert) => {
+      const country = alert.country || "Unknown";
+      if (!acc[country]) acc[country] = { country, alerts: [] };
+      acc[country].alerts.push(alert);
+      return acc;
+    },
+    {},
+  );
 
-  const sortedRegions = Object.entries(grouped).sort((a, b) => {
-    const newestA = Math.max(...a[1].alerts.map(al => new Date(al.timestamp).getTime()));
-    const newestB = Math.max(...b[1].alerts.map(al => new Date(al.timestamp).getTime()));
+  const sortedCountries = Object.entries(grouped).sort((a, b) => {
+    const newestA = Math.max(
+      ...a[1].alerts.map((al) => new Date(al.timestamp).getTime()),
+    );
+    const newestB = Math.max(
+      ...b[1].alerts.map((al) => new Date(al.timestamp).getTime()),
+    );
     return newestB - newestA;
   });
 
@@ -3567,142 +3572,155 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       {/* ── ALERT CARDS ── */}
       <ScrollArea ref={alertScrollRef} className="flex-1 min-h-0">
         <div className="p-2.5 ra-flex-col gap-1.5">
-          {sortedRegions.map(([compositeKey, { country, alerts: regionAlerts }], idx) => {
-            const regionName = compositeKey.split('::')[1];
-            const prevCountry = idx > 0 ? sortedRegions[idx - 1][1].country : null;
-            const showCountryHeader = country !== prevCountry;
-            const countryAlertCount = sortedRegions.filter(([, g]) => g.country === country).reduce((sum, [, g]) => sum + g.alerts.length, 0);
-
+          {sortedCountries.map(([country, { alerts: countryAlerts }], countryIdx) => {
             const COUNTRY_ACCENT: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
             const isNonIsrael = country !== 'Israel';
             const isGCC = GCC_COUNTRIES.has(country);
             const accentColor = COUNTRY_ACCENT[country] || '#dc2626';
+            const countryNewestMs = Math.max(...countryAlerts.map((a) => new Date(a.timestamp).getTime()));
+            const countryIsNew = Date.now() - countryNewestMs < 15000;
 
             return (
-              <div key={compositeKey}>
-                {showCountryHeader && (
-                  <div
-                    className="ra-country-header"
-                    style={{
-                      marginBottom: 4, marginTop: idx > 0 ? 4 : 0,
-                      background: isNonIsrael ? accentColor + '14' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${accentColor}30`,
-                    }}
-                  >
-                    <span className={isNonIsrael ? 'text-[18px]' : 'text-[14px]'}>{FLAG_MAP[country]}</span>
-                    <span className="text-[13px] font-extrabold ra-tracking-wide uppercase ra-font-display" style={{ color: isNonIsrael ? accentColor : 'rgba(255,255,255,0.7)' }}>{country}</span>
-                    <span className="text-[11px] font-extrabold text-white ra-tabular ra-font-mono rounded-xl px-2 py-px" style={{ background: accentColor + '33', border: `1px solid ${accentColor}55` }}>{countryAlertCount}</span>
-                    {isGCC && <span className="ra-badge-xs" style={{ background: '#0ea5e920', color: '#0ea5e9', border: '1px solid #0ea5e940' }}>GCC</span>}
-                    {isNonIsrael && <span className="ra-badge-xs" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>UNDER ATTACK</span>}
-                    <span className="text-[9px] text-white/30 ra-font-mono font-semibold ml-auto" style={{ letterSpacing: '0.08em' }}>{regionName}</span>
-                  </div>
-                )}
+              <div key={country}>
+                {/* One header per country — country with newest alert always at top */}
+                <div
+                  className="ra-country-header"
+                  style={{
+                    marginBottom: 4,
+                    marginTop: countryIdx > 0 ? 6 : 0,
+                    background: isNonIsrael ? accentColor + '14' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${accentColor}30`,
+                  }}
+                >
+                  <span className={isNonIsrael ? 'text-[18px]' : 'text-[14px]'}>{FLAG_MAP[country]}</span>
+                  <span className="text-[13px] font-extrabold ra-tracking-wide uppercase ra-font-display" style={{ color: isNonIsrael ? accentColor : 'rgba(255,255,255,0.7)' }}>{country}</span>
+                  <span className="text-[11px] font-extrabold text-white ra-tabular ra-font-mono rounded-xl px-2 py-px" style={{ background: accentColor + '33', border: `1px solid ${accentColor}55` }}>{countryAlerts.length}</span>
+                  {countryIsNew && <span className="eas-flash ra-badge-xs" style={{ background: '#dc2626', color: '#fff' }}>NEW</span>}
+                  {isGCC && <span className="ra-badge-xs" style={{ background: '#0ea5e920', color: '#0ea5e9', border: '1px solid #0ea5e940' }}>GCC</span>}
+                  {isNonIsrael && <span className="ra-badge-xs" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>UNDER ATTACK</span>}
+                </div>
 
-                {regionAlerts.map((alert) => {
-                  const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
-                  const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
-                  const remaining = Math.max(0, alert.countdown - elapsed);
-                  const isActive = elapsed < alert.countdown || alert.countdown === 0;
-                  const tier = getAlertUrgencyTier(remaining, alert.countdown);
-                  const isLive = alert.source === 'live';
-                  const band = TIER_BAND[tier];
-                  const isCrit = tier === 'critical';
-                  const isExpired = tier === 'expired';
-                  const alertAccent = COUNTRY_ACCENT[alert.country] || '#dc2626';
+                {/* Flat list — newest first within country, region shown as subtitle on each card */}
+                <div className="flex flex-col gap-1">
+                  {countryAlerts.map((alert) => {
+                    const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
+                    const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
+                    const remaining = Math.max(0, alert.countdown - elapsed);
+                    const isActive = elapsed < alert.countdown || alert.countdown === 0;
+                    const tier = getAlertUrgencyTier(remaining, alert.countdown);
+                    const isLive = alert.source === 'live';
+                    const band = TIER_BAND[tier];
+                    const isCrit = tier === 'critical';
+                    const isExpired = tier === 'expired';
+                    const alertAccent = COUNTRY_ACCENT[alert.country] || '#dc2626';
 
-                  const cardBorderColor = isExpired ? 'rgba(255,255,255,0.05)'
-                    : isCrit ? '#ef4444'
-                    : tier === 'urgent' ? '#f97316'
-                    : tier === 'warning' ? '#eab308'
-                    : alertAccent + '80';
+                    const cardBorderColor = isExpired
+                      ? 'rgba(255,255,255,0.05)'
+                      : isCrit
+                        ? '#ef4444'
+                        : tier === 'urgent'
+                          ? '#f97316'
+                          : tier === 'warning'
+                            ? '#eab308'
+                            : alertAccent + '80';
 
-                  const ageMs = Date.now() - new Date(alert.timestamp).getTime();
-                  const isIncoming = ageMs < 9000 && isActive;
-                  return (
-                    <div key={alert.id}>
-                    {isIncoming && (
-                      <div className="eas-flash text-[9px] font-black text-red-500 tracking-[0.25em] ra-font-mono text-center py-0.5 mb-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)' }}>
-                        ⚠ INCOMING THREAT ⚠
-                      </div>
-                    )}
-                    <div
-                      data-testid={`red-alert-${alert.id}`}
-                      className="alert-slide-in ra-card"
-                      style={{
-                        border: `1px solid ${cardBorderColor}`,
-                        background: isExpired
-                          ? 'rgba(255,255,255,0.02)'
-                          : isCrit
-                          ? 'linear-gradient(135deg, rgba(127,29,29,0.35) 0%, rgba(69,10,10,0.25) 100%)'
-                          : isNonIsrael
-                          ? alertAccent + '12'
-                          : 'rgba(127,29,29,0.15)',
-                        boxShadow: isCrit && !isExpired ? `0 0 16px ${alertAccent}25, 0 2px 8px rgba(0,0,0,0.3)` : '0 2px 6px rgba(0,0,0,0.25)',
-                      }}
-                    >
-                      {isCrit && !isExpired && <div className="eas-stripes h-[3px]" style={{ background: alertAccent }} />}
-                      <div className="ra-card-body">
-                        <div className="flex-1 min-w-0">
-                          <div className="ra-flex-center gap-1.5 mb-1">
-                            {isNonIsrael && <span className="text-[14px] shrink-0">{FLAG_MAP[alert.country]}</span>}
-                            <span className={`ra-city-name ${isCrit ? 'text-[15px]' : 'text-[13px]'} ${isExpired ? 'text-white/25' : 'text-white'}`}>
-                              {language === 'ar' ? alert.cityAr : alert.city}
-                            </span>
-                            {isLive && (
-                              <span className="ra-badge-xs shrink-0 ra-tracking-wider" style={{ background: '#15803d', color: '#fff' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
-                            )}
-                            {alert.sourceChannel && (
-                              <a
-                                href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="ra-badge-xs shrink-0 ra-tracking-wider flex items-center gap-0.5"
-                                style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
-                                onClick={e => e.stopPropagation()}
-                                data-testid={`tg-source-${alert.id}`}
-                                title={`Source: ${alert.sourceChannel}`}
-                              >
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z"/></svg>
-                                TG
-                              </a>
-                            )}
+                    const ageMs = Date.now() - new Date(alert.timestamp).getTime();
+                    const isIncoming = ageMs < 9000 && isActive;
+                    const isNew = ageMs < 20000 && isActive && !isIncoming;
+
+                    return (
+                      <div key={alert.id}>
+                        {isIncoming && (
+                          <div className="eas-flash text-[9px] font-black text-red-500 tracking-[0.25em] ra-font-mono text-center py-0.5 mb-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)' }}>
+                            ⚠ INCOMING THREAT ⚠
                           </div>
-                          <div className="ra-flex-center gap-1.5">
-                            <span
-                              className="ra-badge-sm"
-                              style={{
-                                background: isActive ? band.bg + 'cc' : 'transparent',
-                                color: isActive ? band.text : 'rgba(255,255,255,0.2)',
-                                border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
-                              }}
-                            >
-                              {RED_ALERT_THREAT_ICONS[alert.threatType] || ''}{' '}{language === 'ar' ? threat.ar : threat.en}
-                            </span>
-                            {isActive && !isExpired && (
-                              <span className="ra-badge-xs" style={{ borderRadius: 10, background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55` }}>
-                                {band.label}
-                              </span>
-                            )}
-                            <span className={`text-[10px] ra-tabular ra-font-mono font-medium ${isExpired ? 'text-white/[0.12]' : 'text-red-200/40'}`}>
-                              {timeAgo(alert.timestamp)}
-                            </span>
-                            {alert.sourceChannel && (
-                              <a
-                                href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="text-[9px] ra-font-mono font-medium truncate max-w-[70px]"
-                                style={{ color: '#0088cc99', textDecoration: 'none' }}
-                                onClick={e => e.stopPropagation()}
-                                title={alert.sourceChannel}
-                              >{alert.sourceChannel}</a>
-                            )}
+                        )}
+                        <div
+                          data-testid={`red-alert-${alert.id}`}
+                          className="alert-slide-in ra-card"
+                          style={{
+                            border: `1px solid ${cardBorderColor}`,
+                            background: isExpired
+                              ? 'rgba(255,255,255,0.02)'
+                              : isCrit
+                                ? 'linear-gradient(135deg, rgba(127,29,29,0.35) 0%, rgba(69,10,10,0.25) 100%)'
+                                : isNonIsrael
+                                  ? alertAccent + '12'
+                                  : 'rgba(127,29,29,0.15)',
+                            boxShadow: isCrit && !isExpired ? `0 0 16px ${alertAccent}25, 0 2px 8px rgba(0,0,0,0.3)` : '0 2px 6px rgba(0,0,0,0.25)',
+                          }}
+                        >
+                          {isCrit && !isExpired && <div className="eas-stripes h-[3px]" style={{ background: alertAccent }} />}
+                          <div className="ra-card-body">
+                            <div className="flex-1 min-w-0">
+                              <div className="ra-flex-center gap-1.5 mb-0.5">
+                                {isNonIsrael && <span className="text-[14px] shrink-0">{FLAG_MAP[alert.country]}</span>}
+                                <span className={`ra-city-name ${isCrit ? 'text-[15px]' : 'text-[13px]'} ${isExpired ? 'text-white/25' : 'text-white'}`}>
+                                  {language === 'ar' ? alert.cityAr : alert.city}
+                                </span>
+                                {isNew && (
+                                  <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fff' }}>NEW</span>
+                                )}
+                                {isLive && (
+                                  <span className="ra-badge-xs shrink-0 ra-tracking-wider" style={{ background: '#15803d', color: '#fff' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
+                                )}
+                                {alert.sourceChannel && (
+                                  <a
+                                    href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="ra-badge-xs shrink-0 ra-tracking-wider flex items-center gap-0.5"
+                                    style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    data-testid={`tg-source-${alert.id}`}
+                                    title={`Source: ${alert.sourceChannel}`}
+                                  >
+                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
+                                    TG
+                                  </a>
+                                )}
+                              </div>
+                              {/* Region as subtitle — replaces per-region section headers */}
+                              <div className="text-[9px] ra-font-mono font-semibold truncate mb-1" style={{ color: isExpired ? 'rgba(255,255,255,0.1)' : alertAccent + 'aa', letterSpacing: '0.06em' }}>
+                                {language === 'ar' ? alert.regionAr : alert.region}
+                              </div>
+                              <div className="ra-flex-center gap-1.5">
+                                <span
+                                  className="ra-badge-sm"
+                                  style={{
+                                    background: isActive ? band.bg + 'cc' : 'transparent',
+                                    color: isActive ? band.text : 'rgba(255,255,255,0.2)',
+                                    border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                                  }}
+                                >
+                                  {RED_ALERT_THREAT_ICONS[alert.threatType] || ''}{' '}{language === 'ar' ? threat.ar : threat.en}
+                                </span>
+                                {isActive && !isExpired && (
+                                  <span className="ra-badge-xs" style={{ borderRadius: 10, background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55` }}>
+                                    {band.label}
+                                  </span>
+                                )}
+                                <span className={`text-[10px] ra-tabular ra-font-mono font-medium ${isExpired ? 'text-white/[0.12]' : 'text-red-200/40'}`}>
+                                  {timeAgo(alert.timestamp)}
+                                </span>
+                                {alert.sourceChannel && (
+                                  <a
+                                    href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="text-[9px] ra-font-mono font-medium truncate max-w-[70px]"
+                                    style={{ color: '#0088cc99', textDecoration: 'none' }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    title={alert.sourceChannel}
+                                  >{alert.sourceChannel}</a>
+                                )}
+                              </div>
+                            </div>
+                            <RedAlertCountdown alert={alert} />
                           </div>
                         </div>
-                        <RedAlertCountdown alert={alert} />
                       </div>
-                    </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
