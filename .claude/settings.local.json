@@ -27,7 +27,10 @@
       "Bash(perl:*)",
       "Bash(bun run:*)",
       "Bash(awk NR>=600 && NR<=900:*)",
-      "Skill(claude-api)"
+      "Skill(claude-api)",
+      "Bash(env:*)",
+      "Bash(awk NR>=6463 && NR<=6960:*)",
+      "Bash(awk NR>=6463 && NR<=6560:*)"
     ]
   }
 }

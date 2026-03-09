@@ -691,23 +691,23 @@ async function generateNews(): Promise<NewsItem[]> {
 }
 
 const COMMODITY_META = [
-  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 84.72, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cb.f' },
-  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 80.35, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cl.f' },
-  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 2068.40, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'gc.f' },
-  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 23.85, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'si.f', stooqDivisor: 100 },
-  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.42, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'ng.f' },
-  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 612.50, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'zw.f' },
-  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 8542.00, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'hg.f', stooqDivisor: 100 },
-  { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.0862, currency: '', category: 'fx-major' as const, fxKey: 'EUR' },
-  { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.2674, currency: '', category: 'fx-major' as const, fxKey: 'GBP' },
-  { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 149.82, currency: '', category: 'fx-major' as const, fxKey: 'JPY', invert: true },
-  { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', fallback: 0.8815, currency: '', category: 'fx-major' as const, fxKey: 'CHF', invert: true },
-  { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', fallback: 0.6542, currency: '', category: 'fx-major' as const, fxKey: 'AUD' },
-  { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', fallback: 1.3598, currency: '', category: 'fx-major' as const, fxKey: 'CAD', invert: true },
-  { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', fallback: 3.92, currency: '', category: 'fx' as const, fxKey: 'ILS', invert: true },
+  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 88.06, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cb.f', yahooSymbol: 'BZ=F' },
+  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 84.40, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cl.f', yahooSymbol: 'CL=F' },
+  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 5147.30, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'gc.f', yahooSymbol: 'GC=F' },
+  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 87.34, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'si.f', stooqDivisor: 100, yahooSymbol: 'SI=F' },
+  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.03, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'ng.f', yahooSymbol: 'NG=F' },
+  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 602.50, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'zw.f', yahooSymbol: 'ZW=F' },
+  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 5.90, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'hg.f', stooqDivisor: 100, yahooSymbol: 'HG=F' },
+  { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.1640, currency: '', category: 'fx-major' as const, fxKey: 'EUR', stooqSymbol: 'eurusd', yahooSymbol: 'EURUSD=X' },
+  { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.3440, currency: '', category: 'fx-major' as const, fxKey: 'GBP', stooqSymbol: 'gbpusd', yahooSymbol: 'GBPUSD=X' },
+  { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 157.67, currency: '', category: 'fx-major' as const, fxKey: 'JPY', invert: true, stooqSymbol: 'usdjpy', yahooSymbol: 'USDJPY=X' },
+  { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', fallback: 0.7778, currency: '', category: 'fx-major' as const, fxKey: 'CHF', invert: true, stooqSymbol: 'usdchf', yahooSymbol: 'USDCHF=X' },
+  { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', fallback: 0.7074, currency: '', category: 'fx-major' as const, fxKey: 'AUD', stooqSymbol: 'audusd', yahooSymbol: 'AUDUSD=X' },
+  { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', fallback: 1.3589, currency: '', category: 'fx-major' as const, fxKey: 'CAD', invert: true, stooqSymbol: 'usdcad', yahooSymbol: 'USDCAD=X' },
+  { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', fallback: 3.0847, currency: '', category: 'fx' as const, fxKey: 'ILS', invert: true, stooqSymbol: 'usdils', yahooSymbol: 'USDILS=X' },
   { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', fallback: 42150, currency: '', category: 'fx' as const, fxKey: 'IRR', invert: true },
-  { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', fallback: 3.7500, currency: '', category: 'fx' as const, fxKey: 'SAR', invert: true },
-  { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', fallback: 3.6725, currency: '', category: 'fx' as const, fxKey: 'AED', invert: true },
+  { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', fallback: 3.7542, currency: '', category: 'fx' as const, fxKey: 'SAR', invert: true, stooqSymbol: 'usdsar', yahooSymbol: 'USDSAR=X' },
+  { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', fallback: 3.6729, currency: '', category: 'fx' as const, fxKey: 'AED', invert: true, yahooSymbol: 'USDAED=X' },
 ];
 
 let liveFxRates: Record<string, number> = {};
@@ -736,8 +736,56 @@ async function fetchLiveFxRates(): Promise<Record<string, number>> {
 
 let liveCommodityPrices: Record<string, { price: number; change: number; changePercent: number }> = {};
 let liveCommodityFetchedAt = 0;
-const COMMODITY_PRICE_TTL = 15_000;
+const COMMODITY_PRICE_TTL = 12_000;
 let commodityFetchInFlight: Promise<void> | null = null;
+
+async function fetchYahooQuote(yahooSymbol: string): Promise<{ price: number; change: number; changePercent: number } | null> {
+  try {
+    const encoded = encodeURIComponent(yahooSymbol);
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encoded}?interval=1d&range=2d`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json() as { chart?: { result?: Array<{ meta?: { regularMarketPrice?: number; chartPreviousClose?: number } }> } };
+    const meta = json?.chart?.result?.[0]?.meta;
+    if (!meta) return null;
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose;
+    if (!price || price <= 0) return null;
+    const prev = (prevClose && prevClose > 0) ? prevClose : price;
+    const change = price - prev;
+    const changePercent = prev !== 0 ? (change / prev) * 100 : 0;
+    return { price, change, changePercent };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchStooqQuote(stooqSymbol: string, divisor: number = 1): Promise<{ price: number; change: number; changePercent: number } | null> {
+  try {
+    const url = `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSymbol)}&f=sd2t2ohlcvp&d=d&e=csv`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': randomUA() },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return null;
+    const csv = (await resp.text()).trim();
+    const parts = csv.split(',');
+    if (parts.length < 9 || parts[6] === 'N/D') return null;
+    const rawClose = parseFloat(parts[6]);
+    const rawPrevClose = parseFloat(parts[8]);
+    if (isNaN(rawClose) || rawClose <= 0) return null;
+    const close = rawClose / divisor;
+    const prev = (!isNaN(rawPrevClose) && rawPrevClose > 0) ? rawPrevClose / divisor : close;
+    const change = close - prev;
+    const changePercent = prev !== 0 ? (change / prev) * 100 : 0;
+    return { price: close, change, changePercent };
+  } catch {
+    return null;
+  }
+}
 
 async function fetchLiveCommodityPrices(): Promise<void> {
   if (Date.now() - liveCommodityFetchedAt < COMMODITY_PRICE_TTL && Object.keys(liveCommodityPrices).length > 0) return;
@@ -746,44 +794,90 @@ async function fetchLiveCommodityPrices(): Promise<void> {
   return commodityFetchInFlight;
 }
 
+// FX pairs and commodities fetched in parallel via Yahoo Finance (primary), with stooq fallback
 async function _doFetchCommodityPrices(): Promise<void> {
+  const allItems = COMMODITY_META
+    .filter(m => (m as any).yahooSymbol || (m as any).stooqSymbol)
+    .map(m => ({
+      stooqSymbol: (m as any).stooqSymbol as string | undefined,
+      yahooSymbol: (m as any).yahooSymbol as string | undefined,
+      symbol: m.symbol,
+      category: m.category,
+      divisor: ((m as any).stooqDivisor as number) || 1,
+    }));
 
-  const stooqItems = COMMODITY_META
-    .filter(m => (m as any).stooqSymbol)
-    .map(m => ({ stooqSymbol: (m as any).stooqSymbol as string, symbol: m.symbol, divisor: ((m as any).stooqDivisor as number) || 1 }));
+  const results = await Promise.allSettled(
+    allItems.map(async item => {
+      // Try Yahoo Finance first (primary source)
+      if (item.yahooSymbol) {
+        const result = await fetchYahooQuote(item.yahooSymbol);
+        if (result) return { item, result, source: 'yahoo' };
+      }
+      // Fallback to stooq
+      if (item.stooqSymbol) {
+        const result = await fetchStooqQuote(item.stooqSymbol, item.divisor);
+        if (result) return { item, result, source: 'stooq' };
+      }
+      return { item, result: null, source: 'none' };
+    })
+  );
 
   let successCount = 0;
-  for (const item of stooqItems) {
-    try {
-      const url = `https://stooq.com/q/l/?s=${encodeURIComponent(item.stooqSymbol)}&f=sd2t2ohlcvp&d=d&e=csv`;
-      const resp = await fetch(url, {
-        headers: { 'User-Agent': randomUA() },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!resp.ok) continue;
-      const csv = (await resp.text()).trim();
-      const parts = csv.split(',');
-      if (parts.length < 9 || parts[6] === 'N/D') continue;
-      const rawClose = parseFloat(parts[6]);
-      const rawPrevClose = parseFloat(parts[8]);
-      if (isNaN(rawClose) || rawClose <= 0) continue;
-      const close = rawClose / item.divisor;
-      const prev = (!isNaN(rawPrevClose) && rawPrevClose > 0) ? rawPrevClose / item.divisor : close;
-      const change = close - prev;
-      const changePercent = prev !== 0 ? (change / prev) * 100 : 0;
-      liveCommodityPrices[item.stooqSymbol] = { price: close, change, changePercent };
+  let yahooCount = 0;
+  let stooqCount = 0;
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value.result && r.value.item.stooqSymbol) {
+      liveCommodityPrices[r.value.item.stooqSymbol] = r.value.result;
       successCount++;
-    } catch {}
+      if (r.value.source === 'yahoo') yahooCount++;
+      else if (r.value.source === 'stooq') stooqCount++;
+    }
   }
 
   if (successCount > 0) {
     liveCommodityFetchedAt = Date.now();
-    console.log(`[COMMODITIES] ${successCount}/${stooqItems.length} prices via stooq.com`);
+    console.log(`[MARKETS] ${successCount}/${allItems.length} quotes (yahoo:${yahooCount} stooq:${stooqCount})`);
   } else {
     liveCommodityPrices = {};
     liveCommodityFetchedAt = 0;
-    console.log(`[COMMODITIES] All stooq.com fetches failed, using fallbacks`);
+    console.log(`[MARKETS] All market data fetches failed, using fallbacks`);
   }
+}
+
+// Lightweight FX-only refresh — runs frequently for near real-time FX quotes
+let fxStooqFetchInFlight: Promise<void> | null = null;
+async function refreshFxFromStooq(): Promise<void> {
+  if (fxStooqFetchInFlight) return fxStooqFetchInFlight;
+  fxStooqFetchInFlight = _doRefreshFx().finally(() => { fxStooqFetchInFlight = null; });
+  return fxStooqFetchInFlight;
+}
+
+async function _doRefreshFx(): Promise<void> {
+  const fxItems = COMMODITY_META
+    .filter(m => (m.category === 'fx-major' || m.category === 'fx') && ((m as any).yahooSymbol || (m as any).stooqSymbol))
+    .map(m => ({ stooqSymbol: (m as any).stooqSymbol as string | undefined, yahooSymbol: (m as any).yahooSymbol as string | undefined }));
+
+  const results = await Promise.allSettled(
+    fxItems.map(async item => {
+      if (item.yahooSymbol) {
+        const result = await fetchYahooQuote(item.yahooSymbol);
+        if (result && item.stooqSymbol) return { stooqSymbol: item.stooqSymbol, result };
+      }
+      if (item.stooqSymbol) {
+        const result = await fetchStooqQuote(item.stooqSymbol);
+        if (result) return { stooqSymbol: item.stooqSymbol, result };
+      }
+      return null;
+    })
+  );
+  let updated = 0;
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value?.result && r.value.stooqSymbol) {
+      liveCommodityPrices[r.value.stooqSymbol] = r.value.result;
+      updated++;
+    }
+  }
+  if (updated > 0) liveCommodityFetchedAt = Date.now();
 }
 
 
@@ -3855,50 +3949,29 @@ async function fetchNOTAMs(): Promise<NOTAMItem[]> {
   }
 
   if (notams.length < 5) {
-    const activeAlerts = alertHistory.filter(a =>
-      Date.now() - new Date(a.timestamp).getTime() < 6 * 3600000
-    );
-    const alertedCountries = [...new Set(activeAlerts.map(a => a.country))];
+    // Only generate NOTAMs for airports in internationally declared no-fly zones.
+    // Do NOT infer airspace closures from alert activity — alerts in a country do NOT mean
+    // civil airports are closed. Iraq, Iran, Lebanon airports are all currently operational.
+    const DECLARED_NO_FLY: Record<string, { type: NOTAMItem['type']; text: string }> = {
+      Syria: { type: 'airspace_closure', text: 'AIRSPACE CLOSURE: Syrian FIR — civil aviation suspended. Active conflict. Do not enter.' },
+      Yemen: { type: 'airspace_closure', text: 'AIRSPACE CLOSURE: Yemen FIR — civil aviation suspended. Active conflict. Do not enter.' },
+    };
 
     for (const airport of ME_AIRPORTS) {
-      const hasAlerts = alertedCountries.includes(airport.country);
-      const isConflictZone = ['Syria', 'Yemen', 'Iraq', 'Lebanon', 'Iran'].includes(airport.country);
-
-      if (hasAlerts) {
+      const noFly = DECLARED_NO_FLY[airport.country];
+      if (noFly) {
         notams.push({
-          id: `notam_alert_${airport.icao}`,
+          id: `notam_nofly_${airport.icao}`,
           location: airport.name,
           icao: airport.icao,
-          type: 'airspace_closure',
-          text: `AIRSPACE CLOSURE: ${airport.icao} FIR — active hostilities in progress. All civil aviation operations suspended until further notice. Military operations in effect. Contact ATC for diversion routing.`,
-          effectiveFrom: new Date(now.getTime() - 3600000).toISOString(),
-          effectiveTo: new Date(now.getTime() + 12 * 3600000).toISOString(),
+          type: noFly.type,
+          text: noFly.text,
+          effectiveFrom: new Date(now.getTime() - 24 * 3600000).toISOString(),
+          effectiveTo: new Date(now.getTime() + 72 * 3600000).toISOString(),
           severity: 'critical',
           country: airport.country,
           coordinates: { lat: airport.lat, lng: airport.lng },
-          source: 'Inferred from active alerts',
-        });
-      } else if (isConflictZone) {
-        const types: NOTAMItem['type'][] = ['flight_restriction', 'military_exercise', 'navigation_warning'];
-        const typeIdx = airport.icao.charCodeAt(3) % types.length;
-        const type = types[typeIdx];
-        const texts: Record<string, string> = {
-          flight_restriction: `FLIGHT RESTRICTION: ${airport.icao} — restricted airspace below FL250 due to ongoing security operations. Overflights require prior coordination with military ATC.`,
-          military_exercise: `MILITARY EXERCISE: Area within 50NM of ${airport.icao} — live firing exercises in progress. Avoid area. NOTAM replaces previous.`,
-          navigation_warning: `NAV WARNING: GPS/GNSS interference reported in ${airport.icao} FIR. RNAV/RNP approaches may be unreliable. Expect radar vectors. Pilots report anomalies to ATC.`,
-        };
-        notams.push({
-          id: `notam_gen_${airport.icao}`,
-          location: airport.name,
-          icao: airport.icao,
-          type,
-          text: texts[type] || texts.flight_restriction,
-          effectiveFrom: new Date(now.getTime() - 24 * 3600000).toISOString(),
-          effectiveTo: new Date(now.getTime() + 48 * 3600000).toISOString(),
-          severity: classifyNotamSeverity(texts[type], type),
-          country: airport.country,
-          coordinates: { lat: airport.lat, lng: airport.lng },
-          source: 'Conflict zone assessment',
+          source: 'Declared no-fly zone',
         });
       }
     }
@@ -4788,6 +4861,11 @@ export async function registerRoutes(
   app.get('/api/notams', async (_req, res) => {
     const data = await fetchNOTAMs();
     res.json(data);
+  });
+
+  app.post('/api/notams/clear-cache', (_req, res) => {
+    notamCache = null;
+    res.json({ ok: true, message: 'NOTAM cache cleared' });
   });
 
 

@@ -3,58 +3,58 @@
 @tailwind utilities;
 
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
-  --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
-  --background: 210 22% 96%;
-  --foreground: 215 25% 10%;
-  --border: 210 16% 80%;
-  --card: 210 18% 92%;
-  --card-foreground: 215 20% 12%;
-  --card-border: 210 14% 78%;
-  --sidebar: 210 18% 90%;
-  --sidebar-foreground: 215 18% 14%;
-  --sidebar-border: 210 14% 76%;
-  --sidebar-primary: 200 100% 38%;
+  --button-outline: rgba(0,0,0, .08);
+  --badge-outline: rgba(0,0,0, .04);
+  --opaque-button-border-intensity: -6;
+  --elevate-1: rgba(0,0,0, .02);
+  --elevate-2: rgba(0,0,0, .05);
+  --background: 210 20% 98%;
+  --foreground: 220 15% 15%;
+  --border: 220 13% 90%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 15%;
+  --card-border: 220 13% 88%;
+  --sidebar: 220 14% 96%;
+  --sidebar-foreground: 220 12% 25%;
+  --sidebar-border: 220 13% 88%;
+  --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 210 14% 86%;
-  --sidebar-accent-foreground: 215 14% 14%;
-  --sidebar-ring: 200 100% 38%;
-  --popover: 210 18% 90%;
-  --popover-foreground: 215 16% 14%;
-  --popover-border: 210 14% 76%;
-  --primary: 200 100% 38%;
+  --sidebar-accent: 220 14% 92%;
+  --sidebar-accent-foreground: 220 12% 25%;
+  --sidebar-ring: 221 83% 53%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 15%;
+  --popover-border: 220 13% 88%;
+  --primary: 221 83% 53%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 210 14% 84%;
-  --secondary-foreground: 215 12% 16%;
-  --muted: 210 16% 88%;
-  --muted-foreground: 215 10% 40%;
-  --accent: 210 18% 90%;
-  --accent-foreground: 215 12% 14%;
-  --destructive: 0 84% 40%;
+  --secondary: 220 14% 94%;
+  --secondary-foreground: 220 12% 25%;
+  --muted: 220 14% 95%;
+  --muted-foreground: 220 10% 50%;
+  --accent: 220 14% 93%;
+  --accent-foreground: 220 12% 20%;
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
-  --input: 210 14% 76%;
-  --ring: 200 100% 38%;
-  --chart-1: 200 100% 38%;
+  --input: 220 13% 88%;
+  --ring: 221 83% 53%;
+  --chart-1: 221 83% 53%;
   --chart-2: 142 72% 38%;
-  --chart-3: 0 78% 48%;
-  --chart-4: 270 80% 55%;
-  --chart-5: 38 95% 50%;
-  --font-sans: 'Fira Sans', sans-serif;
+  --chart-3: 0 72% 51%;
+  --chart-4: 270 72% 55%;
+  --chart-5: 38 92% 50%;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: 'Fira Mono', monospace;
-  --font-display: 'Fira Sans', sans-serif;
-  --radius: .25rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 1px 2px -1px hsl(210 10% 40% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 1px 2px -1px hsl(210 10% 40% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 2px 4px -1px hsl(210 10% 40% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 4px 6px -1px hsl(210 10% 40% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(210 10% 40% / 0.00), 0px 8px 10px -1px hsl(210 10% 40% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(210 10% 40% / 0.00);
+  --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --radius: .5rem;
+  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,.04);
+  --shadow-xs: 0 1px 3px 0 rgba(0,0,0,.06);
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,.06), 0 1px 2px -1px rgba(0,0,0,.04);
+  --shadow: 0 2px 6px 0 rgba(0,0,0,.07), 0 1px 3px -1px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 12px 0 rgba(0,0,0,.08), 0 2px 4px -1px rgba(0,0,0,.05);
+  --shadow-lg: 0 8px 24px 0 rgba(0,0,0,.09), 0 4px 8px -2px rgba(0,0,0,.05);
+  --shadow-xl: 0 16px 40px 0 rgba(0,0,0,.10), 0 8px 16px -4px rgba(0,0,0,.06);
+  --shadow-2xl: 0 24px 56px 0 rgba(0,0,0,.12);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -68,53 +68,53 @@
 }
 
 .dark {
-  --button-outline: rgba(56, 189, 248, .09);
-  --badge-outline: rgba(56, 189, 248, .05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(56, 189, 248, .020);
-  --elevate-2: rgba(56, 189, 248, .042);
-  --background: 222 30% 5%;
-  --foreground: 210 12% 95%;
-  --border: 220 22% 20%;
-  --card: 220 26% 8%;
-  --card-foreground: 210 10% 93%;
-  --card-border: 220 22% 17%;
-  --sidebar: 222 32% 5%;
-  --sidebar-foreground: 210 10% 91%;
-  --sidebar-border: 220 22% 15%;
-  --sidebar-primary: 200 90% 58%;
-  --sidebar-primary-foreground: 222 30% 5%;
-  --sidebar-accent: 220 24% 11%;
-  --sidebar-accent-foreground: 210 10% 91%;
-  --sidebar-ring: 200 90% 58%;
-  --popover: 220 26% 8%;
-  --popover-foreground: 210 10% 91%;
-  --popover-border: 220 22% 19%;
-  --primary: 200 90% 58%;
-  --primary-foreground: 222 30% 5%;
-  --secondary: 220 22% 14%;
-  --secondary-foreground: 210 10% 88%;
-  --muted: 220 20% 13%;
-  --muted-foreground: 215 12% 58%;
-  --accent: 220 22% 13%;
-  --accent-foreground: 210 10% 86%;
-  --destructive: 0 88% 58%;
+  --button-outline: rgba(255,255,255,.07);
+  --badge-outline: rgba(255,255,255,.04);
+  --opaque-button-border-intensity: 7;
+  --elevate-1: rgba(255,255,255,.02);
+  --elevate-2: rgba(255,255,255,.04);
+  --background: 220 16% 10%;
+  --foreground: 220 10% 92%;
+  --border: 220 14% 22%;
+  --card: 220 16% 13%;
+  --card-foreground: 220 10% 90%;
+  --card-border: 220 14% 20%;
+  --sidebar: 220 16% 11%;
+  --sidebar-foreground: 220 10% 88%;
+  --sidebar-border: 220 14% 18%;
+  --sidebar-primary: 221 83% 60%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 14% 16%;
+  --sidebar-accent-foreground: 220 10% 88%;
+  --sidebar-ring: 221 83% 60%;
+  --popover: 220 16% 13%;
+  --popover-foreground: 220 10% 88%;
+  --popover-border: 220 14% 20%;
+  --primary: 221 83% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 18%;
+  --secondary-foreground: 220 10% 85%;
+  --muted: 220 14% 16%;
+  --muted-foreground: 220 10% 52%;
+  --accent: 220 14% 17%;
+  --accent-foreground: 220 10% 85%;
+  --destructive: 0 72% 55%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 22% 16%;
-  --ring: 200 90% 58%;
-  --chart-1: 200 90% 58%;
-  --chart-2: 152 78% 40%;
-  --chart-3: 0 88% 58%;
-  --chart-4: 272 78% 65%;
-  --chart-5: 38 100% 54%;
-  --shadow-2xs: 0px 2px 0px 0px hsl(222 30% 2% / 0.45);
-  --shadow-xs: 0px 2px 4px 0px hsl(222 30% 2% / 0.50);
-  --shadow-sm: 0px 2px 4px 0px hsl(222 30% 2% / 0.50), 0px 1px 2px -1px hsl(222 30% 2% / 0.38);
-  --shadow: 0px 4px 8px 0px hsl(222 30% 2% / 0.50), 0px 2px 4px -1px hsl(222 30% 2% / 0.38);
-  --shadow-md: 0px 6px 16px 0px hsl(222 30% 2% / 0.55), 0px 2px 4px -1px hsl(222 30% 2% / 0.38);
-  --shadow-lg: 0px 8px 24px 0px hsl(222 30% 2% / 0.60), 0px 4px 6px -1px hsl(222 30% 2% / 0.44);
-  --shadow-xl: 0px 12px 32px 0px hsl(222 30% 2% / 0.65), 0px 8px 10px -1px hsl(222 30% 2% / 0.50);
-  --shadow-2xl: 0px 20px 48px 0px hsl(222 30% 2% / 0.70);
+  --input: 220 14% 20%;
+  --ring: 221 83% 60%;
+  --chart-1: 221 83% 60%;
+  --chart-2: 142 72% 42%;
+  --chart-3: 0 72% 55%;
+  --chart-4: 270 72% 60%;
+  --chart-5: 38 92% 52%;
+  --shadow-2xs: 0 1px 3px 0 rgba(0,0,0,.25);
+  --shadow-xs: 0 1px 4px 0 rgba(0,0,0,.30);
+  --shadow-sm: 0 1px 4px 0 rgba(0,0,0,.30), 0 1px 3px -1px rgba(0,0,0,.22);
+  --shadow: 0 2px 8px 0 rgba(0,0,0,.35), 0 1px 4px -1px rgba(0,0,0,.25);
+  --shadow-md: 0 4px 16px 0 rgba(0,0,0,.40), 0 2px 6px -1px rgba(0,0,0,.28);
+  --shadow-lg: 0 8px 28px 0 rgba(0,0,0,.45), 0 4px 10px -2px rgba(0,0,0,.32);
+  --shadow-xl: 0 16px 44px 0 rgba(0,0,0,.50), 0 8px 18px -4px rgba(0,0,0,.36);
+  --shadow-2xl: 0 24px 60px 0 rgba(0,0,0,.55);
 
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -148,39 +148,51 @@
     letter-spacing: 0.01em;
   }
 
-  /* Firefox scrollbar styling */
+  /* Scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(200 50% 38% / 0.55) transparent;
+    scrollbar-color: hsl(220 13% 80%) transparent;
   }
 
-  .react-grid-item ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-  .react-grid-item ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .react-grid-item ::-webkit-scrollbar-thumb {
-    background: hsl(200 50% 32% / 0.40);
-    border-radius: 4px;
-  }
-  .react-grid-item ::-webkit-scrollbar-thumb:hover {
-    background: hsl(200 60% 50% / 0.60);
-  }
-  .react-grid-item ::-webkit-scrollbar-corner {
-    background: transparent;
+  .dark * {
+    scrollbar-color: hsl(220 14% 28%) transparent;
   }
 
-  /* Momentum scrolling for touch + desktop overflow containers */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(220 13% 82%);
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(220 14% 28%);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(220 13% 68%);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(220 14% 40%);
+  }
+
+  .react-grid-item ::-webkit-scrollbar { width: 4px; height: 4px; }
+  .react-grid-item ::-webkit-scrollbar-track { background: transparent; }
+  .react-grid-item ::-webkit-scrollbar-thumb { background: hsl(220 13% 82%); border-radius: 3px; }
+  .dark .react-grid-item ::-webkit-scrollbar-thumb { background: hsl(220 14% 28%); }
+
   [class*="overflow-y-"], [class*="overflow-x-"], [style*="overflow"],
   [class*="overflow-auto"] {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
 
+  /* Clamp very small text sizes to readable minimums */
   .text-\[6px\]  { font-size: 10px !important; font-weight: 600 !important; }
-  .text-\[7px\]  { font-size: 10.5px !important; font-weight: 600 !important; }
+  .text-\[7px\]  { font-size: 11px !important; font-weight: 600 !important; }
   .text-\[8px\]  { font-size: 11px !important; font-weight: 500 !important; }
   .text-\[9px\]  { font-size: 12px !important; font-weight: 500 !important; }
   .text-\[10px\] { font-size: 13px !important; font-weight: 500 !important; }
@@ -191,248 +203,172 @@
   .text-sm       { font-size: 14px !important; }
 
   ::selection {
-    background: hsl(200 90% 58% / 0.20);
+    background: hsl(221 83% 53% / 0.15);
     color: hsl(var(--foreground));
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: hsl(222 30% 8% / 0.30);
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(200 50% 38% / 0.55);
-    border-radius: 3px;
-    transition: background 0.2s ease;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(200 65% 52% / 0.80);
-  }
-  ::-webkit-scrollbar-thumb:active {
-    background: hsl(200 70% 60% / 0.90);
-  }
-
-  /* Dot-grid overlay — subtle. Use contain and layer isolation to avoid scroll repaints */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: radial-gradient(
-      circle,
-      hsl(200 90% 58% / 0.030) 1px,
-      transparent 1px
-    );
-    background-size: 32px 32px;
-    pointer-events: none;
-    z-index: 1;
-    transform: translateZ(0);
-    contain: strict;
-  }
-
-  @media (max-width: 767px) {
-    body::after {
-      display: none;
-    }
-  }
-
-  /* Panel headers - larger & bolder */
   .panel-drag-handle {
     min-height: 32px !important;
   }
 
-  /* Panel close / maximize — always subtly visible, pop on hover */
   .warroom-panel-close,
   .warroom-panel-maximize {
-    opacity: 0.55;
-    transition: opacity 0.1s ease, background-color 0.1s ease, color 0.1s ease, transform 0.1s ease, border-color 0.1s ease;
+    opacity: 0.40;
+    transition: opacity 0.12s ease, background-color 0.12s ease;
   }
   .panel-drag-handle:hover .warroom-panel-close,
   .panel-drag-handle:hover .warroom-panel-maximize {
-    opacity: 1;
+    opacity: 0.75;
   }
-  .warroom-panel-close:hover {
-    opacity: 1 !important;
-    box-shadow: 0 0 8px hsl(0 80% 55% / 0.30);
-  }
-  .warroom-panel-maximize:hover {
-    opacity: 1 !important;
-    box-shadow: 0 0 8px hsl(200 90% 58% / 0.35);
-  }
+  .warroom-panel-close:hover { opacity: 1 !important; }
+  .warroom-panel-maximize:hover { opacity: 1 !important; }
 
-  /* RGL panel items */
   [data-testid="resizable-panels"] > .react-grid-layout > div {
     transition: none;
   }
 
-  /* Smooth transitions + prevent 300ms tap delay on interactive elements */
   button, a, [role="button"] {
     transition:
-      opacity 0.14s cubic-bezier(0.4, 0, 0.2, 1),
-      background-color 0.14s cubic-bezier(0.4, 0, 0.2, 1),
-      color 0.14s cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 0.14s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.14s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity 0.12s ease,
+      background-color 0.12s ease,
+      color 0.12s ease,
+      border-color 0.12s ease,
+      box-shadow 0.12s ease;
     touch-action: manipulation;
   }
 
-  /* Scrollable panels container */
   [data-testid="resizable-panels"] {
     contain: style;
   }
 
-  /* Warroom header taller on desktop */
   .warroom-header {
     min-height: 36px;
   }
 
-  /* Smooth focus rings */
   :focus-visible {
-    outline: 2px solid hsl(200 90% 58% / 0.65);
+    outline: 2px solid hsl(221 83% 53% / 0.50);
     outline-offset: 3px;
     border-radius: 4px;
-    transition: outline-color 0.15s ease;
   }
 }
 
 @layer utilities {
+  /* Clean, light panel surface */
   .warroom-panel-surface {
-    background: hsl(220 26% 8% / 0.97);
-    border: 1px solid hsl(220 25% 22% / 0.60);
-    border-radius: 10px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 14px;
     overflow: hidden;
-    box-shadow:
-      0 4px 24px hsl(222 30% 2% / 0.65),
-      0 1px 4px hsl(222 30% 2% / 0.35),
-      inset 0 1px 0 hsl(200 90% 70% / 0.05);
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
     contain: style paint;
-    transform: translateZ(0);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .warroom-panel-surface:hover {
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+
+  .dark .warroom-panel-surface {
+    background: hsl(var(--card));
+    border-color: hsl(var(--border));
+    box-shadow: 0 2px 8px rgba(0,0,0,.30);
   }
 
   .warroom-panel-surface:focus-within {
-    border-color: hsl(200 90% 58% / 0.40);
-    box-shadow:
-      0 4px 24px hsl(222 30% 2% / 0.65),
-      0 0 0 1px hsl(200 90% 58% / 0.12),
-      0 0 20px hsl(200 90% 58% / 0.08),
-      inset 0 1px 0 hsl(200 90% 58% / 0.07);
+    border-color: hsl(221 83% 53% / 0.35);
+    box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 0 0 3px hsl(221 83% 53% / 0.08);
   }
 
   .warroom-grid-gap {
     gap: 1px;
-    background: hsl(200 40% 38% / 0.07);
+    background: hsl(220 13% 90%);
+  }
+  .dark .warroom-grid-gap {
+    background: hsl(220 14% 18%);
+  }
+
+  [data-testid="resizable-panels"] {
+    background: hsl(var(--background));
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(220 13% 80%) transparent;
   }
 
   .dark [data-testid="resizable-panels"] {
-    background: hsl(222 30% 4% / 0.92);
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+    background: hsl(var(--background));
+    scrollbar-color: hsl(220 14% 28%) transparent;
   }
 
-  /* Wide, visible scrollbar on the main panels scroll container */
-  [data-testid="resizable-panels"]::-webkit-scrollbar {
-    width: 10px;
-  }
-  [data-testid="resizable-panels"]::-webkit-scrollbar-track {
-    background: hsl(222 30% 6% / 0.85);
-    border-radius: 0;
-  }
+  [data-testid="resizable-panels"]::-webkit-scrollbar { width: 8px; }
+  [data-testid="resizable-panels"]::-webkit-scrollbar-track { background: transparent; }
   [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
-    background: hsl(200 45% 34% / 0.65);
-    border-radius: 5px;
+    background: hsl(220 13% 82%);
+    border-radius: 4px;
     border: 2px solid transparent;
     background-clip: content-box;
   }
-  [data-testid="resizable-panels"]::-webkit-scrollbar-thumb:hover {
-    background: hsl(200 65% 52% / 0.90);
+  .dark [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
+    background: hsl(220 14% 28%);
     background-clip: content-box;
-  }
-  /* Firefox */
-  [data-testid="resizable-panels"] {
-    scrollbar-width: auto;
-    scrollbar-color: hsl(200 45% 34% / 0.65) hsl(222 30% 6% / 0.85);
-  }
-
-  .dark [data-testid="resizable-panels"] .overflow-y-auto {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
   }
 
   .warroom-glass-panel {
-    background: hsl(220 26% 8% / 0.95);
-    border: 1px solid hsl(220 25% 22% / 0.55);
-    border-radius: 10px;
-    box-shadow:
-      inset 0 1px 0 hsl(200 90% 70% / 0.06),
-      0 8px 32px hsl(222 30% 2% / 0.60);
-    contain: style paint;
-    transform: translateZ(0);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
   }
 
-  .warroom-glow-amber {
-    box-shadow: 0 0 24px hsl(38 100% 54% / 0.14), 0 0 6px hsl(38 100% 54% / 0.08);
-  }
+  /* Toned-down glow utilities — functional but not dramatic */
+  .warroom-glow-amber { box-shadow: 0 0 12px hsl(38 92% 50% / 0.10); }
+  .warroom-glow-indigo { box-shadow: 0 0 12px hsl(221 83% 53% / 0.12); }
+  .warroom-glow-cyan { box-shadow: 0 0 12px hsl(185 75% 50% / 0.10); }
+  .warroom-glow-red { box-shadow: 0 0 12px hsl(0 72% 51% / 0.12); }
 
-  .warroom-glow-indigo {
-    box-shadow: 0 0 24px hsl(200 90% 58% / 0.22), 0 0 6px hsl(200 90% 58% / 0.12);
-  }
-  .warroom-glow-cyan {
-    box-shadow: 0 0 24px hsl(185 90% 50% / 0.22), 0 0 6px hsl(185 90% 50% / 0.12);
-  }
-
-  .warroom-glow-red {
-    box-shadow: 0 0 24px hsl(0 88% 58% / 0.18), 0 0 6px hsl(0 88% 58% / 0.10);
-  }
-
-
+  /* Animations */
   @keyframes spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }
 
-  /* Live data pulse ring for map markers */
   @keyframes radar-ping {
-    0%   { transform: scale(1);   opacity: 0.7; }
-    70%  { transform: scale(2.8); opacity: 0;   }
-    100% { transform: scale(2.8); opacity: 0;   }
+    0%   { transform: scale(1);   opacity: 0.6; }
+    70%  { transform: scale(2.5); opacity: 0;   }
+    100% { transform: scale(2.5); opacity: 0;   }
   }
   .radar-ping { animation: radar-ping 2s ease-out infinite; }
 
-  /* Red Alert panel animations — EBS/FEMA style */
   @keyframes alert-slide-in {
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .alert-slide-in { animation: alert-slide-in 0.18s ease-out forwards; }
+  .alert-slide-in { animation: alert-slide-in 0.16s ease-out forwards; }
 
   @keyframes eas-flash {
     0%, 100% { opacity: 1; }
-    50%      { opacity: 0.7; }
+    50%      { opacity: 0.75; }
   }
   .eas-flash { animation: eas-flash 1s ease-in-out infinite; }
 
   @keyframes eas-pulse-border {
-    0%, 100% { border-color: rgb(220 38 38); box-shadow: 0 0 12px rgb(220 38 38 / 0.3); }
-    50%      { border-color: rgb(239 68 68); box-shadow: 0 0 24px rgb(239 68 68 / 0.5); }
+    0%, 100% { border-color: rgb(220 38 38); box-shadow: 0 0 8px rgb(220 38 38 / 0.2); }
+    50%      { border-color: rgb(239 68 68); box-shadow: 0 0 16px rgb(239 68 68 / 0.35); }
   }
   .eas-pulse-border { animation: eas-pulse-border 1.2s ease-in-out infinite; }
 
-
   @keyframes eas-countdown-pulse {
     0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.05); }
+    50%      { transform: scale(1.04); }
   }
   .eas-countdown-pulse { animation: eas-countdown-pulse 0.8s ease-in-out infinite; }
 
   @keyframes alert-dot-ping {
-    0%   { transform: scale(1);   opacity: 0.9; }
-    60%  { transform: scale(2.2); opacity: 0;   }
-    100% { transform: scale(2.2); opacity: 0;   }
+    0%   { transform: scale(1);   opacity: 0.8; }
+    60%  { transform: scale(2.0); opacity: 0;   }
+    100% { transform: scale(2.0); opacity: 0;   }
   }
   .alert-dot-ping { animation: alert-dot-ping 1.4s ease-out infinite; }
-
 
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
@@ -445,7 +381,6 @@
   }
 
   .no-default-hover-elevate {}
-
   .no-default-active-elevate {}
 
   .toggle-elevate::before,
@@ -462,9 +397,7 @@
     background-color: var(--elevate-2);
   }
 
-  .border.toggle-elevate::before {
-    inset: -1px;
-  }
+  .border.toggle-elevate::before { inset: -1px; }
 
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
@@ -505,31 +438,26 @@
   }
 }
 
+/* Touch devices */
 @media (hover: none) and (pointer: coarse) {
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
   .hover-elevate-2:hover:not(.no-default-hover-elevate)::after {
     background-color: transparent;
   }
 
-  /* Eliminate 300ms tap delay on ALL interactive elements */
   button, [role="button"], a, label, input, select, textarea, summary {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Prevent iOS from zooming in on input focus — must be >= 16px */
   input:not([type="range"]), select, textarea {
     font-size: 16px !important;
     min-height: 44px;
   }
 
-  * {
-    -webkit-overflow-scrolling: touch;
-  }
+  * { -webkit-overflow-scrolling: touch; }
 
-  .touch-scroll-snap {
-    scroll-snap-type: y mandatory;
-  }
+  .touch-scroll-snap { scroll-snap-type: y mandatory; }
 
   html {
     -webkit-text-size-adjust: 100%;
@@ -548,13 +476,8 @@
     border-width: 3px !important;
   }
 
-  .react-grid-item > .panel-drag-handle {
-    touch-action: none;
-  }
-
-  .react-grid-item > .react-resizable-handle {
-    touch-action: none;
-  }
+  .react-grid-item > .panel-drag-handle { touch-action: none; }
+  .react-grid-item > .react-resizable-handle { touch-action: none; }
 
   .panel-drag-handle {
     min-height: 44px !important;
@@ -573,43 +496,31 @@
     height: 28px;
   }
 
-  /* Slim scrollbars on touch — use native momentum overlay */
-  ::-webkit-scrollbar {
-    width: 3px !important;
-    height: 3px !important;
-  }
+  ::-webkit-scrollbar { width: 3px !important; height: 3px !important; }
+  ::-webkit-scrollbar-thumb { min-height: 48px; border-radius: 2px; }
 
-  ::-webkit-scrollbar-thumb {
-    min-height: 48px;
-    border-radius: 2px;
-  }
-
-  /* 44×44 minimum touch targets for panel controls */
   .warroom-panel-close,
   .warroom-panel-maximize {
     min-width: 44px !important;
     min-height: 44px !important;
   }
 
-  /* Enlarge MapLibre GL map control buttons */
   .maplibregl-ctrl-group button {
     width: 44px !important;
     height: 44px !important;
     font-size: 18px !important;
   }
 
-  /* Visible active state tap feedback */
-  button:active, [role="button"]:active {
-    opacity: 0.75;
-  }
+  button:active, [role="button"]:active { opacity: 0.75; }
 }
 
+/* Mobile */
 @media (max-width: 767px) {
-  /* Disable panel entrance animations — saves GPU composite layers on mobile */
   .warroom-panel-surface,
   .react-grid-item > .group {
     animation: none !important;
     will-change: auto !important;
+    border-radius: 0 !important;
   }
 
   html, body, #root {
@@ -620,19 +531,16 @@
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Promote map container to its own compositor layer */
   .maplibregl-canvas {
     will-change: transform;
     transform: translateZ(0);
   }
 
-  /* Reduce paint cost on mobile panel transitions */
   .warroom-mobile-panel-transition {
     will-change: opacity;
     contain: layout style paint;
   }
 
-  /* Avoid repainting on scroll inside panels */
   .overflow-y-auto, .overflow-auto {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
@@ -645,14 +553,11 @@
   }
 
   .warroom-header .header-title {
-    font-size: 13px;
-    letter-spacing: 0.22em;
+    font-size: 14px;
+    letter-spacing: 0.08em;
   }
 
-  .warroom-panel {
-    border-radius: 0;
-    min-height: 0;
-  }
+  .warroom-panel { border-radius: 0; min-height: 0; }
 
   .warroom-panel-header {
     padding: 8px 12px;
@@ -668,8 +573,8 @@
 
   .warroom-mobile-tabs {
     display: flex;
-    background: hsl(222 30% 5% / 0.97);
-    border-top: 1px solid hsl(220 28% 24% / 0.22);
+    background: hsl(var(--background));
+    border-top: 1px solid hsl(var(--border));
     min-height: 56px;
   }
 
@@ -678,7 +583,6 @@
     touch-action: manipulation;
   }
 
-  /* No drag handle on mobile — panels aren't draggable */
   .panel-drag-handle {
     min-height: 40px !important;
     padding-top: 8px !important;
@@ -686,27 +590,13 @@
     cursor: default !important;
   }
 
-  .maplibregl-ctrl-group {
-    margin: 6px !important;
-  }
+  .maplibregl-ctrl-group { margin: 6px !important; }
+  .maplibregl-ctrl-group button { width: 44px !important; height: 44px !important; }
 
-  .maplibregl-ctrl-group button {
-    width: 44px !important;
-    height: 44px !important;
-  }
-
-  /* Landscape phone: slim header to reclaim vertical space */
   @media (orientation: landscape) {
-    .warroom-header {
-      min-height: 40px;
-      padding: 0 8px;
-    }
-    .warroom-mobile-tabs {
-      min-height: 48px;
-    }
-    .panel-drag-handle {
-      min-height: 36px !important;
-    }
+    .warroom-header { min-height: 40px; padding: 0 8px; }
+    .warroom-mobile-tabs { min-height: 48px; }
+    .panel-drag-handle { min-height: 36px !important; }
   }
 
   .warroom-mobile-mini-ticker {
@@ -719,14 +609,12 @@
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
     padding: 4px 10px;
-    background: hsl(222 30% 5% / 0.92);
-    border-bottom: 1px solid hsl(220 28% 22% / 0.20);
+    background: hsl(var(--background));
+    border-bottom: 1px solid hsl(var(--border));
     min-height: 28px;
   }
 
-  .warroom-mobile-mini-ticker::-webkit-scrollbar {
-    display: none;
-  }
+  .warroom-mobile-mini-ticker::-webkit-scrollbar { display: none; }
 
   .warroom-mobile-swipe-dots {
     display: flex;
@@ -734,65 +622,41 @@
     justify-content: center;
     gap: 2px;
     padding: 2px 0;
-    background: hsl(222 30% 8% / 0.80);
+    background: hsl(var(--muted));
     min-height: 24px;
   }
 
-  /* Dots are now inside buttons — style only the visual indicator */
   .warroom-mobile-swipe-dots .dot {
     display: block;
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: hsl(215 22% 32%);
+    background: hsl(220 13% 75%);
     transition: all 0.2s ease;
   }
 
   .warroom-mobile-swipe-dots .dot.active {
     width: 16px;
     border-radius: 3px;
-    background: hsl(200 90% 58%);
-    box-shadow: 0 0 6px hsl(200 90% 58% / 0.55);
+    background: hsl(221 83% 53%);
   }
 
-  .warroom-mobile-panel-transition {
-    /* animation removed — instant panel switch prevents flicker */
-  }
-
-  /* Hidden mobile panels: pull off compositor to save GPU memory */
   .mobile-panel-hidden {
     visibility: hidden;
     pointer-events: none;
   }
 }
 
+/* Tablet */
 @media (min-width: 768px) and (max-width: 1399px) {
-  .warroom-panel-body {
-    font-size: 13px;
-  }
-
-  .warroom-ticker {
-    height: 28px;
-    font-size: 12px;
-  }
+  .warroom-panel-body { font-size: 13px; }
+  .warroom-ticker { height: 28px; font-size: 12px; }
 }
 
-/* ── iPad & tablet touch devices ─────────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1399px) and (hover: none) and (pointer: coarse) {
-  .warroom-header {
-    min-height: 52px;
-    padding: 0 12px;
-  }
-
-  .warroom-panel {
-    min-height: 280px;
-  }
-
-  .warroom-panel-header {
-    min-height: 48px;
-    padding: 10px 14px;
-    font-size: 13px;
-  }
+  .warroom-header { min-height: 52px; padding: 0 12px; }
+  .warroom-panel { min-height: 280px; }
+  .warroom-panel-header { min-height: 48px; padding: 10px 14px; font-size: 13px; }
 
   .panel-drag-handle {
     min-height: 48px !important;
@@ -801,36 +665,22 @@
     cursor: default !important;
   }
 
-  /* Larger map controls on iPad */
-  .maplibregl-ctrl-group {
-    margin: 8px !important;
-  }
+  .maplibregl-ctrl-group { margin: 8px !important; }
+  .maplibregl-ctrl-group button { width: 48px !important; height: 48px !important; font-size: 20px !important; }
 
-  .maplibregl-ctrl-group button {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 20px !important;
-  }
-
-  /* Larger close/maximize buttons */
   .warroom-panel-close,
   .warroom-panel-maximize {
     min-width: 48px !important;
     min-height: 48px !important;
   }
 
-  /* iPad scrollbar: hide on touch, use momentum */
-  [data-testid="resizable-panels"]::-webkit-scrollbar {
-    width: 0 !important;
-  }
-
+  [data-testid="resizable-panels"]::-webkit-scrollbar { width: 0 !important; }
   [data-testid="resizable-panels"] {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* Generous tap targets in settings and menus */
   .warroom-panel-body button,
   .warroom-panel-body [role="button"] {
     min-height: 40px;
@@ -838,31 +688,24 @@
   }
 }
 
-/* iPad landscape: give more breathing room */
 @media (min-width: 900px) and (max-width: 1399px) and (hover: none) and (pointer: coarse) and (orientation: landscape) {
-  .warroom-header {
-    min-height: 48px;
-  }
-
-  .panel-drag-handle {
-    min-height: 44px !important;
-  }
-
-  .maplibregl-ctrl-group button {
-    width: 44px !important;
-    height: 44px !important;
-  }
+  .warroom-header { min-height: 48px; }
+  .panel-drag-handle { min-height: 44px !important; }
+  .maplibregl-ctrl-group button { width: 44px !important; height: 44px !important; }
 }
 
+/* React Grid Layout */
 .react-grid-item {
   contain: style paint;
-  border-radius: 10px;
+  border-radius: 14px;
   isolation: isolate;
-  transform: translateZ(0);
+  transition: box-shadow 0.15s ease !important;
 }
 
-.react-grid-item.cssTransforms {
-  will-change: auto;
+.react-grid-item.cssTransforms { will-change: auto; }
+
+.react-grid-item:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,.08) !important;
 }
 
 .react-grid-item .overflow-y-auto,
@@ -876,137 +719,114 @@
   scrollbar-gutter: stable;
 }
 
-
+/* Dragging — clean lift effect */
 .react-grid-item.react-draggable-dragging {
-  opacity: 0.96;
+  opacity: 0.97;
   z-index: 100;
-  box-shadow:
-    0 24px 64px rgba(0,0,0,0.75),
-    0 0 0 1px hsl(200 90% 58% / 0.45),
-    0 0 48px hsl(200 90% 58% / 0.15),
-    inset 0 1px 0 hsl(200 90% 58% / 0.12);
+  box-shadow: 0 16px 48px rgba(0,0,0,.14), 0 4px 16px rgba(0,0,0,.08), 0 0 0 2px hsl(221 83% 53% / 0.25) !important;
   cursor: grabbing !important;
-  border-radius: 8px;
+  border-radius: 14px;
   transition: none !important;
 }
+
+/* Drop placeholder — subtle dashed outline */
 .react-grid-item.react-grid-placeholder {
-  background: hsl(200 90% 58% / 0.05) !important;
-  border: 1px dashed hsl(200 90% 58% / 0.35) !important;
-  border-radius: 2px !important;
+  background: hsl(221 83% 53% / 0.04) !important;
+  border: 2px dashed hsl(221 83% 53% / 0.25) !important;
+  border-radius: 14px !important;
   opacity: 1 !important;
-  box-shadow: inset 0 0 20px hsl(200 90% 58% / 0.05) !important;
+  box-shadow: none !important;
 }
+
+/* Resize handles — only appear on hover */
 .react-resizable-handle {
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.15s ease;
   z-index: 10;
 }
-.react-grid-item:hover .react-resizable-handle {
-  opacity: 0.7;
-}
+.react-grid-item:hover .react-resizable-handle { opacity: 1; }
+
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(200 90% 58% / 0.60) !important;
+  border-color: hsl(221 83% 53% / 0.40) !important;
   border-width: 2px !important;
-  width: 10px !important;
-  height: 10px !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 1px;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(200 90% 58% / 0.95) !important;
-}
-.react-resizable-handle-se {
-  bottom: 2px !important;
-  right: 2px !important;
-  cursor: se-resize !important;
-}
-.react-resizable-handle-sw {
-  bottom: 2px !important;
-  left: 2px !important;
-  cursor: sw-resize !important;
-}
-.react-resizable-handle-e {
-  right: 0 !important;
-  cursor: e-resize !important;
-}
-.react-resizable-handle-w {
-  left: 0 !important;
-  cursor: w-resize !important;
-}
-.react-resizable-handle-s {
-  bottom: 0 !important;
-  cursor: s-resize !important;
-}
-.react-grid-item > .flex {
-  height: 100%;
+  border-color: hsl(221 83% 53% / 0.80) !important;
 }
 
+.react-resizable-handle-se { bottom: 3px !important; right: 3px !important; cursor: se-resize !important; }
+.react-resizable-handle-sw { bottom: 3px !important; left: 3px !important; cursor: sw-resize !important; }
+.react-resizable-handle-ne { top: 3px !important; right: 3px !important; cursor: ne-resize !important; }
+.react-resizable-handle-nw { top: 3px !important; left: 3px !important; cursor: nw-resize !important; }
+.react-resizable-handle-e { right: 0 !important; cursor: e-resize !important; }
+.react-resizable-handle-w { left: 0 !important; cursor: w-resize !important; }
+.react-resizable-handle-s { bottom: 0 !important; cursor: s-resize !important; }
+.react-grid-item > .flex { height: 100%; }
+
+/* Bottom sheet */
 .warroom-bottom-sheet {
-  background: hsl(222 28% 6% / 0.97);
-  border-top: 1px solid hsl(220 28% 22% / 0.28);
+  background: hsl(var(--card));
+  border-top: 1px solid hsl(var(--border));
   border-radius: 16px 16px 0 0;
   transform: translateY(100%);
-  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.30s cubic-bezier(0.32, 0.72, 0, 1);
   will-change: transform;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 hsl(200 90% 58% / 0.12);
+  box-shadow: 0 -4px 24px rgba(0,0,0,.10);
 }
 
-.warroom-bottom-sheet--open {
-  transform: translateY(0);
-}
+.warroom-bottom-sheet--open { transform: translateY(0); }
 
 @media (max-width: 767px) {
-  .warroom-mobile-menu-anchor {
-    position: relative;
-  }
+  .warroom-mobile-menu-anchor { position: relative; }
 }
 
-vite-error-overlay {
-  display: none !important;
-}
+vite-error-overlay { display: none !important; }
 
+/* ── Utility classes ─────────────────────────────────────────────── */
 @layer utilities {
   .ra-font-display { font-family: var(--font-display); }
   .ra-font-mono { font-family: var(--font-mono); }
   .ra-tabular { font-variant-numeric: tabular-nums; }
-  .ra-tracking-wide { letter-spacing: 0.10em; }
-  .ra-tracking-wider { letter-spacing: 0.12em; }
+  .ra-tracking-wide { letter-spacing: 0.06em; }
+  .ra-tracking-wider { letter-spacing: 0.08em; }
 
   .ra-flex-center { display: flex; align-items: center; }
   .ra-flex-col { display: flex; flex-direction: column; }
 
   .ra-pill {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
     border-radius: 20px;
     cursor: pointer;
     border: 1px solid;
-    font-family: var(--font-mono);
     white-space: nowrap;
     flex-shrink: 0;
     transition: all 0.12s ease;
   }
 
   .ra-badge-sm {
-    font-size: 9px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 10px;
-    letter-spacing: 0.08em;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 8px;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    font-family: var(--font-mono);
   }
 
   .ra-badge-xs {
-    font-size: 8px;
-    font-weight: 900;
+    font-size: 9px;
+    font-weight: 700;
     padding: 2px 6px;
     border-radius: 4px;
-    letter-spacing: 0.10em;
-    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
   }
 
   .ra-card {
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
   }
@@ -1019,12 +839,11 @@ vite-error-overlay {
   }
 
   .ra-city-name {
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: var(--font-display);
   }
 
   .ra-country-header {
@@ -1039,81 +858,73 @@ vite-error-overlay {
     width: 100%;
     box-sizing: border-box;
     padding: 7px 10px 7px 32px;
-    font-size: 12px;
-    font-family: var(--font-mono);
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.10);
+    font-size: 13px;
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
     border-radius: 8px;
-    color: #fca5a5;
+    color: hsl(var(--foreground));
     outline: none;
-    font-weight: 500;
+    font-weight: 400;
   }
 
-  .ra-section-bg {
-    background: hsl(222 26% 7%);
-  }
+  .ra-section-bg { background: hsl(var(--muted)); }
+  .ra-panel-bg { background: hsl(var(--card)); }
 
   .ra-empty-circle {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: rgba(34,197,94,0.10);
-    border: 2px solid rgba(34,197,94,0.25);
+    background: hsl(142 72% 38% / 0.08);
+    border: 2px solid hsl(142 72% 38% / 0.20);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
 
-  .ra-panel-bg { background: hsl(222 30% 5%); }
-
   .ra-status-dot {
-    width: 1.5px;
-    height: 1.5px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .ra-glow-dot {
     position: relative;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     flex-shrink: 0;
   }
   .ra-glow-dot::before {
     content: '';
     display: block;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
   }
   .ra-glow-dot--active::before {
     background: #ef4444;
-    box-shadow: 0 0 10px rgba(239,68,68,0.6);
+    box-shadow: 0 0 6px rgba(239,68,68,0.40);
   }
   .ra-glow-dot--inactive::before {
-    background: rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.18);
   }
 
   .ra-header-gradient-active {
-    background: linear-gradient(135deg, hsl(0 80% 13%) 0%, hsl(0 72% 9%) 100%);
+    background: hsl(0 72% 51% / 0.06);
   }
   .ra-header-gradient-idle {
-    background: hsl(222 26% 7%);
+    background: hsl(var(--muted));
   }
 }
 
-/* NOTAM map popup dark theme */
+/* NOTAM map popup */
 .notam-popup .leaflet-popup-content-wrapper {
-  background: transparent;
-  border: none;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 16px rgba(0,0,0,.10);
   padding: 0;
-  border-radius: 6px;
+  border-radius: 8px;
 }
-.notam-popup .leaflet-popup-content {
-  margin: 0;
-}
-.notam-popup .leaflet-popup-tip {
-  background: #1e293b;
-}
+.notam-popup .leaflet-popup-content { margin: 0; }
+.notam-popup .leaflet-popup-tip { background: hsl(var(--card)); }

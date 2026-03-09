@@ -1120,68 +1120,52 @@ function EscalationBanner({ state, onDismiss }: { state: EscalationState; onDism
   if (!state.level) return null;
   const cfg = {
     CRITICAL: {
-      shimmerFrom: 'rgba(200,20,20,0.0)',
-      shimmerMid: 'rgba(220,30,30,0.15)',
-      bg: 'hsl(0 85% 10% / 0.97)',
-      border: 'hsl(0 85% 50% / 0.7)',
-      topBorder: 'hsl(0 85% 55% / 0.9)',
-      dot: 'bg-red-400',
-      text: 'text-red-200',
-      sub: 'text-red-400/70',
-      label: '⚠ CRITICAL ESCALATION',
-      badge: 'bg-red-500/20 border-red-500/40 text-red-300',
+      bg: 'hsl(0 72% 51% / 0.08)',
+      border: 'hsl(0 72% 51% / 0.30)',
+      dot: 'bg-red-500',
+      text: 'text-red-700',
+      label: 'Critical Escalation',
+      badge: 'bg-red-100 border-red-300 text-red-700',
     },
     WARNING: {
-      shimmerFrom: 'rgba(180,80,0,0.0)',
-      shimmerMid: 'rgba(200,90,0,0.12)',
-      bg: 'hsl(28 85% 9% / 0.97)',
-      border: 'hsl(28 85% 48% / 0.55)',
-      topBorder: 'hsl(28 85% 52% / 0.8)',
-      dot: 'bg-orange-400',
-      text: 'text-orange-200',
-      sub: 'text-orange-400/70',
-      label: '▲ WARNING — HIGH ALERT RATE',
-      badge: 'bg-orange-500/20 border-orange-500/40 text-orange-300',
+      bg: 'hsl(38 92% 50% / 0.08)',
+      border: 'hsl(38 92% 50% / 0.30)',
+      dot: 'bg-orange-500',
+      text: 'text-orange-700',
+      label: 'Warning — High Alert Rate',
+      badge: 'bg-orange-100 border-orange-300 text-orange-700',
     },
     WATCH: {
-      shimmerFrom: 'rgba(150,120,0,0.0)',
-      shimmerMid: 'rgba(160,130,0,0.10)',
-      bg: 'hsl(48 65% 8% / 0.97)',
-      border: 'hsl(48 85% 48% / 0.4)',
-      topBorder: 'hsl(48 85% 52% / 0.65)',
-      dot: 'bg-yellow-400',
-      text: 'text-yellow-200',
-      sub: 'text-yellow-400/70',
-      label: '● WATCH — ACTIVITY SURGE',
-      badge: 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300',
+      bg: 'hsl(48 92% 50% / 0.08)',
+      border: 'hsl(48 92% 50% / 0.30)',
+      dot: 'bg-yellow-500',
+      text: 'text-yellow-700',
+      label: 'Watch — Activity Surge',
+      badge: 'bg-yellow-100 border-yellow-300 text-yellow-700',
     },
   }[state.level];
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2 shrink-0 z-40 relative overflow-hidden"
-      style={{
-        background: cfg.bg,
-        borderBottom: `1px solid ${cfg.border}`,
-        borderTop: `2px solid ${cfg.topBorder}`,
-      }}
+      className="flex items-center gap-3 px-4 py-2 shrink-0 z-40 relative border-b"
+      style={{ background: cfg.bg, borderBottomColor: cfg.border }}
       role="alert"
       data-testid="escalation-banner"
     >
       <div className="flex items-center gap-3 w-full">
         <div className="relative shrink-0">
-          <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} style={{ boxShadow: `0 0 8px currentColor` }} />
+          <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
           <div className={`absolute inset-0 rounded-full ${cfg.dot} alert-dot-ping`} />
         </div>
-        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${cfg.text}`}>{cfg.label}</span>
-        <span className={`text-[10px] px-2 py-0.5 rounded border font-mono font-bold ${cfg.badge}`}>
+        <span className={`text-[12px] font-semibold ${cfg.text}`}>{cfg.label}</span>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full border font-semibold ${cfg.badge}`}>
           {state.count}/min
         </span>
         <div className="flex-1" />
         <button
           onClick={onDismiss}
-          className={`text-[9px] uppercase tracking-wider font-bold px-2.5 py-1 rounded border transition-all ${cfg.badge} hover:opacity-80`}
+          className={`text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all hover:opacity-80 ${cfg.badge}`}
           data-testid="button-dismiss-escalation"
-        >✕ DISMISS</button>
+        >Dismiss</button>
       </div>
     </div>
   );
@@ -1746,17 +1730,13 @@ const LiveClock = memo(function LiveClock() {
 
   return (
     <div className="flex items-center gap-2" data-testid="text-clock">
-      <span className="text-[8px] text-foreground/20 hidden md:inline tracking-wider font-medium" style={{fontFamily:'var(--font-display)'}}>{dateStr}</span>
-      <div className="flex items-center gap-1" style={{background:'hsl(222 30% 10% / 0.85)', border:'1px solid hsl(175 60% 40% / 0.12)', borderRadius:'4px', padding:'2px 4px', boxShadow:'0 0 10px hsl(175 80% 44% / 0.04)'}}>
-        <div className="flex items-center gap-1 px-1.5">
-          <span className="text-[11px] text-primary/85 font-mono font-bold tabular-nums tracking-[0.08em]">{utcTime}</span>
-          <span className="text-[7px] text-primary/35 font-mono font-bold tracking-[0.18em]">UTC</span>
-        </div>
-        <div className="w-px h-3.5 bg-white/[0.08]" />
-        <div className="flex items-center gap-1 px-1.5">
-          <span className="text-[11px] text-amber-400/75 font-mono font-bold tabular-nums tracking-[0.08em]">{beirutTime}</span>
-          <span className="text-[7px] text-amber-400/30 font-mono font-bold tracking-[0.18em]">BEY</span>
-        </div>
+      <span className="text-[12px] text-muted-foreground hidden md:inline">{dateStr}</span>
+      <div className="flex items-center gap-1 bg-muted border border-border rounded-md px-2 py-1">
+        <span className="text-[12px] text-foreground font-mono tabular-nums">{utcTime}</span>
+        <span className="text-[10px] text-muted-foreground font-mono">UTC</span>
+        <div className="w-px h-3 bg-border mx-0.5" />
+        <span className="text-[12px] text-amber-600 font-mono tabular-nums">{beirutTime}</span>
+        <span className="text-[10px] text-muted-foreground font-mono">BEY</span>
       </div>
     </div>
   );
@@ -1773,21 +1753,21 @@ const TickerBar = memo(function TickerBar({ commodities }: { commodities: Commod
   const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
-    <div className="h-8 border-b border-white/[0.04] overflow-hidden relative shrink-0" data-testid="ticker-bar" style={{background:'hsl(222 30% 8% / 0.97)'}}>
-      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3" style={{background:'linear-gradient(90deg, hsl(222 30% 8% / 0.97) 60%, transparent)'}}>
-        <span className="text-[8px] font-bold tracking-[0.3em] text-primary/40" style={{fontFamily:'var(--font-display)'}}>MKT</span>
+    <div className="h-8 border-b border-border overflow-hidden relative shrink-0 bg-muted/50" data-testid="ticker-bar">
+      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3 bg-gradient-to-r from-muted/80 to-transparent">
+        <span className="text-[11px] font-semibold text-muted-foreground">MKT</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-12 z-10" style={{background:'linear-gradient(270deg, hsl(222 30% 8% / 0.97) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-12 z-10 bg-gradient-to-l from-muted/80 to-transparent" />
       <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
         {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[10px]">
-            <span className="text-foreground/40 font-semibold">{c.symbol}</span>
-            <span className="text-foreground/65 tabular-nums font-medium">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-0.5 tabular-nums font-bold ${c.change >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[11px]">
+            <span className="text-muted-foreground font-semibold">{c.symbol}</span>
+            <span className="text-foreground tabular-nums">{formatPrice(c)}</span>
+            <span className={`inline-flex items-center gap-0.5 tabular-nums font-semibold ${c.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
               {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
-            <span className="text-white/[0.06] mx-0.5">{'\u2502'}</span>
+            <span className="text-border mx-0.5">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -1825,13 +1805,13 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
   });
 
   const bgStyle = hasSirens
-    ? {background:'linear-gradient(90deg, hsl(0 40% 8% / 0.6), hsl(0 30% 5% / 0.3), hsl(0 40% 8% / 0.6))'}
+    ? {background:'hsl(0 72% 51% / 0.06)', borderColor:'hsl(0 72% 51% / 0.25)'}
     : hasCritical
-      ? {background:'linear-gradient(90deg, hsl(30 60% 8% / 0.6), hsl(30 40% 5% / 0.3), hsl(30 60% 8% / 0.6))'}
-      : {background:'linear-gradient(90deg, hsl(200 40% 8% / 0.5), hsl(200 30% 5% / 0.2), hsl(200 40% 8% / 0.5))'};
+      ? {background:'hsl(38 92% 50% / 0.06)', borderColor:'hsl(38 92% 50% / 0.25)'}
+      : {background:'hsl(221 83% 53% / 0.04)', borderColor:'hsl(221 83% 53% / 0.20)'};
 
   return (
-    <div className="border-b border-red-900/20 shrink-0" data-testid="siren-banner" style={bgStyle}>
+    <div className="border-b shrink-0" data-testid="siren-banner" style={bgStyle}>
       <div
         className={`${hasSirens ? 'animate-siren-bg' : ''} flex items-center gap-2 px-4 cursor-pointer select-none`}
         onClick={() => setExpanded(!expanded)}
@@ -1989,21 +1969,20 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 relative cursor-grab active:cursor-grabbing select-none" style={{background:'linear-gradient(180deg, hsl(222 28% 13% / 0.95) 0%, hsl(222 26% 11% / 0.92) 100%)', borderBottom:'1px solid hsl(175 40% 34% / 0.10)'}}>
-      <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(175 80% 44% / 0.20) 20%, hsl(175 80% 44% / 0.35) 50%, hsl(175 80% 44% / 0.20) 80%, transparent)'}} />
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/60 shrink-0" style={{filter:'drop-shadow(0 0 5px hsl(175 80% 44% / 0.25))'}}>{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/65 leading-none" style={{fontFamily:'var(--font-display)'}}>{title}</span>
+    <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 relative cursor-grab active:cursor-grabbing select-none bg-card border-b border-border">
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/70 shrink-0">{icon}</span>
+      <span className="text-[12px] font-semibold text-foreground/80 leading-none">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] font-mono text-foreground/35 tabular-nums leading-none bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
+        <span className="text-[11px] text-muted-foreground tabular-nums leading-none bg-muted px-1.5 py-0.5 rounded border border-border">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/[0.07] border border-emerald-500/[0.14]">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 6px hsl(152 80% 45% / 0.55)'}} />
-          <span className="text-[8px] uppercase tracking-widest text-emerald-400/70 font-bold" style={{fontFamily:'var(--font-display)'}}>LIVE</span>
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+          <span className="text-[10px] text-emerald-600 font-medium">Live</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -2063,10 +2042,10 @@ const FloatingWindow = memo(function FloatingWindow({
         position: 'fixed', left: pos.x, top: pos.y,
         width: size.w, height: size.h, zIndex: state.z,
         display: 'flex', flexDirection: 'column',
-        borderRadius: 10, overflow: 'hidden',
-        background: 'hsl(222 30% 10% / 0.98)',
-        border: '1px solid rgba(255,255,255,0.11)',
-        boxShadow: '0 28px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08)',
+        borderRadius: 14, overflow: 'hidden',
+        background: 'hsl(var(--card))',
+        border: '1px solid hsl(var(--border))',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
         pointerEvents: 'auto',
       }}
     >
@@ -2074,25 +2053,25 @@ const FloatingWindow = memo(function FloatingWindow({
       <div
         onPointerDown={onTitleDown} onPointerMove={onTitleMove} onPointerUp={onTitleUp}
         style={{
-          height: 38, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px',
-          background: 'hsl(222 30% 12% / 0.98)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          height: 40, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px',
+          background: 'hsl(var(--card))',
+          borderBottom: '1px solid hsl(var(--border))',
           cursor: 'grab', flexShrink: 0, userSelect: 'none',
         }}
       >
-        <span style={{ display: 'flex', color: 'hsl(185 100% 42% / 0.65)' }}>{icon}</span>
-        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontFamily: 'monospace', flex: 1 }}>{title}</span>
+        <span style={{ display: 'flex', color: 'hsl(var(--primary))' }}>{icon}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))', flex: 1 }}>{title}</span>
         <button
           onClick={onDock} data-no-drag title="Dock back to grid"
-          style={{ width: 24, height: 24, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(100,180,255,0.08)', border: '1px solid rgba(100,180,255,0.15)', color: 'rgba(100,180,255,0.5)', cursor: 'pointer', flexShrink: 0 }}
+          style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer', flexShrink: 0 }}
         >
-          <Minimize2 style={{ width: 11, height: 11 }} />
+          <Minimize2 style={{ width: 12, height: 12 }} />
         </button>
         <button
           onClick={onClose} data-no-drag title="Close"
-          style={{ width: 24, height: 24, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(220,50,50,0.09)', border: '1px solid rgba(220,50,50,0.2)', color: 'rgba(230,100,100,0.6)', cursor: 'pointer', flexShrink: 0 }}
+          style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(0 72% 51% / 0.08)', border: '1px solid hsl(0 72% 51% / 0.20)', color: 'hsl(0 72% 51%)', cursor: 'pointer', flexShrink: 0 }}
         >
-          <X style={{ width: 11, height: 11 }} />
+          <X style={{ width: 12, height: 12 }} />
         </button>
       </div>
       {/* Content */}
@@ -4656,20 +4635,20 @@ function NewsTicker({ news, language }: { news: NewsItem[]; language: 'en' | 'ar
   };
   const items = [...news, ...news, ...news];
   return (
-    <div className="h-6 border-t border-white/[0.03] overflow-hidden relative shrink-0" data-testid="news-ticker" style={{background:'hsl(222 30% 10% / 0.83)'}}>
-      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3" style={{background:'linear-gradient(90deg, hsl(222 30% 10% / 0.95) 50%, transparent)'}}>
-        <span className="text-[7px] font-black tracking-[0.35em] text-primary/30 font-mono">NEWS</span>
+    <div className="h-6 border-t border-border overflow-hidden relative shrink-0 bg-muted/40" data-testid="news-ticker">
+      <div className="absolute inset-y-0 left-0 w-14 z-10 flex items-center pl-3 bg-gradient-to-r from-muted/80 to-transparent">
+        <span className="text-[10px] font-semibold text-muted-foreground">News</span>
       </div>
-      <div className="absolute inset-y-0 right-0 w-10 z-10" style={{background:'linear-gradient(270deg, hsl(222 30% 10% / 0.95) 30%, transparent)'}} />
+      <div className="absolute inset-y-0 right-0 w-10 z-10 bg-gradient-to-l from-muted/80 to-transparent" />
       <div className="absolute flex items-center h-full gap-8 animate-ticker-scroll whitespace-nowrap pl-14">
         {items.map((item, i) => (
-          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[10px] font-mono">
-            <span className={`font-bold uppercase tracking-wider text-[8px] ${CATEGORY_COLORS[item.category] || 'text-primary/60'}`}>
+          <span key={`${item.id}-${i}`} className="inline-flex items-center gap-1.5 text-[11px]">
+            <span className={`font-semibold text-[10px] ${CATEGORY_COLORS[item.category] || 'text-primary'}`}>
               {item.category}
             </span>
-            <span className="text-foreground/60">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
-            <span className="text-muted-foreground/25 text-[9px]">{item.source}</span>
-            <span className="text-white/[0.05] mx-1">{'\u2502'}</span>
+            <span className="text-foreground/70">{language === 'ar' && item.titleAr ? item.titleAr : item.title}</span>
+            <span className="text-muted-foreground text-[10px]">{item.source}</span>
+            <span className="text-border mx-1">{'\u2502'}</span>
           </span>
         ))}
       </div>
@@ -6481,44 +6460,34 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   const gaugeColors = ['#22c55e', '#3b82f6', '#eab308', '#f97316', '#ef4444'];
 
   return (
-    <div className="flex flex-col h-full" data-testid="panel-aiprediction" style={{ background: 'linear-gradient(180deg, hsl(260 30% 8%) 0%, hsl(260 20% 6%) 100%)' }}>
-      <div className="panel-drag-handle flex items-center justify-between px-3 py-1.5 shrink-0 relative cursor-grab active:cursor-grabbing"
-        style={{ background: 'linear-gradient(180deg, hsl(260 35% 18% / 0.95), hsl(260 30% 14% / 0.92))', borderBottom: '1px solid hsl(260 40% 40% / 0.14)' }}>
-        <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, hsl(260 80% 70% / 0.3), transparent)' }} />
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Brain className="w-4 h-4 text-violet-400" />
-            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-violet-400" style={{ boxShadow: '0 0 6px rgba(167,139,250,0.6)' }} />
-          </div>
-          <span className="text-[11px] font-black tracking-[0.2em] uppercase text-white/90" style={{ fontFamily: 'var(--font-display)' }}>
-            {language === 'ar' ? '\u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A' : 'AI ORACLE'}
+    <div className="flex flex-col h-full bg-card" data-testid="panel-aiprediction">
+      <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none bg-card border-b border-border">
+        <Brain className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+        <span className="text-[12px] font-semibold text-foreground/80 leading-none">AI Prediction</span>
+        {prediction?.dataPoints?.isEscalating && (
+          <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-50 text-red-600 rounded-full border border-red-200 animate-pulse">
+            Escalating
           </span>
-          {prediction?.dataPoints?.isEscalating && (
-            <span className="px-1.5 py-0.5 text-[8px] font-black bg-red-500/25 text-red-300 rounded border border-red-500/30 animate-pulse tracking-widest">
-              ESCALATING
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          {prediction && (
-            <span className="text-[8px] font-mono text-violet-300/60 bg-violet-500/[0.1] px-1.5 py-0.5 rounded border border-violet-500/20">
-              {confPct}% CONF
-            </span>
-          )}
-          {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
-          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-        </div>
+        )}
+        <div className="flex-1" />
+        {prediction && (
+          <span className="text-[11px] text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-200 font-medium">
+            {confPct}% conf
+          </span>
+        )}
+        {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
+        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      <div className="flex border-b border-white/[0.05] shrink-0 overflow-x-auto scrollbar-none" style={{ background: 'hsl(260 20% 11% / 0.8)' }}>
+      <div className="flex border-b border-border shrink-0 overflow-x-auto scrollbar-none bg-card">
         {(['forecast', 'vectors', 'pattern', 'intel', 'ask'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`shrink-0 flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-all ${
+            className={`shrink-0 flex-1 py-2 text-[12px] font-medium transition-all ${
               activeTab === tab
-                ? tab === 'ask' ? 'text-emerald-300 border-b-2 border-emerald-400 bg-emerald-500/[0.05]' : 'text-violet-300 border-b-2 border-violet-400 bg-violet-500/[0.05]'
-                : 'text-white/25 hover:text-white/55 hover:bg-white/[0.02]'
+                ? tab === 'ask' ? 'text-emerald-600 border-b-2 border-emerald-500 bg-emerald-50/50' : 'text-violet-600 border-b-2 border-violet-500 bg-violet-50/50'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
             data-testid={`button-aipred-tab-${tab}`}
           >
@@ -6536,145 +6505,167 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
             <div className="relative">
               <Brain className="w-8 h-8 text-violet-400/30" />
-              <Loader2 className="w-4 h-4 text-violet-400/60 animate-spin absolute -bottom-1 -right-1" />
+              <Loader2 className="w-4 h-4 text-violet-500 animate-spin absolute -bottom-1 -right-1" />
             </div>
-            <span className="text-[10px] text-white/30 font-mono tracking-wider">{language === 'ar' ? '\u062C\u0627\u0631\u064D \u062A\u0648\u0644\u064A\u062F \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A\u2026' : 'Neural networks analyzing...'}</span>
-            <div className="flex gap-1">
-              {[0,1,2,3,4].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-400/40" />
-              ))}
-            </div>
+            <span className="text-sm text-muted-foreground">{language === 'ar' ? '\u062C\u0627\u0631\u064D \u062A\u0648\u0644\u064A\u062F \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A\u2026' : 'Analyzing threat patterns...'}</span>
           </div>
         ) : (
           <>
             {activeTab === 'forecast' && (
               <div className="p-3 space-y-3">
-                <div className="relative rounded-lg border overflow-hidden" style={{
-                  borderColor: gaugeColors[threatNum - 1] + '66',
-                  boxShadow: threatGlow(threatLevel),
-                  background: 'linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 100%)',
-                }}>
-                  <div className={`${threatBg(threatLevel)} border-0 p-3`}>
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex flex-col items-center">
-                        <svg width="64" height="36" viewBox="0 0 64 36" className="overflow-visible">
-                          {gaugeColors.map((color, i) => {
-                            const startAngle = -90 + (i / 5) * 180;
-                            const endAngle = -90 + ((i + 1) / 5) * 180;
-                            const startRad = (startAngle * Math.PI) / 180;
-                            const endRad = (endAngle * Math.PI) / 180;
-                            const r = 28;
-                            return (
-                              <path key={i}
-                                d={`M ${32 + r * Math.cos(startRad)} ${32 + r * Math.sin(startRad)} A ${r} ${r} 0 0 1 ${32 + r * Math.cos(endRad)} ${32 + r * Math.sin(endRad)}`}
-                                fill="none" stroke={color} strokeWidth={i + 1 === threatNum ? 5 : 3}
-                                opacity={i + 1 === threatNum ? 1 : 0.25}
-                              />
-                            );
-                          })}
-                          <line
-                            x1="32" y1="32"
-                            x2={32 + 20 * Math.cos((gaugeAngle * Math.PI) / 180)}
-                            y2={32 + 20 * Math.sin((gaugeAngle * Math.PI) / 180)}
-                            stroke={gaugeColors[threatNum - 1]} strokeWidth="2" strokeLinecap="round"
+
+                {/* Threat Level Summary Row */}
+                <div className={`rounded-xl border p-3 flex items-center gap-3 ${threatBg(threatLevel)}`}>
+                  <div className="flex flex-col items-center justify-center w-14 shrink-0">
+                    <svg width="56" height="32" viewBox="0 0 64 36" className="overflow-visible">
+                      {gaugeColors.map((color, i) => {
+                        const startAngle = -90 + (i / 5) * 180;
+                        const endAngle = -90 + ((i + 1) / 5) * 180;
+                        const startRad = (startAngle * Math.PI) / 180;
+                        const endRad = (endAngle * Math.PI) / 180;
+                        const r = 28;
+                        return (
+                          <path key={i}
+                            d={`M ${32 + r * Math.cos(startRad)} ${32 + r * Math.sin(startRad)} A ${r} ${r} 0 0 1 ${32 + r * Math.cos(endRad)} ${32 + r * Math.sin(endRad)}`}
+                            fill="none" stroke={color} strokeWidth={i + 1 === threatNum ? 5 : 3}
+                            opacity={i + 1 === threatNum ? 1 : 0.20}
                           />
-                          <circle cx="32" cy="32" r="3" fill={gaugeColors[threatNum - 1]} />
-                        </svg>
-                        <span className={`text-[8px] font-mono font-bold mt-0.5 ${threatColor(threatLevel)}`}>
-                          {threatNum}/5
-                        </span>
+                        );
+                      })}
+                      <line x1="32" y1="32" x2={32 + 20 * Math.cos((gaugeAngle * Math.PI) / 180)} y2={32 + 20 * Math.sin((gaugeAngle * Math.PI) / 180)} stroke={gaugeColors[threatNum - 1]} strokeWidth="2.5" strokeLinecap="round" />
+                      <circle cx="32" cy="32" r="3" fill={gaugeColors[threatNum - 1]} />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-xl font-bold leading-none mb-0.5 ${threatColor(threatLevel)}`}>{threatLevel}</div>
+                    <div className="text-xs text-muted-foreground mb-2">Threat Level</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-black/10 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${confPct}%`, background: gaugeColors[threatNum-1] }} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <span className={`text-[16px] font-black tracking-[0.2em] font-mono leading-none ${threatColor(threatLevel)}`} style={{ textShadow: threatLevel === 'EXTREME' ? '0 0 10px rgba(239,68,68,0.5)' : 'none' }}>
-                          {threatLevel}
-                        </span>
-                        <div className="text-[9px] text-white/40 uppercase tracking-wider mt-1" style={{ fontFamily: 'var(--font-mono)' }}>
-                          {language === 'ar' ? '\u0645\u0633\u062A\u0648\u0649 \u0627\u0644\u062A\u0647\u062F\u064A\u062F' : 'THREAT LEVEL'}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <div className="flex-1 h-1.5 bg-black/30 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${confPct}%`, background: `linear-gradient(90deg, ${gaugeColors[threatNum-1]}88, ${gaugeColors[threatNum-1]})` }} />
-                          </div>
-                          <span className="text-[9px] font-black font-mono text-white/50">{confPct}%</span>
-                        </div>
-                      </div>
+                      <span className="text-xs font-semibold text-muted-foreground">{confPct}% conf</span>
                     </div>
                   </div>
-                </div>
-
-                <div className="rounded border border-violet-500/15 bg-violet-500/[0.04] p-2.5" style={{ boxShadow: '0 0 15px rgba(139,92,246,0.05)' }}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Crosshair className="w-3 h-3 text-red-400/70" />
-                    <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-white/40">
-                      {language === 'ar' ? '\u0627\u0644\u0647\u062F\u0641 \u0627\u0644\u0645\u0631\u062C\u062D' : 'PREDICTED NEXT TARGET'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-red-400/50" />
-                    <span className="text-[13px] font-black text-white/85" style={{ fontFamily: 'var(--font-display)' }}>
-                      {prediction.nextLikelyTarget}
-                    </span>
-                  </div>
-                </div>
-
-                {prediction.escalationVector && (
-                  <div className="flex items-start gap-2 px-2.5 py-2 rounded border border-white/[0.06]" style={{ background: prediction.dataPoints?.isEscalating ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.03)' }}>
-                    {prediction.dataPoints?.isEscalating ? (
-                      <TrendingUp className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-400" />
-                    ) : (
-                      <TrendingDown className="w-3.5 h-3.5 mt-0.5 shrink-0 text-green-400" />
+                  <div className="text-right shrink-0">
+                    <div className="text-2xl font-bold font-mono tabular-nums text-foreground">{prediction.dataPoints?.velocityPerHour ?? 0}</div>
+                    <div className="text-xs text-muted-foreground">alerts/hr</div>
+                    {prediction.dataPoints?.isEscalating && (
+                      <span className="text-[10px] text-red-500 font-semibold flex items-center gap-0.5 justify-end mt-0.5">
+                        <TrendingUp className="w-3 h-3" /> Rising
+                      </span>
                     )}
-                    <span className="text-[9px] text-white/55 leading-relaxed italic">{prediction.escalationVector}</span>
                   </div>
-                )}
-
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { icon: <Activity className="w-3.5 h-3.5 text-cyan-400" />, label: language === 'ar' ? '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' : 'ALERTS', value: String(prediction.dataPoints?.totalAlerts ?? 0), color: 'text-cyan-400', glow: 'rgba(34,211,238,0.1)' },
-                    { icon: <Zap className="w-3.5 h-3.5 text-yellow-400" />, label: language === 'ar' ? '/\u0633\u0627\u0639\u0629' : '/HOUR', value: `${prediction.dataPoints?.velocityPerHour ?? 0}`, color: 'text-yellow-400', glow: 'rgba(250,204,21,0.1)' },
-                    { icon: <Clock className="w-3.5 h-3.5 text-violet-400" />, label: '30M', value: String(prediction.dataPoints?.velocity30m ?? 0), color: 'text-violet-400', glow: 'rgba(167,139,250,0.1)' },
-                    { icon: <Gauge className="w-3.5 h-3.5 text-orange-400" />, label: '2H', value: String(prediction.dataPoints?.velocity2h ?? 0), color: 'text-orange-400', glow: 'rgba(251,146,60,0.1)' },
-                  ].map(({ icon, label, value, color, glow }) => (
-                    <div key={label} className="flex flex-col items-center gap-0.5 py-2 rounded border border-white/[0.06]" style={{ background: glow }}>
-                      {icon}
-                      <span className={`text-[13px] font-black font-mono leading-none ${color}`}>{value}</span>
-                      <span className="text-[7px] text-white/25 uppercase tracking-wider font-mono">{label}</span>
-                    </div>
-                  ))}
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 px-0.5">
-                    <Swords className="w-3 h-3 text-red-400/50" />
-                    <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest">
-                      {language === 'ar' ? '\u0623\u0639\u0644\u0649 \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A' : 'TOP PREDICTIONS'}
-                    </span>
+                {/* WHEN */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-blue-500" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">When — Next Attack Window</span>
                   </div>
-                  {prediction.predictions.slice(0, 4).map((p, i) => {
-                    const barW = Math.round(p.probability * 100);
-                    const isHot = p.probability >= 0.7;
-                    const isWarm = p.probability >= 0.4;
-                    return (
-                      <div key={i} className={`relative rounded border overflow-hidden ${isHot ? 'border-red-500/25' : isWarm ? 'border-yellow-500/15' : 'border-white/[0.05]'}`} style={{ background: isHot ? 'rgba(127,29,29,0.15)' : 'rgba(255,255,255,0.015)' }}>
-                        <div className="absolute inset-0 opacity-20" style={{ background: `linear-gradient(90deg, ${isHot ? 'rgba(239,68,68,0.2)' : isWarm ? 'rgba(250,204,21,0.1)' : 'rgba(59,130,246,0.1)'} ${barW}%, transparent ${barW}%)` }} />
-                        <div className="relative flex items-center gap-2 px-2.5 py-2">
-                          <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded shrink-0 ${
-                            p.severity === 'critical' ? 'bg-red-500/25 text-red-300 border border-red-500/30' :
-                            p.severity === 'high' ? 'bg-orange-500/25 text-orange-300 border border-orange-500/30' :
-                            p.severity === 'medium' ? 'bg-yellow-500/25 text-yellow-300 border border-yellow-500/30' :
-                            'bg-green-500/25 text-green-300 border border-green-500/30'
-                          }`}>{timeframeLabel(p.timeframe)}</span>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[10px] font-bold text-white/75 block truncate">{p.region}</span>
-                            <span className="text-[8px] font-mono text-white/30 uppercase">{p.threatVector.replace(/_/g, ' ')}</span>
-                          </div>
-                          <div className="flex flex-col items-end shrink-0">
-                            <span className={`text-[13px] font-black font-mono ${isHot ? 'text-red-400' : isWarm ? 'text-yellow-400' : 'text-blue-400'}`}>{barW}%</span>
-                          </div>
-                        </div>
+                  <div className="flex items-end gap-3">
+                    <div>
+                      <div className="text-2xl font-bold text-foreground leading-none">
+                        {prediction.nextAttackWindow?.label || 'Unknown'}
                       </div>
-                    );
-                  })}
+                      <div className="text-sm text-muted-foreground mt-0.5">
+                        ~{prediction.nextAttackWindow?.estimatedMinutes ?? '?'} min estimated
+                      </div>
+                    </div>
+                    <div className="ml-auto text-right">
+                      <div className="flex items-center gap-1.5 justify-end mb-1">
+                        <div className="h-1.5 w-20 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round((prediction.nextAttackWindow?.confidence ?? 0) * 100)}%` }} />
+                        </div>
+                        <span className="text-xs text-muted-foreground">{Math.round((prediction.nextAttackWindow?.confidence ?? 0) * 100)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  {prediction.nextAttackWindow?.basis && (
+                    <p className="text-xs text-muted-foreground mt-2 italic leading-relaxed border-t border-border pt-2">
+                      {prediction.nextAttackWindow.basis}
+                    </p>
+                  )}
+                </div>
+
+                {/* WHERE */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center shrink-0">
+                      <Target className="w-3.5 h-3.5 text-red-500" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Where — Most Likely Target</span>
+                  </div>
+                  <div className="text-lg font-bold text-foreground mb-3">{prediction.nextLikelyTarget}</div>
+                  {prediction.locationProbabilities && prediction.locationProbabilities.length > 0 && (
+                    <div className="space-y-1.5">
+                      {prediction.locationProbabilities.slice(0, 5).map((lp, i) => {
+                        const pct = Math.round(lp.probability * 100);
+                        const barColor = pct >= 65 ? '#ef4444' : pct >= 40 ? '#f97316' : '#3b82f6';
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-base leading-none shrink-0">{lp.countryFlag}</span>
+                            <span className="text-[12px] text-foreground/80 flex-1 truncate">{lp.location}</span>
+                            <span className="text-[10px] text-muted-foreground shrink-0">{lp.threatType}</span>
+                            <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                            </div>
+                            <span className="text-[11px] font-semibold font-mono w-8 text-right shrink-0" style={{ color: barColor }}>{pct}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* FROM WHERE */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
+                      <ArrowRight className="w-3.5 h-3.5 text-orange-500" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">From Where — Likely Origins</span>
+                  </div>
+                  {(() => {
+                    // Aggregate origins from predictions' source field
+                    const originMap: Record<string, { count: number; vectors: string[] }> = {};
+                    prediction.predictions.forEach(p => {
+                      const src = p.source || 'Unknown';
+                      if (!originMap[src]) originMap[src] = { count: 0, vectors: [] };
+                      originMap[src].count++;
+                      if (!originMap[src].vectors.includes(p.threatVector)) originMap[src].vectors.push(p.threatVector);
+                    });
+                    const origins = Object.entries(originMap).sort((a, b) => b[1].count - a[1].count);
+                    const maxCount = origins[0]?.[1].count || 1;
+                    return origins.length > 0 ? (
+                      <div className="space-y-2">
+                        {origins.slice(0, 4).map(([origin, data]) => (
+                          <div key={origin} className="flex items-center gap-2">
+                            <span className="text-[12px] text-foreground/80 flex-1 truncate font-medium">{origin}</span>
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">{data.vectors.join(', ')}</span>
+                            <div className="w-14 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                              <div className="h-full rounded-full bg-orange-400" style={{ width: `${Math.round((data.count / maxCount) * 100)}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                  {prediction.escalationVector && (
+                    <div className="mt-2 pt-2 border-t border-border flex items-start gap-2">
+                      {prediction.dataPoints?.isEscalating
+                        ? <TrendingUp className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-500" />
+                        : <TrendingDown className="w-3.5 h-3.5 mt-0.5 shrink-0 text-green-500" />
+                      }
+                      <p className="text-xs text-muted-foreground leading-relaxed">{prediction.escalationVector}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-[11px] text-muted-foreground/50 text-center">
+                  Updated {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </div>
               </div>
             )}
@@ -6815,12 +6806,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 {/* Model selector */}
                 <div className="shrink-0 px-3 pt-3 pb-2">
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest text-white/30">{language === 'ar' ? 'نموذج الذكاء الاصطناعي' : 'AI Model'}</div>
+                    <div className="text-[11px] font-semibold text-muted-foreground">{language === 'ar' ? 'نموذج الذكاء الاصطناعي' : 'AI Model'}</div>
                     {chatHistory.length > 0 && (
                       <button
                         onClick={() => { setChatHistory([]); setStreamingText(''); }}
-                        className="text-[7px] font-mono text-white/25 hover:text-red-400/70 transition-colors px-1.5 py-0.5 rounded"
-                        style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+                        className="text-[11px] text-muted-foreground hover:text-red-500 transition-colors px-2 py-0.5 rounded border border-border"
                       >
                         {language === 'ar' ? 'مسح' : 'Clear'}
                       </button>
@@ -6831,12 +6821,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                       <button
                         key={m.id}
                         onClick={() => setChatModel(m.id)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-mono font-bold transition-all active:scale-95"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all active:scale-95"
                         style={{
-                          background: chatModel === m.id ? `${m.color}18` : 'rgba(255,255,255,0.04)',
-                          border: chatModel === m.id ? `1px solid ${m.color}44` : '1px solid rgba(255,255,255,0.07)',
-                          color: chatModel === m.id ? m.color : 'rgba(255,255,255,0.35)',
-                          boxShadow: chatModel === m.id ? `0 0 8px ${m.color}22` : 'none',
+                          background: chatModel === m.id ? `${m.color}15` : 'hsl(var(--muted))',
+                          border: chatModel === m.id ? `1px solid ${m.color}40` : '1px solid hsl(var(--border))',
+                          color: chatModel === m.id ? m.color : 'hsl(var(--muted-foreground))',
                         }}
                       >
                         <span style={{ fontSize: 12 }}>{m.icon}</span>
@@ -6849,7 +6838,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 {/* Suggested questions */}
                 {chatHistory.length === 0 && !chatLoading && (
                   <div className="shrink-0 px-3 pb-2">
-                    <div className="text-[7px] font-mono font-bold uppercase tracking-widest mb-1.5 text-white/25">{language === 'ar' ? 'أسئلة مقترحة' : 'Suggested'}</div>
+                    <div className="text-[11px] font-semibold text-muted-foreground mb-1.5">{language === 'ar' ? 'أسئلة مقترحة' : 'Suggested questions'}</div>
                     <div className="flex flex-col gap-1">
                       {(language === 'ar' ? [
                         'ما هي أحدث التهديدات الآن؟',
@@ -6869,8 +6858,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                           key={q}
                           onClick={() => sendQuestion(q)}
                           disabled={chatLoading}
-                          className="text-left px-2 py-1.5 rounded-lg text-[9px] font-mono transition-all hover:bg-indigo-500/10 active:scale-98 disabled:opacity-40"
-                          style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.16)', color: 'rgba(160,163,255,0.75)' }}
+                          className="text-left px-3 py-2 rounded-lg text-[12px] transition-all hover:bg-violet-50 active:scale-98 disabled:opacity-40 text-violet-700 border border-violet-100 bg-white"
                         >
                           {q}
                         </button>
@@ -6892,15 +6880,15 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                           </div>
                         )}
                         <div
-                          className="max-w-[92%] px-2.5 py-2 rounded-xl text-[9px] font-mono leading-relaxed"
+                          className="max-w-[92%] px-3 py-2 rounded-xl text-[12px] leading-relaxed"
                           style={{
                             background: msg.role === 'user'
-                              ? 'rgba(99,102,241,0.15)'
-                              : 'rgba(255,255,255,0.05)',
+                              ? 'hsl(var(--primary))'
+                              : 'hsl(var(--muted))',
                             border: msg.role === 'user'
-                              ? '1px solid rgba(99,102,241,0.3)'
-                              : `1px solid ${m ? m.color + '22' : 'rgba(255,255,255,0.08)'}`,
-                            color: msg.role === 'user' ? 'rgba(200,200,255,0.9)' : 'rgba(255,255,255,0.8)',
+                              ? '1px solid hsl(var(--primary))'
+                              : `1px solid hsl(var(--border))`,
+                            color: msg.role === 'user' ? 'white' : 'hsl(var(--foreground))',
                             whiteSpace: 'pre-wrap',
                           }}
                         >
@@ -6920,11 +6908,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                         </div>
                       ) : null; })()}
                       <div
-                        className="max-w-[92%] px-2.5 py-2 rounded-xl text-[9px] font-mono leading-relaxed"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', whiteSpace: 'pre-wrap' }}
+                        className="max-w-[92%] px-3 py-2 rounded-xl text-[12px] leading-relaxed"
+                        style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))', whiteSpace: 'pre-wrap' }}
                       >
                         {streamingText || (
-                          <span className="flex items-center gap-1 text-white/30">
+                          <span className="flex items-center gap-1 text-muted-foreground">
                             <span className="animate-pulse">●</span>
                             <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
                             <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
@@ -6938,7 +6926,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 </div>
 
                 {/* Input */}
-                <div className="shrink-0 px-3 pb-3 pt-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="shrink-0 px-3 pb-3 pt-1.5 border-t border-border">
                   <div className="flex gap-2 items-end">
                     <textarea
                       value={chatInput}
@@ -6947,29 +6935,18 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                       placeholder={language === 'ar' ? 'اسأل المحلل الاستخباراتي...' : 'Ask the intelligence analyst...'}
                       disabled={chatLoading}
                       rows={2}
-                      className="flex-1 resize-none rounded-lg px-2.5 py-2 text-[9px] font-mono outline-none transition-all disabled:opacity-40"
-                      style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(99,102,241,0.25)',
-                        color: 'rgba(255,255,255,0.85)',
-                        lineHeight: 1.5,
-                      }}
+                      className="flex-1 resize-none rounded-lg px-3 py-2 text-[13px] outline-none transition-all disabled:opacity-40 bg-background border border-border text-foreground placeholder:text-muted-foreground focus:border-violet-400"
                     />
                     <button
                       onClick={() => sendQuestion()}
                       disabled={chatLoading || !chatInput.trim()}
-                      className="shrink-0 px-3 py-2 rounded-lg font-mono font-black text-[9px] uppercase tracking-wider transition-all active:scale-95 disabled:opacity-30"
-                      style={{
-                        background: 'rgba(99,102,241,0.25)',
-                        border: '1px solid rgba(99,102,241,0.45)',
-                        color: '#a78bfa',
-                        minHeight: 52,
-                      }}
+                      className="shrink-0 px-4 py-2 rounded-lg font-medium text-[12px] transition-all active:scale-95 disabled:opacity-30 bg-violet-600 text-white hover:bg-violet-700"
+                      style={{ minHeight: 52 }}
                     >
                       {chatLoading ? '...' : (language === 'ar' ? 'إرسال' : 'SEND')}
                     </button>
                   </div>
-                  <div className="text-[7px] font-mono text-white/20 mt-1 text-center">
+                  <div className="text-[11px] text-muted-foreground/60 mt-1 text-center">
                     {language === 'ar' ? 'Enter للإرسال · Shift+Enter لسطر جديد' : 'Enter to send · Shift+Enter for newline'}
                   </div>
                 </div>
@@ -7518,22 +7495,21 @@ function PanelSidebar({
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-md relative group
+        className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-md relative group transition-colors
           ${active
-            ? (isAI ? 'bg-violet-500/[0.1] text-foreground/90' : 'bg-primary/[0.1] text-foreground/90')
-            : 'text-foreground/45 hover:text-foreground/70 hover:bg-white/[0.03] active:bg-white/[0.05]'
+            ? (isAI ? 'bg-violet-100 text-violet-700' : 'bg-primary/10 text-primary')
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
-        style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        {active && <div className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r ${isAI ? 'bg-violet-400/70' : 'bg-primary/70'}`} style={{boxShadow: isAI ? '0 0 6px hsl(260 80% 65% / 0.4)' : '0 0 6px hsl(185 100% 42% / 0.4)'}} />}
-        <Icon className={`w-3.5 h-3.5 shrink-0 ml-1 ${active ? (isAI ? 'text-violet-400/75' : 'text-primary/75') : 'text-foreground/35 group-hover:text-foreground/55'}`} style={{ transition: 'color 0.14s ease' }} />
-        <span className={`text-[11px] font-mono font-semibold uppercase tracking-wide flex-1 text-left leading-none truncate ${active ? 'text-foreground/85' : 'text-foreground/45 group-hover:text-foreground/65'}`} style={{ transition: 'color 0.14s ease' }}>
+        {active && <div className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-r ${isAI ? 'bg-violet-500' : 'bg-primary'}`} />}
+        <Icon className={`w-3.5 h-3.5 shrink-0 ml-1 ${active ? (isAI ? 'text-violet-600' : 'text-primary') : ''}`} />
+        <span className={`text-[12px] font-medium flex-1 text-left leading-none truncate`}>
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[9px] font-mono tabular-nums shrink-0 px-1.5 py-0.5 rounded-full ${active ? (isAI ? 'text-violet-400/65 bg-violet-500/[0.12]' : 'text-primary/65 bg-primary/[0.12]') : 'text-foreground/25 bg-white/[0.03]'}`} style={{ transition: 'all 0.14s ease' }}>
+          <span className={`text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded-full font-medium ${active ? (isAI ? 'text-violet-600 bg-violet-100' : 'text-primary bg-primary/10') : 'text-muted-foreground bg-muted'}`}>
             {stat}
           </span>
         )}
@@ -7543,24 +7519,22 @@ function PanelSidebar({
 
   return (
     <div
-      className="flex flex-col shrink-0 overflow-y-auto overflow-x-hidden"
-      style={{ width: 220, background: 'hsl(222 30% 9% / 0.94)', borderRight: '1px solid hsl(185 40% 22% / 0.18)' }}
+      className="flex flex-col shrink-0 overflow-y-auto overflow-x-hidden border-r border-border bg-sidebar"
+      style={{ width: 220 }}
     >
-      {/* PRIMARY section */}
-      <div className="px-3 pt-3.5 pb-1 flex items-center gap-1.5">
-        <div className="w-1.5 h-px bg-primary/25" />
-        <span className="text-[8px] font-mono font-black text-foreground/20 tracking-[0.28em] uppercase">Primary</span>
+      {/* Primary section */}
+      <div className="px-4 pt-4 pb-1">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Primary</span>
       </div>
-      <div className="flex flex-col gap-px px-1.5 pb-1">
+      <div className="flex flex-col gap-0.5 px-2 pb-1">
         {topGroup.map(id => renderBtn(id))}
       </div>
-      <div className="mx-3 my-2 h-px" style={{background:'linear-gradient(90deg, transparent, hsl(185 40% 30% / 0.15), transparent)'}} />
-      {/* INTELLIGENCE section */}
-      <div className="px-3 pb-1 flex items-center gap-1.5">
-        <div className="w-1.5 h-px bg-cyan-500/20" />
-        <span className="text-[8px] font-mono font-black text-foreground/20 tracking-[0.28em] uppercase">Intelligence</span>
+      <div className="mx-4 my-2 border-t border-border" />
+      {/* Data section */}
+      <div className="px-4 pb-1">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Data</span>
       </div>
-      <div className="flex flex-col gap-px px-1.5 pb-2">
+      <div className="flex flex-col gap-0.5 px-2 pb-4">
         {bottomGroup.map(id => renderBtn(id))}
       </div>
     </div>
@@ -8205,47 +8179,45 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile || isTablet ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
-      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-14'} border-b flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header`} style={{background:'linear-gradient(180deg, hsl(222 32% 10% / 0.99) 0%, hsl(222 28% 8% / 1) 100%)', borderBottom:'1px solid hsl(175 40% 28% / 0.22)'}}>
-        {/* Bottom glow line */}
-        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent 5%, hsl(175 80% 44% / 0.20) 20%, hsl(175 80% 44% / 0.45) 50%, hsl(175 80% 44% / 0.20) 80%, transparent 95%)'}} />
+      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-14'} border-b flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
         {/* Left — Branding */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 hidden sm:flex" style={{background:'linear-gradient(135deg, hsl(175 80% 44% / 0.18), hsl(175 80% 44% / 0.06))', border:'1px solid hsl(175 80% 44% / 0.25)'}}>
-              <span className="text-primary text-[14px]" style={{filter:'drop-shadow(0 0 6px hsl(175 80% 44% / 0.6))'}}>&#x25C8;</span>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 hidden sm:flex bg-primary/10 border border-primary/20">
+              <span className="text-primary text-[14px]">&#x25C8;</span>
             </div>
-            <span className={`${isMobile ? 'text-[13px]' : 'text-[15px]'} font-bold tracking-[0.30em] text-primary select-none whitespace-nowrap`} style={{fontFamily:'var(--font-display)', filter:'drop-shadow(0 0 10px hsl(175 80% 44% / 0.35))'}}>
-              WARROOM
+            <span className={`${isMobile ? 'text-[14px]' : 'text-[15px]'} font-semibold tracking-wide text-foreground select-none whitespace-nowrap`}>
+              Warroom
             </span>
           </div>
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded" style={{background:'hsl(0 80% 50% / 0.08)', border:'1px solid hsl(0 70% 50% / 0.20)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" style={{boxShadow:'0 0 6px rgb(239 68 68 / 0.7)'}} />
-            <span className="text-[8px] text-red-400/90 font-bold tracking-[0.22em] uppercase" style={{fontFamily:'var(--font-display)'}}>LIVE</span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
+            <span className="text-[11px] text-red-500 font-semibold">Live</span>
           </div>
           {(isMobile || isTablet) && (
-            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
               <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
-              <span className={`text-[8px] font-bold tracking-[0.15em] uppercase ${threatLevel.color}`} style={{fontFamily:'var(--font-display)'}}>{threatLevel.level}</span>
+              <span className={`text-[11px] font-semibold ${threatLevel.color}`}>{threatLevel.level}</span>
             </div>
           )}
         </div>
         {/* Center — Key status (desktop only) */}
         {!isMobile && !isTablet && (
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge" style={{boxShadow: threatLevel.level === 'CRITICAL' ? '0 0 20px rgb(239 68 68 / 0.25)' : threatLevel.level === 'HIGH' ? '0 0 15px rgb(249 115 22 / 0.15)' : 'none'}}>
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
               <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
-              <span className={`text-[9px] font-bold tracking-[0.18em] uppercase ${threatLevel.color}`} style={{fontFamily:'var(--font-display)'}}>{threatLevel.level}</span>
+              <span className={`text-[12px] font-semibold ${threatLevel.color}`}>{threatLevel.level}</span>
             </div>
             {redAlerts.length > 0 && (
               <>
-                <div className="w-px h-4 bg-white/[0.06]" />
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md" style={{background:'hsl(0 80% 50% / 0.07)', border:'1px solid hsl(0 70% 50% / 0.18)'}}>
-                  <span className="text-[9px] font-mono font-bold text-red-400/80">{redAlerts.length}</span>
-                  <span className="text-[8px] text-red-400/50 tracking-wider uppercase font-mono">ALERTS</span>
+                <div className="w-px h-4 bg-border" />
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200">
+                  <span className="text-[12px] font-semibold text-red-500">{redAlerts.length}</span>
+                  <span className="text-[11px] text-red-400">Alerts</span>
                 </div>
               </>
             )}
-            <div className="w-px h-4 bg-white/[0.06]" />
+            <div className="w-px h-4 bg-border" />
             <LiveClock />
           </div>
         )}
@@ -8329,11 +8301,11 @@ export default function Dashboard() {
               </Button>
             </div>
           )}
-          <div className="w-px h-4 bg-white/[0.05]" />
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-sm transition-all ${connected ? 'bg-emerald-500/[0.05]' : 'bg-red-500/[0.06]'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} title={connected ? 'Stream connected' : 'Stream disconnected'} style={{border: connected ? '1px solid hsl(152 72% 38% / 0.18)' : '1px solid hsl(0 80% 55% / 0.2)'}}>
-            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-400 animate-pulse-dot' : 'bg-red-400'}`} style={{boxShadow: connected ? '0 0 6px rgb(34 197 94 / 0.5)' : '0 0 6px rgb(239 68 68 / 0.5)'}} />
-            <span className={`text-[8px] font-bold tracking-[0.2em] font-mono hidden sm:inline uppercase ${connected ? 'text-emerald-400/75' : 'text-red-400/75'}`}>
-              {connected ? (language === 'en' ? 'ONLINE' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'OFFLINE' : '\u0645\u0646\u0642\u0637\u0639')}
+          <div className="w-px h-4 bg-border" />
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${connected ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} title={connected ? 'Stream connected' : 'Stream disconnected'}>
+            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-500'}`} />
+            <span className={`text-[11px] font-medium hidden sm:inline ${connected ? 'text-emerald-600' : 'text-red-500'}`}>
+              {connected ? (language === 'en' ? 'Online' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'Offline' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
         </div>
@@ -8366,7 +8338,7 @@ export default function Dashboard() {
       {showMobileMenu && (isMobile || isTablet) && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMobileMenu(false)} />
-          <div className="absolute right-2 top-full z-50 mt-1 rounded-xl border border-[hsl(185_60%_30%/0.15)] bg-[hsl(222_30%_7%)] shadow-2xl min-w-[180px]" data-testid="mobile-menu">
+          <div className="absolute right-2 top-full z-50 mt-1 rounded-xl border border-border bg-card shadow-lg min-w-[180px]" data-testid="mobile-menu">
             <div className="p-1.5 flex flex-col gap-0.5">
               {[
                 { id: 'notif', icon: Bell, label: notificationsEnabled ? 'Notif ON' : 'Notif OFF', action: () => { toggleNotifications(); setShowMobileMenu(false); }, active: notificationsEnabled },
@@ -8469,7 +8441,7 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
-            <div className="shrink-0 border-t border-white/[0.05] flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }} data-testid="mobile-tab-bar">
+            <div className="shrink-0 border-t border-border flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }} data-testid="mobile-tab-bar">
               {(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).map(id => {
                 const cfg = PANEL_CONFIG[id];
                 const Icon = cfg.icon;
@@ -8485,10 +8457,10 @@ export default function Dashboard() {
                     style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                     data-testid={`mobile-tab-${id}`}
                   >
-                    {isActive && <div className={`absolute top-0 left-2 right-2 h-[2px] rounded-b ${isAI ? 'bg-violet-400' : 'bg-primary'}`} style={{ boxShadow: isAI ? '0 2px 8px hsl(260 80% 65% / 0.4)' : '0 2px 8px hsl(185 100% 42% / 0.3)' }} />}
-                    <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                    <span className={`text-[9px] font-mono font-bold uppercase tracking-wide transition-colors ${isActive ? (isAI ? 'text-violet-300/90' : 'text-primary/90') : 'text-foreground/30'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
-                    {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" style={{ boxShadow: '0 0 6px rgb(239 68 68 / 0.6)' }} />}
+                    {isActive && <div className={`absolute top-0 left-2 right-2 h-[2px] rounded-b ${isAI ? 'bg-violet-500' : 'bg-primary'}`} />}
+                    <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-105' : ''}`} />
+                    <span className={`text-[10px] font-medium transition-colors ${isActive ? (isAI ? 'text-violet-600' : 'text-primary') : 'text-muted-foreground'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                    {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
                     {hasTelegram && !isActive && <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />}
                   </button>
                 );
@@ -8571,11 +8543,11 @@ export default function Dashboard() {
                   style={{
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
-                    background: 'hsl(222 30% 10% / 0.97)',
-                    borderRadius: 12,
+                    background: 'hsl(var(--card))',
+                    borderRadius: 14,
                     overflow: 'hidden',
-                    border: id === 'alerts' ? '1px solid hsl(0 80% 55% / 0.38)' : id === 'alertmap' ? '1px solid hsl(0 60% 45% / 0.25)' : '1px solid rgba(255,255,255,0.07)',
-                    boxShadow: id === 'alerts' ? '0 0 32px rgb(239 68 68 / 0.15), inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.35)' : 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.3)',
+                    border: id === 'alerts' ? '1px solid hsl(0 72% 51% / 0.25)' : '1px solid hsl(var(--border))',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                   }}
                 >
                   {renderPanel(id)}
@@ -8599,12 +8571,12 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={100}
+            rowHeight={96}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[6, 6]}
-            containerPadding={[6, 6]}
+            margin={[12, 12]}
+            containerPadding={[16, 16]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ paddingBottom: 80 }}
           >
@@ -8617,28 +8589,21 @@ export default function Dashboard() {
                   key={id}
                   className="group flex flex-col overflow-hidden"
                   style={{
-                    borderRadius: 8,
+                    borderRadius: 14,
                     background: isFloating
-                      ? 'rgba(8,12,22,0.35)'
-                      : hasAlertGlow
-                        ? 'hsl(0 22% 10% / 0.98)'
-                        : 'hsl(222 30% 10% / 0.98)',
+                      ? 'hsl(var(--muted))'
+                      : 'hsl(var(--card))',
                     border: isFloating
-                      ? '1px dashed rgba(255,255,255,0.06)'
+                      ? '2px dashed hsl(var(--border))'
                       : hasAlertGlow
-                        ? '1px solid hsl(0 80% 55% / 0.45)'
-                        : '1px solid rgba(255,255,255,0.06)',
-                    borderTop: isFloating
-                      ? undefined
-                      : hasAlertGlow
-                        ? '2px solid hsl(0 80% 55% / 0.8)'
-                        : `2px solid ${PANEL_ACCENTS[id] ? `${PANEL_ACCENTS[id].replace(')', ' / 0.7)')}` : 'rgba(255,255,255,0.10)'}`,
+                        ? '1px solid hsl(0 72% 51% / 0.30)'
+                        : '1px solid hsl(var(--border))',
                     boxShadow: isFloating
                       ? 'none'
                       : hasAlertGlow
-                        ? '0 0 40px rgb(239 68 68 / 0.18), 0 0 80px rgb(239 68 68 / 0.06), inset 0 0 24px rgb(239 68 68 / 0.04)'
-                        : `0 6px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04)`,
-                    transition: 'border-color 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s cubic-bezier(0.4,0,0.2,1), background 0.22s cubic-bezier(0.4,0,0.2,1)',
+                        ? '0 0 0 3px hsl(0 72% 51% / 0.08), 0 1px 4px rgba(0,0,0,0.06)'
+                        : '0 1px 3px rgba(0,0,0,0.05)',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,
                   }}
@@ -8647,12 +8612,12 @@ export default function Dashboard() {
                   {isFloating ? (
                     /* placeholder while panel is floating */
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'default' }}>
-                      {Icon && <Icon style={{ width: 18, height: 18, color: 'rgba(255,255,255,0.1)' }} />}
-                      <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.15)', fontFamily: 'monospace' }}>{PANEL_CONFIG[id]?.label || id}</span>
+                      {Icon && <Icon style={{ width: 18, height: 18, color: 'hsl(var(--muted-foreground) / 0.3)' }} />}
+                      <span style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>{PANEL_CONFIG[id]?.label || id}</span>
                       <button
                         onClick={() => dockPanel(id)} data-no-drag
-                        style={{ fontSize: 9, padding: '3px 10px', borderRadius: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', letterSpacing: '0.08em', fontFamily: 'monospace' }}
-                      >⊞ DOCK</button>
+                        style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer', fontWeight: 500 }}
+                      >Dock</button>
                     </div>
                   ) : (
                     <>
@@ -8747,32 +8712,30 @@ export default function Dashboard() {
       {!isMobile && <NewsTicker news={news} language={language} />}
 
       {!isMobile && (
-        <div className="h-8 border-t border-white/[0.05] flex items-center px-3 shrink-0 gap-2 overflow-hidden" data-testid="status-bar" style={{background:'hsl(222 30% 10% / 0.97)'}}>
-          <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg, transparent, hsl(185 60% 50% / 0.05) 30%, hsl(185 80% 50% / 0.1) 50%, hsl(185 60% 50% / 0.05) 70%, transparent)'}} />
-          <div className="flex items-center gap-1 px-1.5 py-px rounded-sm" style={{background:'hsl(152 72% 38% / 0.04)', border:'1px solid hsl(152 72% 38% / 0.1)'}}>
-            <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse-dot" style={{boxShadow:'0 0 4px rgb(52 211 153 / 0.5)'}} />
-            <span className="text-[8px] text-emerald-400/50 font-mono font-bold tracking-[0.15em]">ONLINE</span>
+        <div className="h-8 border-t border-border flex items-center px-3 shrink-0 gap-2 overflow-hidden bg-muted/50" data-testid="status-bar">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+            <span className="text-[11px] text-muted-foreground font-medium">Online</span>
           </div>
-          <div className="w-px h-3 bg-white/[0.04]" />
-          <div className="flex items-center gap-2.5 text-[8px] font-mono tabular-nums">
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">SRC</span>{[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">EVT</span>{events.length}</span>
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">FLT</span>{flights.length}</span>
-
-            <span className="text-foreground/15"><span className="text-foreground/25 mr-0.5 font-semibold">MKT</span>{commodities.length}</span>
+          <div className="w-px h-3 bg-border" />
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span><span className="font-medium text-foreground/60">Src</span> {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, redAlerts.length > 0 || sirens.length > 0, flights.length > 0].filter(Boolean).length}</span>
+            <span><span className="font-medium text-foreground/60">Events</span> {events.length}</span>
+            <span><span className="font-medium text-foreground/60">Flights</span> {flights.length}</span>
+            <span><span className="font-medium text-foreground/60">Markets</span> {commodities.length}</span>
           </div>
           {(redAlerts.length > 0 || sirens.length > 0) && (
             <>
-              <div className="w-px h-3 bg-white/[0.05]" />
-              <div className="flex items-center gap-1.5 text-[9px] font-mono">
+              <div className="w-px h-3 bg-border" />
+              <div className="flex items-center gap-1.5">
                 {redAlerts.length > 0 && (
-                  <span className="text-red-400/80 font-bold animate-pulse px-1.5 py-px rounded-sm bg-red-500/[0.08] border border-red-500/15">
-                    RED {redAlerts.length}
+                  <span className="text-[11px] text-red-600 font-semibold animate-pulse px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                    {redAlerts.length} Alerts
                   </span>
                 )}
                 {sirens.length > 0 && (
-                  <span className="text-red-400/60 font-bold px-1.5 py-px rounded-sm bg-red-500/[0.05] border border-red-500/10">
-                    SRN {sirens.length}
+                  <span className="text-[11px] text-red-500 font-medium px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                    {sirens.length} Sirens
                   </span>
                 )}
               </div>
@@ -8780,15 +8743,15 @@ export default function Dashboard() {
           )}
           {correlations.length > 0 && (
             <>
-              <div className="w-px h-3 bg-white/[0.05]" />
-              <div className="flex items-center gap-1 px-1.5 py-px rounded-sm bg-purple-500/[0.05] border border-purple-500/10">
-                <Link2 className="w-2.5 h-2.5 text-purple-400/50" />
-                <span className="text-[9px] text-purple-400/60 font-mono font-semibold">{correlations.length} CORR</span>
+              <div className="w-px h-3 bg-border" />
+              <div className="flex items-center gap-1">
+                <Link2 className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground">{correlations.length} correlations</span>
               </div>
             </>
           )}
-          <span className="text-[7px] text-foreground/12 font-mono ml-auto hidden sm:inline tracking-[0.15em] font-medium">
-            M.M &mdash; WARROOM v2.1
+          <span className="text-[11px] text-muted-foreground/50 ml-auto hidden sm:inline">
+            Warroom v2.1
           </span>
         </div>
       )}
