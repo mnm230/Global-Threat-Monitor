@@ -6,6 +6,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 const app = express();
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -101,7 +102,14 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        if (Array.isArray(capturedJsonResponse)) {
+          logLine += ` :: [Array(${capturedJsonResponse.length})]`;
+        } else if (typeof capturedJsonResponse === 'object') {
+          const keys = Object.keys(capturedJsonResponse);
+          logLine += ` :: {${keys.slice(0, 5).join(',')}}`;
+        } else {
+          logLine += ` :: ${String(capturedJsonResponse).slice(0, 100)}`;
+        }
       }
 
       log(logLine);

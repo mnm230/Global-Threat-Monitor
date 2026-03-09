@@ -1218,24 +1218,24 @@ const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   // Zone 1 — Hero: Alerts sidebar | Alert Map | Telegram sidebar
-  { i: 'alerts',       x: 0, y: 0,  w: 3, h: 10, minW: 2, minH: 4 },
-  { i: 'alertmap',     x: 3, y: 0,  w: 6, h: 10, minW: 3, minH: 4 },
-  { i: 'telegram',     x: 9, y: 0,  w: 3, h: 10, minW: 2, minH: 3 },
+  { i: 'alerts',       x: 0, y: 0,  w: 3, h: 8, minW: 2, minH: 4 },
+  { i: 'alertmap',     x: 3, y: 0,  w: 6, h: 8, minW: 3, minH: 4 },
+  { i: 'telegram',     x: 9, y: 0,  w: 3, h: 8, minW: 2, minH: 3 },
   // Zone 2 — Intelligence: AI Prediction | Events | Markets
-  { i: 'aiprediction', x: 0, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
-  { i: 'events',       x: 4, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
-  { i: 'markets',      x: 8, y: 10, w: 4, h: 5,  minW: 2, minH: 2 },
+  { i: 'aiprediction', x: 0, y: 8,  w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'events',       x: 4, y: 8,  w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'markets',      x: 8, y: 8,  w: 4, h: 5, minW: 2, minH: 2 },
   // Zone 3 — Situational: Live Feed
-  { i: 'livefeed',     x: 0, y: 15, w: 12, h: 4,  minW: 2, minH: 2 },
+  { i: 'livefeed',     x: 0, y: 13, w: 12, h: 3, minW: 2, minH: 2 },
   // Zone 4 — Analysis: Internet | NOTAMs
-  { i: 'netblack',     x: 0, y: 19, w: 6, h: 4,  minW: 2, minH: 2 },
-  { i: 'notams',       x: 6, y: 19, w: 6, h: 4,  minW: 2, minH: 2 },
+  { i: 'netblack',     x: 0, y: 16, w: 6, h: 4, minW: 2, minH: 2 },
+  { i: 'notams',       x: 6, y: 16, w: 6, h: 4, minW: 2, minH: 2 },
   // Zone 4b — Analytics | OSINT
-  { i: 'analytics',    x: 0, y: 23, w: 6, h: 4,  minW: 2, minH: 2 },
-  { i: 'osint',        x: 6, y: 23, w: 6, h: 4,  minW: 3, minH: 2 },
+  { i: 'analytics',    x: 0, y: 20, w: 6, h: 4, minW: 2, minH: 2 },
+  { i: 'osint',        x: 6, y: 20, w: 6, h: 4, minW: 3, minH: 2 },
   // Zone 5 — Predictions
-  { i: 'attackpred',   x: 0, y: 27, w: 6, h: 5,  minW: 2, minH: 3 },
-  { i: 'rocketstats',  x: 6, y: 27, w: 6, h: 5,  minW: 2, minH: 3 },
+  { i: 'attackpred',   x: 0, y: 24, w: 6, h: 5, minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 6, y: 24, w: 6, h: 5, minW: 2, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
@@ -7813,10 +7813,10 @@ export default function Dashboard() {
 
 
 
-  const defaultVisible = { map: true, telegram: true, events: true, alerts: true, markets: true, ew: true, livefeed: true, alertmap: false, analytics: false, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
+  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true, netblack: true, notams: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
+      const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
       if (saved.visiblePanels) return { ...defaultVisible, ...saved.visiblePanels };
     } catch {}
     return defaultVisible;
@@ -7842,7 +7842,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v6') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v7') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         const merged = saved.map((item: GridItemLayout) => {
@@ -7882,7 +7882,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v6', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v7', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -8041,14 +8041,14 @@ export default function Dashboard() {
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
+      const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
       if (saved.colWidths) return { ...defaultWidths, ...saved.colWidths };
     } catch {}
     return defaultWidths;
   });
   const [rowSplit, setRowSplit] = useState<number>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_panel_state') || '{}');
+      const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
       if (saved.rowSplit) return saved.rowSplit;
     } catch {}
     return 58;
@@ -8057,7 +8057,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (panelPersistTimeout.current) clearTimeout(panelPersistTimeout.current);
     panelPersistTimeout.current = setTimeout(() => {
-      localStorage.setItem('warroom_panel_state', JSON.stringify({ visiblePanels, colWidths, rowSplit }));
+      localStorage.setItem('warroom_panel_state_v2', JSON.stringify({ visiblePanels, colWidths, rowSplit }));
     }, 500);
   }, [visiblePanels, colWidths, rowSplit]);
 
@@ -8075,7 +8075,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v6', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v7', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
