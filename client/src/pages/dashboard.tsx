@@ -8341,7 +8341,7 @@ export default function Dashboard() {
             }}
           />
         )}
-        <div className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col min-h-0">
+        <div className="flex-1 min-w-0 overflow-hidden flex flex-col min-h-0">
 
       {showMobileMenu && (isMobile || isTablet) && (
         <>
