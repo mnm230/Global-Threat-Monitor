@@ -975,14 +975,14 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="osint-timeline-panel">
-      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.05] flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none" style={{background:'hsl(222 30% 10% / 0.92)'}}>
+      <div className="panel-drag-handle px-3 border-b flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none h-9">
         <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/90" style={{fontFamily:'var(--font-display)'}}>OSINT TIMELINE</span>
         <div className="flex-1" />
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
-      <div className="px-2 py-1 border-b border-white/[0.03] flex gap-1 shrink-0 flex-wrap" style={{background:'hsl(222 28% 9% / 0.6)'}}>
+      <div className="px-2 py-1 border-b border-border flex gap-1 shrink-0 flex-wrap" style={{background:'hsl(var(--muted))'}}>
         {filterBtns.map(({ key, label }) => (
           <button
             key={key}
@@ -1001,7 +1001,7 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
         ) : filtered.map(entry => (
           <div
             key={entry.id}
-            className="px-3 py-1.5 border-l-2 hover:bg-white/[0.02] transition-colors"
+            className="px-3 py-1.5 border-l-2 hover:bg-muted/50 transition-colors"
             style={{ borderLeftColor: entry.borderColor, borderBottom: '1px solid hsl(225 20% 100% / 0.025)' }}
           >
             <div className="flex items-start gap-2">
@@ -1215,41 +1215,41 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
 const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
-  // Zone 1 — Hero: Alerts sidebar | Alert Map | Telegram sidebar
-  { i: 'alerts',       x: 0, y: 0,  w: 3, h: 8, minW: 2, minH: 4 },
-  { i: 'alertmap',     x: 3, y: 0,  w: 6, h: 8, minW: 3, minH: 4 },
-  { i: 'telegram',     x: 9, y: 0,  w: 3, h: 8, minW: 2, minH: 3 },
-  // Zone 2 — Intelligence: AI Prediction | Events | Markets
-  { i: 'aiprediction', x: 0, y: 8,  w: 4, h: 5, minW: 2, minH: 2 },
-  { i: 'events',       x: 4, y: 8,  w: 4, h: 5, minW: 2, minH: 2 },
-  { i: 'markets',      x: 8, y: 8,  w: 4, h: 5, minW: 2, minH: 2 },
-  // Zone 3 — Situational: Live Feed
-  { i: 'livefeed',     x: 0, y: 13, w: 12, h: 3, minW: 2, minH: 2 },
-  // Zone 4 — Analysis: Internet | NOTAMs
-  { i: 'netblack',     x: 0, y: 16, w: 6, h: 4, minW: 2, minH: 2 },
-  { i: 'notams',       x: 6, y: 16, w: 6, h: 4, minW: 2, minH: 2 },
-  // Zone 4b — Analytics | OSINT
-  { i: 'analytics',    x: 0, y: 20, w: 6, h: 4, minW: 2, minH: 2 },
-  { i: 'osint',        x: 6, y: 20, w: 6, h: 4, minW: 3, minH: 2 },
-  // Zone 5 — Predictions
-  { i: 'attackpred',   x: 0, y: 24, w: 6, h: 5, minW: 2, minH: 3 },
-  { i: 'rocketstats',  x: 6, y: 24, w: 6, h: 5, minW: 2, minH: 3 },
+  // Row 1 — Hero: Alerts | Map | Telegram
+  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 10, minW: 2, minH: 4 },
+  { i: 'alertmap',     x: 3,  y: 0,  w: 6,  h: 10, minW: 3, minH: 4 },
+  { i: 'telegram',     x: 9,  y: 0,  w: 3,  h: 10, minW: 2, minH: 3 },
+  // Row 2 — Intel strip: AI | Events | Markets | Netblack
+  { i: 'aiprediction', x: 0,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'events',       x: 3,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'markets',      x: 6,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'netblack',     x: 9,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
+  // Row 3 — Wide feed
+  { i: 'livefeed',     x: 0,  y: 16, w: 12, h: 4,  minW: 2, minH: 2 },
+  // Row 4 — Analysis pair
+  { i: 'osint',        x: 0,  y: 20, w: 6,  h: 6,  minW: 3, minH: 2 },
+  { i: 'analytics',    x: 6,  y: 20, w: 6,  h: 6,  minW: 2, minH: 2 },
+  // Row 5 — Data pair
+  { i: 'notams',       x: 0,  y: 26, w: 6,  h: 5,  minW: 2, minH: 2 },
+  { i: 'attackpred',   x: 6,  y: 26, w: 6,  h: 5,  minW: 2, minH: 3 },
+  // Row 6 — Stats
+  { i: 'rocketstats',  x: 0,  y: 31, w: 12, h: 6,  minW: 2, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
-  alerts:       'hsl(0 80% 55%)',
-  telegram:     'hsl(200 80% 60%)',
-  events:       'hsl(38 90% 55%)',
-  markets:      'hsl(265 70% 65%)',
-  aiprediction: 'hsl(275 70% 65%)',
-  analytics:    'hsl(185 75% 50%)',
-  netblack:     'hsl(195 75% 50%)',
-  notams:       'hsl(45 80% 55%)',
-  osint:        'hsl(240 65% 65%)',
-  livefeed:     'hsl(215 60% 55%)',
-  alertmap:     'hsl(15 80% 55%)',
-  attackpred:   'hsl(28 88% 55%)',
-  rocketstats:  'hsl(175 70% 50%)',
+  alerts:       'hsl(0 72% 52%)',
+  telegram:     'hsl(200 72% 52%)',
+  events:       'hsl(36 80% 50%)',
+  markets:      'hsl(262 60% 58%)',
+  aiprediction: 'hsl(272 60% 58%)',
+  analytics:    'hsl(183 65% 44%)',
+  netblack:     'hsl(193 65% 46%)',
+  notams:       'hsl(43 75% 48%)',
+  osint:        'hsl(238 58% 58%)',
+  livefeed:     'hsl(213 58% 50%)',
+  alertmap:     'hsl(14 72% 50%)',
+  attackpred:   'hsl(26 78% 50%)',
+  rocketstats:  'hsl(172 62% 44%)',
 };
 
 interface Correlation {
@@ -1324,22 +1324,22 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="notes-overlay">
-      <div className="w-[500px] max-h-[70vh] bg-card border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
-        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+      <div className="w-[500px] max-h-[70vh] bg-card border border-border rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
+        <div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
           <span className="text-xs text-muted-foreground/50 font-mono">{notes.length}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-notes"><X className="w-4 h-4" /></button>
         </div>
-        <div className="px-4 py-3 border-b border-white/[0.05] space-y-2">
+        <div className="px-4 py-3 border-b border-border space-y-2">
           <div className="flex gap-2">
             <input
               value={newNote}
               onChange={e => setNewNote(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addNote()}
               placeholder={language === 'en' ? 'Add intelligence note...' : '\u0623\u0636\u0641 \u0645\u0644\u0627\u062D\u0638\u0629...'}
-              className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-3 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-primary/40 font-mono"
+              className="flex-1 bg-muted/50 border border-border rounded px-3 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-primary/40 font-mono"
               data-testid="input-note"
             />
             <button onClick={addNote} className="px-3 py-1.5 rounded bg-primary/20 border border-primary/30 text-primary text-[11px] font-mono font-bold hover:bg-primary/30 transition-colors" data-testid="button-add-note">
@@ -1348,12 +1348,12 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
           </div>
           <div className="flex gap-1">
             {['general', 'threat', 'intel', 'maritime'].map(c => (
-              <button key={c} onClick={() => setCategory(c)} className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold border transition-colors ${category === c ? 'bg-primary/15 border-primary/25 text-primary/90' : 'bg-white/[0.02] border-white/[0.05] text-foreground/30'}`}>{c.toUpperCase()}</button>
+              <button key={c} onClick={() => setCategory(c)} className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold border transition-colors ${category === c ? 'bg-primary/15 border-primary/25 text-primary/90' : 'bg-muted/30 border-border text-foreground/30'}`}>{c.toUpperCase()}</button>
             ))}
           </div>
         </div>
         <ScrollArea className="flex-1 min-h-0">
-          <div className="divide-y divide-white/[0.03]">
+          <div className="divide-y divide-border">
             {notes.length === 0 && (
               <div className="px-4 py-8 text-center">
                 <StickyNote className="w-6 h-6 text-muted-foreground/20 mx-auto mb-2" />
@@ -1397,21 +1397,21 @@ function WatchlistOverlay({ language, onClose, onUpdate }: { language: 'en' | 'a
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="watchlist-overlay">
-      <div className="w-[400px] max-h-[60vh] bg-card border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
-        <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+      <div className="w-[400px] max-h-[60vh] bg-card border border-border rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
+        <div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
           <div className="flex-1" />
           <button onClick={onClose} className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted" data-testid="button-close-watchlist"><X className="w-4 h-4" /></button>
         </div>
-        <div className="px-4 py-3 border-b border-white/[0.05]">
+        <div className="px-4 py-3 border-b border-border">
           <div className="flex gap-2">
             <input
               value={newItem}
               onChange={e => setNewItem(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && add()}
               placeholder={language === 'en' ? 'Callsign, ship name, city...' : '\u0627\u0633\u0645 \u0627\u0644\u0637\u0627\u0626\u0631\u0629 \u0623\u0648 \u0627\u0644\u0633\u0641\u064A\u0646\u0629...'}
-              className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-3 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-amber-500/40 font-mono"
+              className="flex-1 bg-muted/50 border border-border rounded px-3 py-1.5 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-amber-500/40 font-mono"
               data-testid="input-watchlist"
             />
             <button onClick={add} className="px-3 py-1.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[11px] font-mono font-bold hover:bg-amber-500/30 transition-colors" data-testid="button-add-watchlist">+</button>
@@ -1512,8 +1512,8 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
 }) {
   const [newName, setNewName] = useState('');
   return (
-    <div className="absolute top-10 right-0 z-[150] w-64 bg-card border border-white/[0.08] rounded-lg shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.45)'}}>
-      <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2">
+    <div className="absolute top-10 right-0 z-[150] w-64 bg-card border border-border rounded-lg shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.45)'}}>
+      <div className="px-3 py-2 border-b border-border flex items-center gap-2">
         <Layout className="w-3.5 h-3.5 text-primary/70" />
         <span className="text-xs font-bold font-mono text-foreground/80 uppercase tracking-wider">{language === 'en' ? 'Layout Presets' : '\u0642\u0648\u0627\u0644\u0628'}</span>
         <div className="flex-1" />
@@ -1521,7 +1521,7 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
       </div>
       <div className="p-2 space-y-1">
         {presets.map(p => (
-          <div key={p.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-card/50 transition-colors group" data-testid={`preset-${p.name}`}>
+          <div key={p.name} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted transition-colors group" data-testid={`preset-${p.name}`}>
             <button onClick={() => { onLoad(p); onClose(); }} className="flex-1 text-left text-[11px] font-mono text-foreground/80 hover:text-foreground">{p.name}</button>
             {!BUILT_IN_PRESETS.find(b => b.name === p.name) && (
               <button onClick={() => onDelete(p.name)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-red-500/20 active:bg-red-500/30 opacity-60 hover:opacity-100"><Trash2 className="w-3 h-3 text-red-400/60" /></button>
@@ -1529,14 +1529,14 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
           </div>
         ))}
       </div>
-      <div className="px-2 pb-2 border-t border-white/[0.05] pt-2">
+      <div className="px-2 pb-2 border-t border-border pt-2">
         <div className="flex gap-1">
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) { onSave(newName.trim()); setNewName(''); onClose(); } }}
             placeholder={language === 'en' ? 'Save current...' : '\u062D\u0641\u0638 \u0627\u0644\u062D\u0627\u0644\u064A...'}
-            className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded px-2 py-1 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none font-mono"
+            className="flex-1 bg-muted/50 border border-border rounded px-2 py-1 text-[10px] text-foreground placeholder:text-foreground/20 focus:outline-none font-mono"
             data-testid="input-preset-name"
           />
           <button
@@ -1573,11 +1573,11 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   };
 
   return (
-    <div className="h-6 border-t border-white/[0.03] relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(222 30% 10% / 0.83)'}}>
+    <div className="h-6 border-t border-border relative flex items-center px-4 shrink-0" data-testid="event-timeline" style={{background:'hsl(var(--muted))'}}>
       <span className="text-[7px] text-foreground/15 font-mono uppercase tracking-[0.25em] mr-3 shrink-0 font-bold">
         {language === 'en' ? 'TIMELINE' : '\u062C\u062F\u0648\u0644 \u0632\u0645\u0646\u064A'}
       </span>
-      <div className="flex-1 relative h-2.5 bg-white/[0.015] rounded-sm border border-white/[0.03]">
+      <div className="flex-1 relative h-2.5 bg-muted/30 rounded-sm border border-border">
         <div className="absolute right-0 top-0 bottom-0 w-px bg-primary/30" />
         <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[7px] text-primary/30 font-mono font-bold">NOW</span>
         <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[7px] text-muted-foreground/20 font-mono">-1h</span>
@@ -1595,7 +1595,7 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
           </div>
         ))}
         {hoveredEvent && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-card/95 border border-white/[0.08] rounded px-2 py-1 text-[10px] font-mono whitespace-nowrap z-10 shadow-lg">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded px-2 py-1 text-[10px] font-mono whitespace-nowrap z-10 shadow-lg">
             <span className="text-foreground/90 font-bold">{hoveredEvent.title}</span>
             <span className="text-muted-foreground/50 ml-2">{timeAgo(hoveredEvent.timestamp)}</span>
           </div>
@@ -1967,20 +1967,20 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 relative cursor-grab active:cursor-grabbing select-none bg-card border-b border-border">
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-primary/70 shrink-0">{icon}</span>
-      <span className="text-[12px] font-semibold text-foreground/80 leading-none">{title}</span>
+    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground shrink-0">{icon}</span>
+      <span className="text-[11px] font-semibold text-foreground/75 leading-none tracking-wide">{title}</span>
       {count !== undefined && (
-        <span className="text-[11px] text-muted-foreground tabular-nums leading-none bg-muted px-1.5 py-0.5 rounded border border-border">
+        <span className="text-[10px] text-muted-foreground/70 tabular-nums leading-none font-mono bg-muted/60 px-1.5 py-0.5 rounded">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+        <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[10px] text-emerald-600 font-medium">Live</span>
+          <span className="text-[10px] text-muted-foreground font-medium">live</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -2143,9 +2143,9 @@ const MarketTile = memo(function MarketTile({ c, language }: { c: CommodityData;
 function MarketSectionHeader({ label, count }: { label: string; count: number }) {
   return (
     <div className="flex items-center gap-2 px-2 pt-2 pb-1">
-      <div className="h-px flex-1 bg-white/[0.06]" />
+      <div className="h-px flex-1 bg-border" />
       <span className="text-[8px] uppercase tracking-[0.25em] text-foreground/25 font-bold font-mono shrink-0">{label} ({count})</span>
-      <div className="h-px flex-1 bg-white/[0.06]" />
+      <div className="h-px flex-1 bg-border" />
     </div>
   );
 }
@@ -2181,7 +2181,7 @@ const CommoditiesPanel = memo(function CommoditiesPanel({
         onMaximize={onMaximize}
         isMaximized={isMaximized}
       />
-      <div className="shrink-0 px-2.5 py-2 border-b border-white/[0.04] flex items-center gap-2 flex-wrap" data-testid="market-summary-bar">
+      <div className="shrink-0 px-2.5 py-2 border-b border-border flex items-center gap-2 flex-wrap" data-testid="market-summary-bar">
         <div className="flex items-center gap-1.5 text-[10px] font-mono">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           <span className="text-emerald-400/80 font-bold">{gainers}</span>
@@ -2245,7 +2245,7 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           <p className="text-xs text-muted-foreground">No active alerts</p>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.02]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
         {sorted.map((s) => {
           const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
           const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
@@ -2332,7 +2332,7 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
         </div>
       )}
       {selectedFlight && (
-        <div className="px-3 py-2 border-b border-primary/20 bg-[transparent] text-[#e9e7e2]" style={{background:'linear-gradient(135deg, hsl(185 100% 42% / 0.06), hsl(222 30% 10% / 0.8))'}} data-testid="flight-detail-card">
+        <div className="px-3 py-2 border-b border-primary/20 bg-[transparent] text-[#e9e7e2]" style={{background:'hsl(var(--muted))'}} data-testid="flight-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-primary/90" data-testid="text-flight-callsign">{selectedFlight.callsign}</span>
             <button onClick={() => setSelectedFlight(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="flight-close-detail">
@@ -2376,7 +2376,7 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
               href={`https://www.flightradar24.com/${selectedFlight.callsign}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-[10px] font-mono font-bold text-foreground/50 transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted hover:bg-muted/80 border border-border text-[10px] font-mono font-bold text-foreground/50 transition-colors"
               data-testid={`flight-fr24-${selectedFlight.id}`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -2386,7 +2386,7 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
           </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
         {sorted.map((f) => {
           const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
           const isSelected = selectedFlight?.id === f.id;
@@ -2490,8 +2490,8 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
         isMaximized={isMaximized}
       />
       {/* AI Natural Language Filter */}
-      <div className="px-2 py-1.5 border-b border-white/[0.04]" style={{background:'hsl(222 30% 10% / 0.85)'}}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(222 30% 10% / 0.8)', border:'1px solid hsl(185 80% 50% / 0.1)'}}>
+      <div className="px-2 py-1.5 border-b border-border" style={{background:'hsl(var(--muted))'}}>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-none" style={{background:'hsl(var(--background))', border:'1px solid hsl(var(--border))'}}>
           <span className="text-[7px] font-mono text-primary/40 font-bold shrink-0">AI▸</span>
           <input
             type="text"
@@ -2516,7 +2516,7 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
           <p className="text-[10px] text-foreground/25">No active events</p>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
         {filtered.map((e) => {
           const sev = SEVERITY_STYLES[e.severity] || SEVERITY_STYLES.low;
           const icon = EVENT_TYPE_ICONS[e.type] || '📍';
@@ -2591,7 +2591,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
       )}
 
       {selectedShip && (
-        <div className="px-3 py-2 border-b border-blue-500/20" style={{background:'linear-gradient(135deg, hsl(217 91% 60% / 0.06), hsl(222 30% 10% / 0.8))'}} data-testid="ship-detail-card">
+        <div className="px-3 py-2 border-b border-blue-500/20" style={{background:'hsl(var(--muted))'}} data-testid="ship-detail-card">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold font-mono text-blue-300" data-testid="text-ship-name">{selectedShip.name}</span>
             <button onClick={() => setSelectedShip(null)} className="text-foreground/25 hover:text-foreground/50 transition-colors" data-testid="ship-close-detail">
@@ -2621,7 +2621,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]">
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
         {sorted.map((s) => {
           const style = SHIP_TYPE_STYLES[s.type] || SHIP_TYPE_STYLES.cargo;
           const isSelected = selectedShip?.id === s.id;
@@ -2700,7 +2700,7 @@ const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, la
         live count={issues.length > 0 ? issues.length : undefined}
         onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
       />
-      <div className="shrink-0 px-3 py-2 border-b border-white/[0.04] flex items-center gap-3" style={{ background: 'hsl(222 28% 12% / 0.6)' }}>
+      <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-3" style={{ background: 'hsl(var(--muted))' }}>
         {[
           { label: t('COUNTRIES', 'دول'), count: statuses.length, color: 'text-cyan-400' },
           { label: t('ONLINE', 'متصل'), count: statuses.filter(s => s.status === 'online').length, color: 'text-emerald-400' },
@@ -2717,7 +2717,7 @@ const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, la
         {sorted.map((cs) => {
           const colors = INET_STATUS_COLORS[cs.status] || INET_STATUS_COLORS.online;
           return (
-            <div key={cs.countryCode} className="px-3 py-2 border-b border-white/[0.03] hover-elevate" data-testid={`netblack-country-${cs.countryCode}`}>
+            <div key={cs.countryCode} className="px-3 py-2 border-b border-border hover-elevate" data-testid={`netblack-country-${cs.countryCode}`}>
               <div className="flex items-center gap-2">
                 <span className="text-sm">{INET_FLAG[cs.countryCode] || ''}</span>
                 <span className="text-[11px] font-bold font-mono text-foreground/80 flex-1 truncate">{cs.country}</span>
@@ -2727,7 +2727,7 @@ const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, la
                 </div>
               </div>
               <div className="mt-1.5 flex items-center gap-1">
-                <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${cs.healthScore >= 70 ? 'bg-emerald-500' : cs.healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${cs.healthScore}%` }} />
                 </div>
                 <span className="text-[9px] font-mono text-foreground/30 w-8 text-right">{cs.healthScore}%</span>
@@ -2932,7 +2932,7 @@ const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaxim
       />
 
       {/* Stat pills — click to filter */}
-      <div className="shrink-0 px-3 py-1.5 border-b border-white/[0.05] flex items-center gap-3" style={{ background: 'hsl(222 28% 11% / 0.7)' }}>
+      <div className="shrink-0 px-3 py-1.5 border-b border-border flex items-center gap-3" style={{ background: 'hsl(var(--muted))' }}>
         {[
           { label: 'ACTIVE', count: activeNotams.length, color: '#22d3ee', filter: 'all' },
           { label: 'CLOSURE', count: closureCount, color: '#ef4444', filter: 'airspace_closure' },
@@ -2988,7 +2988,7 @@ const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaxim
       </div>
 
       {/* Scrollable list */}
-      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 divide-y divide-white/[0.03]" style={{ overscrollBehavior: 'contain' }}>
+      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 divide-y divide-border" style={{ overscrollBehavior: 'contain' }}>
         {filtered.length === 0 && (
           <div className="px-3 py-8 text-center">
             <FileWarning className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(34,211,238,0.15)' }} />
@@ -3184,9 +3184,9 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
         isMaximized={isMaximized}
         extra={
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 border border-red-200">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-              <span className="text-[9px] text-red-400/80 font-bold tracking-wider font-mono">LIVE</span>
+              <span className="text-[9px] text-red-500 font-bold tracking-wider font-mono">LIVE</span>
             </div>
             <button
               onClick={() => setShowUrlInput(p => !p)}
@@ -3199,7 +3199,7 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
           </div>
         }
       />
-      <div className="px-2 py-1.5 border-b border-white/[0.04] bg-card/30 flex items-center gap-1 shrink-0 overflow-x-auto">
+      <div className="px-2 py-1 border-b border-border bg-muted/40 flex items-center gap-1 shrink-0 overflow-x-auto">
         {LIVE_CHANNELS.map(ch => (
           <button
             key={ch.id}
@@ -3207,8 +3207,8 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
             data-testid={`button-channel-${ch.id}`}
             className={`flex-1 py-1 rounded text-[9px] font-mono font-bold transition-colors border whitespace-nowrap min-w-0 ${
               activeChannel === ch.id && !customVideoId
-                ? 'bg-red-500/15 text-red-400 border-red-500/30'
-                : 'text-foreground/35 hover:text-foreground/70 border-transparent hover:border-white/[0.08]'
+                ? 'bg-red-500/10 text-red-500 border-red-500/25'
+                : 'text-muted-foreground hover:text-foreground border-transparent hover:bg-muted'
             }`}
           >
             {language === 'ar' ? ch.labelAr : ch.label}
@@ -3216,14 +3216,14 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
         ))}
       </div>
       {showUrlInput && (
-        <div className="px-3 py-2 border-b border-white/[0.04] bg-card/40 flex items-center gap-2 shrink-0">
+        <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center gap-2 shrink-0">
           <input
             type="text"
             value={customUrl}
             onChange={e => setCustomUrl(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSetUrl()}
             placeholder="Paste YouTube live URL..."
-            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded px-2 py-1 text-[10px] text-foreground/70 placeholder:text-foreground/20 font-mono focus:outline-none focus:border-primary/40"
+            className="flex-1 bg-background border border-border rounded px-2 py-1 text-[10px] text-foreground placeholder:text-muted-foreground font-mono focus:outline-none focus:border-primary/50"
             data-testid="input-stream-url"
           />
           <button
@@ -3235,7 +3235,7 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
           </button>
         </div>
       )}
-      <div className="flex-1 min-h-0 bg-black relative">
+      <div className="flex-1 min-h-0 bg-muted/20 relative">
         <iframe
           key={customVideoId || currentChannel.videoId || currentChannel.channelId}
           src={embedSrc}
@@ -3249,15 +3249,15 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
           onError={() => setIframeError(true)}
         />
         {iframeError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
-            <Video className="w-8 h-8 text-foreground/20 mb-2" />
-            <p className="text-[11px] text-foreground/40 font-mono mb-2">{language === 'en' ? 'Stream unavailable' : '\u0627\u0644\u0628\u062B \u063A\u064A\u0631 \u0645\u062A\u0627\u062D'}</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/90 z-10">
+            <Video className="w-8 h-8 text-muted-foreground/30 mb-2" />
+            <p className="text-[11px] text-muted-foreground font-mono mb-3">{language === 'en' ? 'Stream unavailable' : '\u0627\u0644\u0628\u062B \u063A\u064A\u0631 \u0645\u062A\u0627\u062D'}</p>
             <button
               onClick={() => { setIframeError(false); handleSelectChannel(activeChannel); }}
-              className="px-3 py-1 rounded text-[9px] font-bold bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+              className="px-3 py-1 rounded text-[9px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               data-testid="button-retry-stream"
             >
-              RETRY
+              Retry
             </button>
           </div>
         )}
@@ -3363,8 +3363,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── HEADER ── */}
       <div
-        className={`panel-drag-handle ra-flex-center gap-2.5 px-3.5 py-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
-        style={{ borderBottom: `2px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}` }}
+        className={`panel-drag-handle ra-alert-header ra-flex-center gap-2.5 px-3.5 py-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
+        style={{ borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.35)' : 'hsl(var(--border))'}` }}
       >
           <div className="ra-flex-col gap-0.5 flex-1 min-w-0">
             <div className="ra-flex-center gap-2">
@@ -4355,7 +4355,7 @@ function AlertMapPanel({
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(240 18% 11% / 0.98), hsl(240 16% 9% / 0.96))', borderBottom:'1px solid rgba(99,102,241,0.12)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg,transparent 5%,rgba(99,102,241,0.5) 30%,rgba(99,102,241,0.7) 50%,rgba(99,102,241,0.5) 70%,transparent 95%)'}} />
         <div className={`w-2 h-2 rounded-full shrink-0 ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500/70'}`} />
         <MapPin className="w-3 h-3 text-foreground/40 shrink-0" />
@@ -5123,7 +5123,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(222 28% 13% / 0.95), hsl(222 26% 11% / 0.92))', borderBottom:'1px solid hsl(175 40% 34% / 0.10)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
@@ -5147,7 +5147,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
 
-      <div className="flex border-b border-white/[0.05] shrink-0" style={{ background: 'hsl(222 20% 12% / 0.7)' }}>
+      <div className="flex border-b border-border shrink-0" style={{ background: 'hsl(var(--muted))' }}>
         {(['overview', 'regions', 'sources', 'patterns'] as const).map(tab => (
           <button
             key={tab}
@@ -5155,7 +5155,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
             className={`flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-colors ${
               analyticsTab === tab
                 ? 'text-blue-300 border-b border-blue-400'
-                : 'text-white/30 hover:text-white/60'
+                : 'text-muted-foreground/60 hover:text-white/60'
             }`}
             data-testid={`button-tab-${tab}`}
           >
@@ -5920,7 +5920,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
       <ArrowRight className="w-2.5 h-2.5 shrink-0" style={{ color: barColor + '80' }} />
       {getCountryIcon(c.targetCountry)}
       <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
-      <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{ background: 'hsl(222 28% 10%)' }}>
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{ background: 'hsl(var(--muted))' }}>
         <div className="h-full rounded-full" style={{ width: `${Math.max(4, (c.totalLaunches / Math.max(maxLaunches, 1)) * 100)}%`, background: c.active ? barColor : barColor + '55' }} />
       </div>
       <span className="text-foreground/80 font-mono font-bold w-[36px] text-right">{c.totalLaunches.toLocaleString()}</span>
@@ -5954,7 +5954,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-rocketstats">
       {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing" style={{background:'linear-gradient(180deg, hsl(222 28% 13% / 0.95), hsl(222 26% 11% / 0.92))', borderBottom:'1px solid hsl(175 40% 34% / 0.10)'}}>
+      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing">
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
         <Rocket className="w-3.5 h-3.5 text-orange-400" />
         <span className="text-[10px] font-bold tracking-wider text-foreground/90 uppercase font-mono flex-1">{t('Launch Statistics', 'إحصائيات الإطلاق')}</span>
@@ -5965,18 +5965,18 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
       </div>
 
       {/* Tab bar */}
-      <div className="flex shrink-0 border-b" style={{background:'hsl(222 28% 12%)', borderColor:'hsl(185 20% 20% / 0.3)'}}>
+      <div className="flex shrink-0 border-b" style={{background:'hsl(var(--muted))', borderColor:'hsl(var(--border))'}}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className="flex-1 py-1.5 text-[8px] font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-            style={{ color: activeTab === tab.id ? 'hsl(185 100% 55%)' : 'hsl(222 10% 42%)', borderBottom: activeTab === tab.id ? '2px solid hsl(185 100% 42%)' : '2px solid transparent', background: activeTab === tab.id ? 'hsl(185 40% 18% / 0.25)' : 'transparent' }}>
+            style={{ color: activeTab === tab.id ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))', borderBottom: activeTab === tab.id ? '2px solid hsl(var(--primary))' : '2px solid transparent', background: activeTab === tab.id ? 'hsl(var(--primary) / 0.08)' : 'transparent' }}>
             {tab.id === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />}
             {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2" style={{background:'hsl(222 28% 11% / 0.97)'}}>
+      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2" style={{background:'hsl(var(--background))'}}>
         {!stats && activeTab !== 'live' ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-5 h-5 animate-spin text-primary/50" />
@@ -5984,30 +5984,30 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
         ) : activeTab === 'overview' ? (
           <>
             <div className="grid grid-cols-4 gap-1.5" data-testid="stats-summary">
-              <div className="rounded p-1.5 text-center" style={{background:'hsl(222 28% 14% / 0.7)', border:'1px solid hsl(185 30% 25% / 0.3)'}}>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 30% 25% / 0.3)'}}>
                 <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-launches">{stats!.totalLaunches.toLocaleString()}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Total Launches', 'إجمالي')}</div>
               </div>
-              <div className="rounded p-1.5 text-center" style={{background:'hsl(222 28% 14% / 0.7)', border:'1px solid hsl(120 30% 25% / 0.3)'}}>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(120 30% 25% / 0.3)'}}>
                 <div className="text-[15px] font-black text-emerald-400 font-mono" data-testid="text-intercepted">{stats!.totalIntercepted.toLocaleString()}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Intercepted', 'اعتراض')}</div>
               </div>
-              <div className="rounded p-1.5 text-center" style={{background:'hsl(222 28% 14% / 0.7)', border:'1px solid hsl(0 30% 25% / 0.3)'}}>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(0 30% 25% / 0.3)'}}>
                 <div className="text-[15px] font-black text-orange-400 font-mono" data-testid="text-last-24h">{stats!.last24h}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Last 24h', 'آخر 24 ساعة')}</div>
               </div>
-              <div className="rounded p-1.5 text-center" style={{background:'hsl(222 28% 14% / 0.7)', border:'1px solid hsl(45 30% 25% / 0.3)'}}>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(45 30% 25% / 0.3)'}}>
                 <div className="text-[15px] font-black text-yellow-400 font-mono" data-testid="text-active-fronts">{stats!.activeFronts}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Active Fronts', 'جبهات')}</div>
               </div>
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Intercept Rate', 'نسبة الاعتراض')}</span>
                 <span className="text-[11px] font-black text-emerald-400 font-mono" data-testid="text-intercept-rate">{(stats!.interceptRate * 100).toFixed(1)}%</span>
               </div>
-              <div className="w-full h-2 rounded-full overflow-hidden" style={{background:'hsl(222 28% 10%)'}}>
+              <div className="w-full h-2 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
                 <div className="h-full rounded-full transition-all duration-700" style={{width:`${stats!.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
               </div>
             </div>
@@ -6038,7 +6038,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <TypeBreakdown corridors={corridorsFromIsrael} color="#60a5fa" />
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
               <div className="flex items-center gap-1 mb-1.5">
                 <Rocket className="w-3 h-3 text-primary/70" />
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('By Launch Origin', 'حسب مصدر الإطلاق')}</span>
@@ -6047,7 +6047,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 {originEntries.map(([origin, count], i) => (
                   <div key={origin} className="flex items-center gap-1.5" data-testid={`origin-bar-${i}`}>
                     <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{origin}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(222 28% 10%)'}}>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
                       <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(185 100% 42%)' : 'hsl(185 60% 35%)'}} />
                     </div>
                     <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
@@ -6056,7 +6056,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               </div>
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
               <div className="flex items-center gap-1 mb-1.5">
                 <Target className="w-3 h-3 text-red-400/70" />
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Top Targets', 'الأهداف الرئيسية')}</span>
@@ -6065,7 +6065,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 {targetEntries.map(([target, count], i) => (
                   <div key={target} className="flex items-center gap-1.5" data-testid={`target-bar-${i}`}>
                     <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{target}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(222 28% 10%)'}}>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
                       <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
                     </div>
                     <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
@@ -6075,11 +6075,11 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
             </div>
 
             <div className="grid grid-cols-2 gap-1.5">
-              <div className="rounded p-1.5" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Peak Hour', 'ساعة الذروة')}</div>
                 <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats!.peakHour} UTC</div>
               </div>
-              <div className="rounded p-1.5" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Last Hour', 'الساعة الأخيرة')}</div>
                 <div className="text-[12px] font-bold font-mono" data-testid="text-last-1h">
                   <span className={stats!.last1h > 5 ? 'text-red-400' : stats!.last1h > 0 ? 'text-orange-400' : 'text-green-400'}>{stats!.last1h}</span>
@@ -6100,7 +6100,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 { label: t('Intercepted','اعتراض'), value: totalGCCIntercepted.toLocaleString(), color: '#34d399' },
                 { label: t('Intercept Rate','نسبة اعتراض'), value: totalGCCHits > 0 ? `${((totalGCCIntercepted/totalGCCHits)*100).toFixed(0)}%` : '—', color: '#60a5fa' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(222 28% 14% / 0.7)', border:`1px solid ${color}28`}}>
+                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:`1px solid ${color}28`}}>
                   <div className="text-[14px] font-black font-mono" style={{ color }}>{value}</div>
                   <div className="text-[7px] text-foreground/50 uppercase tracking-wider leading-tight mt-0.5">{label}</div>
                 </div>
@@ -6162,7 +6162,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                   <div key={country} className="flex items-center gap-1.5 mb-0.5">
                     {getCountryIcon(country)}
                     <span className="text-[8px] text-foreground/60 font-mono w-[90px] truncate">{country}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(222 28% 10%)'}}>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
                       <div className="h-full rounded-full" style={{width:`${(total/maxT)*100}%`, background:'#f97316'}} />
                     </div>
                     <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{total.toLocaleString()}</span>
@@ -6179,7 +6179,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 { label: t('Hezbollah → Israel','حزب الله ← إسرائيل'), value: totalLblFired.toLocaleString(), color: '#f97316', sub: t('Since Oct 7, 2023','منذ 7 أكتوبر 2023') },
                 { label: t('Israel → Lebanon','إسرائيل ← لبنان'), value: totalLblReceived.toLocaleString(), color: '#60a5fa', sub: t('Since Oct 7, 2023','منذ 7 أكتوبر 2023') },
               ].map(({ label, value, color, sub }) => (
-                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(222 28% 14% / 0.7)', border:`1px solid ${color}28`}}>
+                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:`1px solid ${color}28`}}>
                   <div className="text-[16px] font-black font-mono" style={{ color }}>{value}</div>
                   <div className="text-[7px] text-foreground/60 font-bold uppercase tracking-wider">{label}</div>
                   <div className="text-[6px] text-foreground/30 font-mono mt-0.5">{sub}</div>
@@ -7485,26 +7485,26 @@ function PanelSidebar({
     const Icon = cfg.icon;
     const active = visiblePanels[id];
     const stat = panelStats[id];
-    const isAI = id === 'aiprediction';
     return (
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-md relative group transition-colors
+        className={`w-full h-8 flex items-center gap-2 px-2 rounded-md relative transition-colors
           ${active
-            ? (isAI ? 'bg-violet-100 text-violet-700' : 'bg-primary/10 text-primary')
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            ? 'bg-primary/8 text-primary'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'
           }`}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        {active && <div className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-r ${isAI ? 'bg-violet-500' : 'bg-primary'}`} />}
-        <Icon className={`w-3.5 h-3.5 shrink-0 ml-1 ${active ? (isAI ? 'text-violet-600' : 'text-primary') : ''}`} />
-        <span className={`text-[12px] font-medium flex-1 text-left leading-none truncate`}>
+        {active && <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-primary" />}
+        <Icon className="w-3.5 h-3.5 shrink-0 ml-1" />
+        <span className="text-[12px] font-medium flex-1 text-left leading-none truncate">
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded-full font-medium ${active ? (isAI ? 'text-violet-600 bg-violet-100' : 'text-primary bg-primary/10') : 'text-muted-foreground bg-muted'}`}>
+          <span className={`text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded font-semibold
+            ${active ? 'text-primary bg-primary/10' : 'text-muted-foreground/70 bg-muted'}`}>
             {stat}
           </span>
         )}
@@ -7515,21 +7515,16 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 overflow-y-auto overflow-x-hidden border-r border-border bg-sidebar"
-      style={{ width: 220 }}
+      style={{ width: 196 }}
     >
-      {/* Primary section */}
-      <div className="px-4 pt-4 pb-1">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Primary</span>
+      <div className="px-3 pt-3 pb-1">
+        <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Panels</span>
       </div>
-      <div className="flex flex-col gap-0.5 px-2 pb-1">
+      <div className="flex flex-col gap-px px-1.5 pb-1">
         {topGroup.map(id => renderBtn(id))}
       </div>
-      <div className="mx-4 my-2 border-t border-border" />
-      {/* Data section */}
-      <div className="px-4 pb-1">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Data</span>
-      </div>
-      <div className="flex flex-col gap-0.5 px-2 pb-4">
+      <div className="mx-3 my-2 border-t border-border/60" />
+      <div className="flex flex-col gap-px px-1.5 pb-3">
         {bottomGroup.map(id => renderBtn(id))}
       </div>
     </div>
@@ -8192,7 +8187,7 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile || isTablet ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
-      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-14'} border-b flex items-center justify-between px-2 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
+      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
         {/* Left — Branding */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <div className="flex items-center gap-2">
@@ -8584,13 +8579,13 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={96}
+            rowHeight={80}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableHandle=".panel-drag-handle"
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[12, 12]}
-            containerPadding={[16, 16]}
+            margin={[6, 6]}
+            containerPadding={[10, 10]}
             resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
             style={{ paddingBottom: 80 }}
           >
@@ -8603,24 +8598,18 @@ export default function Dashboard() {
                   key={id}
                   className="group flex flex-col overflow-hidden"
                   style={{
-                    borderRadius: 14,
-                    background: isFloating
-                      ? 'hsl(var(--muted))'
-                      : 'hsl(var(--card))',
+                    '--panel-accent': PANEL_ACCENTS[id] || 'hsl(var(--primary))',
+                    borderRadius: 10,
+                    background: isFloating ? 'hsl(var(--muted))' : 'hsl(var(--card))',
                     border: isFloating
-                      ? '2px dashed hsl(var(--border))'
+                      ? '1.5px dashed hsl(var(--border))'
                       : hasAlertGlow
-                        ? '1px solid hsl(0 72% 51% / 0.30)'
+                        ? '1px solid hsl(0 70% 50% / 0.22)'
                         : '1px solid hsl(var(--border))',
-                    boxShadow: isFloating
-                      ? 'none'
-                      : hasAlertGlow
-                        ? '0 0 0 3px hsl(0 72% 51% / 0.08), 0 1px 4px rgba(0,0,0,0.06)'
-                        : '0 1px 3px rgba(0,0,0,0.05)',
-                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                    boxShadow: hasAlertGlow && !isFloating ? '0 0 0 2px hsl(0 70% 50% / 0.06)' : 'none',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,
-                  }}
+                  } as React.CSSProperties}
                   data-testid={hasAlertGlow && !isFloating ? 'alert-panel-glow' : undefined}
                 >
                   {isFloating ? (
@@ -8642,7 +8631,7 @@ export default function Dashboard() {
                           data-no-drag
                           className="absolute top-1 right-1 z-[90] opacity-0 group-hover:opacity-100 transition-opacity duration-150"
                           title="Pop out as floating window"
-                          style={{ width: 22, height: 22, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)', color: 'rgba(255,255,255,0.45)', cursor: 'pointer' }}
+                          style={{ width: 20, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
                         >
                           <ExternalLink style={{ width: 10, height: 10 }} />
                         </button>
