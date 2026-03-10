@@ -30,7 +30,10 @@
       "Skill(claude-api)",
       "Bash(env:*)",
       "Bash(awk NR>=6463 && NR<=6960:*)",
-      "Bash(awk NR>=6463 && NR<=6560:*)"
+      "Bash(awk NR>=6463 && NR<=6560:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:www.wikidata.org)",
+      "WebFetch(domain:f24.my)"
     ]
   }
 }
