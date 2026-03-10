@@ -471,8 +471,17 @@
   }
 
   /* ── Alert card hover/focus feedback ── */
-  .ra-card { transition: filter .12s ease, box-shadow .12s ease; }
-  .ra-card:hover  { filter: brightness(1.08); }
+  .ra-card { position: relative; }
+  .ra-card::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: transparent;
+    transition: background .12s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .ra-card:hover::after  { background: rgba(255,255,255,0.04); }
   .ra-card:focus-visible {
     outline: 2px solid rgba(239,68,68,.55);
     outline-offset: 1px;
@@ -487,7 +496,7 @@
   }
 
   /* ── Filter pill hover ── */
-  .ra-pill:hover   { filter: brightness(1.12); }
+  .ra-pill:hover   { opacity: .85; }
   .ra-pill:focus-visible {
     outline: 2px solid rgba(239,68,68,.55);
     outline-offset: 1px;
