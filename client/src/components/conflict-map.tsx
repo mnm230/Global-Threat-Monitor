@@ -1,6 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Map as MapLibreMap, GeoJSONSource } from 'maplibre-gl';
+import { Map as MapLibreMap, GeoJSONSource, type ExpressionSpecification } from 'maplibre-gl';
 import { MapPin } from 'lucide-react';
 import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot } from '@shared/schema';
 
@@ -62,7 +62,7 @@ const LAYER_GROUPS = [
 ] as const;
 
 type LayerKey = typeof LAYER_GROUPS[number]['layers'][number]['key'];
-const ALL_LAYERS = LAYER_GROUPS.flatMap(g => g.layers);
+const ALL_LAYERS: { key: LayerKey; label: string; color: string; on: boolean }[] = LAYER_GROUPS.flatMap(g => g.layers as unknown as { key: LayerKey; label: string; color: string; on: boolean }[]);
 
 // ── Region presets ────────────────────────────────────────────────────────────
 const REGIONS: Record<string, { lng: number; lat: number; zoom: number }> = {
@@ -90,7 +90,7 @@ const EVENT_COLOR_EXPR = [
   'missile', '#ef4444', 'airstrike', '#f97316', 'defense', '#22d3ee',
   'naval', '#3b82f6', 'ground', '#eab308', 'nuclear', '#a855f7',
   '#ef4444',
-] as unknown as maplibregl.Expression;
+] as unknown as ExpressionSpecification;
 
 const EVENT_HEX: Record<string, string> = {
   missile: '#ef4444', airstrike: '#f97316', defense: '#22d3ee',
@@ -131,7 +131,7 @@ function addAllLayers(map: MapLibreMap, isMobile: boolean) {
 
   // Alerts — pulsing ring (opacity animated via rAF)
   map.addLayer({ id: 'alerts-ring', type: 'circle', source: 'alerts', paint: {
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 14, 8, 32] as unknown as maplibregl.Expression,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 14, 8, 32] as unknown as ExpressionSpecification,
     'circle-color': '#ef4444',
     'circle-opacity': 0.12,
     'circle-stroke-width': 0,
@@ -139,7 +139,7 @@ function addAllLayers(map: MapLibreMap, isMobile: boolean) {
 
   // Alerts — core dot
   map.addLayer({ id: 'alerts-core', type: 'circle', source: 'alerts', paint: {
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 5, 8, 11] as unknown as maplibregl.Expression,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 5, 8, 11] as unknown as ExpressionSpecification,
     'circle-color': '#ef4444',
     'circle-opacity': 0.9,
     'circle-stroke-width': 1.5,
@@ -152,9 +152,9 @@ function addAllLayers(map: MapLibreMap, isMobile: boolean) {
     'circle-radius': ['interpolate', ['linear'], ['zoom'],
       3, ['match', ['get', 'severity'], 'critical', 7, 'high', 5.5, 'medium', 4, 2.8],
       8, ['match', ['get', 'severity'], 'critical', 13, 'high', 11, 'medium', 8, 5.6],
-    ] as unknown as maplibregl.Expression,
+    ] as unknown as ExpressionSpecification,
     'circle-color': EVENT_COLOR_EXPR,
-    'circle-opacity': ['match', ['get', 'severity'], 'critical', 0.86, 0.67] as unknown as maplibregl.Expression,
+    'circle-opacity': ['match', ['get', 'severity'], 'critical', 0.86, 0.67] as unknown as ExpressionSpecification,
     'circle-stroke-width': 1,
     'circle-stroke-color': EVENT_COLOR_EXPR,
     'circle-stroke-opacity': 1,
@@ -183,9 +183,9 @@ function addAllLayers(map: MapLibreMap, isMobile: boolean) {
 
   // Thermal hotspots
   map.addLayer({ id: 'thermal-dots', type: 'circle', source: 'thermal', paint: {
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2, 8, 9] as unknown as maplibregl.Expression,
-    'circle-color': ['match', ['get', 'confidence'], 'high', '#ff5000', '#ff8c14'] as unknown as maplibregl.Expression,
-    'circle-opacity': ['match', ['get', 'confidence'], 'high', 0.59, 0.37] as unknown as maplibregl.Expression,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2, 8, 9] as unknown as ExpressionSpecification,
+    'circle-color': ['match', ['get', 'confidence'], 'high', '#ff5000', '#ff8c14'] as unknown as ExpressionSpecification,
+    'circle-opacity': ['match', ['get', 'confidence'], 'high', 0.59, 0.37] as unknown as ExpressionSpecification,
     'circle-stroke-width': 1,
     'circle-stroke-color': '#ff5000',
     'circle-stroke-opacity': 0.63,
@@ -193,7 +193,7 @@ function addAllLayers(map: MapLibreMap, isMobile: boolean) {
 
   // Military bases
   map.addLayer({ id: 'bases-dots', type: 'circle', source: 'bases', paint: {
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 9] as unknown as maplibregl.Expression,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 9] as unknown as ExpressionSpecification,
     'circle-color': '#3b82f6',
     'circle-opacity': 0.63,
     'circle-stroke-width': 1.5,
@@ -203,7 +203,7 @@ function addAllLayers(map: MapLibreMap, isMobile: boolean) {
 
   // Nuclear sites
   map.addLayer({ id: 'nuclear-dots', type: 'circle', source: 'nuclear', paint: {
-    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 9] as unknown as maplibregl.Expression,
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 9] as unknown as ExpressionSpecification,
     'circle-color': '#a855f7',
     'circle-opacity': 0.63,
     'circle-stroke-width': 1.5,
@@ -285,7 +285,7 @@ export default function ConflictMap({
         center: [init.lng, init.lat],
         zoom: init.zoom,
         attributionControl: false,
-        antialias: !IS_MOBILE,
+        // antialias omitted (not in MapOptions for maplibre-gl v5)
         fadeDuration: 0,
       });
       mapRef.current = map;
@@ -435,7 +435,7 @@ export default function ConflictMap({
     mapRef.current?.flyTo({ center: [region.lng, region.lat], zoom: region.zoom, duration: 900 });
   };
 
-  const toggleLayer = useCallback((key: string) =>
+  const toggleLayer = useCallback((key: LayerKey) =>
     setVis(prev => ({ ...prev, [key]: !prev[key] })), []);
 
   const tipLeft = tooltip ? Math.min(tooltip.x + 14, window.innerWidth - 240) : 0;
@@ -617,7 +617,7 @@ export default function ConflictMap({
                     return (
                       <button
                         key={cfg.key}
-                        onClick={() => toggleLayer(cfg.key)}
+                        onClick={() => toggleLayer(cfg.key as LayerKey)}
                         className="flex items-center gap-2 py-1.5 px-1.5 rounded-md hover:bg-white/[0.04] group"
                         style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
                       >
