@@ -157,7 +157,6 @@
   [class*="overflow-auto"],
   [style*="overflow"] {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
   }
 
   /* Readable font size minimums */
@@ -539,7 +538,6 @@
 .react-grid-item .overflow-auto,
 [data-testid="resizable-panels"] .overflow-y-auto,
 [data-testid="resizable-panels"] .overflow-auto {
-  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
 

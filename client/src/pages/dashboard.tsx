@@ -1216,24 +1216,24 @@ const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   // Row 1 — Hero: Alerts | Map | Telegram
-  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 10, minW: 2, minH: 4 },
-  { i: 'alertmap',     x: 3,  y: 0,  w: 6,  h: 10, minW: 3, minH: 4 },
-  { i: 'telegram',     x: 9,  y: 0,  w: 3,  h: 10, minW: 2, minH: 3 },
+  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 4 },
+  { i: 'alertmap',     x: 3,  y: 0,  w: 6,  h: 8,  minW: 3, minH: 4 },
+  { i: 'telegram',     x: 9,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 3 },
   // Row 2 — Intel strip: AI | Events | Markets | Netblack
-  { i: 'aiprediction', x: 0,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'events',       x: 3,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'markets',      x: 6,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'netblack',     x: 9,  y: 10, w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
+  { i: 'events',       x: 3,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
+  { i: 'markets',      x: 6,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
+  { i: 'netblack',     x: 9,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
   // Row 3 — Wide feed
-  { i: 'livefeed',     x: 0,  y: 16, w: 12, h: 4,  minW: 2, minH: 2 },
+  { i: 'livefeed',     x: 0,  y: 13, w: 12, h: 3,  minW: 2, minH: 2 },
   // Row 4 — Analysis pair
-  { i: 'osint',        x: 0,  y: 20, w: 6,  h: 6,  minW: 3, minH: 2 },
-  { i: 'analytics',    x: 6,  y: 20, w: 6,  h: 6,  minW: 2, minH: 2 },
+  { i: 'osint',        x: 0,  y: 16, w: 6,  h: 5,  minW: 3, minH: 2 },
+  { i: 'analytics',    x: 6,  y: 16, w: 6,  h: 5,  minW: 2, minH: 2 },
   // Row 5 — Data pair
-  { i: 'notams',       x: 0,  y: 26, w: 6,  h: 5,  minW: 2, minH: 2 },
-  { i: 'attackpred',   x: 6,  y: 26, w: 6,  h: 5,  minW: 2, minH: 3 },
+  { i: 'notams',       x: 0,  y: 21, w: 6,  h: 4,  minW: 2, minH: 2 },
+  { i: 'attackpred',   x: 6,  y: 21, w: 6,  h: 4,  minW: 2, minH: 3 },
   // Row 6 — Stats
-  { i: 'rocketstats',  x: 0,  y: 31, w: 12, h: 6,  minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 0,  y: 25, w: 12, h: 5,  minW: 2, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
@@ -3140,8 +3140,8 @@ const LIVE_CHANNELS = [
   { id: 'aje',     label: 'AJ ENG',   labelAr: 'الجزيرة EN', channelId: 'UCNye-wNBqNL5ZzHSJj3l8Bg', videoId: 'gCNeDWCI0vo' },
   { id: 'aja',     label: 'AJ AR',    labelAr: 'الجزيرة ع',  channelId: 'UCBvxne3r4hL7GKxufPsOmRg', videoId: 'bNyUyrR0PHo' },
   { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: 'U--OjmpjF5o' },
-  { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: 'NiRIbKwAejk' },
-  { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: '' },
+  { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: '' },
+  { id: 'trt',     label: 'TRT',      labelAr: 'تي آر تي',   channelId: 'UC7fWeaHhqgM4Ry-RMpM2YYw', videoId: 'Fxu04q4Rv38' },
 ] as const;
 
 const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
