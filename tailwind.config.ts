@@ -113,12 +113,12 @@ export default {
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
         "siren-flash": {
-          "0%, 100%": { opacity: "1", borderColor: "rgb(239 68 68)" },
-          "50%": { opacity: "0.7", borderColor: "rgb(239 68 68 / 0.4)" },
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.55" },
         },
         "siren-bg": {
-          "0%, 100%": { backgroundColor: "rgb(127 29 29 / 0.25)" },
-          "50%": { backgroundColor: "rgb(127 29 29 / 0.12)" },
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
         },
         "siren-scroll": {
           "0%": { transform: "translateX(0)" },

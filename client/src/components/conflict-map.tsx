@@ -1,8 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { Map as MapLibreMap } from 'maplibre-gl';
-import { MapboxOverlay } from '@deck.gl/mapbox';
-import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Map as MapLibreMap, GeoJSONSource } from 'maplibre-gl';
 import { MapPin } from 'lucide-react';
 import type { ConflictEvent, FlightData, RedAlert, ThermalHotspot } from '@shared/schema';
 
@@ -14,16 +12,6 @@ const MAP_THEMES = {
 type MapTheme = keyof typeof MAP_THEMES;
 
 const DEFAULT_STYLE = MAP_THEMES.dark;
-
-// ── Colors ───────────────────────────────────────────────────────────────────
-const EVENT_COLORS: Record<string, [number, number, number]> = {
-  missile:   [239, 68,  68],
-  airstrike: [249, 115, 22],
-  defense:   [34,  211, 238],
-  naval:     [59,  130, 246],
-  ground:    [234, 179, 8],
-  nuclear:   [168, 85,  247],
-};
 
 // ── Static intel data ─────────────────────────────────────────────────────────
 const MILITARY_BASES = [
@@ -74,7 +62,6 @@ const LAYER_GROUPS = [
 ] as const;
 
 type LayerKey = typeof LAYER_GROUPS[number]['layers'][number]['key'];
-
 const ALL_LAYERS = LAYER_GROUPS.flatMap(g => g.layers);
 
 // ── Region presets ────────────────────────────────────────────────────────────
@@ -97,58 +84,132 @@ interface TooltipState {
   title: string; sub: string; badge?: string; color?: string;
 }
 
-function parseObject(obj: Record<string, unknown>): Omit<TooltipState, 'x' | 'y'> | null {
-  if (!obj) return null;
-  // ConflictEvent
-  if ('severity' in obj && 'type' in obj && 'title' in obj) {
-    const e = obj as unknown as ConflictEvent;
-    const color = EVENT_COLORS[e.type];
-    return {
-      title: e.title,
-      sub: e.description,
-      badge: `${e.type.toUpperCase()} · ${e.severity.toUpperCase()}`,
-      color: color ? `rgb(${color.join(',')})` : '#ef4444',
-    };
+// ── Event colors (maplibre match expressions) ────────────────────────────────
+const EVENT_COLOR_EXPR = [
+  'match', ['get', 'type'],
+  'missile', '#ef4444', 'airstrike', '#f97316', 'defense', '#22d3ee',
+  'naval', '#3b82f6', 'ground', '#eab308', 'nuclear', '#a855f7',
+  '#ef4444',
+] as unknown as maplibregl.Expression;
+
+const EVENT_HEX: Record<string, string> = {
+  missile: '#ef4444', airstrike: '#f97316', defense: '#22d3ee',
+  naval: '#3b82f6', ground: '#eab308', nuclear: '#a855f7',
+};
+
+// ── GeoJSON helpers ───────────────────────────────────────────────────────────
+function toGFC<T extends { lat: number; lng: number }>(data: T[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: data.map(d => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [d.lng, d.lat] },
+      properties: d as unknown as Record<string, unknown>,
+    })),
+  };
+}
+
+const EMPTY_GFC = { type: 'FeatureCollection' as const, features: [] };
+
+// ── Source / layer IDs ────────────────────────────────────────────────────────
+const SOURCE_IDS = ['alerts', 'events', 'thermal', 'bases', 'nuclear'] as const;
+const MAP_LAYER_IDS = [
+  'alerts-ring', 'alerts-core',
+  'events-dots', 'events-labels',
+  'thermal-dots', 'bases-dots', 'nuclear-dots',
+] as const;
+
+// ── Add all native layers to map ──────────────────────────────────────────────
+function addAllLayers(map: MapLibreMap, isMobile: boolean) {
+  // Remove any existing layers/sources first (style change re-init)
+  for (const id of MAP_LAYER_IDS) { try { if (map.getLayer(id)) map.removeLayer(id); } catch {} }
+  for (const id of SOURCE_IDS)    { try { if (map.getSource(id)) map.removeSource(id); } catch {} }
+
+  for (const id of SOURCE_IDS) {
+    map.addSource(id, { type: 'geojson', data: EMPTY_GFC });
   }
-  // RedAlert
-  if ('city' in obj && 'threatType' in obj) {
-    const a = obj as unknown as RedAlert;
-    return {
-      title: `🚨 ${a.city}`,
-      sub: `${a.threatType} · ${a.region} · ${a.country}`,
-      badge: `${a.countdown}s`,
-      color: '#ef4444',
-    };
+
+  // Alerts — pulsing ring (opacity animated via rAF)
+  map.addLayer({ id: 'alerts-ring', type: 'circle', source: 'alerts', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 14, 8, 32] as unknown as maplibregl.Expression,
+    'circle-color': '#ef4444',
+    'circle-opacity': 0.12,
+    'circle-stroke-width': 0,
+  }});
+
+  // Alerts — core dot
+  map.addLayer({ id: 'alerts-core', type: 'circle', source: 'alerts', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 5, 8, 11] as unknown as maplibregl.Expression,
+    'circle-color': '#ef4444',
+    'circle-opacity': 0.9,
+    'circle-stroke-width': 1.5,
+    'circle-stroke-color': '#ffc8c8',
+    'circle-stroke-opacity': 0.8,
+  }});
+
+  // Events dots
+  map.addLayer({ id: 'events-dots', type: 'circle', source: 'events', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'],
+      3, ['match', ['get', 'severity'], 'critical', 7, 'high', 5.5, 'medium', 4, 2.8],
+      8, ['match', ['get', 'severity'], 'critical', 13, 'high', 11, 'medium', 8, 5.6],
+    ] as unknown as maplibregl.Expression,
+    'circle-color': EVENT_COLOR_EXPR,
+    'circle-opacity': ['match', ['get', 'severity'], 'critical', 0.86, 0.67] as unknown as maplibregl.Expression,
+    'circle-stroke-width': 1,
+    'circle-stroke-color': EVENT_COLOR_EXPR,
+    'circle-stroke-opacity': 1,
+  }});
+
+  // Events labels (skip on mobile — expensive)
+  if (!isMobile) {
+    map.addLayer({ id: 'events-labels', type: 'symbol', source: 'events',
+      filter: ['==', ['get', 'severity'], 'critical'],
+      layout: {
+        'text-field': ['upcase', ['get', 'type']],
+        'text-font': ['Noto Sans Bold', 'Arial Unicode MS Bold'],
+        'text-size': 10,
+        'text-offset': [0, -1.6],
+        'text-anchor': 'bottom',
+        'text-allow-overlap': false,
+      },
+      paint: {
+        'text-color': EVENT_COLOR_EXPR,
+        'text-halo-color': '#000000',
+        'text-halo-width': 1.5,
+        'text-opacity': 0.8,
+      },
+    });
   }
-  // ThermalHotspot
-  if ('brightness' in obj && 'frp' in obj) {
-    const h = obj as unknown as ThermalHotspot;
-    return {
-      title: 'NASA FIRMS Thermal',
-      sub: `Brightness ${Math.round(h.brightness)}K · FRP ${h.frp.toFixed(1)} MW`,
-      badge: h.confidence.toUpperCase(),
-      color: '#f97316',
-    };
-  }
-  // Military base
-  if ('operator' in obj && 'country' in obj && 'name' in obj) {
-    return {
-      title: obj.name as string,
-      sub: `${obj.country} · ${obj.operator}`,
-      badge: 'MIL BASE',
-      color: '#3b82f6',
-    };
-  }
-  // Nuclear
-  if ('type' in obj && 'country' in obj && 'name' in obj) {
-    return {
-      title: obj.name as string,
-      sub: `${obj.country} · ${obj.type}`,
-      badge: '☢ NUCLEAR',
-      color: '#a855f7',
-    };
-  }
-  return null;
+
+  // Thermal hotspots
+  map.addLayer({ id: 'thermal-dots', type: 'circle', source: 'thermal', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 2, 8, 9] as unknown as maplibregl.Expression,
+    'circle-color': ['match', ['get', 'confidence'], 'high', '#ff5000', '#ff8c14'] as unknown as maplibregl.Expression,
+    'circle-opacity': ['match', ['get', 'confidence'], 'high', 0.59, 0.37] as unknown as maplibregl.Expression,
+    'circle-stroke-width': 1,
+    'circle-stroke-color': '#ff5000',
+    'circle-stroke-opacity': 0.63,
+  }});
+
+  // Military bases
+  map.addLayer({ id: 'bases-dots', type: 'circle', source: 'bases', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 9] as unknown as maplibregl.Expression,
+    'circle-color': '#3b82f6',
+    'circle-opacity': 0.63,
+    'circle-stroke-width': 1.5,
+    'circle-stroke-color': '#3b82f6',
+    'circle-stroke-opacity': 0.86,
+  }});
+
+  // Nuclear sites
+  map.addLayer({ id: 'nuclear-dots', type: 'circle', source: 'nuclear', paint: {
+    'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3, 8, 9] as unknown as maplibregl.Expression,
+    'circle-color': '#a855f7',
+    'circle-opacity': 0.63,
+    'circle-stroke-width': 1.5,
+    'circle-stroke-color': '#a855f7',
+    'circle-stroke-opacity': 0.9,
+  }});
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -164,7 +225,6 @@ interface ConflictMapProps {
   isVisible?: boolean;
 }
 
-// ── Mobile detection (module-level, stable across renders) ───────────────────
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -172,29 +232,25 @@ export default function ConflictMap({
   events, flights = [], redAlerts = [], thermalHotspots = [],
   activeView, mapStyle = DEFAULT_STYLE, focusLocation, isVisible = true,
 }: ConflictMapProps) {
-  const containerRef      = useRef<HTMLDivElement>(null);
-  const mapRef            = useRef<MapLibreMap | null>(null);
-  const overlayRef        = useRef<MapboxOverlay | null>(null);
-  const staticLayersRef   = useRef<unknown[]>([]);
-  const alertsRef         = useRef<RedAlert[]>([]);
-  const visAlertsRef      = useRef(true);
-  const isVisibleRef      = useRef(isVisible);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef       = useRef<MapLibreMap | null>(null);
+  const isVisibleRef = useRef(isVisible);
 
   const [vis, setVis] = useState<Record<LayerKey, boolean>>(
     () => Object.fromEntries(ALL_LAYERS.map(l => [l.key, l.on])) as Record<LayerKey, boolean>
   );
-  // Sidebar closed by default on mobile to save GPU/layout cost
   const [sidebarOpen, setSidebarOpen] = useState(!IS_MOBILE);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     () => Object.fromEntries(LAYER_GROUPS.map(g => [g.id, true]))
   );
   const [theme, setTheme] = useState<MapTheme>('dark');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [mapInitError, setMapInitError] = useState(false);
+  const [mapRetryCount, setMapRetryCount] = useState(0);
 
-  // Derive the active style URL from local theme (overrides parent prop)
-  const activeStyle = MAP_THEMES[theme];
+  const activeStyleUrl = MAP_THEMES[theme];
 
-  // Fly to focused location
+  // ── Fly to focused location ──────────────────────────────────────────────
   useEffect(() => {
     if (focusLocation && mapRef.current) {
       mapRef.current.flyTo({
@@ -205,30 +261,27 @@ export default function ConflictMap({
     }
   }, [focusLocation]);
 
-  // Swap map style when theme changes
+  // ── Switch theme ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mapRef.current) mapRef.current.setStyle(activeStyle);
-  }, [activeStyle]);
+    if (mapRef.current) mapRef.current.setStyle(activeStyleUrl);
+  }, [activeStyleUrl]);
 
-  // Hover handler
-  const onHover = useCallback(({ object, x, y }: { object: unknown; x: number; y: number }) => {
-    if (!object) { setTooltip(null); return; }
-    const parsed = parseObject(object as Record<string, unknown>);
-    if (parsed) setTooltip({ x, y, ...parsed });
-    else setTooltip(null);
-  }, []);
+  // ── Visibility ref ───────────────────────────────────────────────────────
+  useEffect(() => {
+    isVisibleRef.current = isVisible;
+    if (isVisible && mapRef.current) {
+      requestAnimationFrame(() => mapRef.current?.resize());
+    }
+  }, [isVisible]);
 
-  const [mapInitError, setMapInitError] = useState(false);
-  const [mapRetryCount, setMapRetryCount] = useState(0);
-
-  // Init MapLibre + deck.gl overlay
+  // ── Map init ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current || mapInitError) return;
     try {
       const init = VIEW_INIT[activeView] || VIEW_INIT.conflict;
       const map = new MapLibreMap({
         container: containerRef.current,
-        style: activeStyle,
+        style: activeStyleUrl,
         center: [init.lng, init.lat],
         zoom: init.zoom,
         attributionControl: false,
@@ -237,212 +290,154 @@ export default function ConflictMap({
       });
       mapRef.current = map;
 
-      const overlay = new MapboxOverlay({ interleaved: false, layers: [], onHover } as Parameters<typeof MapboxOverlay>[0]);
-      overlayRef.current = overlay;
-      map.addControl(overlay as Parameters<typeof map.addControl>[0]);
-
+      // Attribution
       map.addControl(
-        new (class { onAdd() { const d = document.createElement('div'); d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace'; d.textContent = '© CARTO · © OpenStreetMap'; return d; } onRemove() {} })(),
+        new (class {
+          onAdd() {
+            const d = document.createElement('div');
+            d.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.2);padding:2px 6px;pointer-events:none;font-family:monospace';
+            d.textContent = '© CARTO · © OpenStreetMap';
+            return d;
+          }
+          onRemove() {}
+        })(),
         'bottom-right'
       );
 
+      const setupLayers = () => {
+        if (!map.isStyleLoaded()) return;
+        addAllLayers(map, IS_MOBILE);
+
+        // Tooltip via mousemove on each interactive layer
+        const interactiveLayers: Array<[string, (p: Record<string, string>) => Omit<TooltipState, 'x' | 'y'> | null]> = [
+          ['alerts-core', p => ({
+            title: `🚨 ${p.city || 'Alert'}`,
+            sub: `${p.threatType || ''} · ${p.region || ''} · ${p.country || ''}`,
+            badge: p.countdown ? `${p.countdown}s` : undefined,
+            color: '#ef4444',
+          })],
+          ['events-dots', p => ({
+            title: p.title || p.type || 'Event',
+            sub: p.description || '',
+            badge: p.type && p.severity ? `${p.type.toUpperCase()} · ${p.severity.toUpperCase()}` : undefined,
+            color: EVENT_HEX[p.type] || '#ef4444',
+          })],
+          ['thermal-dots', p => ({
+            title: 'NASA FIRMS Thermal',
+            sub: `Brightness ${Math.round(Number(p.brightness) || 0)}K · FRP ${Number(p.frp || 0).toFixed(1)} MW`,
+            badge: (p.confidence || '').toUpperCase() || undefined,
+            color: '#f97316',
+          })],
+          ['bases-dots', p => ({
+            title: p.name || 'Base',
+            sub: `${p.country || ''} · ${p.operator || ''}`,
+            badge: 'MIL BASE',
+            color: '#3b82f6',
+          })],
+          ['nuclear-dots', p => ({
+            title: p.name || 'Site',
+            sub: `${p.country || ''} · ${p.type || ''}`,
+            badge: '☢ NUCLEAR',
+            color: '#a855f7',
+          })],
+        ];
+
+        for (const [layerId, parser] of interactiveLayers) {
+          map.on('mousemove', layerId, (e) => {
+            if (!e.features?.[0]) return;
+            map.getCanvas().style.cursor = 'pointer';
+            const props = e.features[0].properties as Record<string, string>;
+            const parsed = parser(props);
+            if (parsed) setTooltip({ x: e.point.x, y: e.point.y, ...parsed });
+          });
+          map.on('mouseleave', layerId, () => {
+            map.getCanvas().style.cursor = '';
+            setTooltip(null);
+          });
+        }
+      };
+
+      map.on('load', setupLayers);
+      // Re-add layers after style change (setStyle wipes custom layers)
+      map.on('styledata', () => { if (map.isStyleLoaded()) setupLayers(); });
+
       return () => {
-        overlay.finalize();
         map.remove();
         mapRef.current = null;
-        overlayRef.current = null;
       };
     } catch (err) {
       console.warn('[ConflictMap] Failed to initialize:', err);
       mapRef.current = null;
-      overlayRef.current = null;
       setMapInitError(true);
     }
   }, [mapRetryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Build deck.gl layers (no pulse dependency — animated ring handled separately)
-  const deckLayers = useMemo(() => {
-    const layers = [];
+  // ── Update source data when props change ──────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
 
-    // ── Red alerts core dots (static, no pulse) ──
     const activeAlerts = redAlerts.filter(a => a.lat && a.lng);
-    if (vis.alerts && activeAlerts.length > 0) {
-      layers.push(new ScatterplotLayer({
-        id: 'alerts-core',
-        data: activeAlerts,
-        getPosition: (d: RedAlert) => [d.lng!, d.lat!],
-        getRadius: 4000,
-        getFillColor: [239, 68, 68, 230] as [number, number, number, number],
-        getLineColor: [255, 200, 200, 200] as [number, number, number, number],
-        stroked: true, lineWidthMinPixels: 1.5,
-        radiusMinPixels: 5, radiusMaxPixels: 11,
-        pickable: true,
-      }));
-    }
+    (map.getSource('alerts') as GeoJSONSource | undefined)?.setData(toGFC(activeAlerts));
+    (map.getSource('events') as GeoJSONSource | undefined)?.setData(toGFC(events));
+    (map.getSource('thermal') as GeoJSONSource | undefined)?.setData(
+      toGFC(thermalHotspots.filter(h => h.confidence !== 'low'))
+    );
+  }, [redAlerts, events, thermalHotspots]);
 
-    // ── Conflict events ──
-    if (vis.events && events.length > 0) {
-      layers.push(new ScatterplotLayer({
-        id: 'events',
-        data: events,
-        getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-        getRadius: (d: ConflictEvent) =>
-          ({ critical: 7000, high: 5500, medium: 4000, low: 2800 }[d.severity] ?? 4000),
-        getFillColor: (d: ConflictEvent) =>
-          [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), d.severity === 'critical' ? 220 : 170] as [number, number, number, number],
-        getLineColor: (d: ConflictEvent) =>
-          [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), 255] as [number, number, number, number],
-        stroked: true, lineWidthMinPixels: 1,
-        radiusMinPixels: 4, radiusMaxPixels: 13,
-        pickable: true,
-      }));
-
-      // Skip TextLayer on mobile — it's expensive and hard to read on small screens
-      if (!IS_MOBILE) {
-        const critical = events.filter(e => e.severity === 'critical');
-        if (critical.length > 0) {
-          layers.push(new TextLayer({
-            id: 'events-labels',
-            data: critical,
-            getPosition: (d: ConflictEvent) => [d.lng, d.lat],
-            getText: (d: ConflictEvent) => d.type.toUpperCase(),
-            getSize: 10,
-            getColor: (d: ConflictEvent) =>
-              [...(EVENT_COLORS[d.type] ?? [239, 68, 68]), 200] as [number, number, number, number],
-            getPixelOffset: [0, -16] as [number, number],
-            fontFamily: 'monospace', fontWeight: 'bold',
-            outlineWidth: 3, outlineColor: [0, 0, 0, 200] as [number, number, number, number],
-            fontSettings: { sdf: true },
-            getTextAnchor: 'middle' as const,
-            getAlignmentBaseline: 'bottom' as const,
-            pickable: false,
-          }));
-        }
-      }
-    }
-
-    // ── NASA FIRMS thermal hotspots ──
-    if (vis.thermal && thermalHotspots.length > 0) {
-      const conf = thermalHotspots.filter(h => h.confidence !== 'low');
-      layers.push(new ScatterplotLayer({
-        id: 'thermal',
-        data: conf,
-        getPosition: (d: ThermalHotspot) => [d.lng, d.lat],
-        getRadius: (d: ThermalHotspot) => Math.max(1500, Math.min(d.frp * 70, 7000)),
-        getFillColor: (d: ThermalHotspot) =>
-          d.confidence === 'high'
-            ? [255, 80, 0, 150] as [number, number, number, number]
-            : [255, 140, 20, 95] as [number, number, number, number],
-        getLineColor: [255, 80, 0, 160] as [number, number, number, number],
-        stroked: true, lineWidthMinPixels: 1,
-        radiusMinPixels: 2, radiusMaxPixels: 9,
-        pickable: true,
-      }));
-    }
-
-    // ── Military bases ──
-    if (vis.bases) {
-      layers.push(new ScatterplotLayer({
-        id: 'bases',
-        data: MILITARY_BASES,
-        getPosition: (d: typeof MILITARY_BASES[0]) => [d.lng, d.lat],
-        getRadius: 5000,
-        getFillColor: [59, 130, 246, 160] as [number, number, number, number],
-        getLineColor: [59, 130, 246, 220] as [number, number, number, number],
-        stroked: true, lineWidthMinPixels: 1.5,
-        radiusMinPixels: 3, radiusMaxPixels: 9,
-        pickable: true,
-      }));
-    }
-
-    // ── Nuclear sites ──
-    if (vis.nuclear) {
-      layers.push(new ScatterplotLayer({
-        id: 'nuclear',
-        data: NUCLEAR_SITES,
-        getPosition: (d: typeof NUCLEAR_SITES[0]) => [d.lng, d.lat],
-        getRadius: 5000,
-        getFillColor: [168, 85, 247, 160] as [number, number, number, number],
-        getLineColor: [168, 85, 247, 230] as [number, number, number, number],
-        stroked: true, lineWidthMinPixels: 1.5,
-        radiusMinPixels: 3, radiusMaxPixels: 9,
-        pickable: true,
-      }));
-    }
-
-    return layers;
-  }, [vis, events, redAlerts, thermalHotspots]);
-
-  // Keep refs current so the rAF loop can read latest data without closures
+  // ── Update static sources (bases/nuclear) once ────────────────────────────
   useEffect(() => {
-    staticLayersRef.current = deckLayers;
-  }, [deckLayers]);
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    (map.getSource('bases') as GeoJSONSource | undefined)?.setData(toGFC(MILITARY_BASES));
+    (map.getSource('nuclear') as GeoJSONSource | undefined)?.setData(toGFC(NUCLEAR_SITES));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Layer visibility ──────────────────────────────────────────────────────
   useEffect(() => {
-    alertsRef.current = redAlerts.filter(a => a.lat && a.lng);
-  }, [redAlerts]);
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const show = (id: string, on: boolean) => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    };
+    show('alerts-ring', vis.alerts);
+    show('alerts-core', vis.alerts);
+    show('events-dots', vis.events);
+    if (!IS_MOBILE) show('events-labels', vis.events);
+    show('thermal-dots', vis.thermal);
+    show('bases-dots', vis.bases);
+    show('nuclear-dots', vis.nuclear);
+  }, [vis]);
 
-  useEffect(() => {
-    visAlertsRef.current = vis.alerts;
-  }, [vis.alerts]);
-
-  useEffect(() => {
-    isVisibleRef.current = isVisible;
-    // When becoming visible again, trigger a map resize in case the container size changed
-    if (isVisible && mapRef.current) {
-      requestAnimationFrame(() => mapRef.current?.resize());
-    }
-  }, [isVisible]);
-
-  // rAF loop — only animates the pulsing ring, does NOT trigger any React re-renders
-  // On mobile: throttle to ~20fps (every 3rd frame) to reduce GPU pressure
-  // When not visible (another tab active): skip overlay updates entirely
+  // ── Pulsing ring animation ────────────────────────────────────────────────
   useEffect(() => {
     let raf: number;
+    const MOBILE_SKIP = 3;
     let frame = 0;
-    const MOBILE_SKIP = 3; // render every Nth frame on mobile (~20fps)
     const tick = () => {
       frame++;
-      if (!isVisibleRef.current) {
-        raf = requestAnimationFrame(tick);
-        return;
+      if (isVisibleRef.current) {
+        if (!IS_MOBILE || frame % MOBILE_SKIP === 0) {
+          const map = mapRef.current;
+          if (map && map.isStyleLoaded() && map.getLayer('alerts-ring')) {
+            const alpha = 0.1 + 0.09 * Math.sin(Date.now() / 1000 * 2.4);
+            map.setPaintProperty('alerts-ring', 'circle-opacity', alpha);
+          }
+        }
       }
-      if (IS_MOBILE && frame % MOBILE_SKIP !== 0) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      const t = Date.now() / 1000;
-      const alpha = Math.round(25 + 22 * Math.sin(t * 2.4));
-      const activeAlerts = alertsRef.current;
-
-      const ringLayer = visAlertsRef.current && activeAlerts.length > 0
-        ? [new ScatterplotLayer({
-            id: 'alerts-ring',
-            data: activeAlerts,
-            getPosition: (d: RedAlert) => [d.lng!, d.lat!],
-            getRadius: 14000,
-            getFillColor: [239, 68, 68, alpha] as [number, number, number, number],
-            stroked: false,
-            radiusMinPixels: 10, radiusMaxPixels: 36,
-            pickable: false,
-          })]
-        : [];
-
-      overlayRef.current?.setProps({ layers: [...ringLayer, ...staticLayersRef.current] });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const flyTo = (region: { lng: number; lat: number; zoom: number }) => {
     mapRef.current?.flyTo({ center: [region.lng, region.lat], zoom: region.zoom, duration: 900 });
   };
 
-  const toggleLayer = (key: string) =>
-    setVis(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleLayer = useCallback((key: string) =>
+    setVis(prev => ({ ...prev, [key]: !prev[key] })), []);
 
-  // Tooltip position clamping
   const tipLeft = tooltip ? Math.min(tooltip.x + 14, window.innerWidth - 240) : 0;
   const tipTop  = tooltip ? Math.max(tooltip.y - 10, 10) : 0;
 
@@ -502,7 +497,6 @@ export default function ConflictMap({
       )}
 
       {/* ── Sidebar ─────────────────────────────────────────────── */}
-      {/* Tab button when closed */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
@@ -521,13 +515,11 @@ export default function ConflictMap({
         </button>
       )}
 
-      {/* Sidebar panel */}
       <div
         className="absolute top-0 left-0 h-full z-20 flex flex-col transition-transform duration-300"
         style={{
           width: IS_MOBILE ? 190 : 210,
           transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-          // backdrop-filter is GPU-expensive; use solid bg on mobile instead
           background: IS_MOBILE ? 'rgba(6,8,14,0.97)' : 'rgba(6,8,14,0.88)',
           borderRight: '1px solid rgba(255,255,255,0.06)',
           backdropFilter: IS_MOBILE ? undefined : 'blur(8px)',
@@ -598,7 +590,6 @@ export default function ConflictMap({
         <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-2">
           {LAYER_GROUPS.map(group => (
             <div key={group.id}>
-              {/* Group header */}
               <button
                 className="w-full flex items-center justify-between py-1.5 mb-0.5 rounded-md px-1 hover:bg-white/[0.03] transition-all"
                 onClick={() => setExpandedGroups(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
@@ -613,7 +604,6 @@ export default function ConflictMap({
                 <span className="text-white/18 text-[10px]" style={{ transition: 'transform 0.15s ease', transform: expandedGroups[group.id] ? 'rotate(0deg)' : 'rotate(-90deg)', display: 'inline-block' }}>▾</span>
               </button>
 
-              {/* Layer rows */}
               {expandedGroups[group.id] && (
                 <div className="flex flex-col gap-0.5 pl-2.5">
                   {group.layers.map(cfg => {
@@ -631,13 +621,9 @@ export default function ConflictMap({
                         className="flex items-center gap-2 py-1.5 px-1.5 rounded-md hover:bg-white/[0.04] group"
                         style={{ transition: 'all 0.14s cubic-bezier(0.4,0,0.2,1)' }}
                       >
-                        {/* Toggle pill */}
                         <div
                           className="relative w-7 h-3.5 rounded-full shrink-0"
-                          style={{
-                            background: on ? cfg.color + '50' : 'rgba(255,255,255,0.07)',
-                            transition: 'background 0.18s ease',
-                          }}
+                          style={{ background: on ? cfg.color + '50' : 'rgba(255,255,255,0.07)', transition: 'background 0.18s ease' }}
                         >
                           <div
                             className="absolute top-0.5 bottom-0.5 aspect-square rounded-full shadow-sm"
@@ -650,19 +636,13 @@ export default function ConflictMap({
                         </div>
                         <span
                           className="text-[9px] font-mono flex-1 text-left"
-                          style={{
-                            color: on ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.18)',
-                            transition: 'color 0.14s ease',
-                          }}
+                          style={{ color: on ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.18)', transition: 'color 0.14s ease' }}
                         >
                           {cfg.label}
                         </span>
                         <span
                           className="text-[8px] font-mono tabular-nums min-w-[20px] text-right"
-                          style={{
-                            color: on && count > 0 ? cfg.color + 'bb' : 'rgba(255,255,255,0.1)',
-                            transition: 'color 0.14s ease',
-                          }}
+                          style={{ color: on && count > 0 ? cfg.color + 'bb' : 'rgba(255,255,255,0.1)', transition: 'color 0.14s ease' }}
                         >
                           {count > 0 ? count : '—'}
                         </span>

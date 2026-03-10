@@ -975,7 +975,7 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="osint-timeline-panel">
-      <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2 shrink-0" style={{background:'hsl(222 30% 10% / 0.92)'}}>
+      <div className="panel-drag-handle px-3 py-2 border-b border-white/[0.05] flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none" style={{background:'hsl(222 30% 10% / 0.92)'}}>
         <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/90" style={{fontFamily:'var(--font-display)'}}>OSINT TIMELINE</span>
         <div className="flex-1" />
@@ -1324,7 +1324,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="notes-overlay">
-      <div className="w-[500px] max-h-[70vh] bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6)'}}>
+      <div className="w-[500px] max-h-[70vh] bg-card border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
         <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
@@ -1397,7 +1397,7 @@ function WatchlistOverlay({ language, onClose, onUpdate }: { language: 'en' | 'a
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="watchlist-overlay">
-      <div className="w-[400px] max-h-[60vh] bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6)'}}>
+      <div className="w-[400px] max-h-[60vh] bg-card border border-white/[0.08] rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
         <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
@@ -1452,7 +1452,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="alert-history-overlay">
-      <div className="w-[700px] max-h-[80vh] bg-background/95 backdrop-blur-xl border border-red-500/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px rgb(239 68 68 / 0.1)'}}>
+      <div className="w-[700px] max-h-[80vh] bg-background border border-red-500/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
         <div className="px-4 py-3 border-b border-red-900/40 bg-red-950/20 flex items-center gap-2 rounded-t-lg">
           <History className="w-4 h-4 text-red-400" />
           <span className="text-xs font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
@@ -1512,7 +1512,7 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
 }) {
   const [newName, setNewName] = useState('');
   return (
-    <div className="absolute top-10 right-0 z-[150] w-64 bg-card/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 20px 40px rgb(0 0 0 / 0.5)'}}>
+    <div className="absolute top-10 right-0 z-[150] w-64 bg-card border border-white/[0.08] rounded-lg shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.45)'}}>
       <div className="px-3 py-2 border-b border-white/[0.05] flex items-center gap-2">
         <Layout className="w-3.5 h-3.5 text-primary/70" />
         <span className="text-xs font-bold font-mono text-foreground/80 uppercase tracking-wider">{language === 'en' ? 'Layout Presets' : '\u0642\u0648\u0627\u0644\u0628'}</span>
@@ -3362,11 +3362,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
     <div className="h-full flex flex-col min-h-0 ra-panel-bg" data-testid="red-alert-panel">
 
       {/* ── HEADER ── */}
-      <div className="shrink-0">
-        <div
-          className={`ra-flex-center gap-2.5 px-3.5 py-2.5 ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
-          style={{ borderBottom: `2px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}` }}
-        >
+      <div
+        className={`panel-drag-handle ra-flex-center gap-2.5 px-3.5 py-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
+        style={{ borderBottom: `2px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)'}` }}
+      >
           <div className="ra-flex-col gap-0.5 flex-1 min-w-0">
             <div className="ra-flex-center gap-2">
               <div className={`ra-glow-dot ${hasActiveAlerts ? 'ra-glow-dot--active' : 'ra-glow-dot--inactive'}`}>
@@ -3395,7 +3394,6 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
             {onClose && <PanelMinimizeButton onMinimize={onClose} />}
           </div>
-        </div>
       </div>
 
       {/* ── STATS STRIP ── */}
@@ -3710,7 +3708,6 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           <div className="px-3 py-2 flex items-center gap-2">
             <div className="relative shrink-0">
               <div className="w-2.5 h-2.5 rounded-full bg-amber-400 eas-flash" />
-              <div className="absolute inset-0 rounded-full bg-amber-400/40 animate-ping" style={{ animationDuration: '1.2s' }} />
             </div>
             <span className="text-[11px] font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display">
               {language === 'ar' ? 'صفارات الإنذار' : 'ACTIVE SIRENS'}
@@ -3969,7 +3966,7 @@ const TelegramPanel = memo(function TelegramPanel({
 
       {lightboxImage && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md cursor-zoom-out"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 cursor-zoom-out"
           onClick={() => setLightboxImage(null)}
           onKeyDown={(e) => { if (e.key === 'Escape') setLightboxImage(null); }}
           tabIndex={0}
@@ -4181,7 +4178,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="settings-overlay">
-      <div className="w-[95vw] max-w-[520px] max-h-[90dvh] bg-background/95 backdrop-blur-xl border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 25px 50px rgb(0 0 0 / 0.6), 0 0 20px hsl(32 95% 50% / 0.1)'}}>
+      <div className="w-[95vw] max-w-[520px] max-h-[90dvh] bg-background border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
         <div className={`px-4 ${isTouchDevice ? 'py-4' : 'py-3'} border-b border-primary/20 bg-primary/5 flex items-center gap-2 rounded-t-xl`}>
           <Settings className="w-4 h-4 text-primary" />
           <span className="text-xs font-bold font-mono text-primary tracking-wider">{t('SETTINGS', '\u0625\u0639\u062F\u0627\u062F\u0627\u062A')}</span>
@@ -7268,7 +7265,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
 
   return (
     <div className="flex flex-col h-full" data-testid="panel-attackpred">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0">
+      <div className="panel-drag-handle flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0 cursor-grab active:cursor-grabbing select-none">
         <div className="flex items-center gap-2">
           <Crosshair className="w-3.5 h-3.5 text-red-400" />
           <span className="text-[11px] font-semibold tracking-wide uppercase text-white/90">{language === 'ar' ? 'توقع الهجوم بالذكاء الاصطناعي' : 'AI Attack Predictor'}</span>
@@ -7639,7 +7636,7 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
   const compass = dirs[Math.round(liveData.heading / 45) % 8];
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose} data-testid="popup-map-overlay">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80" onClick={onClose} data-testid="popup-map-overlay">
       <div className="relative w-[92vw] max-w-[800px] h-[70vh] max-h-[600px] rounded-lg border border-cyan-500/20 bg-[#080c14] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()} data-testid="popup-map-container">
         <div className="absolute top-0 left-0 right-0 z-[1000] flex items-center justify-between px-3 py-2 bg-[#080c14]/95 border-b border-cyan-500/15">
           <div className="flex items-center gap-3">
@@ -8494,7 +8491,7 @@ export default function Dashboard() {
             {/* Bottom Sheet Backdrop */}
             {showMobilePanelPicker && (
               <div
-                className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+                className="fixed inset-0 z-40 bg-black/60"
                 onClick={() => setShowMobilePanelPicker(false)}
               />
             )}
