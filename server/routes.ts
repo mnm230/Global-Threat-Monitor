@@ -555,8 +555,8 @@ function generateCommodities(): CommodityData[] {
 
 fetchLiveFxRates();
 fetchLiveCommodityPrices();
-setInterval(() => fetchLiveFxRates(), 10_000);
-setInterval(() => fetchLiveCommodityPrices(), 15_000);
+setInterval(() => fetchLiveFxRates(), 30_000);
+setInterval(() => fetchLiveCommodityPrices(), 60_000);
 
 const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
   'tel aviv': { lat: 32.085, lng: 34.782 }, 'jerusalem': { lat: 31.769, lng: 35.216 },
@@ -4332,44 +4332,52 @@ export async function registerRoutes(
     latestXPosts = [];
     latestAlerts = [];
 
+    const staggerTimers: ReturnType<typeof setTimeout>[] = [];
+
     send('commodities', generateCommodities());
-    fetchGDELTConflictEvents().then((events) => {
-      send('events', { events, flights: [], ships: [] });
-    });
-    generateNews().then(news => send('news', news));
     generateRedAlerts().then(alerts => {
       latestAlerts = alerts;
       recordAlertHistory(alerts);
       send('red-alerts', alerts);
       const activeSirens = mapAlertsToSirens(alerts);
       send('sirens', activeSirens);
-      fetchGDELTConflictEvents().then(conflictEvents => {
-        const analytics = generateAnalytics(alerts, classifiedMessageCache, conflictEvents);
-        send('analytics', analytics);
-      });
       const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
       send('breaking-news', breaking);
     });
     fetchLiveTelegram().then(tgMsgs => {
       latestTgMsgs = tgMsgs;
       send('telegram', tgMsgs);
-      const classified = tgMsgs.map(m => ({ ...m }) as ClassifiedMessage);
-      classifyMessages(tgMsgs).then(c => send('classified', c));
       const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
       send('breaking-news', breaking);
     }).catch(() => {
       send('telegram', []);
     });
-    fetchInternetHealth().then(status => send('internet-status', status));
-    fetchNOTAMs().then(notams => send('notams', notams));
-    fetchXFeeds().then(xPosts => {
-      latestXPosts = xPosts;
-      const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
-      send('breaking-news', breaking);
-    });
-    fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
 
-    intervals.push(setInterval(() => send('commodities', generateCommodities()), 15000));
+    staggerTimers.push(setTimeout(() => {
+      fetchGDELTConflictEvents().then((events) => {
+        send('events', { events, flights: [], ships: [] });
+        const analytics = generateAnalytics(latestAlerts, classifiedMessageCache, events);
+        send('analytics', analytics);
+      });
+      generateNews().then(news => send('news', news));
+    }, 500));
+
+    staggerTimers.push(setTimeout(() => {
+      fetchInternetHealth().then(status => send('internet-status', status));
+      fetchNOTAMs().then(notams => send('notams', notams));
+      fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
+    }, 1500));
+
+    staggerTimers.push(setTimeout(() => {
+      fetchXFeeds().then(xPosts => {
+        latestXPosts = xPosts;
+        const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
+        send('breaking-news', breaking);
+      });
+      classifyMessages(latestTgMsgs).then(c => send('classified', c)).catch(() => {});
+    }, 3000));
+
+    intervals.push(setInterval(() => send('commodities', generateCommodities()), 30000));
     intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
       latestAlerts = alerts;
       recordAlertHistory(alerts);
@@ -4378,14 +4386,13 @@ export async function registerRoutes(
       send('sirens', activeSirens);
       const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
       send('breaking-news', breaking);
-    }), 1500));
+    }), 3000));
     intervals.push(setInterval(() => {
       fetchGDELTConflictEvents().then((events) => {
         send('events', { events, flights: [], ships: [] });
       });
-    }, 30000));
-    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 15000));
-    // Priority fast-lane: refresh hot channels every 500ms and push to client immediately
+    }, 60000));
+    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 30000));
     intervals.push(setInterval(() => {
       fetchPriorityTelegram().then(tgMsgs => {
         latestTgMsgs = tgMsgs;
@@ -4393,20 +4400,20 @@ export async function registerRoutes(
         const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
         send('breaking-news', breaking);
       }).catch(() => {});
-    }, 500));
+    }, 3000));
     intervals.push(setInterval(() => {
       fetchLiveTelegram().then(tgMsgs => {
         latestTgMsgs = tgMsgs;
         send('telegram', tgMsgs);
       }).catch(() => {});
-    }, 15000));
+    }, 30000));
     intervals.push(setInterval(() => fetchXFeeds().then(xPosts => {
       latestXPosts = xPosts;
-    }), 60000));
+    }), 90000));
 
-    intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 10000));
-    intervals.push(setInterval(() => fetchInternetHealth().then(status => send('internet-status', status)), 60000));
-    intervals.push(setInterval(() => fetchNOTAMs().then(notams => send('notams', notams)), 120000));
+    intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 30000));
+    intervals.push(setInterval(() => fetchInternetHealth().then(status => send('internet-status', status)), 120000));
+    intervals.push(setInterval(() => fetchNOTAMs().then(notams => send('notams', notams)), 180000));
 
     intervals.push(setInterval(async () => {
       const tgMsgs = latestTgMsgs.length > 0 ? latestTgMsgs : await fetchPriorityTelegram().catch(() => []);
@@ -4414,7 +4421,7 @@ export async function registerRoutes(
         const classified = await classifyMessages(tgMsgs);
         send('classified', classified);
       }
-    }, 10000));
+    }, 20000));
 
     intervals.push(setInterval(async () => {
       const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
@@ -4430,18 +4437,18 @@ export async function registerRoutes(
         0,
       );
       send('analytics', analytics);
-    }, 15000));
+    }, 30000));
 
     generateAttackPrediction().then(pred => send('attack-prediction', pred)).catch(() => {});
     intervals.push(setInterval(async () => {
       const pred = await generateAttackPrediction();
       send('attack-prediction', pred);
-    }, 30000));
+    }, 60000));
 
     try { send('rocket-stats', generateRocketStats()); } catch {}
     intervals.push(setInterval(() => {
       try { send('rocket-stats', generateRocketStats()); } catch {}
-    }, 20000));
+    }, 30000));
 
     intervals.push(setInterval(() => {
       console.log('[CACHE-FLUSH] Clearing all caches (15-min interval)');
@@ -4463,6 +4470,7 @@ export async function registerRoutes(
     }, 15 * 60 * 1000));
 
     req.on('close', () => {
+      staggerTimers.forEach(clearTimeout);
       intervals.forEach(clearInterval);
     });
   });

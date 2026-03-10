@@ -3,7 +3,6 @@ import GridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 import type { LayoutItem as GridItemLayout, Layout as GridLayout2 } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -8041,6 +8040,31 @@ export default function Dashboard() {
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
   const panelCount = activeTop.length + activeBottom.length;
 
+  const [readyPanels, setReadyPanels] = useState<Set<PanelId>>(() => new Set(topRow));
+  useEffect(() => {
+    if (isMobile || isTablet) {
+      setReadyPanels(new Set(allPanels));
+      return;
+    }
+    setReadyPanels(new Set(topRow));
+    const batches: PanelId[][] = [
+      ['events', 'markets', 'netblack', 'aiprediction'],
+      ['notams', 'analytics', 'osint'],
+      ['attackpred', 'rocketstats', 'livefeed'],
+    ];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    batches.forEach((batch, i) => {
+      timers.push(setTimeout(() => {
+        setReadyPanels(prev => {
+          const next = new Set(prev);
+          batch.forEach(id => next.add(id));
+          return next;
+        });
+      }, (i + 1) * 400));
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [isMobile, isTablet]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
@@ -8622,9 +8646,14 @@ export default function Dashboard() {
                         style={{ fontSize: 12, padding: '4px 12px', borderRadius: 6, background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer', fontWeight: 500 }}
                       >Dock</button>
                     </div>
+                  ) : !readyPanels.has(id) ? (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.4 }}>
+                      {Icon && <Icon style={{ width: 18, height: 18 }} />}
+                      <span style={{ fontSize: 11, fontWeight: 500, color: 'hsl(var(--muted-foreground))' }}>{PANEL_CONFIG[id]?.label || id}</span>
+                      <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+                    </div>
                   ) : (
                     <>
-                      {/* Pop-out button — appears on hover */}
                       {!isMobile && (
                         <button
                           onClick={(e) => { e.stopPropagation(); popOutPanel(id); }}
