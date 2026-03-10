@@ -1324,7 +1324,7 @@ function NotesOverlay({ language, onClose }: { language: 'en' | 'ar'; onClose: (
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="notes-overlay">
-      <div className="w-[500px] max-h-[70vh] bg-card border border-border rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
+      <div className="w-[500px] max-h-[70vh] bg-card border border-border rounded-lg flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.4)'}}>
         <div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <StickyNote className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Analyst Notes' : '\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0627\u0644\u0645\u062D\u0644\u0644'}</span>
@@ -1397,7 +1397,7 @@ function WatchlistOverlay({ language, onClose, onUpdate }: { language: 'en' | 'a
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="watchlist-overlay">
-      <div className="w-[400px] max-h-[60vh] bg-card border border-border rounded-lg shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
+      <div className="w-[400px] max-h-[60vh] bg-card border border-border rounded-lg flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.4)'}}>
         <div className="px-4 py-3 border-b border-border flex items-center gap-2">
           <Eye className="w-4 h-4 text-amber-400" />
           <span className="text-xs font-bold font-mono text-foreground/90">{language === 'en' ? 'Watchlist' : '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629'}</span>
@@ -1452,7 +1452,7 @@ function AlertHistoryOverlay({ language, onClose }: { language: 'en' | 'ar'; onC
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="alert-history-overlay">
-      <div className="w-[700px] max-h-[80vh] bg-background border border-red-500/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
+      <div className="w-[700px] max-h-[80vh] bg-background border border-red-500/30 rounded-xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.4)'}}>
         <div className="px-4 py-3 border-b border-red-900/40 bg-red-950/20 flex items-center gap-2 rounded-t-lg">
           <History className="w-4 h-4 text-red-400" />
           <span className="text-xs font-bold font-mono text-red-300">{language === 'en' ? 'Alert History' : '\u0633\u062C\u0644 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}</span>
@@ -1512,7 +1512,7 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
 }) {
   const [newName, setNewName] = useState('');
   return (
-    <div className="absolute top-10 right-0 z-[150] w-64 bg-card border border-border rounded-lg shadow-2xl" data-testid="layout-presets-dropdown" style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.45)'}}>
+    <div className="absolute top-10 right-0 z-[150] w-64 bg-card border border-border rounded-lg" data-testid="layout-presets-dropdown" style={{boxShadow:'0 8px 20px rgb(0 0 0 / 0.35)'}}>
       <div className="px-3 py-2 border-b border-border flex items-center gap-2">
         <Layout className="w-3.5 h-3.5 text-primary/70" />
         <span className="text-xs font-bold font-mono text-foreground/80 uppercase tracking-wider">{language === 'en' ? 'Layout Presets' : '\u0642\u0648\u0627\u0644\u0628'}</span>
@@ -1747,7 +1747,7 @@ function formatPrice(c: CommodityData): string {
 }
 
 const TickerBar = memo(function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-white/[0.04]" style={{background:'hsl(222 30% 10% / 0.75)'}} />;
+  if (!commodities.length) return <div className="h-7 border-b border-border bg-muted/60" />;
   const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
@@ -1891,7 +1891,7 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
       </div>
 
       {expanded && (
-        <div className={`border-t ${hasSirens ? 'border-red-900/30 bg-red-950/20' : 'border-white/[0.06] bg-card/40'} max-h-[180px] overflow-auto`}>
+        <div className={`border-t ${hasSirens ? 'border-red-900/30 bg-red-950/20' : 'border-border bg-card/40'} max-h-[180px] overflow-auto`}>
           {sortedSirens.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-red-900/20">
               {sortedSirens.map((s) => {
@@ -1921,9 +1921,9 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
             </div>
           )}
           {sortedBreaking.length > 0 && (
-            <div className={`${sortedSirens.length > 0 ? 'border-t border-white/[0.06]' : ''}`}>
+            <div className={`${sortedSirens.length > 0 ? 'border-t border-border' : ''}`}>
               {sortedBreaking.map((item) => (
-                <div key={item.id} className="px-4 py-2 border-b border-white/[0.04]" data-testid={`breaking-${item.id}`}>
+                <div key={item.id} className="px-4 py-2 border-b border-border" data-testid={`breaking-${item.id}`}>
                   <div className="flex items-center gap-2">
                     {item.severity === 'critical' ? (
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -2728,7 +2728,7 @@ const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, la
               </div>
               <div className="mt-1.5 flex items-center gap-1">
                 <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 ${cs.healthScore >= 70 ? 'bg-emerald-500' : cs.healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${cs.healthScore}%` }} />
+                  <div className={`h-full rounded-full transition-[width] duration-500 ${cs.healthScore >= 70 ? 'bg-emerald-500' : cs.healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${cs.healthScore}%` }} />
                 </div>
                 <span className="text-[9px] font-mono text-foreground/30 w-8 text-right">{cs.healthScore}%</span>
               </div>
@@ -3009,14 +3009,14 @@ const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaxim
                   mapRef.current.setView([n.coordinates.lat, n.coordinates.lng], 6, { animate: true });
                 }
               }}
-              className="px-3 py-2 border-l-2 cursor-pointer transition-colors hover:bg-white/[0.02]"
+              className="px-3 py-2 border-l-2 cursor-pointer transition-colors hover:bg-muted/20"
               style={{
                 borderLeftColor: NOTAM_SEV_BORDER[n.severity] || 'transparent',
                 background: isSelected ? typeColor + '0e' : 'transparent',
               }}
             >
               <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] px-1 py-px rounded font-black font-mono bg-white/[0.06] text-white/40 border border-white/[0.07] shrink-0">{n.icao}</span>
+                <span className="text-[9px] px-1 py-px rounded font-black font-mono bg-white/[0.06] text-white/40 border border-border shrink-0">{n.icao}</span>
                 <span className={`text-[8px] px-1 py-px rounded border font-black font-mono shrink-0 ${NOTAM_TYPE_COLORS[n.type] || 'text-foreground/50 bg-muted border-border'}`}>
                   {NOTAM_TYPE_LABELS[n.type]?.[language === 'ar' ? 'ar' : 'en'] || n.type}
                 </span>
@@ -3387,7 +3387,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           </div>
           <div className="ra-flex-center gap-1">
             {onShowHistory && (
-              <button onClick={onShowHistory} className="w-[30px] h-[30px] rounded-md flex items-center justify-center bg-white/[0.06] border border-white/[0.12] text-white/50 cursor-pointer" title="Alert History" data-testid="button-alert-history">
+              <button onClick={onShowHistory} className="w-[30px] h-[30px] rounded-md flex items-center justify-center bg-muted/40 border border-border text-foreground/50 cursor-pointer" title="Alert History" data-testid="button-alert-history">
                 <History className="w-3.5 h-3.5" />
               </button>
             )}
@@ -3442,7 +3442,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── FILTERS ── */}
       {hasActiveAlerts && (
-        <div className="shrink-0 border-b border-white/[0.06] ra-section-bg px-3 py-2 ra-flex-col gap-1.5">
+        <div className="shrink-0 border-b border-border ra-section-bg px-3 py-2 ra-flex-col gap-1.5">
           <div className="relative">
             <input
               type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
@@ -3622,7 +3622,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                                 : isNonIsrael
                                   ? alertAccent + '12'
                                   : 'rgba(127,29,29,0.15)',
-                            boxShadow: isCrit && !isExpired ? `0 0 16px ${alertAccent}25, 0 2px 8px rgba(0,0,0,0.3)` : '0 2px 6px rgba(0,0,0,0.25)',
+                            boxShadow: isCrit && !isExpired ? `0 0 0 1px ${alertAccent}30` : 'none',
                           }}
                         >
                           {isCrit && !isExpired && <div className="eas-stripes h-[3px]" style={{ background: alertAccent }} />}
@@ -4134,7 +4134,7 @@ function MapLegend({ activeView, language }: { activeView: string; language: 'en
         background: 'rgba(4,7,16,0.96)',
         border: '1px solid rgba(255,255,255,0.07)',
         borderRadius: 10, padding: '10px 12px',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
         fontFamily: "var(--font-mono)",
       }}
     >
@@ -4178,7 +4178,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60" onClick={onClose} data-testid="settings-overlay">
-      <div className="w-[95vw] max-w-[520px] max-h-[90dvh] bg-background border border-primary/30 rounded-xl shadow-2xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 16px 32px rgb(0 0 0 / 0.5)'}}>
+      <div className="w-[95vw] max-w-[520px] max-h-[90dvh] bg-background border border-primary/30 rounded-xl flex flex-col" onClick={e => e.stopPropagation()} style={{boxShadow:'0 12px 28px rgb(0 0 0 / 0.4)'}}>
         <div className={`px-4 ${isTouchDevice ? 'py-4' : 'py-3'} border-b border-primary/20 bg-primary/5 flex items-center gap-2 rounded-t-xl`}>
           <Settings className="w-4 h-4 text-primary" />
           <span className="text-xs font-bold font-mono text-primary tracking-wider">{t('SETTINGS', '\u0625\u0639\u062F\u0627\u062F\u0627\u062A')}</span>
@@ -4271,7 +4271,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
                     key={l}
                     onClick={() => setLocal(p => ({ ...p, notificationLevel: l }))}
                     className={`text-xs px-3 py-1.5 rounded font-mono font-bold border transition-colors ${
-                      local.notificationLevel === l ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-white/[0.02] border-white/[0.05] text-foreground/30 hover:bg-white/[0.04]'
+                      local.notificationLevel === l ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-muted/20 border-border text-foreground/30 hover:bg-muted/40'
                     }`}
                     data-testid={`button-notify-${l}`}
                   >{l === 'all' ? t('All Alerts', '\u0627\u0644\u0643\u0644') : l === 'critical' ? t('Critical Only', '\u062D\u0631\u062C\u0629 \u0641\u0642\u0637') : t('None', '\u0644\u0627 \u0634\u064A\u0621')}</button>
@@ -4286,7 +4286,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
                     key={l}
                     onClick={() => setLocal(p => ({ ...p, defaultLanguage: l }))}
                     className={`text-xs px-4 py-1.5 rounded font-mono font-bold border transition-colors ${
-                      local.defaultLanguage === l ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-white/[0.02] border-white/[0.05] text-foreground/30 hover:bg-white/[0.04]'
+                      local.defaultLanguage === l ? 'bg-primary/15 border-primary/30 text-primary' : 'bg-muted/20 border-border text-foreground/30 hover:bg-muted/40'
                     }`}
                     data-testid={`button-lang-${l}`}
                   >{l === 'en' ? 'English' : '\u0639\u0631\u0628\u064A'}</button>
@@ -4296,7 +4296,7 @@ function SettingsOverlay({ settings, onSave, onClose, language }: { settings: WA
           </div>
         </ScrollArea>
         <div className="px-4 py-3 border-t border-primary/20 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="text-[10px] px-4 py-1.5 rounded font-mono text-foreground/40 hover:text-foreground border border-white/[0.06] hover:bg-white/[0.04] transition-colors" data-testid="button-cancel-settings">{t('Cancel', '\u0625\u0644\u063A\u0627\u0621')}</button>
+          <button onClick={onClose} className="text-[10px] px-4 py-1.5 rounded font-mono text-foreground/40 hover:text-foreground border border-border hover:bg-muted/40 transition-colors" data-testid="button-cancel-settings">{t('Cancel', '\u0625\u0644\u063A\u0627\u0621')}</button>
           <button onClick={handleSave} className={`text-xs ${isTouchDevice ? 'px-6 py-3' : 'px-4 py-1.5'} rounded font-mono font-bold text-background bg-primary hover:bg-primary/90 active:bg-primary/80 transition-colors`} data-testid="button-save-settings">{t('Save', '\u062D\u0641\u0638')}</button>
         </div>
       </div>
@@ -4764,7 +4764,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
     HIGH:     { gradient: 'linear-gradient(135deg,rgb(120 53 15/0.9),rgb(194 65 12/0.5))',  border:'border-orange-500/40', badge:'bg-orange-600/80 text-orange-100', glow:'', desc:'Elevated threat posture. Active incidents in theater.' },
     ELEVATED: { gradient: 'linear-gradient(135deg,rgb(113 63 18/0.85),rgb(120 72 12/0.6))', border:'border-yellow-500/35', badge:'bg-yellow-600/70 text-yellow-100', glow:'', desc:'Elevated conditions. Monitor for escalation.' },
     MODERATE: { gradient: 'linear-gradient(135deg,rgb(20 83 45/0.8),rgb(6 78 59/0.6))',    border:'border-emerald-500/30', badge:'bg-emerald-700/60 text-emerald-100', glow:'', desc:'Moderate activity. Situation being monitored.' },
-    LOW:      { gradient: 'linear-gradient(135deg,rgb(15 23 42/0.95),rgb(20 30 55/0.8))',  border:'border-white/[0.08]', badge:'bg-slate-700/50 text-slate-300', glow:'', desc:'Routine monitoring. No significant threats detected.' },
+    LOW:      { gradient: 'linear-gradient(135deg,rgb(15 23 42/0.95),rgb(20 30 55/0.8))',  border:'border-border', badge:'bg-slate-700/50 text-slate-300', glow:'', desc:'Routine monitoring. No significant threats detected.' },
   };
 
   const last6 = (analytics?.alertTimeline ?? []).slice(-6);
@@ -5257,7 +5257,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       { label: t('ACTIVE','\u0646\u0634\u0637'), value: analytics.activeAlertCount, color: 'text-red-400', accent: 'hsl(0 72% 51%)', border: 'border-red-500/15', bg: 'bg-red-950/15', testid: 'text-active-alerts', tooltip: 'Oref red alerts currently within countdown window' },
                       { label: t('24H TOTAL','\u0625\u062C\u0645\u0627\u0644\u064A'), value: totalAlerts, color: 'text-orange-400', accent: 'hsl(25 95% 53%)', border: 'border-orange-500/15', bg: 'bg-orange-950/15', testid: 'text-total-24h', tooltip: 'Total alerts across all regions in the last 24 hours' },
                       { label: t('FALSE ALM','\u0643\u0627\u0630\u0628'), value: `${(analytics.falseAlarmRate * 100).toFixed(1)}%`, color: 'text-yellow-400', accent: 'hsl(48 96% 53%)', border: 'border-yellow-500/15', bg: 'bg-yellow-950/15', testid: 'text-false-alarm-rate', tooltip: 'Estimated false alarm rate based on AI scoring' },
-                      { label: t('TREND','\u0627\u062A\u062C\u0627\u0647'), value: `${trendIcon}`, color: trendColor, accent: 'hsl(175 60% 40%)', border: 'border-white/[0.05]', bg: 'bg-white/[0.02]', testid: 'text-trend', sub: analytics.threatTrend.slice(0,4).toUpperCase(), tooltip: `Threat trend: ${analytics.threatTrend}` },
+                      { label: t('TREND','\u0627\u062A\u062C\u0627\u0647'), value: `${trendIcon}`, color: trendColor, accent: 'hsl(175 60% 40%)', border: 'border-border', bg: 'bg-muted/20', testid: 'text-trend', sub: analytics.threatTrend.slice(0,4).toUpperCase(), tooltip: `Threat trend: ${analytics.threatTrend}` },
                     ].map(stat => (
                       <Tooltip key={stat.label}>
                         <TooltipTrigger asChild>
@@ -5310,7 +5310,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2 pb-1 border-b border-white/[0.05]">
+                    <div className="flex items-center justify-between mb-2 pb-1 border-b border-border">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('24h Alert Timeline', '\u0627\u0644\u062C\u062F\u0648\u0644 \u0627\u0644\u0632\u0645\u0646\u064A 24 \u0633\u0627\u0639\u0629')}</span>
                       <div className="flex items-center gap-2">
                         {peakHour && peakHour.count > 0 && (
@@ -5319,7 +5319,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         <span className="text-[8px] font-mono text-foreground/25">UTC · {totalAlerts}</span>
                       </div>
                     </div>
-                    <div className="rounded border border-white/[0.05] overflow-hidden" data-testid="chart-timeline">
+                    <div className="rounded border border-border overflow-hidden" data-testid="chart-timeline">
                       <div className="relative flex items-end gap-[2px] bg-white/[0.015] px-1.5 pt-2" style={{height: '72px'}}>
                       {[25,50,75].map(pct => (
                         <div key={pct} className="absolute pointer-events-none" style={{bottom:`${pct}%`,left:0,right:0,borderTop:'1px dotted rgba(255,255,255,0.05)'}} />
@@ -5365,7 +5365,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       })}
                       </div>
                       {/* Hour axis labels */}
-                      <div className="flex items-center px-1.5 py-1 border-t border-white/[0.04]" style={{background: 'hsl(222 20% 10% / 0.5)'}}>
+                      <div className="flex items-center px-1.5 py-1 border-t border-border bg-muted/30">
                         {['0h','','','','','','6h','','','','','','12h','','','','','','18h','','','','','23h'].map((lbl, i) => (
                           <div key={i} className="flex-1 text-center">
                             {lbl && <span className="text-[7px] font-mono text-foreground/25 tabular-nums">{lbl}</span>}
@@ -5377,7 +5377,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
                   {analytics.eventsByType && Object.keys(analytics.eventsByType).length > 0 && (
                     <div>
-                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-white/[0.05]">
+                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-border">
                         <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Live Event Types', '\u0623\u0646\u0648\u0627\u0639 \u0627\u0644\u0623\u062D\u062F\u0627\u062B')}</span>
                         <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.eventsByType).reduce((s,v)=>s+v,0)} total</span>
                       </div>
@@ -5396,7 +5396,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
                   {analytics.alertsByCountry && Object.keys(analytics.alertsByCountry).length > 0 && (
                     <div data-testid="section-country-breakdown">
-                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-white/[0.05]">
+                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-border">
                         <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Alerts by Country', '\u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A \u062D\u0633\u0628 \u0627\u0644\u062F\u0648\u0644\u0629')}</span>
                         <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.alertsByCountry).reduce((s,v)=>s+v,0)} total</span>
                       </div>
@@ -5418,7 +5418,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                                   <div className="flex items-center gap-2 cursor-default hover:bg-white/[0.03] rounded px-1 py-0.5 transition-colors group">
                                     <span className="text-[11px] leading-none w-4 shrink-0">{flag}</span>
                                     <span className="text-[9px] font-mono text-foreground/60 w-14 truncate">{country}</span>
-                                    <div className="flex-1 h-3 bg-white/[0.04] rounded-sm overflow-hidden relative">
+                                    <div className="flex-1 h-3 bg-muted/30 rounded-sm overflow-hidden relative">
                                       <div className={`h-full ${countryColors[country] || 'bg-blue-500/50'} rounded-sm transition-all`} style={{ width: `${Math.max(4, barPct)}%` }} />
                                     </div>
                                     <span className="text-[8px] font-mono text-foreground/30 w-6 text-right tabular-nums">{totalPct}%</span>
@@ -5441,7 +5441,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
                   {analytics.telegramByCountry && Object.keys(analytics.telegramByCountry).length > 0 && (
                     <div data-testid="section-telegram-intel">
-                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-white/[0.05]">
+                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-border">
                         <span className="text-[9px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Telegram Intel by Country', '\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A \u062A\u064A\u0644\u064A\u063A\u0631\u0627\u0645')}</span>
                         <span className="text-[8px] font-mono text-foreground/25">{Object.values(analytics.telegramByCountry).reduce((s,v)=>s+v,0)} mentions</span>
                       </div>
@@ -5489,7 +5489,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     </div>
                   )}
 
-                  <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5" data-testid="section-quick-stats">
+                  <div className="rounded border border-border bg-muted/20 p-2.5" data-testid="section-quick-stats">
                     <div className="flex items-center gap-2 mb-2">
                       <Activity className="w-3 h-3 text-cyan-400/60" />
                       <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/40 font-mono">{t('Session Intelligence Summary', '\u0645\u0644\u062E\u0635 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A')}</span>
@@ -5528,7 +5528,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         return (
                           <Tooltip key={region}>
                             <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1.5 cursor-default hover:bg-white/[0.02] rounded px-1 py-0.5 transition-colors">
+                              <div className="flex items-center gap-1.5 cursor-default hover:bg-muted/20 rounded px-1 py-0.5 transition-colors">
                                 <span className="text-[8px] font-mono text-foreground/25 w-3">{i+1}</span>
                                 <span className="text-[9px] font-mono text-foreground/55 w-20 truncate">{region}</span>
                                 <div className="flex-1 h-2.5 bg-white/[0.03] rounded-full overflow-hidden">
@@ -5561,7 +5561,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         return (
                           <Tooltip key={type}>
                             <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1.5 cursor-default hover:bg-white/[0.02] rounded px-1 py-0.5 transition-colors">
+                              <div className="flex items-center gap-1.5 cursor-default hover:bg-muted/20 rounded px-1 py-0.5 transition-colors">
                                 <span className="text-[9px] font-mono text-foreground/45 w-16 truncate uppercase">{type.replace(/_/g,' ')}</span>
                                 <div className="flex-1 h-2.5 bg-white/[0.03] rounded-full overflow-hidden">
                                   <div className={`h-full ${typeColors[type] || 'bg-blue-500/50'} rounded-full`} style={{ width: `${Math.max(6, pct)}%` }} />
@@ -5598,7 +5598,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         return (
                           <Tooltip key={src.channel}>
                             <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2 px-2 py-2 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-transparent hover:border-white/[0.04] cursor-default">
+                              <div className="flex items-center gap-2 px-2 py-2 rounded bg-muted/20 hover:bg-muted/40 transition-colors border border-transparent hover:border-border cursor-default">
                                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${src.reliability > 0.85 ? 'bg-emerald-400' : src.reliability > 0.7 ? 'bg-yellow-400' : 'bg-red-400'}`} />
                                 <div className="flex-1 min-w-0">
                                   <span className="text-[10px] font-mono text-foreground/65 block truncate">{src.channel}</span>
@@ -5621,7 +5621,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     </div>
                   </div>
 
-                  <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5">
+                  <div className="rounded border border-border bg-muted/20 p-2.5">
                     <div className="flex items-center gap-2 mb-2">
                       <Shield className="w-3 h-3 text-emerald-400/60" />
                       <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/40 font-mono">{t('Source Health Overview', '\u0635\u062D\u0629 \u0627\u0644\u0645\u0635\u0627\u062F\u0631')}</span>
@@ -5638,7 +5638,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                           <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">Medium Reliability</span><span className="text-[10px] font-black font-mono text-yellow-400">{medRel}</span></div>
                           <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">Low Reliability</span><span className="text-[10px] font-black font-mono text-red-400">{lowRel}</span></div>
                           <div className="flex items-center justify-between"><span className="text-[9px] font-mono text-foreground/35">Avg Reliability</span><span className="text-[10px] font-black font-mono text-blue-400">{avgRel}%</span></div>
-                          <div className="flex items-center justify-between col-span-2 pt-1 border-t border-white/[0.04]"><span className="text-[9px] font-mono text-foreground/35">Total Messages</span><span className="text-[10px] font-black font-mono text-cyan-400">{totalMsgs.toLocaleString()}</span></div>
+                          <div className="flex items-center justify-between col-span-2 pt-1 border-t border-border"><span className="text-[9px] font-mono text-foreground/35">Total Messages</span><span className="text-[10px] font-black font-mono text-cyan-400">{totalMsgs.toLocaleString()}</span></div>
                         </div>
                       );
                     })()}
@@ -5698,7 +5698,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         {falseAlarms.slice(0, 12).map(fa => (
                           <Tooltip key={fa.alertId}>
                             <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-default" data-testid={`false-alarm-${fa.alertId}`}>
+                              <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-muted/20 hover:bg-muted/40 transition-colors cursor-default" data-testid={`false-alarm-${fa.alertId}`}>
                                 <div className={`w-2 h-2 rounded-full ${fa.score > 0.7 ? 'bg-red-500' : fa.score > 0.4 ? 'bg-yellow-500' : 'bg-emerald-500'}`} />
                                 <span className="text-[10px] font-mono text-foreground/60 flex-1 truncate">{fa.recommendation.replace(/_/g, ' ')}</span>
                                 <span className="text-[10px] font-mono text-foreground/40 truncate max-w-[120px]">{fa.reasons[0] || ''}</span>
@@ -5795,7 +5795,7 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
           </span>
         )}
       </div>
-      <div className="flex items-end gap-px h-14 bg-white/[0.02] rounded border border-white/[0.04] p-1 overflow-x-auto" data-testid="timeline-bars">
+      <div className="flex items-end gap-px h-14 bg-muted/20 rounded border border-border p-1 overflow-x-auto" data-testid="timeline-bars">
         {buckets.map((b, i) => {
           const isCluster = b.alerts.length >= 5;
           const isSelected = selectedBucket === i;
@@ -5834,7 +5834,7 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
         ))}
       </div>
       {selectedBucket !== null && selectedAlerts.length > 0 && (
-        <div className="border border-white/[0.06] rounded bg-white/[0.02] p-2 space-y-1 max-h-32 overflow-y-auto" data-testid="timeline-detail">
+        <div className="border border-border rounded bg-muted/20 p-2 space-y-1 max-h-32 overflow-y-auto" data-testid="timeline-detail">
           <span className="text-[9px] font-mono text-foreground/40">{new Date(buckets[selectedBucket].start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — {selectedAlerts.length} {t('alerts', '\u0625\u0646\u0630\u0627\u0631\u0627\u062A')}</span>
           {selectedAlerts.map(a => (
             <div key={a.id} className="flex items-center gap-2">
@@ -5984,7 +5984,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
         ) : activeTab === 'overview' ? (
           <>
             <div className="grid grid-cols-4 gap-1.5" data-testid="stats-summary">
-              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 30% 25% / 0.3)'}}>
+              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
                 <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-launches">{stats!.totalLaunches.toLocaleString()}</div>
                 <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Total Launches', 'إجمالي')}</div>
               </div>
@@ -6002,13 +6002,13 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               </div>
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Intercept Rate', 'نسبة الاعتراض')}</span>
                 <span className="text-[11px] font-black text-emerald-400 font-mono" data-testid="text-intercept-rate">{(stats!.interceptRate * 100).toFixed(1)}%</span>
               </div>
               <div className="w-full h-2 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                <div className="h-full rounded-full transition-all duration-700" style={{width:`${stats!.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
+                <div className="h-full rounded-full transition-[width] duration-700" style={{width:`${stats!.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
               </div>
             </div>
 
@@ -6038,7 +6038,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <TypeBreakdown corridors={corridorsFromIsrael} color="#60a5fa" />
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
               <div className="flex items-center gap-1 mb-1.5">
                 <Rocket className="w-3 h-3 text-primary/70" />
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('By Launch Origin', 'حسب مصدر الإطلاق')}</span>
@@ -6048,7 +6048,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                   <div key={origin} className="flex items-center gap-1.5" data-testid={`origin-bar-${i}`}>
                     <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{origin}</span>
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(185 100% 42%)' : 'hsl(185 60% 35%)'}} />
+                      <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(185 100% 42%)' : 'hsl(185 60% 35%)'}} />
                     </div>
                     <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                   </div>
@@ -6056,7 +6056,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               </div>
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
               <div className="flex items-center gap-1 mb-1.5">
                 <Target className="w-3 h-3 text-red-400/70" />
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Top Targets', 'الأهداف الرئيسية')}</span>
@@ -6066,7 +6066,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                   <div key={target} className="flex items-center gap-1.5" data-testid={`target-bar-${i}`}>
                     <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{target}</span>
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
+                      <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
                     </div>
                     <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                   </div>
@@ -6075,11 +6075,11 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
             </div>
 
             <div className="grid grid-cols-2 gap-1.5">
-              <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Peak Hour', 'ساعة الذروة')}</div>
                 <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats!.peakHour} UTC</div>
               </div>
-              <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+              <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Last Hour', 'الساعة الأخيرة')}</div>
                 <div className="text-[12px] font-bold font-mono" data-testid="text-last-1h">
                   <span className={stats!.last1h > 5 ? 'text-red-400' : stats!.last1h > 0 ? 'text-orange-400' : 'text-green-400'}>{stats!.last1h}</span>
@@ -6139,7 +6139,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               const usYemen = (stats?.corridors || []).filter(c => c.originCountry === 'United States' && c.targetCountry === 'Yemen');
               if (!usYemen.length) return null;
               return (
-                <div className="rounded p-2" style={{background:'hsl(222 28% 11% / 0.5)', border:'1px solid hsl(222 38% 22% / 0.4)'}}>
+                <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.5)', border:'1px solid hsl(var(--border))'}}>
                   <div className="flex items-center gap-1 mb-1.5">
                     <Globe className="w-3 h-3 text-blue-400" />
                     <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t('US/Coalition → Yemen','الولايات المتحدة ← اليمن')}</span>
@@ -6151,7 +6151,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               );
             })()}
 
-            <div className="rounded p-2" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.4)', border:'1px solid hsl(var(--border))'}}>
               <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('GCC Target Breakdown','توزيع الهجمات')}</div>
               {(['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'] as const).map(country => {
                 const total = gccIncoming.filter(c => c.targetCountry === country).reduce((s, c) => s + c.totalLaunches, 0);
@@ -6214,7 +6214,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <TypeBreakdown corridors={lblFromIsrael} color="#60a5fa" />
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.4)', border:'1px solid hsl(var(--border))'}}>
               <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('Hezbollah Arsenal Estimate','تقديرات ترسانة حزب الله')}</div>
               {[
                 { label: t('Short-range rockets (< 40km)','قصيرة المدى'), value: '100,000+', color: '#f97316' },
@@ -6232,7 +6232,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <div className="text-[7px] text-foreground/25 font-mono mt-1.5">{t("Source: IDF, CSIS, IISS Military Balance, Jane's Defence","المصدر: الجيش الإسرائيلي، CSIS، IISS")}</div>
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(222 28% 14% / 0.5)', border:'1px solid hsl(185 25% 22% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.4)', border:'1px solid hsl(var(--border))'}}>
               <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('Key Escalation Points','نقاط التصعيد الرئيسية')}</div>
               {[
                 { date: 'Oct 8 2023', event: t('Hezbollah opens northern front in solidarity with Gaza','حزب الله يفتح الجبهة الشمالية'), color: '#ef4444' },
@@ -6269,13 +6269,13 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               </div>
             )}
             {liveFeedError && (
-              <div className="rounded p-3 text-center" style={{background:'hsl(0 30% 14% / 0.5)', border:'1px solid hsl(0 40% 25% / 0.3)'}}>
+              <div className="rounded p-3 text-center" style={{background:'hsl(var(--destructive) / 0.08)', border:'1px solid hsl(var(--destructive) / 0.25)'}}>
                 <AlertTriangle className="w-4 h-4 text-red-400 mx-auto mb-1" />
                 <div className="text-[8px] font-mono text-red-400">{t('Failed to fetch live feed. API keys may be required.','فشل في جلب البيانات. قد تحتاج مفاتيح API.')}</div>
               </div>
             )}
             {!liveFeedLoading && !liveFeedError && liveFeed.length === 0 && (
-              <div className="rounded p-3 text-center" style={{background:'hsl(222 28% 12% / 0.4)', border:'1px solid hsl(185 20% 20% / 0.3)'}}>
+              <div className="rounded p-3 text-center" style={{background:'hsl(var(--muted) / 0.3)', border:'1px solid hsl(var(--border))'}}>
                 <div className="text-[8px] font-mono text-foreground/40">{t('No recent conflict events found. Feed refreshes every 30s.','لا أحداث حديثة. يتجدد كل 30 ثانية.')}</div>
               </div>
             )}
@@ -6288,7 +6288,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 : item.relevance === 'lebanon' ? { text: 'LBN', color: '#34d399' }
                 : item.relevance === 'both' ? { text: 'MULTI', color: '#facc15' } : null;
               return (
-                <div key={item.id} className="rounded p-2" style={{background:'hsl(222 28% 13% / 0.7)', border:`1px solid ${color}20`}}>
+                <div key={item.id} className="rounded p-2" style={{background:'hsl(var(--muted) / 0.5)', border:`1px solid ${color}20`}}>
                   <div className="flex items-start gap-1.5">
                     <div className="flex flex-col gap-1 shrink-0 pt-0.5">
                       <span className="text-[7px] font-mono font-black px-1.5 py-0.5 rounded" style={{background: color + '20', color, border:`1px solid ${color}35`}}>{label}</span>
@@ -6310,7 +6310,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
             })}
             {liveFeed.length > 0 && (
               <button className="w-full py-1.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider transition-all hover:bg-white/5"
-                style={{border:'1px solid hsl(185 20% 22% / 0.5)', color:'hsl(185 60% 45%)'}}
+                style={{border:'1px solid hsl(var(--border))', color:'hsl(185 60% 45%)'}}
                 onClick={() => { liveFetchedRef.current = false; setLiveFeed([]); setActiveTab('overview'); setTimeout(() => setActiveTab('live'), 50); }}>
                 {t('Refresh Feed','تحديث')}
               </button>
@@ -6667,7 +6667,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
 
             {activeTab === 'vectors' && (
               <div className="p-3 space-y-2">
-                <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5 mb-1">
+                <div className="rounded border border-border bg-muted/20 p-2.5 mb-1">
                   <div className="text-[9px] font-mono text-white/25 uppercase tracking-widest mb-1.5">
                     {language === 'ar' ? '\u0645\u0644\u062E\u0635 \u0627\u0644\u062A\u0647\u062F\u064A\u062F\u0627\u062A' : 'THREAT VECTOR SUMMARY'}
                   </div>
@@ -6697,7 +6697,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   const VectorIcons: Record<string, typeof Zap> = { rockets: Rocket, missiles: Target, uav: Plane, cruise_missile: Plane, ballistic: AlertTriangle, mortar: Crosshair, anti_tank: Shield, combined: ShieldAlert };
                   const VIcon = VectorIcons[p.threatVector] || AlertTriangle;
                   return (
-                    <div key={i} className={`rounded border p-2.5 transition-all ${isHot ? 'border-red-500/25 bg-red-950/10' : 'border-white/[0.06] bg-white/[0.025]'}`} data-testid={`aipred-vector-${i}`}>
+                    <div key={i} className={`rounded border p-2.5 transition-all ${isHot ? 'border-red-500/25 bg-red-950/10' : 'border-border bg-muted/20'}`} data-testid={`aipred-vector-${i}`}>
                       <div className="flex items-center gap-2 mb-1.5">
                         <VIcon className={`w-3.5 h-3.5 shrink-0 ${
                           p.severity === 'critical' ? 'text-red-400' : p.severity === 'high' ? 'text-orange-400' : p.severity === 'medium' ? 'text-yellow-400' : 'text-green-400'
@@ -6754,7 +6754,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                         const heat = pct > 70 ? 'from-red-500/30 to-red-500/5' : pct > 40 ? 'from-orange-500/25 to-orange-500/5' : 'from-blue-500/20 to-blue-500/5';
                         const textColor = pct > 70 ? 'text-red-400' : pct > 40 ? 'text-orange-400' : 'text-blue-400';
                         return (
-                          <div key={region} className="relative rounded border border-white/[0.05] overflow-hidden">
+                          <div key={region} className="relative rounded border border-border overflow-hidden">
                             <div className={`absolute inset-0 bg-gradient-to-r ${heat}`} style={{ width: `${pct}%` }} />
                             <div className="relative flex items-center gap-2 px-2.5 py-1.5">
                               <span className="text-[9px] font-mono text-white/25 w-3">{i + 1}</span>
@@ -6771,7 +6771,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   </div>
                 )}
 
-                <div className="rounded border border-white/[0.06] bg-white/[0.02] p-2.5">
+                <div className="rounded border border-border bg-muted/20 p-2.5">
                   <div className="text-[9px] font-mono text-white/25 uppercase tracking-widest mb-1.5">
                     {language === 'ar' ? '\u0625\u062D\u0635\u0627\u0626\u064A\u0627\u062A \u0627\u0644\u062A\u0648\u0642\u0639' : 'PREDICTION METRICS'}
                   </div>
@@ -6783,7 +6783,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   </div>
                 </div>
 
-                <div className="pt-1 border-t border-white/[0.04]">
+                <div className="pt-1 border-t border-border">
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-1 h-1 rounded-full bg-violet-400/40" />
                     <span className="text-[8px] font-mono text-white/20">
@@ -7119,7 +7119,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 <div className="p-3 space-y-3">
                   {/* ── Header card ── */}
                   <div className="rounded-lg border border-violet-500/20 overflow-hidden" style={{ background: 'linear-gradient(135deg, hsl(260 35% 12% / 0.8), hsl(260 25% 9% / 0.6))' }}>
-                    <div className="px-3 py-2 flex items-center gap-2 border-b border-white/[0.06]">
+                    <div className="px-3 py-2 flex items-center gap-2 border-b border-border">
                       <Activity className="w-3.5 h-3.5 text-violet-400" />
                       <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-violet-300/70">
                         {language === 'ar' ? 'تفاصيل مصادر الاستخبارات' : 'INTEL SOURCE ATTRIBUTION'}
@@ -7136,7 +7136,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                         <div className="text-[16px] font-black font-mono text-violet-300">{confPct}%</div>
                         <div className="text-[7px] font-mono text-white/30 uppercase tracking-wider">Overall Conf.</div>
                       </div>
-                      <div className="text-center border-x border-white/[0.06]">
+                      <div className="text-center border-x border-border">
                         <div className="text-[16px] font-black font-mono" style={{ color: prediction?.dataPoints?.isEscalating ? '#ef4444' : '#22c55e' }}>
                           {prediction?.dataPoints?.isEscalating ? '↑' : '→'}
                         </div>
@@ -7193,11 +7193,11 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                         </div>
                         {/* Contribution bar */}
                         <div className="mx-2.5 mb-1.5 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                          <div className="h-full rounded-full transition-all duration-700" style={{ width: `${source.contribution}%`, background: `linear-gradient(90deg, ${source.color}88, ${source.color})` }} />
+                          <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${source.contribution}%`, background: `linear-gradient(90deg, ${source.color}88, ${source.color})` }} />
                         </div>
                         {/* Sub-metrics */}
                         {source.subMetrics.length > 1 && (
-                          <div className="flex divide-x divide-white/[0.05] border-t border-white/[0.04]">
+                          <div className="flex divide-x divide-border border-t border-border">
                             {source.subMetrics.map(m => (
                               <div key={m.label} className="flex-1 px-2 py-1 text-center">
                                 <div className="text-[11px] font-black font-mono" style={{ color: m.color }}>{m.value}</div>
@@ -7265,7 +7265,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
 
   return (
     <div className="flex flex-col h-full" data-testid="panel-attackpred">
-      <div className="panel-drag-handle flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0 cursor-grab active:cursor-grabbing select-none">
+      <div className="panel-drag-handle flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0 cursor-grab active:cursor-grabbing select-none">
         <div className="flex items-center gap-2">
           <Crosshair className="w-3.5 h-3.5 text-red-400" />
           <span className="text-[11px] font-semibold tracking-wide uppercase text-white/90">{language === 'ar' ? 'توقع الهجوم بالذكاء الاصطناعي' : 'AI Attack Predictor'}</span>
@@ -7330,7 +7330,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
                     <div className="flex items-center gap-1 justify-end">
                       <div className="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-700 ${prediction.nextAttackWindow.confidence >= 0.7 ? 'bg-orange-400' : prediction.nextAttackWindow.confidence >= 0.45 ? 'bg-yellow-400' : 'bg-white/30'}`}
+                          className={`h-full rounded-full transition-[width] duration-700 ${prediction.nextAttackWindow.confidence >= 0.7 ? 'bg-orange-400' : prediction.nextAttackWindow.confidence >= 0.45 ? 'bg-yellow-400' : 'bg-white/30'}`}
                           style={{ width: `${Math.round(prediction.nextAttackWindow.confidence * 100)}%` }}
                         />
                       </div>
@@ -7376,7 +7376,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-white/8 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-700 ${lp.probability >= 0.7 ? 'bg-gradient-to-r from-red-500 to-red-400' : lp.probability >= 0.5 ? 'bg-gradient-to-r from-orange-500 to-orange-400' : lp.probability >= 0.3 ? 'bg-gradient-to-r from-yellow-500/80 to-yellow-400/60' : 'bg-white/20'}`}
+                        className={`h-full rounded-full transition-[width] duration-700 ${lp.probability >= 0.7 ? 'bg-gradient-to-r from-red-500 to-red-400' : lp.probability >= 0.5 ? 'bg-gradient-to-r from-orange-500 to-orange-400' : lp.probability >= 0.3 ? 'bg-gradient-to-r from-yellow-500/80 to-yellow-400/60' : 'bg-white/20'}`}
                         style={{ width: `${Math.round(lp.probability * 100)}%` }}
                       />
                     </div>
@@ -7404,7 +7404,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
                   </div>
                   <div className="w-full h-1 rounded-full bg-white/10 mb-1.5">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${p.probability >= 0.7 ? 'bg-red-400' : p.probability >= 0.4 ? 'bg-yellow-400' : 'bg-blue-400'}`}
+                      className={`h-full rounded-full transition-[width] duration-700 ${p.probability >= 0.7 ? 'bg-red-400' : p.probability >= 0.4 ? 'bg-yellow-400' : 'bg-blue-400'}`}
                       style={{ width: `${Math.round(p.probability * 100)}%` }}
                     />
                   </div>
@@ -7426,7 +7426,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
               <p className="text-[9px] text-white/50 leading-relaxed" data-testid="text-pattern-summary">{prediction.patternSummary}</p>
             </div>
 
-            <div className="p-2 rounded border border-white/[0.06] bg-white/[0.02]">
+            <div className="p-2 rounded border border-border bg-muted/20">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Target className="w-3 h-3 text-orange-400/70" />
                 <span className="text-[9px] font-semibold text-white/60 uppercase tracking-wider">{language === 'ar' ? 'اتجاه التصعيد' : 'Escalation Vector'}</span>
@@ -8186,7 +8186,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`flex flex-col bg-background text-foreground overflow-hidden ${isMobile || isTablet ? 'h-[100dvh]' : 'h-screen'}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
+    <div className={`flex flex-col bg-background text-foreground h-screen ${isMobile || isTablet ? '!h-[100dvh]' : ''}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
       <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
         {/* Left — Branding */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
@@ -8320,7 +8320,7 @@ export default function Dashboard() {
       </header>
       {!escalationDismissed && <EscalationBanner state={escalation} onDismiss={() => setEscalationDismissed(true)} />}
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         {!isMobile && !isTablet && (
           <PanelSidebar
             visiblePanels={visiblePanels}
@@ -8341,7 +8341,7 @@ export default function Dashboard() {
             }}
           />
         )}
-        <div className="flex-1 min-w-0 overflow-x-hidden flex flex-col min-h-0">
+        <div className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col min-h-0">
 
       {showMobileMenu && (isMobile || isTablet) && (
         <>
@@ -8372,7 +8372,7 @@ export default function Dashboard() {
                 );
               })}
             </div>
-            <div className="border-t border-white/[0.05] px-3 py-2">
+            <div className="border-t border-border px-3 py-2">
               <div className="flex items-center gap-2 text-[8px] font-mono text-foreground/20">
                 <span>SRC {[news.length > 0, commodities.length > 0, events.length > 0, telegramMessages.length > 0, thermalHotspots.length > 0, redAlerts.length > 0 || sirens.length > 0].filter(Boolean).length}</span>
                 <span>·</span>
@@ -8498,7 +8498,7 @@ export default function Dashboard() {
               <div className="flex justify-center pt-2 pb-1">
                 <div className="w-8 h-1 rounded-full bg-white/[0.12]" />
               </div>
-              <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-foreground/40">
                   {language === 'ar' ? 'لوحات إضافية' : 'More Panels'}
                 </span>
@@ -8533,7 +8533,7 @@ export default function Dashboard() {
             style={{
               gridTemplateColumns: isLandscape ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
               gridAutoRows: `minmax(${isLandscape ? '300px' : '340px'}, auto)`,
-              background: 'hsl(222 28% 9% / 0.98)',
+              background: 'hsl(var(--background))',
               paddingLeft: 'max(8px, env(safe-area-inset-left))',
               paddingRight: 'max(8px, env(safe-area-inset-right))',
               paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
