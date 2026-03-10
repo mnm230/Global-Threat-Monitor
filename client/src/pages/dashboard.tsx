@@ -83,23 +83,16 @@ import {
   History,
   Save,
   Layout,
-  Ruler,
   Search,
   Settings,
   TriangleAlert,
   Menu,
-  Cpu,
   Video,
   MoreHorizontal,
-  Users,
   Rocket,
   ArrowRight,
   Flame,
   Download,
-  Skull,
-  CircleDot,
-  Gauge,
-  Swords,
   WifiOff,
   FileWarning,
 } from 'lucide-react';
@@ -356,7 +349,12 @@ function useSSE(): SSEData {
         try { pending.current.sirens = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('red-alerts', (e) => {
-        try { pending.current.redAlerts = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try {
+          const raw: RedAlert[] = JSON.parse(e.data);
+          const seen = new Set<string>();
+          pending.current.redAlerts = raw.filter(a => seen.has(a.id) ? false : (seen.add(a.id), true));
+          scheduleFlush();
+        } catch {}
       });
       es.addEventListener('telegram', (e) => {
         try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
@@ -7736,6 +7734,10 @@ export default function Dashboard() {
   }, []);
 
   const scrollStateRef = useRef({ showDown: false, showTop: false });
+  // Shared physics scroll controller — buttons and wheel use the same engine
+  const physicsScrollRef = useRef<{ scrollBy: (delta: number) => void; scrollTo: (y: number) => void }>({
+    scrollBy: () => {}, scrollTo: () => {},
+  });
   useEffect(() => {
     const el = panelsScrollRef.current;
     if (!el) return;
@@ -7769,44 +7771,58 @@ export default function Dashboard() {
     if (!container) return;
 
     let targetY = container.scrollTop;
+    let velocity = 0;
+    let lastTime = 0;
     let raf: number | null = null;
 
-    const tick = () => {
-      const delta = targetY - container.scrollTop;
-      if (Math.abs(delta) < 1) {
-        container.scrollTop = targetY;
+    const SPRING = 0.14;    // how fast it catches up (higher = snappier)
+    const DAMPING = 0.80;   // momentum decay per frame (higher = more glide)
+    const MIN_DELTA = 0.4;  // stop threshold in pixels
+
+    const tick = (now: number) => {
+      const dt = Math.min((now - lastTime) / 16.67, 3);
+      lastTime = now;
+      const gap = targetY - container.scrollTop;
+      velocity = velocity * Math.pow(DAMPING, dt) + gap * SPRING * dt;
+      const next = container.scrollTop + velocity;
+      const max = container.scrollHeight - container.clientHeight;
+      container.scrollTop = Math.max(0, Math.min(max, next));
+      if (Math.abs(gap) < MIN_DELTA && Math.abs(velocity) < MIN_DELTA) {
+        container.scrollTop = Math.max(0, Math.min(max, targetY));
+        velocity = 0;
         raf = null;
         return;
       }
-      container.scrollTop += delta * 0.3;
       raf = requestAnimationFrame(tick);
     };
 
-    const onWheel = (e: WheelEvent) => {
-      let el = e.target as HTMLElement;
-      while (el && el !== container) {
-        if (el.scrollHeight > el.clientHeight + 1) {
-          const oy = window.getComputedStyle(el).overflowY;
-          if (oy === 'auto' || oy === 'scroll') {
-            const canScroll = e.deltaY > 0
-              ? el.scrollTop + el.clientHeight < el.scrollHeight - 1
-              : el.scrollTop > 0;
-            if (canScroll) return;
-          }
-        }
-        el = el.parentElement as HTMLElement;
+    const startAnimation = () => {
+      if (!raf) {
+        lastTime = performance.now();
+        raf = requestAnimationFrame(tick);
       }
-      e.preventDefault();
-      if (!raf) targetY = container.scrollTop;
-      const max = container.scrollHeight - container.clientHeight;
-      targetY = Math.max(0, Math.min(max, targetY + e.deltaY));
-      if (!raf) raf = requestAnimationFrame(tick);
     };
 
-    container.addEventListener('wheel', onWheel, { passive: false });
+    // Expose to scroll buttons via ref (native wheel scroll is used; physics only for button clicks)
+    physicsScrollRef.current = {
+      scrollBy: (delta: number) => {
+        if (!raf) { targetY = container.scrollTop; velocity = 0; }
+        const max = container.scrollHeight - container.clientHeight;
+        targetY = Math.max(0, Math.min(max, targetY + delta));
+        startAnimation();
+      },
+      scrollTo: (y: number) => {
+        if (!raf) { targetY = container.scrollTop; velocity = 0; }
+        const max = container.scrollHeight - container.clientHeight;
+        targetY = Math.max(0, Math.min(max, y));
+        velocity = (targetY - container.scrollTop) * 0.08;
+        startAnimation();
+      },
+    };
+
     return () => {
-      container.removeEventListener('wheel', onWheel);
       if (raf) cancelAnimationFrame(raf);
+      physicsScrollRef.current = { scrollBy: () => {}, scrollTo: () => {} };
     };
   }, [isMobile, isTablet]);
 
@@ -8333,7 +8349,7 @@ export default function Dashboard() {
             }}
           />
         )}
-        <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+        <div className="flex-1 min-w-0 overflow-x-hidden flex flex-col min-h-0">
 
       {showMobileMenu && (isMobile || isTablet) && (
         <>
@@ -8574,6 +8590,7 @@ export default function Dashboard() {
             rowHeight={96}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
+            draggableHandle=".panel-drag-handle"
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
             margin={[12, 12]}
             containerPadding={[16, 16]}
@@ -8670,7 +8687,7 @@ export default function Dashboard() {
         <div style={{ position: 'fixed', right: 18, bottom: 90, zIndex: 200, display: 'flex', flexDirection: 'column', gap: 6, pointerEvents: 'none' }}>
           {showScrollTop && (
             <button
-              onClick={() => panelsScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={() => physicsScrollRef.current.scrollTo(0)}
               style={{
                 pointerEvents: 'auto', width: 36, height: 36, borderRadius: '50%',
                 background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.25)',
@@ -8688,7 +8705,7 @@ export default function Dashboard() {
           )}
           {showScrollDown && (
             <button
-              onClick={() => panelsScrollRef.current?.scrollBy({ top: 400, behavior: 'smooth' })}
+              onClick={() => physicsScrollRef.current.scrollBy(window.innerHeight * 0.75)}
               style={{
                 pointerEvents: 'auto', width: 36, height: 36, borderRadius: '50%',
                 background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.3)',
