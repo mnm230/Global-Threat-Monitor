@@ -453,6 +453,45 @@
 
   /* Search cancel */
   input[type="search"]::-webkit-search-cancel-button { @apply hidden; }
+
+  /* ── Missing ra-flex utilities (used throughout RedAlertPanel) ── */
+  .ra-flex-center { display: flex; align-items: center; }
+  .ra-flex-col    { display: flex; flex-direction: column; }
+  .ra-tracking-wider { letter-spacing: .12em; }
+
+  /* ── EAS critical-alert accent stripe ── */
+  .eas-stripes {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 5px,
+      rgba(255,255,255,0.16) 5px,
+      rgba(255,255,255,0.16) 7px
+    );
+  }
+
+  /* ── Alert card hover/focus feedback ── */
+  .ra-card { transition: filter .12s ease, box-shadow .12s ease; }
+  .ra-card:hover  { filter: brightness(1.08); }
+  .ra-card:focus-visible {
+    outline: 2px solid rgba(239,68,68,.55);
+    outline-offset: 1px;
+  }
+
+  /* ── Search input focus ring ── */
+  .ra-search-input::placeholder { color: rgba(239,68,68,.3); }
+  .ra-search-input:focus {
+    border-color: rgba(239,68,68,.45);
+    box-shadow: 0 0 0 2px rgba(239,68,68,.12);
+    outline: none;
+  }
+
+  /* ── Filter pill hover ── */
+  .ra-pill:hover   { filter: brightness(1.12); }
+  .ra-pill:focus-visible {
+    outline: 2px solid rgba(239,68,68,.55);
+    outline-offset: 1px;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
