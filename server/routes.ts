@@ -3268,7 +3268,7 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
   const results: InternetCountryStatus[] = [];
   const countryCodes = INET_COUNTRIES.map(c => c.code).join(',');
   const now = Math.floor(Date.now() / 1000);
-  const from = now - 7200;
+  const from = now - 21600;
 
   try {
     const resp = await fetch(
@@ -3290,8 +3290,7 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
         const cc = entry.entityCode;
         if (!signals[cc]) signals[cc] = { bgp: [], ping: [], gtrNorm: [], merit: [] };
         const nums = entry.values
-          .filter((v): v is number => typeof v === 'number' && v !== null)
-          .filter(v => v >= 0);
+          .filter((v): v is number => typeof v === 'number' && v !== null && !isNaN(v));
         if (entry.datasource === 'bgp') signals[cc].bgp = nums;
         else if (entry.datasource === 'ping-slash24') signals[cc].ping = nums;
         else if (entry.datasource === 'gtr-norm') signals[cc].gtrNorm = nums;
@@ -3303,28 +3302,41 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
       const sig = signals[country.code] || { bgp: [], ping: [], gtrNorm: [], merit: [] };
 
       const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+      const max = (arr: number[]) => arr.length > 0 ? Math.max(...arr) : 0;
       const last = (arr: number[]) => arr.length > 0 ? arr[arr.length - 1] : 0;
+      const lastN = (arr: number[], n: number) => arr.slice(-n);
 
-      const bgpVals = sig.bgp.filter(v => v > 0);
-      const pingVals = sig.ping.filter(v => v > 0);
-      const bgpLatest = last(bgpVals);
-      const bgpAvg = avg(bgpVals);
-      const pingLatest = last(pingVals);
-      const pingAvg = avg(pingVals);
+      const allBgp = sig.bgp.filter(v => typeof v === 'number');
+      const allPing = sig.ping.filter(v => typeof v === 'number');
 
-      const bgpRatio = bgpAvg > 0 ? Math.min(bgpLatest / bgpAvg, 1.2) : 1;
-      const pingRatio = pingAvg > 0 ? Math.min(pingLatest / pingAvg, 1.2) : 1;
+      const bgpBaseline = max(allBgp);
+      const pingBaseline = max(allPing);
+
+      const bgpRecent = lastN(allBgp, 3);
+      const pingRecent = lastN(allPing, 3);
+      const bgpLatest = bgpRecent.length > 0 ? avg(bgpRecent) : 0;
+      const pingLatest = pingRecent.length > 0 ? avg(pingRecent) : 0;
+
+      const bgpRatio = bgpBaseline > 0 ? Math.min(bgpLatest / bgpBaseline, 1) : (allBgp.length > 0 ? 0 : -1);
+      const pingRatio = pingBaseline > 0 ? Math.min(pingLatest / pingBaseline, 1) : (allPing.length > 0 ? 0 : -1);
 
       let healthRatio: number;
       if (sig.gtrNorm.length > 0) {
-        const gtrLatest = last(sig.gtrNorm);
-        healthRatio = gtrLatest * 0.4 + Math.min(bgpRatio, 1) * 0.3 + Math.min(pingRatio, 1) * 0.3;
-      } else if (pingAvg > 5) {
+        const gtrRecent = lastN(sig.gtrNorm.filter(v => typeof v === 'number'), 3);
+        const gtrLatest = gtrRecent.length > 0 ? avg(gtrRecent) : 0;
+        const safeBgp = bgpRatio >= 0 ? bgpRatio : gtrLatest;
+        const safePing = pingRatio >= 0 ? pingRatio : gtrLatest;
+        healthRatio = gtrLatest * 0.4 + safeBgp * 0.3 + safePing * 0.3;
+      } else if (bgpRatio >= 0 && pingRatio >= 0) {
         healthRatio = bgpRatio * 0.5 + pingRatio * 0.5;
-      } else {
+      } else if (bgpRatio >= 0) {
         healthRatio = bgpRatio;
+      } else if (pingRatio >= 0) {
+        healthRatio = pingRatio;
+      } else {
+        healthRatio = 0.5;
       }
-      healthRatio = Math.min(1, healthRatio);
+      healthRatio = Math.min(1, Math.max(0, healthRatio));
 
       const healthScore = Math.min(100, Math.max(0, Math.round(healthRatio * 100)));
       const status: InternetCountryStatus['status'] =
@@ -3335,13 +3347,13 @@ async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
       const outages: InternetCountryStatus['outages'] = [];
       if (healthRatio < 0.90) {
         const dropPct = Math.round((1 - healthRatio) * 100);
-        const worstMetric = pingRatio < bgpRatio ? 'ping' : 'bgp';
+        const worstMetric = (pingRatio >= 0 && bgpRatio >= 0) ? (pingRatio < bgpRatio ? 'ping' : 'bgp') : (bgpRatio >= 0 ? 'bgp' : 'ping');
         outages.push({
           id: `inet_${country.code}_ioda`,
           country: country.name,
           countryCode: country.code,
           metric: worstMetric === 'bgp' ? 'bgp_hegemony' : 'network_delay',
-          normalValue: worstMetric === 'bgp' ? Math.round(bgpAvg) : Math.round(pingAvg),
+          normalValue: worstMetric === 'bgp' ? Math.round(bgpBaseline) : Math.round(pingBaseline),
           currentValue: worstMetric === 'bgp' ? bgpLatest : pingLatest,
           dropPercent: dropPct,
           severity: healthRatio < 0.30 ? 'critical' : healthRatio < 0.50 ? 'high' : healthRatio < 0.70 ? 'medium' : 'low',
