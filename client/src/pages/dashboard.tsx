@@ -1215,9 +1215,9 @@ const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   // Row 1 — Hero: Alerts | Map | Telegram
-  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 4 },
-  { i: 'alertmap',     x: 3,  y: 0,  w: 6,  h: 8,  minW: 3, minH: 4 },
-  { i: 'telegram',     x: 9,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 3 },
+  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 7,  minW: 2, minH: 4 },
+  { i: 'alertmap',     x: 3,  y: 0,  w: 5,  h: 7,  minW: 3, minH: 4 },
+  { i: 'telegram',     x: 8,  y: 0,  w: 4,  h: 7,  minW: 2, minH: 3 },
   // Row 2 — Intel strip: AI | Events | Markets | Netblack
   { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
   { i: 'events',       x: 3,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
@@ -4475,8 +4475,8 @@ const MapSection = memo(function MapSection({
           {/* Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 2, flexShrink: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-              <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color, boxShadow: `0 0 8px ${activeMode.color}bb`, transition: 'all 0.3s' }} />
-              <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color + '44', transition: 'all 0.3s' }} />
+              <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color, boxShadow: `0 0 8px ${activeMode.color}bb`, transition: 'background-color 0.2s ease' }} />
+              <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color + '44', transition: 'background-color 0.2s ease' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,211,238,0.82)', lineHeight: 1.25 }}>THEATRE OF OPERATIONS</span>
@@ -4499,7 +4499,7 @@ const MapSection = memo(function MapSection({
                     background: active ? `${m.color}1e` : 'transparent',
                     color: active ? m.color : 'rgba(255,255,255,0.22)',
                     boxShadow: active ? `0 0 0 1px ${m.color}44, inset 0 0 10px ${m.color}0d` : 'none',
-                    transition: 'all 0.18s',
+                    transition: 'background-color 0.15s ease, color 0.15s ease',
                   }}
                 >
                   <m.icon style={{ width: 9, height: 9 }} />
@@ -4513,7 +4513,7 @@ const MapSection = memo(function MapSection({
           <div style={{ display: 'flex', gap: 3, marginLeft: 2 }}>
             {statRow.map(({ label, value, color, pulse }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: `${color}0e`, border: `1px solid ${color}22`, borderRadius: 4 }}>
-                {pulse && <div style={{ width: 4, height: 4, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, animation: 'pulse 1.1s ease-in-out infinite', flexShrink: 0 }} />}
+                {pulse && <div style={{ width: 4, height: 4, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, animation: 'eas-flash 1.1s ease-in-out infinite', flexShrink: 0, transform: 'translateZ(0)' }} />}
                 <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.20)', letterSpacing: '0.1em' }}>{label}</span>
                 <span style={{ fontSize: 12, fontWeight: 900, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
               </div>
@@ -4521,8 +4521,8 @@ const MapSection = memo(function MapSection({
           </div>
 
           {hasActiveThreats && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 4, animation: 'eas-pulse-border 1.2s ease-in-out infinite', flexShrink: 0 }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 7px rgba(239,68,68,0.8)', animation: 'pulse 0.8s ease-in-out infinite' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 4, animation: 'eas-pulse-border 1.2s ease-in-out infinite', flexShrink: 0, transform: 'translateZ(0)' }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 7px rgba(239,68,68,0.8)', animation: 'eas-flash 0.8s ease-in-out infinite', transform: 'translateZ(0)' }} />
               <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.18em', color: '#ef4444' }}>ACTIVE THREAT</span>
             </div>
           )}
@@ -4553,7 +4553,7 @@ const MapSection = memo(function MapSection({
                         cursor: 'pointer',
                         background: mapStyleId === s.id ? 'rgba(34,211,238,0.12)' : 'transparent',
                         color: mapStyleId === s.id ? '#22d3ee' : 'rgba(255,255,255,0.22)',
-                        transition: 'all 0.15s',
+                        transition: 'background-color 0.12s ease, color 0.12s ease',
                       }}
                     >
                       <div style={{
@@ -4577,7 +4577,7 @@ const MapSection = memo(function MapSection({
 
           {/* LIVE */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.20)', borderRadius: 4, flexShrink: 0 }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.65)', animation: 'pulse 1.8s ease-in-out infinite' }} />
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.65)', animation: 'eas-flash 1.8s ease-in-out infinite', transform: 'translateZ(0)' }} />
             <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,197,94,0.65)' }}>LIVE</span>
           </div>
 
