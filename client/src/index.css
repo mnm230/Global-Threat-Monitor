@@ -161,16 +161,14 @@
   }
 
   /* Readable font size minimums */
-  .text-\[6px\]  { font-size: 10px !important; font-weight: 600 !important; }
-  .text-\[7px\]  { font-size: 11px !important; font-weight: 600 !important; }
-  .text-\[8px\]  { font-size: 11px !important; font-weight: 500 !important; }
-  .text-\[9px\]  { font-size: 12px !important; font-weight: 500 !important; }
-  .text-\[10px\] { font-size: 13px !important; font-weight: 500 !important; }
-  .text-\[11px\] { font-size: 13px !important; }
-  .text-\[12px\] { font-size: 14px !important; }
-  .text-\[13px\] { font-size: 14px !important; }
+  .text-\[6px\]  { font-size: 9px !important; font-weight: 600 !important; }
+  .text-\[7px\]  { font-size: 10px !important; font-weight: 600 !important; }
+  .text-\[8px\]  { font-size: 10px !important; font-weight: 500 !important; }
+  .text-\[9px\]  { font-size: 11px !important; }
+  .text-\[10px\] { font-size: 12px !important; }
+  .text-\[11px\] { font-size: 12px !important; }
+  .text-\[12px\] { font-size: 13px !important; }
   .text-xs       { font-size: 12px !important; }
-  .text-sm       { font-size: 13px !important; }
 
   ::selection {
     background: hsl(221 83% 53% / .14);
@@ -220,8 +218,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 12px;
-    min-height: 36px;
+    padding: 0 14px;
+    min-height: 38px;
     background: hsl(var(--card));
     border-bottom: 1px solid hsl(var(--border));
     flex-shrink: 0;
@@ -233,11 +231,11 @@
   .dash-panel-header::before {
     content: '';
     position: absolute;
-    left: 0; top: 18%; height: 64%;
-    width: 2px;
-    border-radius: 0 2px 2px 0;
+    left: 0; top: 15%; height: 70%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
     background: var(--panel-accent, hsl(var(--primary)));
-    opacity: .55;
+    opacity: .65;
   }
 
   .dash-panel-header:active { cursor: grabbing; }
@@ -529,17 +527,17 @@
   background: hsl(var(--card)) !important;
   border-bottom: 1px solid hsl(var(--border)) !important;
   color: hsl(var(--foreground)) !important;
-  min-height: 34px !important;
+  min-height: 38px !important;
   position: relative;
 }
 
 .panel-drag-handle::before {
   content: '';
   position: absolute;
-  left: 0; top: 18%; height: 64%;
-  width: 2px; border-radius: 0 2px 2px 0;
+  left: 0; top: 15%; height: 70%;
+  width: 3px; border-radius: 0 3px 3px 0;
   background: var(--panel-accent, hsl(var(--primary)));
-  opacity: .5;
+  opacity: .65;
 }
 
 /* Exception: alert panel keeps dynamic coloring */
@@ -550,13 +548,13 @@
 
 .warroom-panel-close,
 .warroom-panel-maximize {
-  opacity: .38;
-  transition: opacity .12s ease, background-color .12s ease;
+  opacity: .30;
+  transition: opacity .15s ease, background-color .15s ease;
 }
 .panel-drag-handle:hover .warroom-panel-close,
-.panel-drag-handle:hover .warroom-panel-maximize { opacity: .72; }
+.panel-drag-handle:hover .warroom-panel-maximize { opacity: .65; }
 .warroom-panel-close:hover,
-.warroom-panel-maximize:hover { opacity: 1 !important; }
+.warroom-panel-maximize:hover { opacity: 1 !important; background: hsl(var(--muted)); border-radius: 6px; }
 
 /* ════════════════════════════════════════════════════════════════
    HEADER BAR
@@ -565,24 +563,28 @@
   min-height: 40px;
   background: hsl(var(--card));
   border-bottom: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.dark .warroom-header {
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
 }
 
 /* ════════════════════════════════════════════════════════════════
    PANEL BODY
    ════════════════════════════════════════════════════════════════ */
 .warroom-panel-header {
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: .05em;
   text-transform: uppercase;
-  min-height: 36px;
+  min-height: 38px;
   background: hsl(var(--card));
   border-bottom: 1px solid hsl(var(--border));
 }
 
 .warroom-panel-body {
-  padding: 8px 10px;
+  padding: 10px 12px;
   font-size: 13px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -626,57 +628,49 @@
   box-shadow: none !important;
 }
 
-/* Resize handles — always visible, large grab areas */
+/* Resize handles — visible on hover, generous grab targets */
 .react-resizable-handle {
-  opacity: 0.35;
-  transition: opacity .15s;
+  opacity: 0;
+  transition: opacity .18s ease;
   z-index: 10;
 }
-.react-grid-item:hover .react-resizable-handle { opacity: 0.7; }
+.react-grid-item:hover .react-resizable-handle { opacity: 0.55; }
 .react-resizable-handle:hover { opacity: 1 !important; }
 
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(221 83% 53% / .45) !important;
-  border-width: 2.5px !important;
-  width: 12px !important; height: 12px !important;
+  border-color: hsl(221 83% 53% / .4) !important;
+  border-width: 2px !important;
+  width: 10px !important; height: 10px !important;
   border-radius: 2px;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(221 83% 53% / .85) !important;
-  width: 14px !important; height: 14px !important;
+  border-color: hsl(221 83% 53% / .75) !important;
+  width: 12px !important; height: 12px !important;
 }
 
-.react-resizable-handle-se { bottom: 2px !important; right: 2px !important; cursor: se-resize !important; width: 24px !important; height: 24px !important; }
-.react-resizable-handle-sw { bottom: 2px !important; left: 2px !important;  cursor: sw-resize !important; width: 24px !important; height: 24px !important; }
-.react-resizable-handle-ne { top: 2px !important;    right: 2px !important; cursor: ne-resize !important; width: 24px !important; height: 24px !important; }
-.react-resizable-handle-nw { top: 2px !important;    left: 2px !important;  cursor: nw-resize !important; width: 24px !important; height: 24px !important; }
-
+.react-resizable-handle-se { bottom: 2px !important; right: 2px !important; cursor: se-resize !important; width: 20px !important; height: 20px !important; }
 .react-resizable-handle-e {
-  right: -4px !important; top: 50% !important; transform: translateY(-50%); cursor: e-resize !important;
-  width: 12px !important; height: 40px !important;
-}
-.react-resizable-handle-w {
-  left: -4px !important; top: 50% !important; transform: translateY(-50%); cursor: w-resize !important;
-  width: 12px !important; height: 40px !important;
+  right: -3px !important; top: 50% !important; transform: translateY(-50%); cursor: e-resize !important;
+  width: 10px !important; height: 36px !important;
 }
 .react-resizable-handle-s {
-  bottom: -4px !important; left: 50% !important; transform: translateX(-50%); cursor: s-resize !important;
-  width: 40px !important; height: 12px !important;
+  bottom: -3px !important; left: 50% !important; transform: translateX(-50%); cursor: s-resize !important;
+  width: 36px !important; height: 10px !important;
 }
 
 .react-resizable-handle-e::after,
 .react-resizable-handle-w::after {
-  width: 3px !important; height: 20px !important;
+  width: 3px !important; height: 18px !important;
   border: none !important;
-  background: hsl(221 83% 53% / .35);
+  background: hsl(221 83% 53% / .3);
   border-radius: 2px;
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
 }
 .react-resizable-handle-s::after {
-  width: 20px !important; height: 3px !important;
+  width: 18px !important; height: 3px !important;
   border: none !important;
-  background: hsl(221 83% 53% / .35);
+  background: hsl(221 83% 53% / .3);
   border-radius: 2px;
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -684,7 +678,7 @@
 .react-resizable-handle-e:hover::after,
 .react-resizable-handle-w:hover::after,
 .react-resizable-handle-s:hover::after {
-  background: hsl(221 83% 53% / .8) !important;
+  background: hsl(221 83% 53% / .7) !important;
 }
 
 /* Grid container */
@@ -789,14 +783,13 @@
   }
   * { -webkit-overflow-scrolling: touch; }
 
-  .react-resizable-handle { opacity: .6 !important; }
-  .react-resizable-handle-se, .react-resizable-handle-sw,
-  .react-resizable-handle-ne, .react-resizable-handle-nw { width: 28px !important; height: 28px !important; }
-  .react-grid-item > .react-resizable-handle::after { width: 16px !important; height: 16px !important; border-width: 3px !important; }
-  .react-resizable-handle-e, .react-resizable-handle-w { width: 16px !important; height: 48px !important; }
-  .react-resizable-handle-s { width: 48px !important; height: 16px !important; }
-  .react-resizable-handle-e::after, .react-resizable-handle-w::after { height: 24px !important; width: 4px !important; }
-  .react-resizable-handle-s::after { width: 24px !important; height: 4px !important; }
+  .react-resizable-handle { opacity: .5 !important; }
+  .react-resizable-handle-se { width: 24px !important; height: 24px !important; }
+  .react-grid-item > .react-resizable-handle::after { width: 14px !important; height: 14px !important; border-width: 2.5px !important; }
+  .react-resizable-handle-e { width: 14px !important; height: 44px !important; }
+  .react-resizable-handle-s { width: 44px !important; height: 14px !important; }
+  .react-resizable-handle-e::after { height: 22px !important; width: 4px !important; }
+  .react-resizable-handle-s::after { width: 22px !important; height: 4px !important; }
   .react-grid-item > .panel-drag-handle,
   .react-grid-item > .react-resizable-handle { touch-action: none; }
 

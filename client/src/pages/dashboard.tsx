@@ -989,7 +989,7 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
             className={`text-[9px] px-2 py-0.5 rounded font-bold tracking-wider transition-colors border ${
               filter === key
                 ? 'bg-primary/20 text-primary border-primary/30'
-                : 'text-muted-foreground/40 hover:text-muted-foreground/70 border-transparent'
+                : 'text-muted-foreground/60 hover:text-muted-foreground/85 border-transparent'
             }`}
           >{label}</button>
         ))}
@@ -1120,25 +1120,25 @@ function EscalationBanner({ state, onDismiss }: { state: EscalationState; onDism
       bg: 'hsl(0 72% 51% / 0.08)',
       border: 'hsl(0 72% 51% / 0.30)',
       dot: 'bg-red-500',
-      text: 'text-red-700',
+      text: 'text-red-500',
       label: 'Critical Escalation',
-      badge: 'bg-red-100 border-red-300 text-red-700',
+      badge: 'bg-red-500/15 border-red-500/35 text-red-500',
     },
     WARNING: {
       bg: 'hsl(38 92% 50% / 0.08)',
       border: 'hsl(38 92% 50% / 0.30)',
       dot: 'bg-orange-500',
-      text: 'text-orange-700',
+      text: 'text-orange-500',
       label: 'Warning — High Alert Rate',
-      badge: 'bg-orange-100 border-orange-300 text-orange-700',
+      badge: 'bg-orange-500/15 border-orange-500/35 text-orange-500',
     },
     WATCH: {
       bg: 'hsl(48 92% 50% / 0.08)',
       border: 'hsl(48 92% 50% / 0.30)',
       dot: 'bg-yellow-500',
-      text: 'text-yellow-700',
+      text: 'text-yellow-500',
       label: 'Watch — Activity Surge',
-      badge: 'bg-yellow-100 border-yellow-300 text-yellow-700',
+      badge: 'bg-yellow-500/15 border-yellow-500/35 text-yellow-500',
     },
   }[state.level];
   return (
@@ -1750,7 +1750,7 @@ const TickerBar = memo(function TickerBar({ commodities }: { commodities: Commod
   const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
 
   return (
-    <div className="h-8 border-b border-border overflow-hidden relative shrink-0 bg-muted/50" data-testid="ticker-bar">
+    <div className="h-8 border-b border-border overflow-hidden relative shrink-0 bg-muted/30" data-testid="ticker-bar">
       <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3 bg-gradient-to-r from-muted/80 to-transparent">
         <span className="text-[11px] font-semibold text-muted-foreground">MKT</span>
       </div>
@@ -1760,7 +1760,7 @@ const TickerBar = memo(function TickerBar({ commodities }: { commodities: Commod
           <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[11px]">
             <span className="text-muted-foreground font-semibold">{c.symbol}</span>
             <span className="text-foreground tabular-nums">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-0.5 tabular-nums font-semibold ${c.change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            <span className={`inline-flex items-center gap-0.5 tabular-nums font-semibold ${c.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
               {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
               {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
             </span>
@@ -1966,20 +1966,20 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
+    <div className="panel-drag-handle h-[38px] px-3.5 flex items-center gap-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none">
       <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground shrink-0">{icon}</span>
-      <span className="text-[11px] font-semibold text-foreground/75 leading-none tracking-wide">{title}</span>
+      <span className="text-[12px] font-semibold text-foreground/80 leading-none tracking-wider uppercase">{title}</span>
       {count !== undefined && (
-        <span className="text-[10px] text-muted-foreground/70 tabular-nums leading-none font-mono bg-muted/60 px-1.5 py-0.5 rounded">
+        <span className="text-[10px] text-muted-foreground/60 tabular-nums leading-none font-mono bg-muted/50 px-1.5 py-0.5 rounded">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[10px] text-muted-foreground font-medium">live</span>
+          <span className="text-[10px] text-emerald-500/70 font-semibold uppercase tracking-wider">live</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -3183,7 +3183,7 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
         isMaximized={isMaximized}
         extra={
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 border border-red-200">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/25">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
               <span className="text-[9px] text-red-500 font-bold tracking-wider font-mono">LIVE</span>
             </div>
@@ -6456,16 +6456,16 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   return (
     <div className="flex flex-col h-full bg-card" data-testid="panel-aiprediction">
       <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none bg-card border-b border-border">
-        <Brain className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+        <Brain className="w-3.5 h-3.5 text-violet-400 shrink-0" />
         <span className="text-[12px] font-semibold text-foreground/80 leading-none">AI Prediction</span>
         {prediction?.dataPoints?.isEscalating && (
-          <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-50 text-red-600 rounded-full border border-red-200 animate-pulse">
+          <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-500/10 text-red-500 rounded-full border border-red-500/25 animate-pulse">
             Escalating
           </span>
         )}
         <div className="flex-1" />
         {prediction && (
-          <span className="text-[11px] text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-200 font-medium">
+          <span className="text-[11px] text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/25 font-medium">
             {confPct}% conf
           </span>
         )}
@@ -6480,7 +6480,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
             onClick={() => setActiveTab(tab)}
             className={`shrink-0 flex-1 py-2 text-[12px] font-medium transition-all ${
               activeTab === tab
-                ? tab === 'ask' ? 'text-emerald-600 border-b-2 border-emerald-500 bg-emerald-50/50' : 'text-violet-600 border-b-2 border-violet-500 bg-violet-50/50'
+                ? tab === 'ask' ? 'text-emerald-500 border-b-2 border-emerald-500 bg-emerald-500/8' : 'text-violet-400 border-b-2 border-violet-500 bg-violet-500/8'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
             data-testid={`button-aipred-tab-${tab}`}
@@ -6554,7 +6554,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 {/* WHEN */}
                 <div className="rounded-xl border border-border bg-card p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center shrink-0">
                       <Clock className="w-3.5 h-3.5 text-blue-500" />
                     </div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">When — Next Attack Window</span>
@@ -6587,7 +6587,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 {/* WHERE */}
                 <div className="rounded-xl border border-border bg-card p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-lg bg-red-500/10 border border-red-500/25 flex items-center justify-center shrink-0">
                       <Target className="w-3.5 h-3.5 text-red-500" />
                     </div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Where — Most Likely Target</span>
@@ -6852,7 +6852,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                           key={q}
                           onClick={() => sendQuestion(q)}
                           disabled={chatLoading}
-                          className="text-left px-3 py-2 rounded-lg text-[12px] transition-all hover:bg-violet-50 active:scale-98 disabled:opacity-40 text-violet-700 border border-violet-100 bg-white"
+                          className="text-left px-3 py-2 rounded-lg text-[12px] transition-all hover:bg-violet-500/10 active:scale-98 disabled:opacity-40 text-violet-400 border border-violet-500/20 bg-violet-500/5"
                         >
                           {q}
                         </button>
@@ -7475,7 +7475,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
-  const bottomGroup: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'alertmap', 'analytics', 'osint'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'alertmap', 'analytics', 'osint', 'attackpred', 'rocketstats'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -7488,7 +7488,7 @@ function PanelSidebar({
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
-        className={`w-full h-8 flex items-center gap-2 px-2 rounded-md relative transition-colors
+        className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg relative transition-colors
           ${active
             ? 'bg-primary/8 text-primary'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -7496,14 +7496,14 @@ function PanelSidebar({
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        {active && <div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-primary" />}
-        <Icon className="w-3.5 h-3.5 shrink-0 ml-1" />
-        <span className="text-[12px] font-medium flex-1 text-left leading-none truncate">
+        {active && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-primary" />}
+        <Icon className="w-4 h-4 shrink-0 ml-0.5" />
+        <span className="text-[13px] font-medium flex-1 text-left leading-none truncate">
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded font-semibold
-            ${active ? 'text-primary bg-primary/10' : 'text-muted-foreground/70 bg-muted'}`}>
+          <span className={`text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded-md font-semibold
+            ${active ? 'text-primary bg-primary/10' : 'text-muted-foreground/60 bg-muted'}`}>
             {stat}
           </span>
         )}
@@ -7514,7 +7514,7 @@ function PanelSidebar({
   return (
     <div
       className="flex flex-col shrink-0 overflow-y-auto overflow-x-hidden border-r border-border bg-sidebar"
-      style={{ width: 196 }}
+      style={{ width: 208 }}
     >
       <div className="px-3 pt-3 pb-1">
         <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-widest">Panels</span>
@@ -7849,7 +7849,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v7') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v8') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         const merged = saved.map((item: GridItemLayout) => {
@@ -7889,7 +7889,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v7', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v8', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -8107,7 +8107,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v7', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v8', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
@@ -8211,7 +8211,7 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground h-screen ${isMobile || isTablet ? '!h-[100dvh]' : ''}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
-      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-11'} border-b flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
+      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-12'} border-b flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
         {/* Left — Branding */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <div className="flex items-center gap-2">
@@ -8222,7 +8222,7 @@ export default function Dashboard() {
               Warroom
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
             <span className="text-[11px] text-red-500 font-semibold">Live</span>
           </div>
@@ -8243,7 +8243,7 @@ export default function Dashboard() {
             {redAlerts.length > 0 && (
               <>
                 <div className="w-px h-4 bg-border" />
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/25">
                   <span className="text-[12px] font-semibold text-red-500">{redAlerts.length}</span>
                   <span className="text-[11px] text-red-400">Alerts</span>
                 </div>
@@ -8334,9 +8334,9 @@ export default function Dashboard() {
             </div>
           )}
           <div className="w-px h-4 bg-border" />
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${connected ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} title={connected ? 'Stream connected' : 'Stream disconnected'}>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${connected ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-red-500/10 border-red-500/25'}`} role="status" aria-label={connected ? 'Connected to server' : 'Disconnected'} title={connected ? 'Stream connected' : 'Stream disconnected'}>
             <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-500'}`} />
-            <span className={`text-[11px] font-medium hidden sm:inline ${connected ? 'text-emerald-600' : 'text-red-500'}`}>
+            <span className={`text-[11px] font-medium hidden sm:inline ${connected ? 'text-emerald-500' : 'text-red-500'}`}>
               {connected ? (language === 'en' ? 'Online' : '\u0645\u062A\u0635\u0644') : (language === 'en' ? 'Offline' : '\u0645\u0646\u0642\u0637\u0639')}
             </span>
           </div>
@@ -8608,9 +8608,9 @@ export default function Dashboard() {
             onLayoutChange={handleGridLayoutChange}
             draggableHandle=".panel-drag-handle"
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[6, 6]}
-            containerPadding={[10, 10]}
-            resizeHandles={['se', 'sw', 'ne', 'nw', 'e', 'w', 's']}
+            margin={[8, 8]}
+            containerPadding={[12, 12]}
+            resizeHandles={['se', 'e', 's']}
             style={{ paddingBottom: 80 }}
           >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
@@ -8630,7 +8630,9 @@ export default function Dashboard() {
                       : hasAlertGlow
                         ? '1px solid hsl(0 70% 50% / 0.22)'
                         : '1px solid hsl(var(--border))',
-                    boxShadow: hasAlertGlow && !isFloating ? '0 0 0 2px hsl(0 70% 50% / 0.06)' : 'none',
+                    boxShadow: hasAlertGlow && !isFloating
+                      ? '0 0 0 2px hsl(0 70% 50% / 0.06), var(--shadow-sm)'
+                      : 'var(--shadow-xs)',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,
                   } as React.CSSProperties}
@@ -8658,11 +8660,11 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => { e.stopPropagation(); popOutPanel(id); }}
                           data-no-drag
-                          className="absolute top-1 right-1 z-[90] opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                          className="absolute top-[42px] right-1.5 z-[90] opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150"
                           title="Pop out as floating window"
-                          style={{ width: 20, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
+                          style={{ width: 22, height: 22, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
                         >
-                          <ExternalLink style={{ width: 10, height: 10 }} />
+                          <ExternalLink style={{ width: 11, height: 11 }} />
                         </button>
                       )}
                       <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
@@ -8746,8 +8748,8 @@ export default function Dashboard() {
       {!isMobile && (
         <div className="h-8 border-t border-border flex items-center px-3 shrink-0 gap-2 overflow-hidden bg-muted/50" data-testid="status-bar">
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-            <span className="text-[11px] text-muted-foreground font-medium">Online</span>
+            <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse-dot' : 'bg-red-400'}`} />
+            <span className={`text-[11px] font-medium ${connected ? 'text-muted-foreground' : 'text-red-500'}`}>{connected ? 'Online' : 'Offline'}</span>
           </div>
           <div className="w-px h-3 bg-border" />
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -8761,12 +8763,12 @@ export default function Dashboard() {
               <div className="w-px h-3 bg-border" />
               <div className="flex items-center gap-1.5">
                 {redAlerts.length > 0 && (
-                  <span className="text-[11px] text-red-600 font-semibold animate-pulse px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                  <span className="text-[11px] text-red-500 font-semibold animate-pulse px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25">
                     {redAlerts.length} Alerts
                   </span>
                 )}
                 {sirens.length > 0 && (
-                  <span className="text-[11px] text-red-500 font-medium px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                  <span className="text-[11px] text-red-500 font-medium px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25">
                     {sirens.length} Sirens
                   </span>
                 )}
