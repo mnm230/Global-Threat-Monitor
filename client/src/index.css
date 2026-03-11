@@ -396,8 +396,8 @@
 
   /* ── Component atoms ── */
   .ra-pill {
-    font-size: 11px; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+    padding: 4px 11px; border-radius: 20px;
     cursor: pointer; border: 1px solid;
     white-space: nowrap; flex-shrink: 0;
     transition: opacity .12s ease, background-color .12s ease,
@@ -405,37 +405,37 @@
   }
 
   .ra-badge-sm {
-    font-size: 10px; font-weight: 600;
-    padding: 2px 7px; border-radius: 8px;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 8px;
     letter-spacing: .04em; text-transform: uppercase;
   }
 
   .ra-badge-xs {
-    font-size: 9px; font-weight: 700;
+    font-size: 10px; font-weight: 700;
     padding: 2px 6px; border-radius: 4px;
     letter-spacing: .06em;
   }
 
   .ra-card { border-radius: 10px; overflow: hidden; cursor: pointer; }
-  .ra-card-body { padding: 9px 12px; display: flex; align-items: center; gap: 10px; }
+  .ra-card-body { padding: 11px 14px; display: flex; align-items: center; gap: 12px; }
 
   .ra-city-name {
-    font-weight: 700; line-height: 1.2;
+    font-weight: 800; line-height: 1.2;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
   .ra-country-header {
-    padding: 5px 10px;
+    padding: 7px 12px;
     display: flex; align-items: center; gap: 8px;
     border-radius: 8px;
   }
 
   .ra-search-input {
     width: 100%; box-sizing: border-box;
-    padding: 7px 10px 7px 32px;
+    padding: 8px 10px 8px 34px;
     font-size: 13px;
     background: hsl(var(--background));
-    border: 1px solid hsl(var(--border));
+    border: 1.5px solid hsl(var(--border));
     border-radius: 8px;
     color: hsl(var(--foreground));
     outline: none;
@@ -525,19 +525,19 @@
    ════════════════════════════════════════════════════════════════ */
 .panel-drag-handle {
   background: hsl(var(--card)) !important;
-  border-bottom: 1px solid hsl(var(--border)) !important;
+  border-bottom: 1.5px solid hsl(var(--border)) !important;
   color: hsl(var(--foreground)) !important;
-  min-height: 38px !important;
+  min-height: 42px !important;
   position: relative;
 }
 
 .panel-drag-handle::before {
   content: '';
   position: absolute;
-  left: 0; top: 15%; height: 70%;
-  width: 3px; border-radius: 0 3px 3px 0;
+  left: 0; top: 12%; height: 76%;
+  width: 4px; border-radius: 0 4px 4px 0;
   background: var(--panel-accent, hsl(var(--primary)));
-  opacity: .65;
+  opacity: .80;
 }
 
 /* Exception: alert panel keeps dynamic coloring */

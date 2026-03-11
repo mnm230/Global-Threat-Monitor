@@ -1215,24 +1215,24 @@ const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   // Row 1 — Hero: Alerts | Map | Telegram
-  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 7,  minW: 2, minH: 4 },
-  { i: 'alertmap',     x: 3,  y: 0,  w: 5,  h: 7,  minW: 3, minH: 4 },
-  { i: 'telegram',     x: 8,  y: 0,  w: 4,  h: 7,  minW: 2, minH: 3 },
+  { i: 'alerts',       x: 0,  y: 0,  w: 4,  h: 8,  minW: 3, minH: 4 },
+  { i: 'alertmap',     x: 4,  y: 0,  w: 5,  h: 8,  minW: 3, minH: 4 },
+  { i: 'telegram',     x: 9,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 3 },
   // Row 2 — Intel strip: AI | Events | Markets | Netblack
-  { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
-  { i: 'events',       x: 3,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
-  { i: 'markets',      x: 6,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
-  { i: 'netblack',     x: 9,  y: 8,  w: 3,  h: 5,  minW: 2, minH: 2 },
+  { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'events',       x: 3,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'markets',      x: 6,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'netblack',     x: 9,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
   // Row 3 — Wide feed
-  { i: 'livefeed',     x: 0,  y: 13, w: 12, h: 3,  minW: 2, minH: 2 },
+  { i: 'livefeed',     x: 0,  y: 14, w: 12, h: 4,  minW: 2, minH: 2 },
   // Row 4 — Analysis pair
-  { i: 'osint',        x: 0,  y: 16, w: 6,  h: 5,  minW: 3, minH: 2 },
-  { i: 'analytics',    x: 6,  y: 16, w: 6,  h: 5,  minW: 2, minH: 2 },
+  { i: 'osint',        x: 0,  y: 18, w: 6,  h: 6,  minW: 3, minH: 2 },
+  { i: 'analytics',    x: 6,  y: 18, w: 6,  h: 6,  minW: 2, minH: 2 },
   // Row 5 — Data pair
-  { i: 'notams',       x: 0,  y: 21, w: 6,  h: 4,  minW: 2, minH: 2 },
-  { i: 'attackpred',   x: 6,  y: 21, w: 6,  h: 4,  minW: 2, minH: 3 },
+  { i: 'notams',       x: 0,  y: 24, w: 6,  h: 5,  minW: 2, minH: 2 },
+  { i: 'attackpred',   x: 6,  y: 24, w: 6,  h: 5,  minW: 2, minH: 3 },
   // Row 6 — Stats
-  { i: 'rocketstats',  x: 0,  y: 25, w: 12, h: 5,  minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 0,  y: 29, w: 12, h: 6,  minW: 2, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
@@ -3400,22 +3400,22 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         <div className="shrink-0 px-3 py-2" style={{ background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">TOTAL</span>
-              <span className="text-[17px] font-black text-white ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{alerts.length}</span>
+              <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">TOTAL</span>
+              <span className="text-[22px] font-black text-white ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{alerts.length}</span>
             </div>
-            <div className="w-px h-5 bg-white/[0.08]" />
+            <div className="w-px h-6 bg-white/[0.10]" />
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-red-500 eas-flash shrink-0" />
-              <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">ACTIVE</span>
-              <span className="text-[17px] font-black text-red-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{activeCount}</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 eas-flash shrink-0" />
+              <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">ACTIVE</span>
+              <span className="text-[22px] font-black text-red-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{activeCount}</span>
             </div>
             {liveCount > 0 && (
               <>
                 <div className="w-px h-5 bg-white/[0.08]" />
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px #22c55e' }} />
-                  <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">LIVE</span>
-                  <span className="text-[17px] font-black text-green-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{liveCount}</span>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px #22c55e' }} />
+                  <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">LIVE</span>
+                  <span className="text-[22px] font-black text-green-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{liveCount}</span>
                 </div>
               </>
             )}
@@ -3423,15 +3423,15 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               <>
                 <div className="w-px h-5 bg-white/[0.08]" />
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[12px]">🌍</span>
-                  <span className="text-[9px] text-white/25 ra-font-mono uppercase font-bold tracking-widest">REGIONAL</span>
-                  <span className="text-[17px] font-black text-amber-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{nonIsraelAlerts.length}</span>
+                  <span className="text-[13px]">🌍</span>
+                  <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">REGIONAL</span>
+                  <span className="text-[22px] font-black text-amber-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{nonIsraelAlerts.length}</span>
                 </div>
               </>
             )}
             <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-[9px] text-white/20 ra-font-mono font-semibold">5MIN</span>
-              <span className="text-[12px] font-black ra-font-mono" style={{ color: recentCount > 5 ? '#f87171' : recentCount > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
+              <span className="text-[10px] text-white/25 ra-font-mono font-semibold">5MIN</span>
+              <span className="text-[15px] font-black ra-font-mono" style={{ color: recentCount > 5 ? '#f87171' : recentCount > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
                 {recentCount > 0 ? `+${recentCount}` : '—'}
               </span>
             </div>
@@ -3629,7 +3629,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                             <div className="flex-1 min-w-0">
                               <div className="ra-flex-center gap-1.5 mb-0.5">
                                 {isNonIsrael && <span className="text-[14px] shrink-0">{FLAG_MAP[alert.country]}</span>}
-                                <span className={`ra-city-name ${isCrit ? 'text-[15px]' : 'text-[13px]'} ${isExpired ? 'text-white/25' : 'text-white'}`}>
+                                <span className={`ra-city-name ${isCrit ? 'text-[16px]' : 'text-[14px]'} ${isExpired ? 'text-white/25' : 'text-white'}`}>
                                   {language === 'ar' ? alert.cityAr : alert.city}
                                 </span>
                                 {isNew && (
@@ -3654,7 +3654,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                                 )}
                               </div>
                               {/* Region as subtitle — replaces per-region section headers */}
-                              <div className="text-[9px] ra-font-mono font-semibold truncate mb-1" style={{ color: isExpired ? 'rgba(255,255,255,0.1)' : alertAccent + 'aa', letterSpacing: '0.06em' }}>
+                              <div className="text-[10px] ra-font-mono font-semibold truncate mb-1" style={{ color: isExpired ? 'rgba(255,255,255,0.1)' : alertAccent + 'bb', letterSpacing: '0.06em' }}>
                                 {language === 'ar' ? alert.regionAr : alert.region}
                               </div>
                               <div className="ra-flex-center gap-1.5">
@@ -7849,7 +7849,7 @@ export default function Dashboard() {
   });
   const [gridLayout, setGridLayout] = useState<GridItemLayout[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v8') || '[]');
+      const saved = JSON.parse(localStorage.getItem('warroom_grid_layout_v9') || '[]');
       if (Array.isArray(saved) && saved.length > 0) {
         const defaults = new Map(DEFAULT_GRID_LAYOUT.map(d => [d.i, d]));
         const merged = saved.map((item: GridItemLayout) => {
@@ -7889,7 +7889,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v8', JSON.stringify(merged));
+      localStorage.setItem('warroom_grid_layout_v9', JSON.stringify(merged));
       return merged;
     });
   }, []);
@@ -8107,7 +8107,7 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v8', JSON.stringify(preset.gridLayout));
+      localStorage.setItem('warroom_grid_layout_v9', JSON.stringify(preset.gridLayout));
     }
     setMaximizedPanel(null);
   }, []);
@@ -8603,13 +8603,13 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={80}
+            rowHeight={82}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableHandle=".panel-drag-handle"
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[8, 8]}
-            containerPadding={[12, 12]}
+            margin={[10, 10]}
+            containerPadding={[14, 14]}
             resizeHandles={['se', 'e', 's']}
             style={{ paddingBottom: 80 }}
           >
@@ -8628,11 +8628,11 @@ export default function Dashboard() {
                     border: isFloating
                       ? '1.5px dashed hsl(var(--border))'
                       : hasAlertGlow
-                        ? '1px solid hsl(0 70% 50% / 0.22)'
-                        : '1px solid hsl(var(--border))',
+                        ? '1.5px solid hsl(0 70% 50% / 0.35)'
+                        : '1.5px solid hsl(var(--border))',
                     boxShadow: hasAlertGlow && !isFloating
-                      ? '0 0 0 2px hsl(0 70% 50% / 0.06), var(--shadow-sm)'
-                      : 'var(--shadow-xs)',
+                      ? '0 0 0 3px hsl(0 70% 50% / 0.08), var(--shadow-md)'
+                      : 'var(--shadow-sm)',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,
                   } as React.CSSProperties}
