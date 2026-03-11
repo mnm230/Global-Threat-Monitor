@@ -6,5 +6,8 @@ export const modules: ModuleMap = {
   "./components/mockups/warroom-redesign/Signal.tsx": () => import("../components/mockups/warroom-redesign/Signal.tsx"),
   "./components/mockups/warroom-redesign/TacticalHUD.tsx": () => import("../components/mockups/warroom-redesign/TacticalHUD.tsx"),
   "./components/mockups/warroom-redesign/TerminalFeed.tsx": () => import("../components/mockups/warroom-redesign/TerminalFeed.tsx"),
-  "./components/mockups/warroom-redesign/ThreatHorizon.tsx": () => import("../components/mockups/warroom-redesign/ThreatHorizon.tsx")
+  "./components/mockups/warroom-redesign/ThreatHorizon.tsx": () => import("../components/mockups/warroom-redesign/ThreatHorizon.tsx"),
+  "./components/mockups/warroom-vibes/FrostProtocol.tsx": () => import("../components/mockups/warroom-vibes/FrostProtocol.tsx"),
+  "./components/mockups/warroom-vibes/NeonPulse.tsx": () => import("../components/mockups/warroom-vibes/NeonPulse.tsx"),
+  "./components/mockups/warroom-vibes/WarmEmber.tsx": () => import("../components/mockups/warroom-vibes/WarmEmber.tsx")
 };
