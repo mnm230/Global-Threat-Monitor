@@ -3238,16 +3238,12 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
   );
 });
 
-const SEVERITY_TIER_CONFIG: Record<string, { label: string; labelAr: string; accent: string; bg: string; headerBg: string; border: string }> = {
-  critical: { label: 'IMMEDIATE THREAT', labelAr: 'تهديد فوري', accent: '#ef4444', bg: 'rgba(153,27,27,0.3)', headerBg: 'rgba(153,27,27,0.25)', border: 'rgba(220,38,38,0.5)' },
-  urgent:   { label: 'CRITICAL · <45s', labelAr: 'حرج · <45ث', accent: '#dc2626', bg: 'rgba(153,27,27,0.15)', headerBg: 'rgba(153,27,27,0.14)', border: 'rgba(220,38,38,0.25)' },
-  warning:  { label: 'URGENT · <90s', labelAr: 'عاجل · <90ث', accent: '#ea580c', bg: 'rgba(124,45,18,0.12)', headerBg: 'rgba(124,45,18,0.1)', border: 'rgba(234,88,12,0.2)' },
-  standard: { label: 'ACTIVE', labelAr: 'نشط', accent: '#d97706', bg: 'rgba(255,255,255,0.02)', headerBg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.05)' },
-  expired:  { label: 'EXPIRED', labelAr: 'منتهي', accent: 'rgba(255,255,255,0.15)', bg: 'transparent', headerBg: 'rgba(255,255,255,0.01)', border: 'rgba(255,255,255,0.03)' },
-};
-
 const THREAT_SHORT_CODE: Record<string, string> = {
   rockets: 'RKT', missiles: 'MSL', hostile_aircraft_intrusion: 'ACF', uav_intrusion: 'UAV',
+};
+
+const THREAT_ICONS: Record<string, string> = {
+  rockets: '🚀', missiles: '⚡', hostile_aircraft_intrusion: '✈️', uav_intrusion: '🛸',
 };
 
 const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
@@ -3286,21 +3282,23 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
     return filtered.filter(a => a.city.toLowerCase().includes(q) || a.cityHe.includes(q) || a.cityAr.includes(q) || a.region.toLowerCase().includes(q) || a.country.toLowerCase().includes(q));
   }, [alerts, searchQuery, countryFilter, threatFilter]);
 
-  type SevTier = 'critical' | 'urgent' | 'warning' | 'standard' | 'expired';
-  const tierGrouped = useMemo(() => {
-    const tiers: Record<SevTier, { alert: RedAlert; remaining: number }[]> = { critical: [], urgent: [], warning: [], standard: [], expired: [] };
-    filteredAlerts.forEach(a => {
-      const elapsed = Math.floor((Date.now() - new Date(a.timestamp).getTime()) / 1000);
-      const remaining = Math.max(0, a.countdown - elapsed);
-      const tier = getAlertUrgencyTier(remaining, a.countdown);
-      tiers[tier].push({ alert: a, remaining: a.countdown === 0 ? 0 : remaining });
+  const triageSorted = useMemo(() => {
+    return [...filteredAlerts].sort((a, b) => {
+      const nowMs = Date.now();
+      const remA = a.countdown === 0 ? -1 : Math.max(0, a.countdown - Math.floor((nowMs - new Date(a.timestamp).getTime()) / 1000));
+      const remB = b.countdown === 0 ? -1 : Math.max(0, b.countdown - Math.floor((nowMs - new Date(b.timestamp).getTime()) / 1000));
+      if (remA === -1 && remB !== -1) return -1;
+      if (remB === -1 && remA !== -1) return 1;
+      if (remA === -1 && remB === -1) return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      const activeA = remA > 0 ? 1 : 0;
+      const activeB = remB > 0 ? 1 : 0;
+      if (activeA !== activeB) return activeB - activeA;
+      return remA - remB;
     });
-    Object.values(tiers).forEach(arr => arr.sort((a, b) => new Date(b.alert.timestamp).getTime() - new Date(a.alert.timestamp).getTime()));
-    return tiers;
   }, [filteredAlerts, _]);
 
   const liveCount = alerts.filter(a => a.source === 'live').length;
-  const totalActive = useMemo(() => alerts.filter(a => {
+  const activeCount = useMemo(() => alerts.filter(a => {
     const elapsed = Math.floor((Date.now() - new Date(a.timestamp).getTime()) / 1000);
     return a.countdown === 0 || elapsed < a.countdown;
   }).length, [alerts, _]);
@@ -3323,10 +3321,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                 {hasActiveAlerts && <div className="alert-dot-ping absolute inset-0 rounded-full bg-red-500" />}
               </div>
               <span className={`text-[15px] font-black ra-tracking-wider uppercase ra-font-display ${hasActiveAlerts ? 'text-white' : 'text-red-500/30'}`}>
-                {language === 'ar' ? 'الإنذار الأحمر' : 'SEVERITY STACK'}
+                {language === 'ar' ? 'الإنذار الأحمر' : 'ALERTS'}
               </span>
               {hasActiveAlerts && (
-                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 2px 12px rgba(220,38,38,0.5)' }} data-testid="text-alert-count">{totalActive}</span>
+                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 2px 12px rgba(220,38,38,0.5)' }} data-testid="text-alert-count">{activeCount}</span>
               )}
               {liveCount > 0 && (
                 <span className="eas-flash ra-badge-xs" style={{ background: '#15803d', color: '#fff' }}>LIVE {liveCount}</span>
@@ -3346,39 +3344,6 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             {onClose && <PanelMinimizeButton onMinimize={onClose} />}
           </div>
       </div>
-
-      {/* ── TIER SUMMARY BAR ── */}
-      {hasActiveAlerts && (
-        <div className="shrink-0 px-3.5 py-2" style={{ background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {(['critical', 'urgent', 'warning', 'standard'] as SevTier[]).map(t => {
-              const count = tierGrouped[t].length;
-              if (count === 0) return null;
-              const cfg = SEVERITY_TIER_CONFIG[t];
-              return (
-                <div key={t} className="flex items-center gap-1.5" data-testid={`tier-count-${t}`}>
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.accent, boxShadow: t === 'critical' ? `0 0 6px ${cfg.accent}` : 'none' }} />
-                  <span className="text-[9px] ra-font-mono font-bold tracking-widest uppercase" style={{ color: `${cfg.accent}99` }}>
-                    {t === 'critical' ? 'IMM' : t === 'urgent' ? 'CRIT' : t === 'warning' ? 'URG' : 'ACT'}
-                  </span>
-                  <span className="text-[18px] font-black ra-font-mono ra-tabular" style={{ lineHeight: 1, color: cfg.accent }}>{count}</span>
-                </div>
-              );
-            })}
-            {liveCount > 0 && (
-              <>
-                <div className="w-px h-5 bg-white/[0.08]" />
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px #22c55e' }} />
-                  <span className="text-[9px] ra-font-mono font-bold tracking-widest uppercase text-green-400/60">LIVE</span>
-                  <span className="text-[18px] font-black text-green-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{liveCount}</span>
-                </div>
-              </>
-            )}
-            <span className="ml-auto text-[9px] ra-font-mono font-semibold text-white/15 tracking-widest">{alerts.length} TOTAL</span>
-          </div>
-        </div>
-      )}
 
       {/* ── FILTERS ── */}
       {hasActiveAlerts && (
@@ -3455,107 +3420,68 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         </div>
       )}
 
-      {/* ── SEVERITY-GROUPED ALERT LIST ── */}
+      {/* ── TRIAGE FLAT LIST ── */}
       {hasActiveAlerts && (
         <ScrollArea ref={alertScrollRef} className="flex-1 min-h-0">
           <div>
-            {(['critical', 'urgent', 'warning', 'standard', 'expired'] as SevTier[]).map(tier => {
-              const items = tierGrouped[tier];
-              if (items.length === 0) return null;
-              const cfg = SEVERITY_TIER_CONFIG[tier];
-              const isExp = tier === 'expired';
+            {triageSorted.map(alert => {
+              const nowMs = Date.now();
+              const elapsed = Math.floor((nowMs - new Date(alert.timestamp).getTime()) / 1000);
+              const remaining = alert.countdown === 0 ? -1 : Math.max(0, alert.countdown - elapsed);
+              const isImmediate = alert.countdown === 0;
+              const isExpired = !isImmediate && remaining <= 0;
+              const isCritical = isImmediate || (remaining > 0 && remaining <= 15);
+              const isLive = alert.source === 'live';
+              const ageMs = nowMs - new Date(alert.timestamp).getTime();
+              const isIncoming = ageMs < 9000 && !isExpired;
 
               return (
-                <div key={tier}>
-                  <div
-                    className="flex items-center gap-0 sticky top-0 z-10"
-                    style={{
-                      padding: '5px 14px',
-                      background: cfg.headerBg,
-                      borderBottom: `1px solid ${cfg.border}`,
-                      borderTop: `1px solid ${cfg.border}`,
-                      backdropFilter: 'blur(8px)',
-                    }}
-                    data-testid={`tier-header-${tier}`}
-                  >
-                    <div className="shrink-0" style={{ width: 3, height: 12, borderRadius: 2, background: cfg.accent, marginRight: 8, opacity: isExp ? 0.2 : 0.8 }} />
-                    <span className="text-[8px] font-black tracking-[0.2em] ra-font-mono flex-1" style={{ color: cfg.accent }}>
-                      {language === 'ar' ? cfg.labelAr : cfg.label}
-                    </span>
-                    <span className="text-[10px] font-black ra-font-mono ra-tabular" style={{ color: cfg.accent }}>
-                      {items.length}
-                    </span>
+                <div
+                  key={alert.id}
+                  className="alert-slide-in flex items-center gap-2.5 relative"
+                  style={{
+                    padding: '8px 12px 8px 14px',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    background: isCritical ? 'rgba(127,29,29,0.2)' : 'transparent',
+                    borderLeft: isCritical ? '3px solid #dc2626' : '3px solid transparent',
+                    opacity: isExpired ? 0.35 : 1,
+                    transition: 'background 0.15s',
+                  }}
+                  data-testid={`red-alert-${alert.id}`}
+                >
+                  <RedAlertCountdown alert={alert} />
+                  <div className="flex-1 min-w-0">
+                    <div className="ra-flex-center gap-1.5 mb-0.5">
+                      {isIncoming && (
+                        <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fff', letterSpacing: '0.15em' }}>INCOMING</span>
+                      )}
+                      <span className={`font-extrabold truncate text-[13px] ${isExpired ? 'text-white/25' : 'text-white'}`}>
+                        {language === 'ar' ? alert.cityAr : alert.city}
+                      </span>
+                      <span className="text-[11px] shrink-0 opacity-40">{FLAG_MAP[alert.country]}</span>
+                      {isLive && (
+                        <span className="ra-badge-xs shrink-0" style={{ background: 'rgba(21,128,61,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)', letterSpacing: '0.06em' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
+                      )}
+                      {alert.sourceChannel && (
+                        <a
+                          href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="ra-badge-xs shrink-0 flex items-center gap-0.5"
+                          style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`tg-source-${alert.id}`}
+                          title={`Source: ${alert.sourceChannel}`}
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
+                          TG
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5" style={{ fontSize: 9, opacity: isExpired ? 0.35 : 0.35, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+                      {language === 'ar' ? alert.regionAr : alert.region} · {THREAT_ICONS[alert.threatType] || '🚀'} {THREAT_SHORT_CODE[alert.threatType] || alert.threatType.replace(/_/g, ' ').toUpperCase()}
+                      <span className="ml-auto text-[8px]" style={{ opacity: 0.5 }}>{timeAgo(alert.timestamp)}</span>
+                    </div>
                   </div>
-
-                  {items.map(({ alert, remaining }) => {
-                    const isLive = alert.source === 'live';
-                    const ageMs = Date.now() - new Date(alert.timestamp).getTime();
-                    const isIncoming = ageMs < 9000 && !isExp;
-
-                    return (
-                      <div
-                        key={alert.id}
-                        className="alert-slide-in flex items-center gap-2.5 relative"
-                        style={{
-                          padding: tier === 'critical' ? '10px 12px 10px 14px' : '8px 12px 8px 14px',
-                          borderBottom: `1px solid ${cfg.border}`,
-                          background: cfg.bg,
-                          opacity: isExp ? 0.2 : 1,
-                        }}
-                        data-testid={`red-alert-${alert.id}`}
-                      >
-                        <div
-                          style={{
-                            position: 'absolute', left: 0, top: 4, bottom: 4,
-                            width: 3, borderRadius: '0 2px 2px 0',
-                            background: cfg.accent,
-                            opacity: isExp ? 0.1 : tier === 'standard' ? 0.3 : 0.7,
-                          }}
-                        />
-                        <RedAlertCountdown alert={alert} />
-                        <div className="flex-1 min-w-0">
-                          <div className="ra-flex-center gap-1.5 mb-0.5">
-                            {isIncoming && (
-                              <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fff', letterSpacing: '0.15em' }}>INCOMING</span>
-                            )}
-                            <span className={`font-extrabold truncate ${tier === 'critical' ? 'text-[15px]' : 'text-[13px]'} ${isExp ? 'text-white/25' : 'text-white'}`}>
-                              {language === 'ar' ? alert.cityAr : alert.city}
-                            </span>
-                            <span className="text-[10px] shrink-0 opacity-40">{FLAG_MAP[alert.country]}</span>
-                            {isLive && (
-                              <span className="ra-badge-xs shrink-0" style={{ background: 'rgba(21,128,61,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)', letterSpacing: '0.06em' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
-                            )}
-                            {alert.sourceChannel && (
-                              <a
-                                href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="ra-badge-xs shrink-0 flex items-center gap-0.5"
-                                style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
-                                onClick={(e) => e.stopPropagation()}
-                                data-testid={`tg-source-${alert.id}`}
-                                title={`Source: ${alert.sourceChannel}`}
-                              >
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
-                                TG
-                              </a>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[8px] font-bold ra-font-mono tracking-wide" style={{ color: cfg.accent, opacity: isExp ? 0.3 : 0.6 }}>
-                              {THREAT_SHORT_CODE[alert.threatType] || 'UNK'}
-                            </span>
-                            <div className="w-px h-2 bg-white/[0.06]" />
-                            <span className="text-[9px] ra-font-mono truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                              {language === 'ar' ? alert.regionAr : alert.region}
-                            </span>
-                            <span className="text-[8px] ra-font-mono ml-auto shrink-0" style={{ color: 'rgba(255,255,255,0.12)' }}>
-                              {timeAgo(alert.timestamp)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               );
             })}
@@ -3595,19 +3521,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         </div>
       )}
 
-      {/* ── TIER FOOTER ── */}
+      {/* ── FOOTER ── */}
       <div className="shrink-0 px-3.5 py-1.5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.25)' }}>
         <span className="text-[7px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.12)' }}>OREF HOME FRONT CMD</span>
-        <div className="flex gap-2">
-          {(['critical', 'urgent', 'warning', 'standard'] as SevTier[]).map(t => {
-            if (tierGrouped[t].length === 0) return null;
-            return (
-              <span key={t} className="text-[7px] ra-font-mono tracking-wide" style={{ color: SEVERITY_TIER_CONFIG[t].accent }}>
-                {t === 'critical' ? 'IMM' : t === 'urgent' ? 'CRIT' : t === 'warning' ? 'URG' : 'ACT'} {tierGrouped[t].length}
-              </span>
-            );
-          })}
-        </div>
+        <span className="text-[7px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.12)' }}>{alerts.length} TOTAL</span>
       </div>
     </div>
   );
