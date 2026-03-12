@@ -8575,11 +8575,11 @@ export default function Dashboard() {
                   style={{
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
-                    background: 'hsl(var(--card))',
-                    borderRadius: 14,
+                    background: 'hsl(220 14% 7%)',
+                    borderRadius: 12,
                     overflow: 'hidden',
-                    border: id === 'alerts' ? '1px solid hsl(0 72% 51% / 0.25)' : '1px solid hsl(var(--border))',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    border: id === 'alerts' ? '1px solid hsl(0 72% 51% / 0.35)' : '1px solid hsl(220 12% 13%)',
+                    boxShadow: '0 2px 14px rgba(0,0,0,.60)',
                   }}
                 >
                   {renderPanel(id)}
@@ -8603,13 +8603,13 @@ export default function Dashboard() {
           <RGL
             layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
             cols={12}
-            rowHeight={82}
+            rowHeight={86}
             compactType="vertical"
             onLayoutChange={handleGridLayoutChange}
             draggableHandle=".panel-drag-handle"
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[10, 10]}
-            containerPadding={[14, 14]}
+            margin={[14, 14]}
+            containerPadding={[16, 16]}
             resizeHandles={['se', 'e', 's']}
             style={{ paddingBottom: 80 }}
           >
@@ -8623,16 +8623,16 @@ export default function Dashboard() {
                   className="group flex flex-col overflow-hidden"
                   style={{
                     '--panel-accent': PANEL_ACCENTS[id] || 'hsl(var(--primary))',
-                    borderRadius: 10,
-                    background: isFloating ? 'hsl(var(--muted))' : 'hsl(var(--card))',
+                    borderRadius: 12,
+                    background: isFloating ? 'hsl(220 12% 9%)' : 'hsl(220 14% 7%)',
                     border: isFloating
-                      ? '1.5px dashed hsl(var(--border))'
+                      ? '1.5px dashed hsl(220 12% 16%)'
                       : hasAlertGlow
-                        ? '1.5px solid hsl(0 70% 50% / 0.35)'
-                        : '1.5px solid hsl(var(--border))',
+                        ? '1px solid hsl(0 70% 50% / 0.45)'
+                        : '1px solid hsl(220 12% 13%)',
                     boxShadow: hasAlertGlow && !isFloating
-                      ? '0 0 0 3px hsl(0 70% 50% / 0.08), var(--shadow-md)'
-                      : 'var(--shadow-sm)',
+                      ? '0 0 0 3px hsl(0 70% 50% / 0.08), 0 4px 20px rgba(0,0,0,.60)'
+                      : '0 2px 12px rgba(0,0,0,.55)',
                     position: 'relative',
                     zIndex: hasAlertGlow ? 2 : undefined,
                   } as React.CSSProperties}
