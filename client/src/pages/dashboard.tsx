@@ -3039,33 +3039,6 @@ const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaxim
   );
 })
 
-const RED_ALERT_THREAT_LABELS: Record<string, { en: string; ar: string; he: string }> = {
-  rockets: { en: 'Rocket Fire', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', he: '\u05D9\u05E8\u05D9 \u05E8\u05E7\u05D8\u05D5\u05EA' },
-  missiles: { en: 'Missile Launch', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0627\u0631\u0648\u062E', he: '\u05D8\u05D9\u05DC \u05D1\u05DC\u05D9\u05E1\u05D8\u05D9' },
-  hostile_aircraft_intrusion: { en: 'Hostile Aircraft', ar: '\u0637\u0627\u0626\u0631\u0629 \u0645\u0639\u0627\u062F\u064A\u0629', he: '\u05D7\u05D3\u05D9\u05E8\u05EA \u05DB\u05DC\u05D9 \u05D8\u05D9\u05E1' },
-  uav_intrusion: { en: 'UAV Intrusion', ar: '\u0627\u062E\u062A\u0631\u0627\u0642 \u0637\u0627\u0626\u0631\u0629 \u0645\u0633\u064A\u0631\u0629', he: '\u05D7\u05D3\u05D9\u05E8\u05EA \u05DB\u05D8\u05DE"\u05D1' },
-};
-
-const RED_ALERT_THREAT_COLORS: Record<string, string> = {
-  rockets: 'bg-red-600 border-red-500/50',
-  missiles: 'bg-orange-600 border-orange-500/50',
-  hostile_aircraft_intrusion: 'bg-purple-600 border-purple-500/50',
-  uav_intrusion: 'bg-yellow-600 border-yellow-500/50',
-};
-
-const RED_ALERT_THREAT_ICONS: Record<string, string> = {
-  rockets: '🚀',
-  missiles: '⚡',
-  hostile_aircraft_intrusion: '✈️',
-  uav_intrusion: '🛸',
-};
-
-const THREAT_SEVERITY_ORDER: Record<string, number> = {
-  missiles: 0,
-  rockets: 1,
-  uav_intrusion: 2,
-  hostile_aircraft_intrusion: 3,
-};
 
 function getAlertUrgencyTier(remaining: number, countdown: number): 'critical' | 'urgent' | 'warning' | 'standard' | 'expired' {
   if (countdown === 0) return 'critical';
@@ -3265,15 +3238,31 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
   );
 });
 
+const SEVERITY_TIER_CONFIG: Record<string, { label: string; labelAr: string; accent: string; bg: string; headerBg: string; border: string }> = {
+  critical: { label: 'IMMEDIATE THREAT', labelAr: 'تهديد فوري', accent: '#ef4444', bg: 'rgba(153,27,27,0.3)', headerBg: 'rgba(153,27,27,0.25)', border: 'rgba(220,38,38,0.5)' },
+  urgent:   { label: 'CRITICAL · <45s', labelAr: 'حرج · <45ث', accent: '#dc2626', bg: 'rgba(153,27,27,0.15)', headerBg: 'rgba(153,27,27,0.14)', border: 'rgba(220,38,38,0.25)' },
+  warning:  { label: 'URGENT · <90s', labelAr: 'عاجل · <90ث', accent: '#ea580c', bg: 'rgba(124,45,18,0.12)', headerBg: 'rgba(124,45,18,0.1)', border: 'rgba(234,88,12,0.2)' },
+  standard: { label: 'ACTIVE', labelAr: 'نشط', accent: '#d97706', bg: 'rgba(255,255,255,0.02)', headerBg: 'rgba(255,255,255,0.02)', border: 'rgba(255,255,255,0.05)' },
+  expired:  { label: 'EXPIRED', labelAr: 'منتهي', accent: 'rgba(255,255,255,0.15)', bg: 'transparent', headerBg: 'rgba(255,255,255,0.01)', border: 'rgba(255,255,255,0.03)' },
+};
+
+const THREAT_SHORT_CODE: Record<string, string> = {
+  rockets: 'RKT', missiles: 'MSL', hostile_aircraft_intrusion: 'ACF', uav_intrusion: 'UAV',
+};
+
 const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [threatFilter, setThreatFilter] = useState<string>('all');
   const [countryFilter, setCountryFilter] = useState<string>('ALL');
   const alertScrollRef = useRef<HTMLDivElement>(null);
   const prevAlertCountRef = useRef(alerts.length);
+  const [_, setTick] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, []);
   useEffect(() => {
     if (alerts.length > prevAlertCountRef.current) {
-      // New alert arrived — scroll to top so it's visible
       const viewport = alertScrollRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
       if (viewport) viewport.scrollTop = 0;
     }
@@ -3288,8 +3277,6 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
   const countryOrder = ['Israel', 'Lebanon', 'Iran', 'Syria', 'Iraq', 'Saudi Arabia', 'Yemen', 'UAE', 'Jordan', 'Kuwait', 'Bahrain', 'Qatar'];
 
-  const activeCountries = useMemo(() => countryOrder.filter(c => countryCounts[c]), [countryCounts]);
-
   const filteredAlerts = useMemo(() => {
     let filtered = alerts;
     if (threatFilter !== 'all') filtered = filtered.filter(a => a.threatType === threatFilter);
@@ -3299,63 +3286,28 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
     return filtered.filter(a => a.city.toLowerCase().includes(q) || a.cityHe.includes(q) || a.cityAr.includes(q) || a.region.toLowerCase().includes(q) || a.country.toLowerCase().includes(q));
   }, [alerts, searchQuery, countryFilter, threatFilter]);
 
-  const sortedAlerts = useMemo(() => {
-    return [...filteredAlerts].sort((a, b) => {
-      const tsA = new Date(a.timestamp).getTime();
-      const tsB = new Date(b.timestamp).getTime();
-      const nowMs = Date.now();
-      const remA = Math.max(0, a.countdown - Math.floor((nowMs - tsA) / 1000));
-      const remB = Math.max(0, b.countdown - Math.floor((nowMs - tsB) / 1000));
-      const activeA = remA > 0 || a.countdown === 0 ? 1 : 0;
-      const activeB = remB > 0 || b.countdown === 0 ? 1 : 0;
-      if (activeA !== activeB) return activeB - activeA;
-      return tsB - tsA;
+  type SevTier = 'critical' | 'urgent' | 'warning' | 'standard' | 'expired';
+  const tierGrouped = useMemo(() => {
+    const tiers: Record<SevTier, { alert: RedAlert; remaining: number }[]> = { critical: [], urgent: [], warning: [], standard: [], expired: [] };
+    filteredAlerts.forEach(a => {
+      const elapsed = Math.floor((Date.now() - new Date(a.timestamp).getTime()) / 1000);
+      const remaining = Math.max(0, a.countdown - elapsed);
+      const tier = getAlertUrgencyTier(remaining, a.countdown);
+      tiers[tier].push({ alert: a, remaining: a.countdown === 0 ? 0 : remaining });
     });
-  }, [filteredAlerts]);
-
-  const grouped = sortedAlerts.reduce<Record<string, { country: string; alerts: RedAlert[] }>>(
-    (acc, alert) => {
-      const country = alert.country || "Unknown";
-      if (!acc[country]) acc[country] = { country, alerts: [] };
-      acc[country].alerts.push(alert);
-      return acc;
-    },
-    {},
-  );
-
-  const sortedCountries = Object.entries(grouped).sort((a, b) => {
-    const newestA = Math.max(
-      ...a[1].alerts.map((al) => new Date(al.timestamp).getTime()),
-    );
-    const newestB = Math.max(
-      ...b[1].alerts.map((al) => new Date(al.timestamp).getTime()),
-    );
-    return newestB - newestA;
-  });
+    Object.values(tiers).forEach(arr => arr.sort((a, b) => new Date(b.alert.timestamp).getTime() - new Date(a.alert.timestamp).getTime()));
+    return tiers;
+  }, [filteredAlerts, _]);
 
   const liveCount = alerts.filter(a => a.source === 'live').length;
-  const activeCount = useMemo(() => alerts.filter(a => {
+  const totalActive = useMemo(() => alerts.filter(a => {
     const elapsed = Math.floor((Date.now() - new Date(a.timestamp).getTime()) / 1000);
     return a.countdown === 0 || elapsed < a.countdown;
-  }).length, [alerts]);
-  const recentCount = useMemo(() => alerts.filter(a =>
-    Date.now() - new Date(a.timestamp).getTime() < 300000
-  ).length, [alerts]);
+  }).length, [alerts, _]);
   const hasActiveAlerts = alerts.length > 0;
 
   const FLAG_MAP: Record<string, string> = { Israel: '🇮🇱', Lebanon: '🇱🇧', Iran: '🇮🇷', Syria: '🇸🇾', Iraq: '🇮🇶', 'Saudi Arabia': '🇸🇦', Yemen: '🇾🇪', UAE: '🇦🇪', Jordan: '🇯🇴', Kuwait: '🇰🇼', Bahrain: '🇧🇭', Qatar: '🇶🇦' };
   const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
-  const GCC_COUNTRIES = new Set(['Saudi Arabia', 'UAE', 'Kuwait', 'Bahrain', 'Qatar', 'Oman']);
-  const NON_ISRAEL_HIGHLIGHT = new Set(['Lebanon', 'Iran', 'Syria', 'Iraq', 'Yemen', 'Jordan', ...GCC_COUNTRIES]);
-  const nonIsraelAlerts = useMemo(() => alerts.filter(a => a.country !== 'Israel' && NON_ISRAEL_HIGHLIGHT.has(a.country)), [alerts]);
-
-  const TIER_BAND: Record<string, { bg: string; text: string; label: string }> = {
-    critical: { bg: '#dc2626', text: '#fff', label: 'CRITICAL' },
-    urgent:   { bg: '#ea580c', text: '#fff', label: 'URGENT' },
-    warning:  { bg: '#d97706', text: '#fff', label: 'WARNING' },
-    standard: { bg: '#991b1b', text: '#fecaca', label: 'ACTIVE' },
-    expired:  { bg: 'transparent', text: 'rgba(255,255,255,0.25)', label: 'EXPIRED' },
-  };
 
   return (
     <div className="h-full flex flex-col min-h-0 ra-panel-bg" data-testid="red-alert-panel">
@@ -3371,10 +3323,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                 {hasActiveAlerts && <div className="alert-dot-ping absolute inset-0 rounded-full bg-red-500" />}
               </div>
               <span className={`text-[15px] font-black ra-tracking-wider uppercase ra-font-display ${hasActiveAlerts ? 'text-white' : 'text-red-500/30'}`}>
-                {language === 'ar' ? 'الإنذار الأحمر' : 'EMERGENCY ALERT'}
+                {language === 'ar' ? 'الإنذار الأحمر' : 'SEVERITY STACK'}
               </span>
               {hasActiveAlerts && (
-                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 2px 12px rgba(220,38,38,0.5)' }} data-testid="text-alert-count">{alerts.length}</span>
+                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 2px 12px rgba(220,38,38,0.5)' }} data-testid="text-alert-count">{totalActive}</span>
               )}
               {liveCount > 0 && (
                 <span className="eas-flash ra-badge-xs" style={{ background: '#15803d', color: '#fff' }}>LIVE {liveCount}</span>
@@ -3395,46 +3347,35 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           </div>
       </div>
 
-      {/* ── STATS STRIP ── */}
+      {/* ── TIER SUMMARY BAR ── */}
       {hasActiveAlerts && (
-        <div className="shrink-0 px-3 py-2" style={{ background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">TOTAL</span>
-              <span className="text-[22px] font-black text-white ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{alerts.length}</span>
-            </div>
-            <div className="w-px h-6 bg-white/[0.10]" />
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500 eas-flash shrink-0" />
-              <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">ACTIVE</span>
-              <span className="text-[22px] font-black text-red-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{activeCount}</span>
-            </div>
+        <div className="shrink-0 px-3.5 py-2" style={{ background: 'rgba(0,0,0,0.35)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {(['critical', 'urgent', 'warning', 'standard'] as SevTier[]).map(t => {
+              const count = tierGrouped[t].length;
+              if (count === 0) return null;
+              const cfg = SEVERITY_TIER_CONFIG[t];
+              return (
+                <div key={t} className="flex items-center gap-1.5" data-testid={`tier-count-${t}`}>
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: cfg.accent, boxShadow: t === 'critical' ? `0 0 6px ${cfg.accent}` : 'none' }} />
+                  <span className="text-[9px] ra-font-mono font-bold tracking-widest uppercase" style={{ color: `${cfg.accent}99` }}>
+                    {t === 'critical' ? 'IMM' : t === 'urgent' ? 'CRIT' : t === 'warning' ? 'URG' : 'ACT'}
+                  </span>
+                  <span className="text-[18px] font-black ra-font-mono ra-tabular" style={{ lineHeight: 1, color: cfg.accent }}>{count}</span>
+                </div>
+              );
+            })}
             {liveCount > 0 && (
               <>
                 <div className="w-px h-5 bg-white/[0.08]" />
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px #22c55e' }} />
-                  <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">LIVE</span>
-                  <span className="text-[22px] font-black text-green-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{liveCount}</span>
+                  <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" style={{ boxShadow: '0 0 6px #22c55e' }} />
+                  <span className="text-[9px] ra-font-mono font-bold tracking-widest uppercase text-green-400/60">LIVE</span>
+                  <span className="text-[18px] font-black text-green-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{liveCount}</span>
                 </div>
               </>
             )}
-            {nonIsraelAlerts.length > 0 && (
-              <>
-                <div className="w-px h-5 bg-white/[0.08]" />
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[13px]">🌍</span>
-                  <span className="text-[10px] text-white/30 ra-font-mono uppercase font-bold tracking-widest">REGIONAL</span>
-                  <span className="text-[22px] font-black text-amber-400 ra-font-mono ra-tabular" style={{ lineHeight: 1 }}>{nonIsraelAlerts.length}</span>
-                </div>
-              </>
-            )}
-            <div className="ml-auto flex items-center gap-1.5">
-              <span className="text-[10px] text-white/25 ra-font-mono font-semibold">5MIN</span>
-              <span className="text-[15px] font-black ra-font-mono" style={{ color: recentCount > 5 ? '#f87171' : recentCount > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
-                {recentCount > 0 ? `+${recentCount}` : '—'}
-              </span>
-            </div>
+            <span className="ml-auto text-[9px] ra-font-mono font-semibold text-white/15 tracking-widest">{alerts.length} TOTAL</span>
           </div>
         </div>
       )}
@@ -3506,200 +3447,121 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             {language === 'ar' ? 'لا تنبيهات نشطة' : 'ALL CLEAR'}
           </p>
           <p className="text-[11px] text-white/30 tracking-wide uppercase ra-font-mono font-semibold">
-            No active threats detected
+            {language === 'ar' ? 'لا تهديدات نشطة' : 'No active threats detected'}
           </p>
           <div className="mt-3.5 px-4 py-1.5 rounded-full ra-font-mono font-bold text-[10px] text-green-400 ra-tracking-wider" style={{ background: 'rgba(21,128,61,0.15)', border: '1px solid rgba(34,197,94,0.30)' }}>
-            MONITORING ACTIVE
+            {language === 'ar' ? 'المراقبة نشطة' : 'MONITORING ACTIVE'}
           </div>
         </div>
       )}
 
-      {/* ── NON-ISRAEL ALERT BANNER ── */}
-      {nonIsraelAlerts.length > 0 && countryFilter === 'ALL' && (
-        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(217,119,6,0.25)', background: 'hsl(30 30% 7%)' }}>
-          <div className="px-3 py-2">
-            <div className="ra-flex-center gap-1.5 mb-1.5">
-              <TriangleAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="text-[11px] font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display">
-                {language === 'ar' ? 'تنبيهات خارج إسرائيل' : 'REGIONAL ALERTS'}
-              </span>
-              <span className="text-[12px] font-black text-white ra-tabular ra-font-mono rounded-md px-2 py-px" style={{ background: 'rgba(180,83,9,0.6)' }}>{nonIsraelAlerts.length}</span>
-            </div>
-            <div className="flex gap-1 flex-wrap">
-              {activeCountries.filter(c => c !== 'Israel').map(c => {
-                const accent: Record<string, string> = { Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
-                return (
-                  <button key={c} onClick={() => setCountryFilter(c)}
-                    className="ra-pill"
+      {/* ── SEVERITY-GROUPED ALERT LIST ── */}
+      {hasActiveAlerts && (
+        <ScrollArea ref={alertScrollRef} className="flex-1 min-h-0">
+          <div>
+            {(['critical', 'urgent', 'warning', 'standard', 'expired'] as SevTier[]).map(tier => {
+              const items = tierGrouped[tier];
+              if (items.length === 0) return null;
+              const cfg = SEVERITY_TIER_CONFIG[tier];
+              const isExp = tier === 'expired';
+
+              return (
+                <div key={tier}>
+                  <div
+                    className="flex items-center gap-0 sticky top-0 z-10"
                     style={{
-                      background: (accent[c] || '#b45309') + '22', color: accent[c] || '#fbbf24', borderColor: (accent[c] || '#b45309') + '55',
+                      padding: '5px 14px',
+                      background: cfg.headerBg,
+                      borderBottom: `1px solid ${cfg.border}`,
+                      borderTop: `1px solid ${cfg.border}`,
+                      backdropFilter: 'blur(8px)',
                     }}
-                    data-testid={`button-regional-${c}`}
-                  >{FLAG_MAP[c]} {SHORT_NAMES[c] || c} ({countryCounts[c]})</button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+                    data-testid={`tier-header-${tier}`}
+                  >
+                    <div className="shrink-0" style={{ width: 3, height: 12, borderRadius: 2, background: cfg.accent, marginRight: 8, opacity: isExp ? 0.2 : 0.8 }} />
+                    <span className="text-[8px] font-black tracking-[0.2em] ra-font-mono flex-1" style={{ color: cfg.accent }}>
+                      {language === 'ar' ? cfg.labelAr : cfg.label}
+                    </span>
+                    <span className="text-[10px] font-black ra-font-mono ra-tabular" style={{ color: cfg.accent }}>
+                      {items.length}
+                    </span>
+                  </div>
 
-      {/* ── ALERT CARDS ── */}
-      <ScrollArea ref={alertScrollRef} className="flex-1 min-h-0">
-        <div className="p-2.5 ra-flex-col gap-1.5">
-          {sortedCountries.map(([country, { alerts: countryAlerts }], countryIdx) => {
-            const COUNTRY_ACCENT: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
-            const isNonIsrael = country !== 'Israel';
-            const isGCC = GCC_COUNTRIES.has(country);
-            const accentColor = COUNTRY_ACCENT[country] || '#dc2626';
-            const countryNewestMs = Math.max(...countryAlerts.map((a) => new Date(a.timestamp).getTime()));
-            const countryIsNew = Date.now() - countryNewestMs < 15000;
-
-            return (
-              <div key={country}>
-                {/* One header per country — country with newest alert always at top */}
-                <div
-                  className="ra-country-header"
-                  style={{
-                    marginBottom: 4,
-                    marginTop: countryIdx > 0 ? 6 : 0,
-                    background: isNonIsrael ? accentColor + '14' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${accentColor}30`,
-                  }}
-                >
-                  <span className={isNonIsrael ? 'text-[18px]' : 'text-[14px]'}>{FLAG_MAP[country]}</span>
-                  <span className="text-[13px] font-extrabold ra-tracking-wide uppercase ra-font-display" style={{ color: isNonIsrael ? accentColor : 'rgba(255,255,255,0.7)' }}>{country}</span>
-                  <span className="text-[11px] font-extrabold text-white ra-tabular ra-font-mono rounded-xl px-2 py-px" style={{ background: accentColor + '33', border: `1px solid ${accentColor}55` }}>{countryAlerts.length}</span>
-                  {countryIsNew && <span className="eas-flash ra-badge-xs" style={{ background: '#dc2626', color: '#fff' }}>NEW</span>}
-                  {isGCC && <span className="ra-badge-xs" style={{ background: '#0ea5e920', color: '#0ea5e9', border: '1px solid #0ea5e940' }}>GCC</span>}
-                  {isNonIsrael && <span className="ra-badge-xs" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>UNDER ATTACK</span>}
-                </div>
-
-                {/* Flat list — newest first within country, region shown as subtitle on each card */}
-                <div className="flex flex-col gap-1">
-                  {countryAlerts.map((alert) => {
-                    const threat = RED_ALERT_THREAT_LABELS[alert.threatType] || RED_ALERT_THREAT_LABELS.rockets;
-                    const elapsed = Math.floor((Date.now() - new Date(alert.timestamp).getTime()) / 1000);
-                    const remaining = Math.max(0, alert.countdown - elapsed);
-                    const isActive = elapsed < alert.countdown || alert.countdown === 0;
-                    const tier = getAlertUrgencyTier(remaining, alert.countdown);
+                  {items.map(({ alert, remaining }) => {
                     const isLive = alert.source === 'live';
-                    const band = TIER_BAND[tier];
-                    const isCrit = tier === 'critical';
-                    const isExpired = tier === 'expired';
-                    const alertAccent = COUNTRY_ACCENT[alert.country] || '#dc2626';
-
-                    const cardBorderColor = isExpired
-                      ? 'rgba(255,255,255,0.05)'
-                      : isCrit
-                        ? '#ef4444'
-                        : tier === 'urgent'
-                          ? '#f97316'
-                          : tier === 'warning'
-                            ? '#eab308'
-                            : alertAccent + '80';
-
                     const ageMs = Date.now() - new Date(alert.timestamp).getTime();
-                    const isIncoming = ageMs < 9000 && isActive;
-                    const isNew = ageMs < 20000 && isActive && !isIncoming;
+                    const isIncoming = ageMs < 9000 && !isExp;
 
                     return (
-                      <div key={alert.id}>
-                        {isIncoming && (
-                          <div className="eas-flash text-[9px] font-black text-red-500 tracking-[0.25em] ra-font-mono text-center py-0.5 mb-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.3)' }}>
-                            ⚠ INCOMING THREAT ⚠
-                          </div>
-                        )}
+                      <div
+                        key={alert.id}
+                        className="alert-slide-in flex items-center gap-2.5 relative"
+                        style={{
+                          padding: tier === 'critical' ? '10px 12px 10px 14px' : '8px 12px 8px 14px',
+                          borderBottom: `1px solid ${cfg.border}`,
+                          background: cfg.bg,
+                          opacity: isExp ? 0.2 : 1,
+                        }}
+                        data-testid={`red-alert-${alert.id}`}
+                      >
                         <div
-                          data-testid={`red-alert-${alert.id}`}
-                          className="alert-slide-in ra-card"
                           style={{
-                            border: `1px solid ${cardBorderColor}`,
-                            background: isExpired
-                              ? 'rgba(255,255,255,0.02)'
-                              : isCrit
-                                ? 'linear-gradient(135deg, rgba(127,29,29,0.35) 0%, rgba(69,10,10,0.25) 100%)'
-                                : isNonIsrael
-                                  ? alertAccent + '12'
-                                  : 'rgba(127,29,29,0.15)',
-                            boxShadow: isCrit && !isExpired ? `0 0 0 1px ${alertAccent}30` : 'none',
+                            position: 'absolute', left: 0, top: 4, bottom: 4,
+                            width: 3, borderRadius: '0 2px 2px 0',
+                            background: cfg.accent,
+                            opacity: isExp ? 0.1 : tier === 'standard' ? 0.3 : 0.7,
                           }}
-                        >
-                          {isCrit && !isExpired && <div className="eas-stripes h-[3px]" style={{ background: alertAccent }} />}
-                          <div className="ra-card-body">
-                            <div className="flex-1 min-w-0">
-                              <div className="ra-flex-center gap-1.5 mb-0.5">
-                                {isNonIsrael && <span className="text-[14px] shrink-0">{FLAG_MAP[alert.country]}</span>}
-                                <span className={`ra-city-name ${isCrit ? 'text-[16px]' : 'text-[14px]'} ${isExpired ? 'text-white/25' : 'text-white'}`}>
-                                  {language === 'ar' ? alert.cityAr : alert.city}
-                                </span>
-                                {isNew && (
-                                  <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fff' }}>NEW</span>
-                                )}
-                                {isLive && (
-                                  <span className="ra-badge-xs shrink-0 ra-tracking-wider" style={{ background: '#15803d', color: '#fff' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
-                                )}
-                                {alert.sourceChannel && (
-                                  <a
-                                    href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    className="ra-badge-xs shrink-0 ra-tracking-wider flex items-center gap-0.5"
-                                    style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    data-testid={`tg-source-${alert.id}`}
-                                    title={`Source: ${alert.sourceChannel}`}
-                                  >
-                                    <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
-                                    TG
-                                  </a>
-                                )}
-                              </div>
-                              {/* Region as subtitle — replaces per-region section headers */}
-                              <div className="text-[10px] ra-font-mono font-semibold truncate mb-1" style={{ color: isExpired ? 'rgba(255,255,255,0.1)' : alertAccent + 'bb', letterSpacing: '0.06em' }}>
-                                {language === 'ar' ? alert.regionAr : alert.region}
-                              </div>
-                              <div className="ra-flex-center gap-1.5">
-                                <span
-                                  className="ra-badge-sm"
-                                  style={{
-                                    background: isActive ? band.bg + 'cc' : 'transparent',
-                                    color: isActive ? band.text : 'rgba(255,255,255,0.2)',
-                                    border: isActive ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.06)',
-                                  }}
-                                >
-                                  {RED_ALERT_THREAT_ICONS[alert.threatType] || ''}{' '}{language === 'ar' ? threat.ar : threat.en}
-                                </span>
-                                {isActive && !isExpired && (
-                                  <span className="ra-badge-xs" style={{ borderRadius: 10, background: band.bg + '44', color: band.text, border: `1px solid ${band.bg}55` }}>
-                                    {band.label}
-                                  </span>
-                                )}
-                                <span className={`text-[10px] ra-tabular ra-font-mono font-medium ${isExpired ? 'text-white/[0.12]' : 'text-red-200/40'}`}>
-                                  {timeAgo(alert.timestamp)}
-                                </span>
-                                {alert.sourceChannel && (
-                                  <a
-                                    href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                                    target="_blank" rel="noopener noreferrer"
-                                    className="text-[9px] ra-font-mono font-medium truncate max-w-[70px]"
-                                    style={{ color: '#0088cc99', textDecoration: 'none' }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    title={alert.sourceChannel}
-                                  >{alert.sourceChannel}</a>
-                                )}
-                              </div>
-                            </div>
-                            <RedAlertCountdown alert={alert} />
+                        />
+                        <RedAlertCountdown alert={alert} />
+                        <div className="flex-1 min-w-0">
+                          <div className="ra-flex-center gap-1.5 mb-0.5">
+                            {isIncoming && (
+                              <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fff', letterSpacing: '0.15em' }}>INCOMING</span>
+                            )}
+                            <span className={`font-extrabold truncate ${tier === 'critical' ? 'text-[15px]' : 'text-[13px]'} ${isExp ? 'text-white/25' : 'text-white'}`}>
+                              {language === 'ar' ? alert.cityAr : alert.city}
+                            </span>
+                            <span className="text-[10px] shrink-0 opacity-40">{FLAG_MAP[alert.country]}</span>
+                            {isLive && (
+                              <span className="ra-badge-xs shrink-0" style={{ background: 'rgba(21,128,61,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)', letterSpacing: '0.06em' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
+                            )}
+                            {alert.sourceChannel && (
+                              <a
+                                href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="ra-badge-xs shrink-0 flex items-center gap-0.5"
+                                style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
+                                onClick={(e) => e.stopPropagation()}
+                                data-testid={`tg-source-${alert.id}`}
+                                title={`Source: ${alert.sourceChannel}`}
+                              >
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
+                                TG
+                              </a>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-bold ra-font-mono tracking-wide" style={{ color: cfg.accent, opacity: isExp ? 0.3 : 0.6 }}>
+                              {THREAT_SHORT_CODE[alert.threatType] || 'UNK'}
+                            </span>
+                            <div className="w-px h-2 bg-white/[0.06]" />
+                            <span className="text-[9px] ra-font-mono truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                              {language === 'ar' ? alert.regionAr : alert.region}
+                            </span>
+                            <span className="text-[8px] ra-font-mono ml-auto shrink-0" style={{ color: 'rgba(255,255,255,0.12)' }}>
+                              {timeAgo(alert.timestamp)}
+                            </span>
                           </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </ScrollArea>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      )}
 
       {/* ── SIRENS FOOTER ── */}
       {sirens.length > 0 && (
@@ -3732,6 +3594,21 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           </div>
         </div>
       )}
+
+      {/* ── TIER FOOTER ── */}
+      <div className="shrink-0 px-3.5 py-1.5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.25)' }}>
+        <span className="text-[7px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.12)' }}>OREF HOME FRONT CMD</span>
+        <div className="flex gap-2">
+          {(['critical', 'urgent', 'warning', 'standard'] as SevTier[]).map(t => {
+            if (tierGrouped[t].length === 0) return null;
+            return (
+              <span key={t} className="text-[7px] ra-font-mono tracking-wide" style={{ color: SEVERITY_TIER_CONFIG[t].accent }}>
+                {t === 'critical' ? 'IMM' : t === 'urgent' ? 'CRIT' : t === 'warning' ? 'URG' : 'ACT'} {tierGrouped[t].length}
+              </span>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 });
