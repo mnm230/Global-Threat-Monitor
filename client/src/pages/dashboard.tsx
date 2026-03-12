@@ -3069,10 +3069,10 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
   const tier = getAlertUrgencyTier(remaining, alert.countdown);
 
   const tierBg: Record<string, string> = {
-    critical: '#dc2626',
-    urgent:   '#ea580c',
-    warning:  '#d97706',
-    standard: '#991b1b',
+    critical: '#2563eb',
+    urgent:   '#1d4ed8',
+    warning:  '#1e40af',
+    standard: '#1e3a5f',
     expired:  'transparent',
   };
   const tierText: Record<string, string> = {
@@ -3080,7 +3080,7 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
     urgent:   '#fff',
     warning:  '#fff',
     standard: 'rgba(255,255,255,0.8)',
-    expired:  'rgba(239,68,68,0.25)',
+    expired:  'rgba(96,165,250,0.25)',
   };
 
   const isCritical = tier === 'critical';
@@ -3093,8 +3093,8 @@ function RedAlertCountdown({ alert }: { alert: RedAlert }) {
         minWidth: 52, borderRadius: 4, padding: '5px 8px', textAlign: 'center', flexShrink: 0,
         background: tierBg[tier],
         color: tierText[tier],
-        border: tier === 'expired' ? '2px solid rgba(239,68,68,0.12)' : '2px solid rgba(0,0,0,0.3)',
-        boxShadow: isCritical ? '0 2px 8px rgba(220,38,38,0.5)' : 'none',
+        border: tier === 'expired' ? '2px solid rgba(59,130,246,0.12)' : '2px solid rgba(0,0,0,0.3)',
+        boxShadow: isCritical ? '0 2px 8px rgba(37,99,235,0.5)' : 'none',
       }}
       data-testid={`red-alert-countdown-${alert.id}`}
     >
@@ -3313,24 +3313,24 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       {/* ── HEADER ── */}
       <div
         className={`panel-drag-handle ra-alert-header ra-flex-center gap-2.5 px-3.5 py-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
-        style={{ borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.35)' : 'hsl(var(--border))'}` }}
+        style={{ borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(59,130,246,0.35)' : 'hsl(var(--border))'}` }}
       >
           <div className="ra-flex-col gap-0.5 flex-1 min-w-0">
             <div className="ra-flex-center gap-2">
               <div className={`ra-glow-dot ${hasActiveAlerts ? 'ra-glow-dot--active' : 'ra-glow-dot--inactive'}`}>
-                {hasActiveAlerts && <div className="alert-dot-ping absolute inset-0 rounded-full bg-red-500" />}
+                {hasActiveAlerts && <div className="alert-dot-ping absolute inset-0 rounded-full bg-blue-500" />}
               </div>
-              <span className={`text-[15px] font-black ra-tracking-wider uppercase ra-font-display ${hasActiveAlerts ? 'text-white' : 'text-red-500/30'}`}>
+              <span className={`text-[15px] font-black ra-tracking-wider uppercase ra-font-display ${hasActiveAlerts ? 'text-white' : 'text-blue-500/30'}`}>
                 {language === 'ar' ? 'الإنذار الأحمر' : 'ALERTS'}
               </span>
               {hasActiveAlerts && (
-                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', boxShadow: '0 2px 12px rgba(220,38,38,0.5)' }} data-testid="text-alert-count">{activeCount}</span>
+                <span className="text-[18px] font-black text-white leading-none ra-tabular px-2.5 py-0.5 rounded-md ra-font-mono" style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', boxShadow: '0 2px 12px rgba(37,99,235,0.5)' }} data-testid="text-alert-count">{activeCount}</span>
               )}
               {liveCount > 0 && (
                 <span className="eas-flash ra-badge-xs" style={{ background: '#15803d', color: '#fff' }}>LIVE {liveCount}</span>
               )}
             </div>
-            <span className={`text-[9px] ra-tracking-wide uppercase ra-font-mono font-bold ${hasActiveAlerts ? 'text-red-200/50' : 'text-red-500/25'}`}>
+            <span className={`text-[9px] ra-tracking-wide uppercase ra-font-mono font-bold ${hasActiveAlerts ? 'text-blue-200/50' : 'text-blue-500/25'}`}>
               OREF HOME FRONT COMMAND
             </span>
           </div>
@@ -3355,16 +3355,16 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               className="ra-search-input"
               data-testid="input-red-alert-search"
             />
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-600/35" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-blue-500/35" />
           </div>
           <div className="flex gap-1 flex-wrap">
             {([['all','ALL'],['rockets','ROCKETS'],['missiles','MISSILES'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','AIRCRAFT']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
                 className="ra-pill"
                 style={{
-                  background: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.08)',
-                  borderColor: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.20)',
-                  color: threatFilter === key ? '#fff' : 'rgba(220,38,38,0.55)',
+                  background: threatFilter === key ? '#2563eb' : 'rgba(37,99,235,0.08)',
+                  borderColor: threatFilter === key ? '#2563eb' : 'rgba(37,99,235,0.20)',
+                  color: threatFilter === key ? '#fff' : 'rgba(96,165,250,0.65)',
                 }}
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
@@ -3374,9 +3374,9 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             <button onClick={() => setCountryFilter('ALL')}
               className="ra-pill"
               style={{
-                background: countryFilter === 'ALL' ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.04)',
-                borderColor: countryFilter === 'ALL' ? 'rgba(239,68,68,0.6)' : 'rgba(255,255,255,0.08)',
-                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.35)',
+                background: countryFilter === 'ALL' ? 'rgba(37,99,235,0.25)' : 'rgba(255,255,255,0.04)',
+                borderColor: countryFilter === 'ALL' ? 'rgba(59,130,246,0.6)' : 'rgba(255,255,255,0.08)',
+                color: countryFilter === 'ALL' ? '#93c5fd' : 'rgba(255,255,255,0.35)',
               }}
               data-testid="button-country-filter-all"
             >ALL ({alerts.length})</button>
@@ -3442,8 +3442,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                   style={{
                     padding: '8px 12px 8px 14px',
                     borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: isCritical ? 'rgba(127,29,29,0.2)' : 'transparent',
-                    borderLeft: isCritical ? '3px solid #dc2626' : '3px solid transparent',
+                    background: isCritical ? 'rgba(30,58,138,0.25)' : 'transparent',
+                    borderLeft: isCritical ? '3px solid #3b82f6' : '3px solid transparent',
                     opacity: isExpired ? 0.35 : 1,
                     transition: 'background 0.15s',
                   }}
@@ -3453,7 +3453,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                   <div className="flex-1 min-w-0">
                     <div className="ra-flex-center gap-1.5 mb-0.5">
                       {isIncoming && (
-                        <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fff', letterSpacing: '0.15em' }}>INCOMING</span>
+                        <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#2563eb', color: '#fff', letterSpacing: '0.15em' }}>INCOMING</span>
                       )}
                       <span className={`font-extrabold truncate text-[13px] ${isExpired ? 'text-white/25' : 'text-white'}`}>
                         {language === 'ar' ? alert.cityAr : alert.city}
