@@ -6,39 +6,39 @@
    DESIGN TOKENS
    ════════════════════════════════════════════════════════════════ */
 :root {
-  /* Palette — Teal-Emerald operational theme */
-  --background:        210 22% 96%;
-  --foreground:        215 25% 13%;
-  --border:            210 18% 88%;
+  /* Palette — Warm Amber operational theme */
+  --background:        30 18% 96%;
+  --foreground:        25 25% 13%;
+  --border:            30 18% 88%;
   --card:              0 0% 100%;
-  --card-foreground:   215 25% 13%;
+  --card-foreground:   25 25% 13%;
   --popover:           0 0% 100%;
-  --popover-foreground:215 25% 13%;
-  --primary:           168 72% 38%;
+  --popover-foreground:25 25% 13%;
+  --primary:           30 55% 48%;
   --primary-foreground:0 0% 100%;
-  --secondary:         210 18% 93%;
-  --secondary-foreground:215 18% 26%;
-  --muted:             210 18% 94%;
-  --muted-foreground:  215 12% 50%;
-  --accent:            168 30% 92%;
-  --accent-foreground: 168 50% 22%;
+  --secondary:         30 18% 93%;
+  --secondary-foreground:25 18% 26%;
+  --muted:             30 18% 94%;
+  --muted-foreground:  25 12% 50%;
+  --accent:            30 30% 92%;
+  --accent-foreground: 30 50% 22%;
   --destructive:       0 70% 50%;
   --destructive-foreground:0 0% 100%;
-  --input:             210 18% 87%;
-  --ring:              168 72% 38%;
+  --input:             30 18% 87%;
+  --ring:              30 55% 48%;
 
   /* Sidebar */
-  --sidebar:                210 20% 94%;
-  --sidebar-foreground:     215 18% 24%;
-  --sidebar-border:         210 18% 87%;
-  --sidebar-primary:        168 72% 38%;
+  --sidebar:                30 20% 94%;
+  --sidebar-foreground:     25 18% 24%;
+  --sidebar-border:         30 18% 87%;
+  --sidebar-primary:        30 55% 48%;
   --sidebar-primary-foreground:0 0% 100%;
-  --sidebar-accent:         210 18% 90%;
-  --sidebar-accent-foreground:215 18% 24%;
-  --sidebar-ring:           168 72% 38%;
+  --sidebar-accent:         30 18% 90%;
+  --sidebar-accent-foreground:25 18% 24%;
+  --sidebar-ring:           30 55% 48%;
 
   /* Charts */
-  --chart-1: 168 72% 38%;
+  --chart-1: 30 55% 48%;
   --chart-2: 36 88% 48%;
   --chart-3: 0 70% 50%;
   --chart-4: 262 62% 56%;
@@ -67,36 +67,36 @@
 }
 
 .dark {
-  --background:        220 16% 4%;
-  --foreground:        210 12% 90%;
-  --border:            220 12% 13%;
-  --card:              220 14% 7%;
-  --card-foreground:   210 12% 88%;
-  --popover:           220 14% 7%;
-  --popover-foreground:210 12% 88%;
-  --primary:           165 68% 46%;
-  --primary-foreground:220 20% 6%;
-  --secondary:         220 12% 11%;
-  --secondary-foreground:210 10% 76%;
-  --muted:             220 12% 9%;
-  --muted-foreground:  220 8% 46%;
-  --accent:            220 12% 10%;
-  --accent-foreground: 210 10% 76%;
+  --background:        25 20% 7%;
+  --foreground:        30 12% 85%;
+  --border:            25 16% 13%;
+  --card:              25 16% 9%;
+  --card-foreground:   30 12% 85%;
+  --popover:           25 16% 9%;
+  --popover-foreground:30 12% 85%;
+  --primary:           30 50% 56%;
+  --primary-foreground:25 20% 7%;
+  --secondary:         25 14% 11%;
+  --secondary-foreground:30 12% 70%;
+  --muted:             25 14% 10%;
+  --muted-foreground:  25 14% 48%;
+  --accent:            25 14% 11%;
+  --accent-foreground: 30 12% 70%;
   --destructive:       0 68% 54%;
   --destructive-foreground:0 0% 100%;
-  --input:             220 12% 12%;
-  --ring:              165 68% 46%;
+  --input:             25 14% 13%;
+  --ring:              30 50% 56%;
 
-  --sidebar:                220 16% 5%;
-  --sidebar-foreground:     210 10% 80%;
-  --sidebar-border:         220 12% 11%;
-  --sidebar-primary:        165 68% 46%;
-  --sidebar-primary-foreground:220 20% 6%;
-  --sidebar-accent:         220 12% 8%;
-  --sidebar-accent-foreground:210 10% 80%;
-  --sidebar-ring:           165 68% 46%;
+  --sidebar:                25 20% 8%;
+  --sidebar-foreground:     30 10% 75%;
+  --sidebar-border:         25 14% 12%;
+  --sidebar-primary:        30 50% 56%;
+  --sidebar-primary-foreground:25 20% 7%;
+  --sidebar-accent:         25 14% 10%;
+  --sidebar-accent-foreground:30 10% 75%;
+  --sidebar-ring:           30 50% 56%;
 
-  --chart-1: 165 68% 46%;
+  --chart-1: 30 50% 56%;
   --chart-2: 36 88% 52%;
   --chart-3: 0 68% 54%;
   --chart-4: 262 62% 60%;
@@ -141,16 +141,16 @@
   /* Minimal scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(220 13% 82%) transparent;
+    scrollbar-color: hsl(30 13% 82%) transparent;
   }
-  .dark * { scrollbar-color: hsl(220 12% 18%) transparent; }
+  .dark * { scrollbar-color: hsl(25 14% 18%) transparent; }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: hsl(220 13% 84%); border-radius: 4px; }
-  .dark ::-webkit-scrollbar-thumb { background: hsl(220 12% 18%); }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(220 13% 68%); }
-  .dark ::-webkit-scrollbar-thumb:hover { background: hsl(220 12% 28%); }
+  ::-webkit-scrollbar-thumb { background: hsl(30 13% 84%); border-radius: 4px; }
+  .dark ::-webkit-scrollbar-thumb { background: hsl(25 14% 18%); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(30 13% 68%); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: hsl(25 14% 28%); }
 
   .react-grid-item ::-webkit-scrollbar { width: 3px; height: 3px; }
 
@@ -171,12 +171,12 @@
   .text-xs       { font-size: 12px !important; }
 
   ::selection {
-    background: hsl(165 68% 46% / .16);
+    background: hsl(30 50% 56% / .16);
     color: hsl(var(--foreground));
   }
 
   :focus-visible {
-    outline: 2px solid hsl(165 68% 46% / .50);
+    outline: 2px solid hsl(30 50% 56% / .50);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -210,7 +210,7 @@
   }
 
   .dash-panel:focus-within {
-    border-color: hsl(165 68% 46% / .40);
+    border-color: hsl(30 50% 56% / .40);
   }
 
   /* Panel header strip */
@@ -462,8 +462,8 @@
 
   .ra-empty-circle {
     width: 48px; height: 48px; border-radius: 50%;
-    background: hsl(142 68% 38% / .08);
-    border: 2px solid hsl(142 68% 38% / .20);
+    background: hsl(30 50% 56% / .08);
+    border: 2px solid hsl(30 50% 56% / .20);
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 12px;
   }
@@ -524,8 +524,8 @@
    PANEL DRAG HANDLE  (legacy, used in every panel component)
    ════════════════════════════════════════════════════════════════ */
 .dark .panel-drag-handle {
-  background: hsl(220 16% 6%) !important;
-  border-bottom: 1px solid hsl(220 12% 11%) !important;
+  background: hsl(25 18% 8%) !important;
+  border-bottom: 1px solid hsl(25 14% 12%) !important;
 }
 
 .panel-drag-handle {
@@ -584,8 +584,8 @@
   box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 .dark .warroom-header {
-  background: hsl(220 16% 5%);
-  border-bottom-color: hsl(220 12% 10%);
+  background: hsl(25 18% 7%);
+  border-bottom-color: hsl(25 14% 11%);
   box-shadow: 0 1px 8px rgba(0,0,0,.60);
 }
 
@@ -634,24 +634,24 @@
 
 /* Hover elevation for grid items */
 .react-grid-item:not(.react-draggable-dragging):hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,.10), 0 0 0 1.5px hsl(165 68% 46% / .18) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.10), 0 0 0 1.5px hsl(30 50% 56% / .18) !important;
 }
 .dark .react-grid-item:not(.react-draggable-dragging):hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,.30), 0 0 0 1.5px hsl(165 68% 46% / .25) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.30), 0 0 0 1.5px hsl(30 50% 56% / .25) !important;
 }
 
 /* Drag */
 .react-grid-item.react-draggable-dragging {
   opacity: .97; z-index: 100;
-  box-shadow: 0 12px 36px rgba(0,0,0,.18), 0 0 0 2px hsl(165 68% 46% / .30) !important;
+  box-shadow: 0 12px 36px rgba(0,0,0,.18), 0 0 0 2px hsl(30 50% 56% / .30) !important;
   cursor: grabbing !important;
   transition: none !important;
 }
 
 /* Drop placeholder */
 .react-grid-item.react-grid-placeholder {
-  background: hsl(165 68% 46% / .06) !important;
-  border: 2px dashed hsl(165 68% 46% / .32) !important;
+  background: hsl(30 50% 56% / .06) !important;
+  border: 2px dashed hsl(30 50% 56% / .32) !important;
   border-radius: 12px !important;
   opacity: 1 !important;
   box-shadow: none !important;
@@ -667,13 +667,13 @@
 .react-resizable-handle:hover { opacity: 1 !important; }
 
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(165 68% 46% / .45) !important;
+  border-color: hsl(30 50% 56% / .45) !important;
   border-width: 2px !important;
   width: 10px !important; height: 10px !important;
   border-radius: 3px;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(165 68% 46% / .80) !important;
+  border-color: hsl(30 50% 56% / .80) !important;
   width: 12px !important; height: 12px !important;
 }
 
@@ -691,7 +691,7 @@
 .react-resizable-handle-w::after {
   width: 3px !important; height: 20px !important;
   border: none !important;
-  background: hsl(165 68% 46% / .35);
+  background: hsl(30 50% 56% / .35);
   border-radius: 3px;
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -699,7 +699,7 @@
 .react-resizable-handle-s::after {
   width: 20px !important; height: 3px !important;
   border: none !important;
-  background: hsl(165 68% 46% / .35);
+  background: hsl(30 50% 56% / .35);
   border-radius: 3px;
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -707,7 +707,7 @@
 .react-resizable-handle-e:hover::after,
 .react-resizable-handle-w:hover::after,
 .react-resizable-handle-s:hover::after {
-  background: hsl(165 68% 46% / .75) !important;
+  background: hsl(30 50% 56% / .75) !important;
 }
 
 /* Grid container */
@@ -716,20 +716,20 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: hsl(220 13% 82%) transparent;
+  scrollbar-color: hsl(30 13% 82%) transparent;
 }
 .dark [data-testid="resizable-panels"] {
-  background: hsl(220 16% 4%);
-  scrollbar-color: hsl(220 12% 18%) transparent;
+  background: hsl(25 20% 7%);
+  scrollbar-color: hsl(25 14% 18%) transparent;
 }
 [data-testid="resizable-panels"]::-webkit-scrollbar { width: 6px; }
 [data-testid="resizable-panels"]::-webkit-scrollbar-track { background: transparent; }
 [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
-  background: hsl(220 13% 84%);
+  background: hsl(30 13% 84%);
   border-radius: 3px;
 }
 .dark [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
-  background: hsl(220 14% 26%);
+  background: hsl(25 14% 26%);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -778,12 +778,12 @@
 }
 .warroom-mobile-swipe-dots .dot {
   display: block; width: 6px; height: 6px; border-radius: 50%;
-  background: hsl(220 13% 76%);
+  background: hsl(30 13% 76%);
   transition: width .2s ease, border-radius .2s ease, background-color .2s ease;
 }
 .warroom-mobile-swipe-dots .dot.active {
   width: 16px; border-radius: 3px;
-  background: hsl(165 68% 46%);
+  background: hsl(30 50% 56%);
 }
 .mobile-panel-hidden { visibility: hidden; pointer-events: none; }
 
