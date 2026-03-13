@@ -753,47 +753,65 @@ function FeedCard({
   onToggle: () => void;
 }) {
   const sev = SEV_CFG[item.severity];
-  const isBreaking = item.severity === "BREAKING";
-  const isUrgent   = item.severity === "URGENT";
+  const isBreaking  = item.severity === "BREAKING";
+  const isUrgent    = item.severity === "URGENT";
+  const isLow       = !isBreaking && !isUrgent;
+
+  const cardBg = isBreaking
+    ? "rgba(248,113,113,0.05)"
+    : isUrgent
+    ? "rgba(251,146,60,0.03)"
+    : "transparent";
+
+  const borderColor = isBreaking
+    ? "#f87171"
+    : isUrgent
+    ? "#fb923c"
+    : "transparent";
+
+  const headlineFontSize = isBreaking ? 14 : isUrgent ? 13 : 12;
+  const headlineFontWeight = isBreaking ? 700 : isUrgent ? 600 : 500;
+  const headlineColor = isBreaking
+    ? "#fff"
+    : isLow
+    ? "rgba(255,255,255,0.78)"
+    : "rgba(255,255,255,0.9)";
+
+  const mono = "'JetBrains Mono', monospace";
 
   return (
     <div
       onClick={onToggle}
-      className={item.isNew ? "lfv2-new" : ""}
+      className={"lfv2-card" + (item.isNew ? " lfv2-new" : "")}
       style={{
         borderBottom: "1px solid rgba(255,255,255,0.04)",
-        padding: expanded ? "12px 16px" : "9px 16px",
+        padding: "10px 16px",
         cursor: "pointer",
-        background: expanded
-          ? ch.bg
-          : isBreaking
-          ? "rgba(248,113,113,0.04)"
-          : "transparent",
-        borderLeft: `3px solid ${isBreaking || isUrgent ? sev.color : "transparent"}`,
-        transition: "background 0.15s",
+        background: cardBg,
+        borderLeft: `3px solid ${borderColor}`,
         position: "relative" as const,
       }}
     >
-      {/* Top row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-        {/* Source badge */}
+      {/* Zone 1: metadata row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5, flexWrap: "nowrap" as const }}>
+        {/* Source handle badge */}
         <span style={{
-          fontSize: 9, fontWeight: 900, padding: "2px 6px", borderRadius: 4,
+          fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 4,
           background: ch.bg, color: ch.accent,
-          border: `1px solid ${ch.accent}30`,
-          fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.08em",
+          border: `1px solid ${ch.accent}25`,
+          fontFamily: mono, letterSpacing: "0.08em",
           flexShrink: 0,
         }}>
           {ch.handle}
         </span>
-        {/* Tag — TV channels get ON AIR pill */}
-        {ch.tag === "TV" ? (
+        {/* Tag pill */}
+        {ch.tag === "TV" || ch.tag === "AR-TV" ? (
           <span style={{
-            fontSize: 7, fontWeight: 900, padding: "2px 6px", borderRadius: 3,
+            fontSize: 7, fontWeight: 900, padding: "2px 5px", borderRadius: 3,
             color: "#e879f9", background: "rgba(232,121,249,0.12)",
             border: "1px solid rgba(232,121,249,0.3)",
             letterSpacing: "0.12em", flexShrink: 0,
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: mono,
           }}>ON AIR</span>
         ) : (
           <span style={{
@@ -801,81 +819,94 @@ function FeedCard({
             color: TAG_COLORS[ch.tag] || "#aaa",
             border: `1px solid ${(TAG_COLORS[ch.tag] || "#aaa")}30`,
             letterSpacing: "0.12em", flexShrink: 0,
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: mono,
           }}>
             {ch.tag}
           </span>
         )}
-        {/* Severity */}
+        {/* Severity pill */}
         <span style={{
           fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3,
           background: sev.bg, color: sev.color,
           border: `1px solid ${sev.color}30`,
           letterSpacing: "0.1em", flexShrink: 0,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: mono,
         }}>
           {item.severity}
         </span>
-        {/* Media type icon */}
+        {/* Media icon */}
         {item.mediaType && item.mediaType !== "text" && (
           <span style={{ fontSize: 9, color: MEDIA_COLOR[item.mediaType], flexShrink: 0 }}>
             {MEDIA_ICON[item.mediaType]}
           </span>
         )}
+        {/* NEW badge */}
         {item.isNew && (
           <span style={{
             fontSize: 7, fontWeight: 900, color: "#22c55e",
-            background: "rgba(34,197,94,0.12)", padding: "1px 5px", borderRadius: 3,
-            border: "1px solid rgba(34,197,94,0.2)", letterSpacing: "0.1em",
-            fontFamily: "'JetBrains Mono', monospace", flexShrink: 0,
+            background: "rgba(34,197,94,0.15)", padding: "1px 6px", borderRadius: 10,
+            border: "1px solid rgba(34,197,94,0.3)", letterSpacing: "0.12em",
+            fontFamily: mono, flexShrink: 0,
           }}>NEW</span>
         )}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.22)", fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
+        {/* Time ago */}
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: mono, flexShrink: 0 }}>
           {fmtAgo(item.ts)}
-        </span>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", flexShrink: 0, marginLeft: 4 }}>
-          {expanded ? "▲" : "▼"}
         </span>
       </div>
 
-      {/* Headline */}
+      {/* Zone 2: headline */}
       <div style={{
-        fontSize: isBreaking ? 13 : 12,
-        fontWeight: isBreaking ? 700 : 600,
-        color: isBreaking ? "#fff" : "rgba(255,255,255,0.82)",
+        fontSize: headlineFontSize,
+        fontWeight: headlineFontWeight,
+        color: headlineColor,
         lineHeight: 1.4,
-        marginBottom: expanded ? 10 : 0,
+        marginBottom: expanded ? 0 : 5,
       }}>
         {item.headline}
       </div>
 
-      {/* Expanded body */}
+      {/* Zone 3: footer (collapsed only) */}
+      {!expanded && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.22)", fontFamily: mono }}>
+            📍 {item.location}
+          </span>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.1)" }}>···</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)" }}>▼</span>
+        </div>
+      )}
+
+      {/* Expanded panel */}
       {expanded && (
         <div style={{
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          paddingTop: 10,
+          background: "rgba(255,255,255,0.02)",
+          borderRadius: 6,
+          padding: 12,
+          marginTop: 8,
         }}>
           <p style={{
-            fontSize: 12, lineHeight: 1.7,
-            color: "rgba(255,255,255,0.58)",
+            fontSize: 14, lineHeight: 1.7,
+            color: "rgba(255,255,255,0.6)",
             margin: "0 0 10px",
             fontFamily: "'Inter', system-ui, sans-serif",
           }}>
             {item.body}
           </p>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: "'JetBrains Mono', monospace" }}>
-              📍 {item.location}
-            </span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: "'JetBrains Mono', monospace" }}>
-              {fmtTime(item.ts)}
-            </span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: "'JetBrains Mono', monospace" }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" as const }}>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: mono }}>
               ID: {item.id}
             </span>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: mono }}>
+              {fmtTime(item.ts)}
+            </span>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontFamily: mono }}>
+              📍 {item.location}
+            </span>
             {item.mediaType && item.mediaType !== "text" && (
-              <span style={{ fontSize: 9, color: MEDIA_COLOR[item.mediaType], fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ fontSize: 9, color: MEDIA_COLOR[item.mediaType], fontFamily: mono }}>
                 {MEDIA_ICON[item.mediaType]} {item.mediaType.toUpperCase()} ATTACHED
               </span>
             )}
@@ -967,10 +998,17 @@ export default function LiveFeedV2() {
   // Ticker items (latest 20 overall)
   const tickerItems = useMemo(() => items.slice(0, 20), [items]);
 
+  const mono = "'JetBrains Mono', monospace";
+  const sevCounts = (["BREAKING", "URGENT", "DEVELOPING", "UPDATE", "ANALYSIS"] as Severity[]).map(s => ({
+    s,
+    count: filtered.filter(i => i.severity === s).length,
+  }));
+  const totalFiltered = filtered.length;
+
   return (
     <div style={{
       height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden",
-      background: "#060a14", color: "#fff",
+      background: "#0f1117", color: "#fff",
       fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
     }}>
       <style>{`
@@ -982,38 +1020,52 @@ export default function LiveFeedV2() {
         @keyframes lfv2-blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
         .lfv2-blink { animation: lfv2-blink 0.9s step-start infinite; }
         @keyframes lfv2-ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-        .lfv2-ticker-track { animation: lfv2-ticker 80s linear infinite; display:flex; gap:0; white-space:nowrap; }
+        .lfv2-ticker-track { animation: lfv2-ticker 70s linear infinite; display:flex; gap:0; white-space:nowrap; }
         .lfv2-ticker-track:hover { animation-play-state: paused; }
         .lfv2-scroll::-webkit-scrollbar { width: 3px; }
         .lfv2-scroll::-webkit-scrollbar-track { background: transparent; }
-        .lfv2-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 2px; }
+        .lfv2-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
         .lfv2-ch { transition: background 0.12s; }
-        .lfv2-ch:hover { background: rgba(255,255,255,0.03) !important; }
-        .lfv2-card:hover { background: rgba(255,255,255,0.015) !important; }
+        .lfv2-ch:hover { background: rgba(255,255,255,0.04) !important; }
+        .lfv2-card { cursor: pointer; transition: background 0.12s; }
+        .lfv2-card:hover { background: rgba(255,255,255,0.018) !important; }
+        .lfv2-sidebar-scroll::-webkit-scrollbar { width: 3px; }
+        .lfv2-sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+        input::placeholder { color: rgba(255,255,255,0.2) !important; }
       `}</style>
 
       {/* ── HEADER ─────────────────────────────────────────────────── */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 12, padding: "9px 16px",
+        display: "flex", alignItems: "center", gap: 12, padding: "11px 18px",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(0,0,0,0.35)", flexShrink: 0,
+        background: "#1a1c2a", flexShrink: 0,
       }}>
+        {/* Left: LIVE FEEDS label + unread */}
         <div style={{ display: "flex", alignItems: "center", gap: 7, flex: 1 }}>
           <div className="lfv2-blink" style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.5)" }} />
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.5)" }}>LIVE FEEDS</span>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.18em", color: "rgba(255,255,255,0.5)", fontFamily: mono }}>LIVE FEEDS</span>
           {totalUnread > 0 && (
             <span style={{
-              fontSize: 10, fontWeight: 900, background: "#ef4444", color: "#fff",
+              fontSize: 9, fontWeight: 900, background: "#ef4444", color: "#fff",
               padding: "1px 7px", borderRadius: 10,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: mono,
             }}>{totalUnread > 99 ? "99+" : totalUnread}</span>
           )}
         </div>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", fontFamily: "'JetBrains Mono', monospace" }}>
-          {nowStr}
+        {/* Center: sources pill */}
+        <span style={{
+          fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.25)", fontFamily: mono,
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+          padding: "2px 10px", borderRadius: 10, letterSpacing: "0.1em",
+        }}>
+          {SOURCES.length} SOURCES
         </span>
-        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em" }}>
-          {items.length} ITEMS · {SOURCES.length} SOURCES
+        {/* Right: item count + clock */}
+        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.18)", fontFamily: mono }}>
+          {items.length} items
+        </span>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", fontFamily: mono }}>
+          {nowStr}
         </span>
       </div>
 
@@ -1021,14 +1073,17 @@ export default function LiveFeedV2() {
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
 
         {/* ── SIDEBAR ──────────────────────────────────────────────── */}
-        <div style={{
-          width: 182, flexShrink: 0,
-          borderRight: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", flexDirection: "column",
-          background: "rgba(0,0,0,0.25)",
-          overflowY: "auto",
-        }}>
-          {/* ALL channel */}
+        <div
+          className="lfv2-sidebar-scroll"
+          style={{
+            width: 200, flexShrink: 0,
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            display: "flex", flexDirection: "column",
+            background: "#13151f",
+            overflowY: "auto",
+          }}
+        >
+          {/* ALL FEEDS pill row */}
           {(() => {
             const isActive = activeId === "all";
             return (
@@ -1036,69 +1091,98 @@ export default function LiveFeedV2() {
                 className="lfv2-ch"
                 onClick={() => switchChannel("all")}
                 style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
+                  display: "flex", alignItems: "center", gap: 10, padding: "7px 12px",
                   cursor: "pointer",
-                  background: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                  background: isActive ? "rgba(255,255,255,0.07)" : "transparent",
                   borderLeft: isActive ? "3px solid rgba(255,255,255,0.4)" : "3px solid transparent",
                   borderBottom: "1px solid rgba(255,255,255,0.04)",
                 }}
               >
-                <span style={{ fontSize: 12, opacity: isActive ? 1 : 0.45, width: 22, textAlign: "center" }}>⬡</span>
+                {/* Icon box */}
+                <div style={{
+                  width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: isActive ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)",
+                  color: isActive ? "#fff" : "rgba(255,255,255,0.25)",
+                  fontSize: 13,
+                }}>⬡</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, color: isActive ? "#fff" : "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>ALL FEEDS</div>
-                  <div style={{ fontSize: 8, color: "rgba(255,255,255,0.18)", marginTop: 1 }}>{items.length} items</div>
+                  <div style={{
+                    fontSize: isActive ? 11 : 10.5,
+                    fontWeight: isActive ? 800 : 600,
+                    color: isActive ? "#fff" : "rgba(255,255,255,0.4)",
+                    letterSpacing: "0.04em",
+                  }}>ALL FEEDS</div>
+                  <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 1, fontFamily: mono }}>{items.length} items</div>
                 </div>
+                {totalUnread > 0 && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 900, background: "#ef4444", color: "#fff",
+                    padding: "1px 6px", borderRadius: 10, flexShrink: 0,
+                    fontFamily: mono,
+                  }}>{totalUnread > 99 ? "99+" : totalUnread}</span>
+                )}
               </div>
             );
           })()}
 
-          {/* Group labels */}
+          {/* Group labels + channels */}
           {["TV", "AR-TV", "WIRE", "OFFICIAL", "REGIONAL", "OSINT", "ANALYSIS", "SOCIAL", "MARITIME", "DATA"].map(tag => {
             const chs = SOURCES.filter(c => c.tag === tag);
             if (chs.length === 0) return null;
+            const tagColor = TAG_COLORS[tag] ?? "rgba(255,255,255,0.18)";
             return (
               <div key={tag}>
-                <div style={{ padding: "8px 12px 3px", fontSize: 7, fontWeight: 900, letterSpacing: "0.22em", color: TAG_COLORS[tag] ?? "rgba(255,255,255,0.18)", fontFamily: "'JetBrains Mono', monospace", opacity: 0.7 }}>
-                  {tag}
+                {/* Group label */}
+                <div style={{ padding: "10px 12px 4px" }}>
+                  <div style={{
+                    fontSize: 8, fontWeight: 900, letterSpacing: "0.2em",
+                    color: tagColor, opacity: 0.6,
+                    fontFamily: mono,
+                  }}>{tag}</div>
+                  <div style={{ height: 1, background: tagColor, opacity: 0.08, margin: "3px 0 2px" }} />
                 </div>
                 {chs.map(c => {
                   const isActive = activeId === c.id;
                   const u = unread[c.id] ?? 0;
+                  const itemCount = items.filter(i => i.channelId === c.id).length;
                   return (
                     <div
                       key={c.id}
                       className="lfv2-ch"
                       onClick={() => switchChannel(c.id as ChannelId)}
                       style={{
-                        display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                        display: "flex", alignItems: "center", gap: 10, padding: "7px 12px",
                         cursor: "pointer",
-                        background: isActive ? `${c.accent}10` : "transparent",
+                        background: isActive ? `${c.accent}12` : "transparent",
                         borderLeft: isActive ? `3px solid ${c.accent}` : "3px solid transparent",
                       }}
                     >
-                      <span style={{
-                        fontSize: typeof c.icon === "string" && c.icon.length > 1 ? 9 : 12,
-                        fontWeight: 900, width: 22, textAlign: "center",
-                        color: isActive ? c.accent : "rgba(255,255,255,0.3)",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        flexShrink: 0,
-                      }}>{c.icon}</span>
+                      {/* Icon box */}
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: isActive ? `${c.accent}15` : "rgba(255,255,255,0.04)",
+                        color: isActive ? c.accent : "rgba(255,255,255,0.25)",
+                        fontSize: typeof c.icon === "string" && c.icon.length > 1 ? 9 : 13,
+                        fontFamily: mono, fontWeight: 900,
+                      }}>{c.icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{
-                          fontSize: 10, fontWeight: isActive ? 700 : 500,
+                          fontSize: isActive ? 11 : 10.5,
+                          fontWeight: isActive ? 700 : 500,
                           color: isActive ? c.accent : "rgba(255,255,255,0.42)",
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                         }}>{c.name}</div>
-                        <div style={{ fontSize: 7, color: "rgba(255,255,255,0.16)", marginTop: 1 }}>
-                          {items.filter(i => i.channelId === c.id).length} items
+                        <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", marginTop: 1, fontFamily: mono }}>
+                          {itemCount} items
                         </div>
                       </div>
                       {u > 0 && (
                         <span style={{
                           fontSize: 9, fontWeight: 900, background: "#ef4444", color: "#fff",
-                          padding: "0px 5px", borderRadius: 8, flexShrink: 0,
-                          fontFamily: "'JetBrains Mono', monospace",
-                          minWidth: 16, textAlign: "center",
+                          padding: "1px 6px", borderRadius: 10, flexShrink: 0,
+                          fontFamily: mono,
                         }}>{u > 99 ? "99+" : u}</span>
                       )}
                     </div>
@@ -1114,23 +1198,36 @@ export default function LiveFeedV2() {
 
           {/* Channel header bar */}
           <div style={{
-            padding: "10px 16px",
             borderBottom: "1px solid rgba(255,255,255,0.06)",
-            background: activeCh ? `linear-gradient(90deg, ${activeCh.bg}, transparent)` : "rgba(255,255,255,0.02)",
+            background: activeCh ? `linear-gradient(180deg, ${activeCh.bg}, transparent 100%)` : "#161824",
             flexShrink: 0,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            {/* Colored top-border strip */}
+            <div style={{ height: 2, background: activeCh ? activeCh.accent : "rgba(255,255,255,0.15)" }} />
+
+            {/* Title row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px 6px" }}>
               {activeCh ? (
                 <>
-                  <span style={{ fontSize: 14 }}>{activeCh.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: activeCh.accent, letterSpacing: "0.06em" }}>
+                  <span style={{ fontSize: 18 }}>{activeCh.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: activeCh.accent, letterSpacing: "0.06em" }}>
                     {activeCh.name}
                   </span>
-                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.25)" }}>{activeCh.handle}</span>
-                  <span style={{ fontSize: 9, padding: "2px 5px", borderRadius: 3, background: `${TAG_COLORS[activeCh.tag]}18`, color: TAG_COLORS[activeCh.tag], letterSpacing: "0.1em", fontFamily: "'JetBrains Mono', monospace", fontSize: 7 as any }}>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: mono }}>{activeCh.handle}</span>
+                  <span style={{
+                    fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 3,
+                    background: `${TAG_COLORS[activeCh.tag] ?? "#aaa"}18`,
+                    color: TAG_COLORS[activeCh.tag] ?? "#aaa",
+                    letterSpacing: "0.1em", fontFamily: mono,
+                    border: `1px solid ${TAG_COLORS[activeCh.tag] ?? "#aaa"}25`,
+                    flexShrink: 0,
+                  }}>
                     {activeCh.tag}
                   </span>
-                  <span style={{ flex: 1, fontSize: 10, color: "rgba(255,255,255,0.25)" }}>{activeCh.description}</span>
+                  <span style={{
+                    flex: 1, fontSize: 10, color: "rgba(255,255,255,0.3)",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{activeCh.description}</span>
                 </>
               ) : (
                 <>
@@ -1138,21 +1235,22 @@ export default function LiveFeedV2() {
                   <span style={{ flex: 1 }} />
                 </>
               )}
+              {/* LIVE indicator */}
               <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
                 <div className="lfv2-blink" style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e" }} />
-                <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", letterSpacing: "0.1em" }}>LIVE</span>
+                <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", letterSpacing: "0.1em", fontFamily: mono }}>LIVE</span>
               </div>
             </div>
 
             {/* Toolbar */}
-            <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" as const }}>
+            <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" as const, padding: "0 16px 10px" }}>
               {(["ALL", "BREAKING", "URGENT", "DEVELOPING", "UPDATE", "ANALYSIS"] as const).map(s => {
                 const isOn = sevFilter === s;
                 const color = s === "ALL" ? "rgba(255,255,255,0.45)" : SEV_CFG[s].color;
                 return (
                   <button key={s} onClick={() => setSevFilter(s)} style={{
-                    fontSize: 8, fontWeight: 800, padding: "3px 7px", borderRadius: 4,
-                    fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.08em",
+                    fontSize: 9, fontWeight: 800, padding: "4px 9px", borderRadius: 5,
+                    fontFamily: mono, letterSpacing: "0.08em",
                     cursor: "pointer",
                     background: isOn ? (s === "ALL" ? "rgba(255,255,255,0.08)" : SEV_CFG[s].bg) : "transparent",
                     border: `1px solid ${isOn ? color : "rgba(255,255,255,0.07)"}`,
@@ -1167,15 +1265,15 @@ export default function LiveFeedV2() {
                 placeholder="Search…"
                 style={{
                   background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 5, padding: "4px 10px", fontSize: 11,
+                  borderRadius: 6, padding: "5px 12px", fontSize: 11,
                   color: "rgba(255,255,255,0.7)", outline: "none", width: 130, fontFamily: "inherit",
                 }}
               />
               <button
                 onClick={() => setAutoScroll(a => !a)}
                 style={{
-                  fontSize: 8, fontWeight: 800, padding: "4px 8px", borderRadius: 4,
-                  fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.08em",
+                  fontSize: 9, fontWeight: 800, padding: "4px 9px", borderRadius: 5,
+                  fontFamily: mono, letterSpacing: "0.08em",
                   cursor: "pointer",
                   background: autoScroll ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)",
                   border: `1px solid ${autoScroll ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.07)"}`,
@@ -1185,28 +1283,43 @@ export default function LiveFeedV2() {
             </div>
           </div>
 
-          {/* Stats bar */}
+          {/* Stats strip */}
           <div style={{
-            display: "flex", borderBottom: "1px solid rgba(255,255,255,0.04)",
-            background: "rgba(0,0,0,0.2)", flexShrink: 0,
+            borderBottom: "1px solid rgba(255,255,255,0.04)",
+            background: "#1a1c28", flexShrink: 0,
+            padding: "5px 12px 0",
           }}>
-            {(["BREAKING", "URGENT", "DEVELOPING", "UPDATE", "ANALYSIS"] as Severity[]).map(s => {
-              const count = filtered.filter(i => i.severity === s).length;
-              if (count === 0) return null;
-              return (
-                <div key={s} style={{
-                  padding: "4px 10px", borderRight: "1px solid rgba(255,255,255,0.04)",
-                  display: "flex", alignItems: "center", gap: 4,
-                }}>
-                  <span style={{ fontSize: 7, fontWeight: 800, color: SEV_CFG[s].color, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.08em" }}>{s}</span>
-                  <span style={{ fontSize: 10, fontWeight: 900, color: SEV_CFG[s].color, fontFamily: "'JetBrains Mono', monospace" }}>{count}</span>
-                </div>
-              );
-            })}
-            <div style={{ flex: 1 }} />
-            <div style={{ padding: "4px 12px", fontSize: 8, color: "rgba(255,255,255,0.18)", fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center" }}>
-              {filtered.length} shown
+            {/* Pills row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, paddingBottom: 5 }}>
+              <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                {sevCounts.filter(x => x.count > 0).map(({ s, count }) => (
+                  <span key={s} style={{
+                    fontSize: 8, fontWeight: 900, padding: "2px 8px", borderRadius: 10,
+                    background: SEV_CFG[s].bg, color: SEV_CFG[s].color,
+                    border: `1px solid ${SEV_CFG[s].color}30`,
+                    fontFamily: mono, letterSpacing: "0.06em",
+                  }}>
+                    {s} {count}
+                  </span>
+                ))}
+              </div>
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", fontFamily: mono }}>
+                {totalFiltered} of {items.length}
+              </span>
             </div>
+            {/* Severity bar */}
+            {totalFiltered > 0 && (
+              <div style={{ display: "flex", height: 2, marginBottom: 0 }}>
+                {sevCounts.filter(x => x.count > 0).map(({ s, count }) => (
+                  <div key={s} style={{
+                    flex: count,
+                    background: SEV_CFG[s].color,
+                    opacity: 0.7,
+                  }} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Feed */}
@@ -1214,24 +1327,28 @@ export default function LiveFeedV2() {
             ref={feedRef}
             className="lfv2-scroll"
             onScroll={e => { const el = e.currentTarget; setAutoScroll(el.scrollTop < 60); }}
-            style={{ flex: 1, overflowY: "auto", minHeight: 0 }}
+            style={{ flex: 1, overflowY: "auto", minHeight: 0, background: "#0f1117" }}
           >
             {filtered.length === 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8, opacity: 0.25 }}>
-                <span style={{ fontSize: 22 }}>📭</span>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em" }}>NO ITEMS</span>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 6 }}>
+                <span style={{ fontSize: 28, opacity: 0.2 }}>📭</span>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", fontFamily: mono }}>NO ITEMS</span>
+                {activeCh && (
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 2, maxWidth: 200, textAlign: "center" }}>
+                    {activeCh.description}
+                  </span>
+                )}
               </div>
             ) : filtered.map(item => {
               const ch = CH_MAP[item.channelId];
               return (
-                <div key={item.id} className="lfv2-card">
-                  <FeedCard
-                    item={item}
-                    ch={ch}
-                    expanded={expandedId === item.id}
-                    onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                  />
-                </div>
+                <FeedCard
+                  key={item.id}
+                  item={item}
+                  ch={ch}
+                  expanded={expandedId === item.id}
+                  onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                />
               );
             })}
           </div>
@@ -1241,16 +1358,18 @@ export default function LiveFeedV2() {
       {/* ── TICKER ─────────────────────────────────────────────────── */}
       <div style={{
         borderTop: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(0,0,0,0.4)",
+        background: "#13151f",
         overflow: "hidden", flexShrink: 0,
-        height: 26, display: "flex", alignItems: "center",
+        height: 30, display: "flex", alignItems: "center",
       }}>
+        {/* LIVE label section */}
         <div style={{
-          width: 60, flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.06)",
-          height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-          background: "rgba(34,197,94,0.08)",
+          width: 70, flexShrink: 0, borderRight: "1px solid rgba(255,255,255,0.06)",
+          height: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+          background: "rgba(34,197,94,0.06)",
         }}>
-          <span style={{ fontSize: 7, fontWeight: 900, color: "#4ade80", letterSpacing: "0.14em", fontFamily: "'JetBrains Mono', monospace" }}>LIVE</span>
+          <div className="lfv2-blink" style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e" }} />
+          <span style={{ fontSize: 7, fontWeight: 900, color: "#4ade80", letterSpacing: "0.14em", fontFamily: mono }}>LIVE</span>
         </div>
         <div style={{ flex: 1, overflow: "hidden", position: "relative" as const }}>
           <div ref={tickerRef} className="lfv2-ticker-track">
@@ -1260,12 +1379,13 @@ export default function LiveFeedV2() {
               return (
                 <span key={`${item.id}-${i}`} style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "0 20px", borderRight: "1px solid rgba(255,255,255,0.04)",
+                  padding: "0 16px",
                   fontSize: 9, whiteSpace: "nowrap",
                 }}>
-                  <span style={{ color: ch.accent, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", fontSize: 8 }}>{ch.handle}</span>
-                  <span style={{ color: sev.color, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", fontSize: 7 }}>{item.severity}</span>
-                  <span style={{ color: "rgba(255,255,255,0.55)" }}>{item.headline}</span>
+                  <span style={{ color: ch.accent, fontWeight: 800, fontFamily: mono, fontSize: 8 }}>{ch.handle}</span>
+                  <span style={{ color: sev.color, fontWeight: 700, fontFamily: mono, fontSize: 7 }}>{item.severity}</span>
+                  <span style={{ color: "rgba(255,255,255,0.55)", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", display: "inline-block" }}>{item.headline}</span>
+                  <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 10 }}>·</span>
                 </span>
               );
             })}
