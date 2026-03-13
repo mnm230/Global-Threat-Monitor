@@ -4950,10 +4950,14 @@ export async function registerRoutes(
     const intelDigest = classifiedMessageCache
       .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
       .slice(0, 10)
-      .map(m => `[${m.channel}] ${m.text.slice(0, 120)}`)
+      .map(m => `[Source: ${m.channel}] ${m.text.slice(0, 120)}`)
       .join('\n');
 
-    const systemPrompt = `You are a predictive military intelligence AI specializing in Middle East conflict forecasting. Based on real-time alert data, classified intelligence, and pattern analysis, generate attack predictions. Return ONLY valid JSON with this exact structure:
+    const systemPrompt = `You are a predictive military intelligence AI specializing in Middle East conflict forecasting. Based on real-time alert data, classified intelligence, and pattern analysis, generate attack predictions.
+
+IMPORTANT: The "CLASSIFIED INTELLIGENCE" section contains messages from Telegram channels (prefixed with [Source: ...]). These channel names are SOURCES, NOT locations. Never use Telegram channel names, handles, or usernames as geographic locations in your predictions. Only use real geographic locations (cities, regions, countries) in the "region", "nextLikelyTarget", and "location" fields.
+
+Return ONLY valid JSON with this exact structure:
 {
   "predictions": [
     {
@@ -5011,7 +5015,7 @@ ${topTypes.map(([t, c]) => `- ${t}: ${c} incidents`).join('\n')}
 RECENT ALERTS (last 30min):
 ${recentAlerts.join('\n') || 'None'}
 
-CLASSIFIED INTELLIGENCE:
+CLASSIFIED INTELLIGENCE (from Telegram OSINT channels — channel names are sources, NOT locations):
 ${intelDigest || 'Limited OSINT available.'}`;
 
     try {
