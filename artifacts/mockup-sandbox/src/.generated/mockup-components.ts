@@ -3,6 +3,9 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/redalert-refined/Polished.tsx": () => import("../components/mockups/redalert-refined/Polished.tsx"),
   "./components/mockups/redalert-refined/Tightened.tsx": () => import("../components/mockups/redalert-refined/Tightened.tsx"),
+  "./components/mockups/threat-posture/AmberHorizontal.tsx": () => import("../components/mockups/threat-posture/AmberHorizontal.tsx"),
+  "./components/mockups/threat-posture/AmberMapCentric.tsx": () => import("../components/mockups/threat-posture/AmberMapCentric.tsx"),
+  "./components/mockups/threat-posture/AmberTiled.tsx": () => import("../components/mockups/threat-posture/AmberTiled.tsx"),
   "./components/mockups/threat-posture/ConditionAmber.tsx": () => import("../components/mockups/threat-posture/ConditionAmber.tsx"),
   "./components/mockups/threat-posture/ConditionGreen.tsx": () => import("../components/mockups/threat-posture/ConditionGreen.tsx"),
   "./components/mockups/threat-posture/ConditionRed.tsx": () => import("../components/mockups/threat-posture/ConditionRed.tsx"),
