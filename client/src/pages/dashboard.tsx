@@ -2734,7 +2734,7 @@ function RedAlertCountdown({ alert, mobile }: { alert: RedAlert; mobile?: boolea
       <div
         className={isCritical ? 'eas-countdown-pulse' : ''}
         style={{
-          minWidth: 64, height: 64, borderRadius: 12, flexShrink: 0,
+          minWidth: 64, height: 64, borderRadius: 3, flexShrink: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: 2, padding: '6px 4px',
           background: tier === 'expired' ? 'rgba(255,255,255,0.025)' : tierBg[tier],
@@ -2764,7 +2764,7 @@ function RedAlertCountdown({ alert, mobile }: { alert: RedAlert; mobile?: boolea
     <div
       className={isCritical ? 'eas-countdown-pulse' : ''}
       style={{
-        minWidth: 56, borderRadius: 6, padding: '6px 10px', textAlign: 'center', flexShrink: 0,
+        minWidth: 56, borderRadius: 3, padding: '6px 10px', textAlign: 'center', flexShrink: 0,
         background: tierBg[tier],
         color: tierText[tier],
         border: `1.5px solid ${tierBorder[tier]}`,
@@ -2998,7 +2998,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       <div
         className={`shrink-0 select-none ${isMobile ? 'px-4 py-2.5' : 'panel-drag-handle cursor-grab active:cursor-grabbing'}`}
         style={{
-          borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.18)' : 'hsl(var(--border))'}`,
+          borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)'}`,
           background: hasActiveAlerts ? 'linear-gradient(180deg, rgba(127,29,29,0.18) 0%, transparent 100%)' : 'hsl(var(--muted))',
         }}
       >
@@ -3019,21 +3019,30 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                   data-testid="text-alert-count"
                 >{activeCount}</span>
                 {liveCount > 0 && (
-                  <span className={`${isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-[9px] px-1.5 py-px'} font-black ra-font-mono uppercase tracking-wider rounded-sm`} style={{ background: 'rgba(21,128,61,0.3)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>LIVE</span>
+                  <span className={`${isMobile ? 'text-[10px] px-1.5 py-0.5' : 'text-[9px] px-1.5 py-px'} font-black ra-font-mono uppercase tracking-wider rounded-sm`} style={{ background: 'rgba(21,128,61,0.3)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)', height: 18, display: 'inline-flex', alignItems: 'center' }}>LIVE</span>
                 )}
+              </div>
+            )}
+            {hasActiveAlerts && !isMobile && (
+              <div className="flex items-center gap-1.5 ml-auto overflow-hidden">
+                {Object.entries(threatCounts).slice(0, 4).map(([type, count]) => (
+                  <span key={type} className="text-[10px] ra-font-mono font-bold text-white/25 shrink-0" style={{ height: 18, display: 'inline-flex', alignItems: 'center' }}>
+                    {THREAT_ICONS[type] || '🚀'}{count}
+                  </span>
+                ))}
               </div>
             )}
           </div>
           <div className="flex items-center gap-1">
             {isMobile && hasActiveAlerts && (
               <button onClick={() => setShowSearch(p => !p)}
-                className={`w-8 h-8 rounded-md flex items-center justify-center transition-all active:scale-95 ${showSearch ? 'text-red-300' : 'text-white/30'}`}
+                className={`w-8 h-8 rounded-sm flex items-center justify-center transition-all active:scale-95 ${showSearch ? 'text-red-300' : 'text-white/30'}`}
                 style={{ background: showSearch ? 'rgba(220,38,38,0.15)' : 'transparent', border: '1px solid rgba(255,255,255,0.06)' }}
                 aria-label="Search"
               ><Search className="w-3.5 h-3.5" /></button>
             )}
             {onShowHistory && (
-              <button onClick={onShowHistory} className={`${isMobile ? 'w-8 h-8' : 'w-6 h-6'} rounded-md flex items-center justify-center text-foreground/30 transition-all active:scale-95`} style={{ border: '1px solid rgba(255,255,255,0.06)' }} title="Alert History" data-testid="button-alert-history">
+              <button onClick={onShowHistory} className={`${isMobile ? 'w-8 h-8' : 'w-6 h-6'} rounded-sm flex items-center justify-center text-foreground/30 transition-all active:scale-95`} style={{ border: '1px solid rgba(255,255,255,0.06)' }} title="Alert History" data-testid="button-alert-history">
                 <History className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3'}`} />
               </button>
             )}
@@ -3041,24 +3050,11 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             {onClose && <PanelMinimizeButton onMinimize={onClose} />}
           </div>
         </div>
-        {hasActiveAlerts && !isMobile && (
-          <div className="px-3 pb-1.5 flex items-center gap-3">
-            <span className="text-[9px] ra-font-mono tracking-[0.2em] uppercase text-red-400/25 shrink-0">OREF</span>
-            <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
-              {Object.entries(threatCounts).slice(0, 4).map(([type, count]) => (
-                <span key={type} className="text-[10px] ra-font-mono font-bold text-white/20 shrink-0">
-                  {THREAT_ICONS[type] || '🚀'}{count}
-                </span>
-              ))}
-            </div>
-            <span className="text-[9px] ra-font-mono text-white/15 shrink-0">{alerts.length} TTL</span>
-          </div>
-        )}
       </div>
 
       {/* ── FILTERS — segmented tabs ── */}
       {hasActiveAlerts && isMobile ? (
-        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(239,68,68,0.08)', background: 'rgba(0,0,0,0.15)' }}>
+        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.15)' }}>
           {showSearch && (
             <div className="relative px-3 pt-2 pb-1.5">
               <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
@@ -3114,16 +3110,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           </div>
         </div>
       ) : hasActiveAlerts ? (
-        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.12)' }}>
-          <div className="px-2.5 pt-1.5">
-            <div className="relative">
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'ar' ? 'ابحث...' : 'Search...'}
-                className="ra-search-input" data-testid="input-red-alert-search" />
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-red-500/25" />
-            </div>
-          </div>
-          <div className="flex items-center border-b" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.12)' }}>
+          <div className="flex items-center border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACF']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
                 className="flex-1 ra-font-mono font-bold transition-colors"
@@ -3134,13 +3122,33 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
             ))}
+            <button onClick={() => setShowSearch(p => !p)}
+              className={`shrink-0 w-7 h-7 rounded-sm flex items-center justify-center transition-all ${showSearch ? 'text-red-300' : 'text-white/20'}`}
+              style={{ background: showSearch ? 'rgba(220,38,38,0.12)' : 'transparent', marginRight: 4 }}
+              aria-label="Search" data-testid="button-search-toggle"
+            ><Search className="w-3 h-3" /></button>
           </div>
+          {showSearch && (
+            <div className="px-2.5 py-1.5">
+              <div className="relative">
+                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={language === 'ar' ? 'ابحث...' : 'Search...'}
+                  className="ra-search-input" data-testid="input-red-alert-search" autoFocus />
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-red-500/25" />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute w-4 h-4 flex items-center justify-center rounded text-white/30" style={{ top: '50%', right: 6, transform: 'translateY(-50%)' }}>
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex gap-0.5 overflow-x-auto px-2 py-1" style={{ scrollbarWidth: 'none' }}>
             <button onClick={() => setCountryFilter('ALL')}
               className="shrink-0 ra-font-mono font-bold text-[10px] px-2 py-0.5 rounded-sm transition-all"
               style={{ background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.15)' : 'transparent',
                 color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.25)',
-                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.3)' : 'transparent'}`, }}
+                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.3)' : 'transparent'}`, height: 18, display: 'inline-flex', alignItems: 'center' }}
               data-testid="button-country-filter-all"
             >ALL</button>
             {countryOrder.map(c => {
@@ -3153,7 +3161,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                   className="shrink-0 font-bold text-[10px] px-2 py-0.5 rounded-sm transition-all"
                   style={{ background: isSelected ? color + '18' : 'transparent',
                     color: isSelected ? '#fff' : color + '88',
-                    border: `1px solid ${isSelected ? color + '55' : 'transparent'}`, }}
+                    border: `1px solid ${isSelected ? color + '55' : 'transparent'}`, height: 18, display: 'inline-flex', alignItems: 'center' }}
                   data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
                 >{FLAG_MAP[c]}{count}</button>
               );
@@ -3248,15 +3256,15 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               return (
                 <div key={alert.id} className="alert-slide-in flex items-center gap-2 group"
                   style={{
-                    padding: '5px 10px 5px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.025)',
+                    padding: '5px 10px',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
                     background: isCritical && !isExpired ? 'rgba(127,29,29,0.15)' : 'transparent',
                     opacity: isExpired ? 0.30 : 1,
                     transition: 'background 0.15s',
                   }}
                   data-testid={`red-alert-${alert.id}`}
                 >
-                  <div className="shrink-0 self-stretch" style={{ width: 3, background: isCritical && !isExpired ? '#ef4444' : !isExpired && remaining > 0 ? 'rgba(249,115,22,0.4)' : 'transparent', borderRadius: '0 2px 2px 0' }} />
+                  <div className="shrink-0 self-stretch" style={{ width: 3, background: isCritical && !isExpired ? '#ef4444' : !isExpired && remaining > 0 ? 'rgba(249,115,22,0.4)' : 'transparent', borderRadius: '0 1px 1px 0' }} />
                   <RedAlertCountdown alert={alert} />
                   <div className="flex-1 min-w-0 flex items-center gap-1.5">
                     <div className="flex-1 min-w-0">
@@ -3271,15 +3279,15 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                         <span>{language === 'ar' ? alert.regionAr : alert.region}</span>
                       </div>
                     </div>
-                    <span className="text-[10px] ra-font-mono font-bold shrink-0 px-1.5 py-px rounded-sm" style={{ color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span className="text-[10px] ra-font-mono font-bold shrink-0 px-1.5 rounded-sm" style={{ color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', height: 18, display: 'inline-flex', alignItems: 'center' }}>
                       {threatIcon} {threatCode}
                     </span>
-                    {isLive && <span className="text-[9px] font-bold px-1.5 py-px rounded-sm ra-font-mono shrink-0" style={{ background: 'rgba(21,128,61,0.15)', color: '#4ade80' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>}
+                    {isLive && <span className="text-[9px] font-bold px-1.5 rounded-sm ra-font-mono shrink-0" style={{ background: 'rgba(21,128,61,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)', height: 18, display: 'inline-flex', alignItems: 'center' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>}
                     {alert.sourceChannel && (
                       <a href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="text-[9px] font-bold px-1.5 py-px rounded-sm shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ background: '#0088cc12', color: '#29b6f6', textDecoration: 'none' }}
+                        className="text-[9px] font-bold px-1.5 rounded-sm shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ background: '#0088cc12', color: '#29b6f6', textDecoration: 'none', border: '1px solid rgba(59,130,246,0.15)', height: 18, display: 'inline-flex' }}
                         onClick={(e) => e.stopPropagation()} data-testid={`tg-source-${alert.id}`}
                       >
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
@@ -3300,7 +3308,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
         const THREAT_ACCENT: Record<string, string> = { rocket: '#ef4444', missile: '#a855f7', uav: '#f59e0b', hostile_aircraft: '#3b82f6' };
         const THREAT_ICON: Record<string, string> = { rocket: '🚀', missile: '⚡', uav: '🛸', hostile_aircraft: '✈️' };
         return (
-        <div className="shrink-0" style={{ borderTop: '2px solid rgba(239,68,68,0.35)', background: 'linear-gradient(180deg, rgba(239,68,68,0.06) 0%, rgba(0,0,0,0.4) 100%)' }}>
+        <div className="shrink-0" style={{ borderTop: '1px solid rgba(239,68,68,0.35)', background: 'linear-gradient(180deg, rgba(239,68,68,0.06) 0%, rgba(0,0,0,0.4) 100%)' }}>
           <div className={`${isMobile ? 'px-4 py-2' : 'px-3 py-1.5'} flex items-center gap-2`}>
             <div className="flex items-center gap-1.5">
               <div className="relative">
@@ -3343,9 +3351,9 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── FOOTER ── */}
       {!isMobile && (
-        <div className="shrink-0 px-3.5 py-1.5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.25)' }}>
-          <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.12)' }}>OREF HOME FRONT CMD</span>
-          <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.12)' }}>{alerts.length} TOTAL</span>
+        <div className="shrink-0 px-3.5 py-1.5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.25)' }}>
+          <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.20)' }}>OREF HOME FRONT CMD</span>
+          <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.20)' }}>{alerts.length} TOTAL</span>
         </div>
       )}
     </div>
