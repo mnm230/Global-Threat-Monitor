@@ -23,7 +23,6 @@ import type {
   TelegramMessage,
   SirenAlert,
   RedAlert,
-  InternetCountryStatus,
   NOTAMItem,
   ThermalHotspot,
   BreakingNewsItem,
@@ -39,7 +38,6 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  Wifi,
   Languages,
   Newspaper,
   Send,
@@ -93,7 +91,6 @@ import {
   ArrowRight,
   Flame,
   Download,
-  WifiOff,
   FileWarning,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
@@ -285,7 +282,6 @@ interface SSEData {
   sirens: SirenAlert[];
   redAlerts: RedAlert[];
   telegramMessages: TelegramMessage[];
-  internetStatus: InternetCountryStatus[];
   notams: NOTAMItem[];
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
@@ -298,7 +294,7 @@ function useSSE(): SSEData {
   const [state, setState] = useState<Omit<SSEData, 'connected'>>({
     news: [], commodities: [], events: [], flights: [], ships: [],
     sirens: [], redAlerts: [], telegramMessages: [],
-    internetStatus: [], notams: [], thermalHotspots: [], breakingNews: [],
+    notams: [], thermalHotspots: [], breakingNews: [],
     attackPrediction: null, rocketStats: null,
   });
   const [connected, setConnected] = useState(false);
@@ -358,9 +354,6 @@ function useSSE(): SSEData {
       });
       es.addEventListener('telegram', (e) => {
         try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
-      });
-      es.addEventListener('internet-status', (e) => {
-        try { pending.current.internetStatus = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('notams', (e) => {
         try { pending.current.notams = JSON.parse(e.data); scheduleFlush(); } catch {}
@@ -667,7 +660,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'netblack' | 'notams' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'notams' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
@@ -676,7 +669,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
-  netblack: { icon: Wifi, label: 'Internet Monitor', labelAr: 'مراقب الإنترنت' },
   notams: { icon: FileWarning, label: 'NOTAMs', labelAr: 'إشعارات الطيران' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
@@ -1188,26 +1180,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, netblack: false, notams: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, netblack: 22, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, notams: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, netblack: false, notams: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, netblack: 22, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, notams: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, netblack: false, notams: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, netblack: 22, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, notams: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, netblack: false, notams: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, netblack: 100, notams: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, notams: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, notams: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1223,7 +1215,6 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
   { i: 'events',       x: 3,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
   { i: 'markets',      x: 6,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'netblack',     x: 9,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
   // Row 3 — Wide feed
   { i: 'livefeed',     x: 0,  y: 14, w: 12, h: 4,  minW: 2, minH: 2 },
   // Row 4 — Analysis pair
@@ -1243,7 +1234,6 @@ const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   markets:      'hsl(262 60% 58%)',
   aiprediction: 'hsl(272 60% 58%)',
   analytics:    'hsl(183 65% 44%)',
-  netblack:     'hsl(193 65% 46%)',
   notams:       'hsl(43 75% 48%)',
   osint:        'hsl(238 58% 58%)',
   livefeed:     'hsl(213 58% 50%)',
@@ -2671,87 +2661,6 @@ const CYBER_TYPE_LABELS: Record<string, string> = { ddos: 'DDoS', intrusion: 'IN
 const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-orange-950/40 border-orange-500/30', intrusion: 'text-red-400 bg-red-950/40 border-red-500/30', malware: 'text-purple-400 bg-purple-950/40 border-purple-500/30', phishing: 'text-yellow-400 bg-yellow-950/40 border-yellow-500/30', defacement: 'text-blue-400 bg-blue-950/40 border-blue-500/30', data_exfil: 'text-red-400 bg-red-950/40 border-red-500/30', scada: 'text-red-400 bg-red-950/40 border-red-500/30' };
 
 
-// ── Internet Blackout Panel ──────────────────────────────────────────────────
-const INET_STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  online:    { bg: 'bg-emerald-500/10', text: 'text-emerald-400', dot: 'bg-emerald-500' },
-  degraded:  { bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  dot: 'bg-yellow-500' },
-  disrupted: { bg: 'bg-orange-500/10',  text: 'text-orange-400',  dot: 'bg-orange-500' },
-  blackout:  { bg: 'bg-red-500/10',     text: 'text-red-400',     dot: 'bg-red-500' },
-};
-const INET_FLAG: Record<string, string> = {
-  IR: '\u{1F1EE}\u{1F1F7}', IQ: '\u{1F1EE}\u{1F1F6}', SY: '\u{1F1F8}\u{1F1FE}', LB: '\u{1F1F1}\u{1F1E7}',
-  IL: '\u{1F1EE}\u{1F1F1}', YE: '\u{1F1FE}\u{1F1EA}', SA: '\u{1F1F8}\u{1F1E6}', JO: '\u{1F1EF}\u{1F1F4}',
-  PS: '\u{1F1F5}\u{1F1F8}', AE: '\u{1F1E6}\u{1F1EA}', BH: '\u{1F1E7}\u{1F1ED}', KW: '\u{1F1F0}\u{1F1FC}', QA: '\u{1F1F6}\u{1F1E6}',
-};
-
-const InternetBlackoutPanel = memo(function InternetBlackoutPanel({ statuses, language, onClose, onMaximize, isMaximized }: { statuses: InternetCountryStatus[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const sorted = [...statuses].sort((a, b) => {
-    const order = { blackout: 0, disrupted: 1, degraded: 2, online: 3 };
-    return (order[a.status] ?? 3) - (order[b.status] ?? 3);
-  });
-  const issues = statuses.filter(s => s.status !== 'online');
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="netblack-panel">
-      <PanelHeader
-        title={t('Internet Monitor', 'مراقب الإنترنت')}
-        icon={<Wifi className="w-3.5 h-3.5" />}
-        live count={issues.length > 0 ? issues.length : undefined}
-        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
-      />
-      <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-3" style={{ background: 'hsl(var(--muted))' }}>
-        {[
-          { label: t('COUNTRIES', 'دول'), count: statuses.length, color: 'text-cyan-400' },
-          { label: t('ONLINE', 'متصل'), count: statuses.filter(s => s.status === 'online').length, color: 'text-emerald-400' },
-          { label: t('DEGRADED', 'متدهور'), count: statuses.filter(s => s.status === 'degraded').length, color: 'text-yellow-400' },
-          { label: t('DOWN', 'معطل'), count: statuses.filter(s => s.status === 'disrupted' || s.status === 'blackout').length, color: 'text-red-400' },
-        ].map(s => (
-          <div key={s.label} className="flex flex-col items-center" data-testid={`netblack-stat-${s.label.toLowerCase()}`}>
-            <span className={`text-[11px] font-black font-mono ${s.color}`}>{s.count}</span>
-            <span className="text-[8px] font-mono text-foreground/30 uppercase tracking-wider">{s.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {sorted.map((cs) => {
-          const colors = INET_STATUS_COLORS[cs.status] || INET_STATUS_COLORS.online;
-          return (
-            <div key={cs.countryCode} className="px-3 py-2 border-b border-border hover-elevate" data-testid={`netblack-country-${cs.countryCode}`}>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">{INET_FLAG[cs.countryCode] || ''}</span>
-                <span className="text-[11px] font-bold font-mono text-foreground/80 flex-1 truncate">{cs.country}</span>
-                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded ${colors.bg}`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-                  <span className={`text-[9px] font-mono font-bold uppercase ${colors.text}`}>{cs.status}</span>
-                </div>
-              </div>
-              <div className="mt-1.5 flex items-center gap-1">
-                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className={`h-full rounded-full transition-[width] duration-500 ${cs.healthScore >= 70 ? 'bg-emerald-500' : cs.healthScore >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${cs.healthScore}%` }} />
-                </div>
-                <span className="text-[9px] font-mono text-foreground/30 w-8 text-right">{cs.healthScore}%</span>
-              </div>
-              <div className="flex items-center gap-2 mt-1 text-[9px] font-mono text-foreground/25">
-                <span className="truncate flex-1">{cs.topASN}</span>
-                <span>IODA</span>
-              </div>
-              {cs.outages.length > 0 && cs.outages.map((o) => (
-                <div key={o.id} className="mt-1.5 px-2 py-1.5 rounded border border-red-500/20 bg-red-500/5">
-                  <div className="flex items-center gap-1.5 text-[9px] font-mono">
-                    <WifiOff className="w-3 h-3 text-red-400 shrink-0" />
-                    <span className="text-red-400 font-bold">{o.dropPercent}% DROP</span>
-                    <span className="text-foreground/30 ml-auto">{timeAgo(o.detectedAt)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-});
 
 // ── NOTAM Panel ──────────────────────────────────────────────────────────────
 const NOTAM_TYPE_LABELS: Record<string, { en: string; ar: string }> = {
@@ -7484,7 +7393,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
-  const bottomGroup: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'alertmap', 'analytics', 'osint', 'attackpred', 'rocketstats'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'notams', 'alertmap', 'analytics', 'osint', 'attackpred', 'rocketstats'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -7829,7 +7738,7 @@ export default function Dashboard() {
 
 
 
-  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true, netblack: true, notams: true };
+  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true, notams: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
@@ -7878,7 +7787,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, internetStatus, notams, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, notams, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -8043,7 +7952,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'markets', 'netblack', 'notams', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
+  const bottomRow: PanelId[] = ['events', 'markets', 'notams', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -8057,7 +7966,7 @@ export default function Dashboard() {
     }
     setReadyPanels(new Set(topRow));
     const batches: PanelId[][] = [
-      ['events', 'markets', 'netblack', 'aiprediction'],
+      ['events', 'markets', 'aiprediction'],
       ['notams', 'analytics', 'osint'],
       ['attackpred', 'rocketstats', 'livefeed'],
     ];
@@ -8078,7 +7987,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
     events: 22, markets: 28,
-    netblack: 22, notams: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
+    notams: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -8197,8 +8106,6 @@ export default function Dashboard() {
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} soundEnabled={soundEnabled} silentMode={settings.silentMode} volume={settings.volume} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'netblack':
-          return <InternetBlackoutPanel statuses={internetStatus} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'notams':
           return <NOTAMPanel notams={notams} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
@@ -8367,7 +8274,6 @@ export default function Dashboard() {
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
-              netblack: internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length > 0 ? `${internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length} DOWN` : '',
               notams: notams.length > 0 ? `${notams.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
@@ -8605,7 +8511,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'netblack' ? internetStatus.filter(c => c.status === 'blackout' || c.status === 'disrupted').length : id === 'notams' ? notams.length : 0;
+                  const count = id === 'notams' ? notams.length : 0;
                   return (
                     <button
                       key={id}

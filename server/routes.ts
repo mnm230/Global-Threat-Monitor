@@ -10,7 +10,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, InternetCountryStatus, NOTAMItem } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, NOTAMItem } from "@shared/schema";
 
 
 // --- Shared news category classifier ---
@@ -2871,164 +2871,6 @@ async function fetchCyberEvents(): Promise<CyberEvent[]> {
   }
 }
 
-// ── Internet Blackout Monitoring (IODA + Cloudflare Radar) ───────────────────
-const INET_COUNTRIES = [
-  { code: 'IR', name: 'Iran' },
-  { code: 'IQ', name: 'Iraq' },
-  { code: 'SY', name: 'Syria' },
-  { code: 'LB', name: 'Lebanon' },
-  { code: 'IL', name: 'Israel' },
-  { code: 'YE', name: 'Yemen' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'JO', name: 'Jordan' },
-  { code: 'PS', name: 'Palestine' },
-  { code: 'AE', name: 'UAE' },
-  { code: 'BH', name: 'Bahrain' },
-  { code: 'KW', name: 'Kuwait' },
-  { code: 'QA', name: 'Qatar' },
-];
-
-let internetCache: { data: InternetCountryStatus[]; fetchedAt: number } | null = null;
-const INTERNET_CACHE_TTL = 120_000;
-
-async function fetchInternetHealth(): Promise<InternetCountryStatus[]> {
-  if (internetCache && Date.now() - internetCache.fetchedAt < INTERNET_CACHE_TTL) return internetCache.data;
-
-  const results: InternetCountryStatus[] = [];
-  const countryCodes = INET_COUNTRIES.map(c => c.code).join(',');
-  const now = Math.floor(Date.now() / 1000);
-  const from = now - 21600;
-
-  try {
-    const resp = await fetch(
-      `https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/country/${countryCodes}?from=${from}&until=${now}`,
-      { signal: AbortSignal.timeout(15000) }
-    );
-    if (!resp.ok) throw new Error(`IODA HTTP ${resp.status}`);
-    const ioda = await resp.json() as {
-      data?: Array<Array<{
-        entityCode: string;
-        datasource: string;
-        values: Array<number | null | Record<string, unknown>>;
-      }>>;
-    };
-
-    const signals: Record<string, { bgp: number[]; ping: number[]; gtrNorm: number[]; merit: number[] }> = {};
-    for (const ds of (ioda.data || [])) {
-      for (const entry of ds) {
-        const cc = entry.entityCode;
-        if (!signals[cc]) signals[cc] = { bgp: [], ping: [], gtrNorm: [], merit: [] };
-        const nums = entry.values
-          .filter((v): v is number => typeof v === 'number' && v !== null && !isNaN(v));
-        if (entry.datasource === 'bgp') signals[cc].bgp = nums;
-        else if (entry.datasource === 'ping-slash24') signals[cc].ping = nums;
-        else if (entry.datasource === 'gtr-norm') signals[cc].gtrNorm = nums;
-        else if (entry.datasource === 'merit-nt') signals[cc].merit = nums;
-      }
-    }
-
-    for (const country of INET_COUNTRIES) {
-      const sig = signals[country.code] || { bgp: [], ping: [], gtrNorm: [], merit: [] };
-
-      const avg = (arr: number[]) => arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
-      const max = (arr: number[]) => arr.length > 0 ? Math.max(...arr) : 0;
-      const last = (arr: number[]) => arr.length > 0 ? arr[arr.length - 1] : 0;
-      const lastN = (arr: number[], n: number) => arr.slice(-n);
-
-      const allBgp = sig.bgp.filter(v => typeof v === 'number');
-      const allPing = sig.ping.filter(v => typeof v === 'number');
-
-      const bgpBaseline = max(allBgp);
-      const pingBaseline = max(allPing);
-
-      const bgpRecent = lastN(allBgp, 3);
-      const pingRecent = lastN(allPing, 3);
-      const bgpLatest = bgpRecent.length > 0 ? avg(bgpRecent) : 0;
-      const pingLatest = pingRecent.length > 0 ? avg(pingRecent) : 0;
-
-      const bgpRatio = bgpBaseline > 0 ? Math.min(bgpLatest / bgpBaseline, 1) : (allBgp.length > 0 ? 0 : -1);
-      const pingRatio = pingBaseline > 0 ? Math.min(pingLatest / pingBaseline, 1) : (allPing.length > 0 ? 0 : -1);
-
-      let healthRatio: number;
-      if (sig.gtrNorm.length > 0) {
-        const gtrRecent = lastN(sig.gtrNorm.filter(v => typeof v === 'number'), 3);
-        const gtrLatest = gtrRecent.length > 0 ? avg(gtrRecent) : 0;
-        const safeBgp = bgpRatio >= 0 ? bgpRatio : gtrLatest;
-        const safePing = pingRatio >= 0 ? pingRatio : gtrLatest;
-        healthRatio = gtrLatest * 0.4 + safeBgp * 0.3 + safePing * 0.3;
-      } else if (bgpRatio >= 0 && pingRatio >= 0) {
-        healthRatio = bgpRatio * 0.5 + pingRatio * 0.5;
-      } else if (bgpRatio >= 0) {
-        healthRatio = bgpRatio;
-      } else if (pingRatio >= 0) {
-        healthRatio = pingRatio;
-      } else {
-        healthRatio = 0.5;
-      }
-      healthRatio = Math.min(1, Math.max(0, healthRatio));
-
-      const healthScore = Math.min(100, Math.max(0, Math.round(healthRatio * 100)));
-      const status: InternetCountryStatus['status'] =
-        healthRatio >= 0.90 ? 'online' :
-        healthRatio >= 0.70 ? 'degraded' :
-        healthRatio >= 0.30 ? 'disrupted' : 'blackout';
-
-      const outages: InternetCountryStatus['outages'] = [];
-      if (healthRatio < 0.90) {
-        const dropPct = Math.round((1 - healthRatio) * 100);
-        const worstMetric = (pingRatio >= 0 && bgpRatio >= 0) ? (pingRatio < bgpRatio ? 'ping' : 'bgp') : (bgpRatio >= 0 ? 'bgp' : 'ping');
-        outages.push({
-          id: `inet_${country.code}_ioda`,
-          country: country.name,
-          countryCode: country.code,
-          metric: worstMetric === 'bgp' ? 'bgp_hegemony' : 'network_delay',
-          normalValue: worstMetric === 'bgp' ? Math.round(bgpBaseline) : Math.round(pingBaseline),
-          currentValue: worstMetric === 'bgp' ? bgpLatest : pingLatest,
-          dropPercent: dropPct,
-          severity: healthRatio < 0.30 ? 'critical' : healthRatio < 0.50 ? 'high' : healthRatio < 0.70 ? 'medium' : 'low',
-          affectedASNs: [],
-          detectedAt: new Date().toISOString(),
-          active: true,
-          source: 'IODA/GaTech',
-        });
-      }
-
-      const topASNLabel = `${Math.round(bgpLatest).toLocaleString()} pfx`;
-
-      results.push({
-        country: country.name,
-        countryCode: country.code,
-        status,
-        healthScore,
-        topASN: topASNLabel,
-        topASNHege: Math.round(healthRatio * 1000) / 1000,
-        asnCount: bgpLatest > 0 ? Math.round(bgpLatest) : 0,
-        lastChecked: new Date().toISOString(),
-        outages,
-      });
-    }
-  } catch (err) {
-    for (const country of INET_COUNTRIES) {
-      results.push({
-        country: country.name,
-        countryCode: country.code,
-        status: 'online',
-        healthScore: 100,
-        topASN: 'N/A',
-        topASNHege: 1.0,
-        asnCount: 0,
-        lastChecked: new Date().toISOString(),
-        outages: [],
-      });
-    }
-    console.log(`[INTERNET] IODA fetch error: ${(err as Error).message}`);
-  }
-
-  const issues = results.filter(r => r.status !== 'online');
-  console.log(`[INTERNET] IODA: ${results.length} countries — ${issues.length > 0 ? issues.map(r => `${r.countryCode}=${r.status}(${r.healthScore}%)`).join(', ') : 'all online'}`);
-  internetCache = { data: results, fetchedAt: Date.now() };
-  return results;
-}
 
 // ── NOTAM Monitoring (Middle East Airspace) ──────────────────────────────────
 const ME_AIRPORTS: Array<{ icao: string; name: string; country: string; lat: number; lng: number }> = [
@@ -3973,7 +3815,6 @@ export async function registerRoutes(
     }, 500));
 
     staggerTimers.push(setTimeout(() => {
-      fetchInternetHealth().then(status => send('internet-status', status));
       fetchNOTAMs().then(notams => send('notams', notams));
       fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
     }, 1500));
@@ -4022,7 +3863,6 @@ export async function registerRoutes(
     }), 90000));
 
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 30000));
-    intervals.push(setInterval(() => fetchInternetHealth().then(status => send('internet-status', status)), 120000));
     intervals.push(setInterval(() => fetchNOTAMs().then(notams => send('notams', notams)), 180000));
 
     intervals.push(setInterval(async () => {
@@ -4095,11 +3935,6 @@ export async function registerRoutes(
     res.json(data);
   });
 
-
-  app.get('/api/internet-status', async (_req, res) => {
-    const data = await fetchInternetHealth();
-    res.json(data);
-  });
 
   app.get('/api/notams', async (_req, res) => {
     const data = await fetchNOTAMs();
