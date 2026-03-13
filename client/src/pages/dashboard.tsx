@@ -5386,9 +5386,10 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         { label: 'Ballistic Missiles', value: '~1,040', color: 'text-red-400', accent: 'hsl(0 72% 51%)', sub: 'Region-wide' },
                         { label: 'Drones / UAVs', value: '~3,000', color: 'text-yellow-400', accent: 'hsl(48 96% 53%)', sub: 'Region-wide' },
                         { label: 'Missiles to Israel', value: '~200', color: 'text-orange-400', accent: 'hsl(25 95% 53%)', sub: 'Directed' },
-                        { label: 'Lebanon Salvos', value: '150+', color: 'text-purple-400', accent: 'hsl(270 60% 60%)', sub: 'Incidents' },
+                        { label: 'Lebanon Rockets', value: '~25,000', color: 'text-purple-400', accent: 'hsl(270 60% 60%)', sub: 'Cumulative' },
                         { label: 'Countries Attacked', value: '12', color: 'text-blue-400', accent: 'hsl(215 90% 60%)', sub: 'States' },
                         { label: 'Launchers Destroyed', value: '300', color: 'text-emerald-400', accent: 'hsl(160 84% 39%)', sub: 'Confirmed' },
+                        { label: 'Air Refueling Ops', value: '12', color: 'text-cyan-400', accent: 'hsl(195 90% 50%)', sub: 'Sorties' },
                       ] as const).map(({ label, value, color, accent, sub }) => (
                         <div key={label} className="rounded overflow-hidden border border-border/50" style={{borderLeft:`3px solid ${accent}`}}>
                           <div className="px-2 py-1.5 bg-muted/30">
@@ -5407,25 +5408,31 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">Interception Events by Country</span>
                     </div>
                     <div className="space-y-1.5">
-                      {([
-                        { country: 'UAE', value: 1797 },
-                        { country: 'Kuwait', value: 682 },
-                        { country: 'Bahrain', value: 285 },
-                        { country: 'Qatar', value: 237 },
-                        { country: 'Saudi Arabia', value: 170 },
-                        { country: 'Oman', value: 15 },
-                      ] as const).map(({ country, value }) => {
+                      {[
+                        { country: 'UAE', value: 1797, ballistic: 229, drones: 1439 },
+                        { country: 'Kuwait', value: 682, ballistic: 226, drones: 425 },
+                        { country: 'Bahrain', value: 285, ballistic: 86, drones: 173 },
+                        { country: 'Qatar', value: 237, ballistic: 131, drones: 63 },
+                        { country: 'Saudi Arabia', value: 170, ballistic: 14, drones: 110 },
+                        { country: 'Jordan', value: 90, ballistic: 30, drones: 60 },
+                        { country: 'Israel', value: 650, ballistic: 400, drones: 250 },
+                        { country: 'Oman', value: 15, ballistic: 0, drones: 8 },
+                        { country: 'Iraq', value: 12, ballistic: 0, drones: 12 },
+                        { country: 'Cyprus', value: 3, ballistic: 2, drones: 1 },
+                      ].map(({ country, value, ballistic, drones }) => {
                         const pct = (value / 1797) * 100;
                         return (
                           <div key={country} className="flex items-center gap-2">
-                            <span className="text-[9px] text-foreground/60 font-mono w-[100px] truncate">{country}</span>
+                            <span className="text-[9px] text-foreground/60 font-mono w-[90px] truncate">{country}</span>
                             <div className="flex-1 h-2 rounded-full overflow-hidden bg-black/30">
                               <div className="h-full rounded-full" style={{width:`${pct}%`, background:'hsl(160 84% 39%)'}} />
                             </div>
-                            <span className="text-[9px] text-emerald-400 font-mono font-bold w-[36px] text-right tabular-nums">{value.toLocaleString()}</span>
+                            <span className="text-[9px] text-emerald-400 font-mono font-bold w-[32px] text-right tabular-nums">{value.toLocaleString()}</span>
+                            <span className="text-[7px] text-foreground/30 font-mono w-[70px]">{ballistic > 0 ? `${ballistic}B` : ''}{ballistic > 0 && drones > 0 ? '·' : ''}{drones > 0 ? `${drones}D` : ''}</span>
                           </div>
                         );
                       })}
+                      <div className="text-[7px] text-foreground/25 font-mono mt-1">B = Ballistic · D = Drones</div>
                     </div>
                   </div>
 
@@ -5437,8 +5444,9 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     <div className="space-y-1.5">
                       {[
                         { party: 'Israel', killed: 18, wounded: 2745 as number | null, notes: '3,400 displaced · 50,719 alerts' as string | null, color: '#60a5fa' },
-                        { party: 'Lebanon', killed: 634, wounded: null as number | null, notes: '750,000 displaced' as string | null, color: '#34d399' },
-                        { party: 'Iran', killed: 1348, wounded: 6186 as number | null, notes: '~45 targeted ops' as string | null, color: '#ef4444' },
+                        { party: 'Lebanon', killed: 634, wounded: 1586 as number | null, notes: '750,000 displaced' as string | null, color: '#34d399' },
+                        { party: 'Iran', killed: 1348, wounded: 6186 as number | null, notes: '~45 targeted ops (14 senior officials)' as string | null, color: '#ef4444' },
+                        { party: 'Middle East (excl. Israel)', killed: 28, wounded: 478 as number | null, notes: null as string | null, color: '#f97316' },
                         { party: 'United States', killed: 7, wounded: null as number | null, notes: null as string | null, color: '#a78bfa' },
                       ].map(({ party, killed, wounded, notes, color }) => (
                         <div key={party} className="rounded p-2.5 bg-muted/20 border border-border/40">
@@ -5458,6 +5466,27 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-3.5 h-3.5 text-yellow-400/70" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">Day 13 Activity (12/03/2026)</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 mb-2">
+                      <div className="rounded p-2 bg-muted/20 border border-border/40">
+                        <div className="text-[7px] text-foreground/35 uppercase tracking-wider">Ballistic Missiles</div>
+                        <div className="text-xl font-black font-mono text-red-400 tabular-nums">25</div>
+                      </div>
+                      <div className="rounded p-2 bg-muted/20 border border-border/40">
+                        <div className="text-[7px] text-foreground/35 uppercase tracking-wider">Drones</div>
+                        <div className="text-xl font-black font-mono text-yellow-400 tabular-nums">65</div>
+                      </div>
+                    </div>
+                    <div className="rounded p-2 bg-muted/20 border border-border/40">
+                      <div className="text-[7px] text-foreground/35 uppercase tracking-wider mb-1">Targets Hit</div>
+                      <div className="text-[8px] font-mono text-foreground/60">Jerusalem · Shaybah Field · UAE Ministry of Defense</div>
                     </div>
                   </div>
 
@@ -6027,9 +6056,10 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 { label: t('Ballistic Missiles','صواريخ باليستية'), value: '~1,040', color: '#ef4444', sub: t('Region-wide','المنطقة') },
                 { label: t('Drones / UAVs','طائرات مسيّرة'), value: '~3,000', color: '#facc15', sub: t('Region-wide','المنطقة') },
                 { label: t('Missiles → Israel','صواريخ نحو إسرائيل'), value: '~200', color: '#f97316', sub: t('Directed','موجّهة') },
-                { label: t('Lebanon Salvos','ضربات لبنان'), value: '150+', color: '#a78bfa', sub: t('Incidents','حوادث') },
+                { label: t('Lebanon Rockets','صواريخ لبنان'), value: '~25,000', color: '#a78bfa', sub: t('Cumulative','تراكمي') },
                 { label: t('Countries Attacked','دول مهاجَمة'), value: '12', color: '#60a5fa', sub: t('States','دول') },
                 { label: t('Launchers Destroyed','قاذفات مدمّرة'), value: '300', color: '#34d399', sub: t('Confirmed','مؤكّد') },
+                { label: t('Air Refueling Ops','تزود جوي'), value: '12', color: '#22d3ee', sub: t('Sorties','طلعة') },
               ].map(({ label, value, color, sub }) => (
                 <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:`1px solid ${color}28`}}>
                   <div className="text-[13px] font-black font-mono" style={{ color }}>{value}</div>
@@ -6046,25 +6076,53 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Interception Events by Country','حوادث الاعتراض بالدولة')}</span>
               </div>
               {[
-                { country: 'UAE', value: 1797 },
-                { country: 'Kuwait', value: 682 },
-                { country: 'Bahrain', value: 285 },
-                { country: 'Qatar', value: 237 },
-                { country: 'Saudi Arabia', value: 170 },
-                { country: 'Oman', value: 15 },
-              ].map(({ country, value }, _i, arr) => {
+                { country: 'UAE', value: 1797, ballistic: 229, drones: 1439 },
+                { country: 'Israel', value: 650, ballistic: 400, drones: 250 },
+                { country: 'Kuwait', value: 682, ballistic: 226, drones: 425 },
+                { country: 'Bahrain', value: 285, ballistic: 86, drones: 173 },
+                { country: 'Qatar', value: 237, ballistic: 131, drones: 63 },
+                { country: 'Saudi Arabia', value: 170, ballistic: 14, drones: 110 },
+                { country: 'Jordan', value: 90, ballistic: 30, drones: 60 },
+                { country: 'Oman', value: 15, ballistic: 0, drones: 8 },
+                { country: 'Iraq', value: 12, ballistic: 0, drones: 12 },
+                { country: 'Cyprus', value: 3, ballistic: 2, drones: 1 },
+              ].map(({ country, value, ballistic, drones }, _i, arr) => {
                 const max = arr[0].value;
                 return (
-                  <div key={country} className="flex items-center gap-1.5 mb-0.5">
+                  <div key={country} className="flex items-center gap-1 mb-0.5">
                     {getCountryIcon(country)}
-                    <span className="text-[8px] text-foreground/60 font-mono w-[90px] truncate">{country}</span>
+                    <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{country}</span>
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
                       <div className="h-full rounded-full" style={{width:`${(value/max)*100}%`, background:'#34d399'}} />
                     </div>
-                    <span className="text-[8px] text-emerald-400 font-mono font-bold w-[34px] text-right">{value.toLocaleString()}</span>
+                    <span className="text-[8px] text-emerald-400 font-mono font-bold w-[30px] text-right">{value.toLocaleString()}</span>
+                    <span className="text-[6px] text-foreground/25 font-mono w-[48px] text-right">{ballistic > 0 ? `${ballistic}B` : ''}{ballistic > 0 && drones > 0 ? '/' : ''}{drones > 0 ? `${drones}D` : ''}</span>
                   </div>
                 );
               })}
+              <div className="text-[7px] text-foreground/25 font-mono mt-1">{t('B = Ballistic · D = Drones','ب = باليستي · م = مسيّر')}</div>
+            </div>
+
+            {/* Day 13 Activity */}
+            <div className="rounded p-2" style={{background:'hsl(45 30% 14% / 0.4)', border:'1px solid hsl(45 40% 25% / 0.3)'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <Zap className="w-3 h-3 text-yellow-400" />
+                <span className="text-[9px] font-bold text-yellow-400 uppercase tracking-wider">{t('Day 13 Activity (12/03/2026)','نشاط اليوم 13')}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(0 40% 30% / 0.3)'}}>
+                  <div className="text-[15px] font-black text-red-400 font-mono">25</div>
+                  <div className="text-[7px] text-foreground/40 uppercase tracking-wider">{t('Ballistic','باليستي')}</div>
+                </div>
+                <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(48 40% 30% / 0.3)'}}>
+                  <div className="text-[15px] font-black text-yellow-400 font-mono">65</div>
+                  <div className="text-[7px] text-foreground/40 uppercase tracking-wider">{t('Drones','مسيّرات')}</div>
+                </div>
+              </div>
+              <div className="text-[7px] font-mono text-foreground/40 leading-relaxed">
+                <span className="text-yellow-400/70 font-bold">{t('Targets: ','الأهداف: ')}</span>
+                {t('Jerusalem · Shaybah Field · UAE Ministry of Defense','القدس · حقل الشيبة · وزارة الدفاع الإماراتية')}
+              </div>
             </div>
 
             {/* Casualties */}
@@ -6075,8 +6133,9 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               </div>
               {[
                 { party: 'Israel', killed: 18, wounded: 2745, extra: '3,400 displaced · 50,719 alerts', color: '#60a5fa' },
-                { party: 'Lebanon', killed: 634, wounded: null as number | null, extra: '750,000 displaced', color: '#34d399' },
-                { party: 'Iran', killed: 1348, wounded: 6186, extra: '~45 targeted ops', color: '#ef4444' },
+                { party: 'Lebanon', killed: 634, wounded: 1586 as number | null, extra: '750,000 displaced', color: '#34d399' },
+                { party: 'Iran', killed: 1348, wounded: 6186, extra: '~45 targeted ops · 14 senior officials', color: '#ef4444' },
+                { party: 'Middle East (excl. IL)', killed: 28, wounded: 478 as number | null, extra: null as string | null, color: '#f97316' },
                 { party: 'United States', killed: 7, wounded: null as number | null, extra: null as string | null, color: '#a78bfa' },
               ].map(({ party, killed, wounded, extra, color }) => (
                 <div key={party} className="mb-1.5 last:mb-0 pb-1.5 last:pb-0" style={{borderBottom:'1px solid hsl(var(--border) / 0.5)'}}>

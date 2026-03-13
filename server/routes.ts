@@ -1682,7 +1682,7 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
         let cityEn = location;
         let cityAr = isArabic ? location : '';
         let cityHe = '';
-        let region = 'Telegram OSINT';
+        let region = 'Unknown Region';
         let regionHe = '';
         let regionAr = '';
         let lat = 32.0;
@@ -1775,6 +1775,23 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
           countdown = knownPool.countdown;
           cityHe = knownPool.cityHe;
           cityAr = knownPool.cityAr || cityAr;
+        }
+
+        if (region === 'Unknown Region') {
+          const fullText = msg.text.toLowerCase();
+          if (/galilee|גליל|الجليل|kiryat shmona|nahariya|safed|metula|tiberias|acre/.test(fullText)) region = 'Northern Israel';
+          else if (/tel aviv|gush dan|תל אביב|ramat gan|herzliya|netanya|petah tikva|rishon/.test(fullText)) region = 'Central Israel';
+          else if (/negev|sderot|ashkelon|ashdod|beer.?sheva|eshkol|lachish/.test(fullText)) region = 'Southern Israel';
+          else if (/gaza|غزة|رفح|jabalia|khan younis|rafah|deir al.bal/.test(fullText)) region = 'Gaza';
+          else if (/lebanon|لبنان|beirut|بيروت|hezbollah|حزب الله|nabatieh|tyre|sidon|baalbek|south leb|dahiy|bekaa/.test(fullText)) region = 'Lebanon';
+          else if (/yemen|يمن|houthi|حوثي|sanaa|صنعاء|hodeidah|red sea/.test(fullText)) region = 'Yemen';
+          else if (/syria|سوريا|damascus|دمشق|aleppo|حلب|idlib/.test(fullText)) region = 'Syria';
+          else if (/iraq|عراق|baghdad|بغداد|erbil|أربيل/.test(fullText)) region = 'Iraq';
+          else if (/iran|إيران|tehran|طهران|isfahan|أصفهان/.test(fullText)) region = 'Iran';
+          else if (/west bank|jenin|nablus|ramallah|hebron/.test(fullText)) region = 'West Bank';
+          else if (/jerusalem|القدس|ירושלים/.test(fullText)) region = 'Jerusalem';
+          else if (/jordan|أردن|amman|عمان/.test(fullText)) region = 'Jordan';
+          else if (/israel|إسرائيل/.test(fullText)) region = 'Israel';
         }
 
         const channelName = msg.channel.replace(/^@/, '');
@@ -3510,6 +3527,8 @@ export async function registerRoutes(
   connectTzevaadomWebSocket((alerts) => {
     latestAlerts = alerts;
     recordAlertHistory(alerts);
+    // Invalidate prediction cache so the next SSE push uses fresh data
+    attackPredictionCache = null;
     broadcastSse('red-alerts', alerts);
     broadcastSse('sirens', mapAlertsToSirens(alerts));
     const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
@@ -4088,153 +4107,305 @@ export async function registerRoutes(
     const now = Date.now();
     const alerts = alertHistory.length > 0 ? alertHistory : latestAlerts;
 
-    const regionCounts: Record<string, number> = {};
-    const typeCounts: Record<string, number> = {};
-    const recentAlerts: string[] = [];
-    const last2h = alerts.filter(a => now - new Date(a.timestamp).getTime() < 2 * 3600000);
-    const last30m = alerts.filter(a => now - new Date(a.timestamp).getTime() < 30 * 60000);
+    // ── 1. Time-windowed alert sets ───────────────────────────────────────────
+    const last30m  = alerts.filter(a => now - new Date(a.timestamp).getTime() < 30 * 60000);
+    const prior30m = alerts.filter(a => { const age = now - new Date(a.timestamp).getTime(); return age >= 30 * 60000 && age < 60 * 60000; });
+    const last2h   = alerts.filter(a => now - new Date(a.timestamp).getTime() < 2 * 3600000);
+    const last6h   = alerts.filter(a => now - new Date(a.timestamp).getTime() < 6 * 3600000);
 
-    for (const a of alerts) {
+    // ── 2. Exponential time-decay region scoring (λ=0.5 → half-life ≈ 1.4h) ──
+    const DECAY = 0.5;
+    const regionWeights: Record<string, number> = {};
+    const regionTypeMap: Record<string, Record<string, number>> = {};
+    const regionRecentCounts: Record<string, number> = {};
+
+    for (const a of last6h) {
+      const ageHours = (now - new Date(a.timestamp).getTime()) / 3600000;
+      const w = Math.exp(-DECAY * ageHours);
       const region = a.region || a.country || 'Unknown';
-      regionCounts[region] = (regionCounts[region] || 0) + 1;
-      typeCounts[a.threatType] = (typeCounts[a.threatType] || 0) + 1;
+      regionWeights[region] = (regionWeights[region] || 0) + w;
+      if (!regionTypeMap[region]) regionTypeMap[region] = {};
+      regionTypeMap[region][a.threatType] = (regionTypeMap[region][a.threatType] || 0) + 1;
+      if (ageHours < 1) regionRecentCounts[region] = (regionRecentCounts[region] || 0) + 1;
     }
 
-    for (const a of last30m.slice(0, 15)) {
-      recentAlerts.push(`${a.city} (${a.threatType}, countdown: ${a.countdown}s)`);
+    // ── Sparse-data baseline: seed historical ME conflict priors when live data is thin ──
+    // This prevents empty predictions during quiet periods; weights are low (0.05–0.15)
+    // so any real alerts will dominate immediately.
+    if (last6h.length < 5) {
+      const BASELINE: Array<[string, number, string]> = [
+        ['Northern Israel', 0.15, 'rockets'],
+        ['Gaza',            0.12, 'rockets'],
+        ['Lebanon',         0.10, 'missiles'],
+        ['West Bank',       0.07, 'rockets'],
+        ['Southern Israel', 0.06, 'rockets'],
+        ['Yemen',           0.05, 'uav'],
+      ];
+      for (const [region, w, type] of BASELINE) {
+        regionWeights[region] = (regionWeights[region] || 0) + w;
+        if (!regionTypeMap[region]) regionTypeMap[region] = {};
+        regionTypeMap[region][type] = (regionTypeMap[region][type] || 0) + 1;
+      }
     }
 
-    const topRegions = Object.entries(regionCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
-    const topTypes = Object.entries(typeCounts).sort(([,a],[,b]) => b - a).slice(0, 5);
+    // ── 3. Threat type distribution (decay-weighted over last 6h) ────────────
+    const typeWeights: Record<string, number> = {};
+    for (const a of last6h) {
+      const ageHours = (now - new Date(a.timestamp).getTime()) / 3600000;
+      typeWeights[a.threatType] = (typeWeights[a.threatType] || 0) + Math.exp(-DECAY * ageHours);
+    }
+    // Seed type baseline if no real data
+    if (Object.keys(typeWeights).length === 0) {
+      typeWeights['rockets'] = 0.12;
+      typeWeights['missiles'] = 0.08;
+      typeWeights['uav'] = 0.05;
+    }
+    const sortedTypes = Object.entries(typeWeights).sort(([, a], [, b]) => b - a);
+    const dominantType = sortedTypes[0]?.[0] || 'rockets';
 
+    // ── 4. Velocity & escalation metrics ─────────────────────────────────────
     const velocity30m = last30m.length;
-    const velocity2h = last2h.length;
-    const velocityPerHour = last2h.length > 0 ? last2h.length / 2 : 0;
-    const isEscalating = velocity30m > (velocity2h / 4) * 1.3;
+    const velocity2h  = last2h.length;
+    const velocityPerHour = velocity2h / 2;
+    const escalationRatio = prior30m.length > 0 ? velocity30m / prior30m.length : (velocity30m >= 3 ? 2.0 : 1.0);
+    const isEscalating   = escalationRatio > 1.3 && velocity30m >= 2;
+    const isDeescalating = prior30m.length > 0 && velocity30m < prior30m.length * 0.5;
 
-    // Timing analysis: compute inter-alert intervals to estimate next attack window
+    // ── 5. Timing analysis — median-based (more robust than mean) ────────────
     const sortedRecent = [...last2h].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     const intervals: number[] = [];
     for (let i = 1; i < sortedRecent.length; i++) {
-      const gap = (new Date(sortedRecent[i].timestamp).getTime() - new Date(sortedRecent[i-1].timestamp).getTime()) / 60000;
+      const gap = (new Date(sortedRecent[i].timestamp).getTime() - new Date(sortedRecent[i - 1].timestamp).getTime()) / 60000;
       if (gap > 0.5 && gap < 90) intervals.push(gap);
     }
-    const avgIntervalMin = intervals.length >= 2 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : 20;
+    const sortedIvl = [...intervals].sort((a, b) => a - b);
+    const medianInterval = sortedIvl.length > 0 ? sortedIvl[Math.floor(sortedIvl.length / 2)] : 20;
+    const meanInterval   = intervals.length > 0 ? intervals.reduce((s, v) => s + v, 0) / intervals.length : 20;
+    // Blend median (robust) + mean; weight median more when we have enough samples
+    const estInterval = intervals.length >= 4 ? medianInterval * 0.65 + meanInterval * 0.35 : meanInterval;
     const lastAlertTs = sortedRecent.length > 0 ? new Date(sortedRecent[sortedRecent.length - 1].timestamp).getTime() : now - 3600000;
     const minutesSinceLast = (now - lastAlertTs) / 60000;
-    const rawEstMin = Math.max(0, Math.round(avgIntervalMin - minutesSinceLast));
-    const timingBasis = intervals.length >= 2
-      ? `Median interval ${avgIntervalMin.toFixed(0)} min across ${intervals.length} events; last alert ${minutesSinceLast.toFixed(0)} min ago`
-      : `Insufficient interval data; using velocity-based estimate`;
-    const timingLabel = rawEstMin <= 5 ? 'imminent' : rawEstMin <= 15 ? '~15min' : rawEstMin <= 30 ? '~30min' : rawEstMin <= 60 ? '~1h' : rawEstMin <= 120 ? '~2h' : 'unknown';
-    const timingConfidence = Math.min(0.9, 0.3 + (Math.min(intervals.length, 10) / 10) * 0.6);
+    const rawEstMin = Math.max(0, Math.round(estInterval - minutesSinceLast));
+    const timingLabel = rawEstMin <= 5 ? 'imminent' : rawEstMin <= 20 ? '~15min' : rawEstMin <= 45 ? '~30min' : rawEstMin <= 90 ? '~1h' : rawEstMin <= 150 ? '~2h' : 'unknown';
+    const timingBasis = intervals.length >= 3
+      ? `Median interval ${medianInterval.toFixed(0)} min from ${intervals.length} gaps; ${minutesSinceLast.toFixed(0)} min since last alert`
+      : `Insufficient gap data (${intervals.length} samples); velocity-based estimate`;
+    const timingConfidence = Math.min(0.88, 0.25 + (Math.min(intervals.length, 12) / 12) * 0.63);
 
-    const intelDigest = classifiedMessageCache
-      .filter(m => m.classification && (m.classification.severity === 'critical' || m.classification.severity === 'high'))
-      .slice(0, 10)
-      .map(m => `[Source: ${m.channel}] ${m.text.slice(0, 120)}`)
-      .join('\n');
+    // ── 6. Telegram intel signal amplification ────────────────────────────────
+    // Keywords that indicate imminent/active kinetic events
+    const KINETIC_RE = /launch(ed|ing)?|rocket[s]? (fired|launched)|incoming|intercept(ed)?|explosion|strike|impact|siren|alert|salvo|barrage|missile|drone|uav|airstr|attack|hit|bomb/i;
+    const REGION_RE: Record<string, RegExp> = {
+      'Northern Israel': /northern? israel|galilee|haifa|kiryat|tiberias|nahariya|acre|hadera|afula|beit she|tzfat|safed|upper galilee|north/i,
+      'Central Israel': /tel aviv|gush dan|central|ramat|petah tikva|rishon|herzliya|netanya|kfar saba|ra'anana|ben gurion/i,
+      'Southern Israel': /south(ern)? israel|negev|ashkelon|ashdod|beer.?sheva|sderot|kibbutz|eshkol|lachish/i,
+      'West Bank': /west bank|jenin|nablus|ramallah|hebron|tulkarm|qalqilya|jericho|bethlehem|kalkilya/i,
+      'Gaza': /\bgaza\b|rafah|khan younis|beit lahiya|jabalia|deir al.bal|north gaza/i,
+      'Lebanon': /\blebanon\b|beirut|southern lebanon|litani|dahiy|bekaa|nabatieh|tyre|sidon|baalbek|south leb/i,
+      'Yemen': /\byemen\b|houthi|sanaa|aden|red sea|bab el.?mandeb|hodeidah/i,
+      'Syria': /\bsyria\b|damascus|aleppo|deir ez.?zor|homs|idlib/i,
+      'Iraq': /\biraq\b|baghdad|erbil|mosul|basra/i,
+    };
 
-    const systemPrompt = `You are a predictive military intelligence AI specializing in Middle East conflict forecasting. Based on real-time alert data, classified intelligence, and pattern analysis, generate attack predictions.
+    const intelRegionBoost: Record<string, number> = {};
+    const twoHoursAgo = now - 2 * 3600000;
 
-IMPORTANT: The "CLASSIFIED INTELLIGENCE" section contains messages from Telegram channels (prefixed with [Source: ...]). These channel names are SOURCES, NOT locations. Never use Telegram channel names, handles, or usernames as geographic locations in your predictions. Only use real geographic locations (cities, regions, countries) in the "region", "nextLikelyTarget", and "location" fields.
-
-Return ONLY valid JSON with this exact structure:
-{
-  "predictions": [
-    {
-      "region": "string (target region name)",
-      "threatVector": "rockets|missiles|uav|cruise_missile|ballistic|mortar|anti_tank|combined",
-      "probability": 0.0-1.0,
-      "timeframe": "imminent|1h|3h|6h|12h|24h",
-      "source": "string (likely origin of attack)",
-      "rationale": "string (1-2 sentence explanation)",
-      "severity": "critical|high|medium|low"
+    for (const m of classifiedMessageCache) {
+      const msgTime = new Date(m.timestamp).getTime();
+      if (msgTime < twoHoursAgo) continue;
+      const ageHours = (now - msgTime) / 3600000;
+      const msgWeight = Math.exp(-DECAY * ageHours);
+      const sevMult = m.classification?.severity === 'critical' ? 1.5 : m.classification?.severity === 'high' ? 1.0 : 0.4;
+      const isKinetic = KINETIC_RE.test(m.text);
+      for (const [region, re] of Object.entries(REGION_RE)) {
+        if (re.test(m.text)) {
+          const boost = msgWeight * sevMult * (isKinetic ? 1.3 : 0.6);
+          intelRegionBoost[region] = (intelRegionBoost[region] || 0) + boost;
+        }
+      }
     }
-  ],
-  "overallThreatLevel": "EXTREME|HIGH|ELEVATED|MODERATE|LOW",
-  "escalationVector": "string (brief description of escalation direction)",
-  "nextLikelyTarget": "string (most probable next target region)",
-  "confidence": 0.0-1.0,
-  "patternSummary": "string (2-3 sentence pattern analysis)",
-  "nextAttackWindow": {
-    "estimatedMinutes": 0-240,
-    "confidence": 0.0-1.0,
-    "basis": "string (1 sentence: why this timing estimate)",
-    "label": "imminent|~15min|~30min|~1h|~2h|~4h|tonight|unknown"
-  },
-  "locationProbabilities": [
-    {
-      "location": "string (specific city or district name)",
-      "country": "IL|LB|IQ|YE|SY|IR|SA|JO|PS",
-      "probability": 0.0-1.0,
-      "threatType": "rockets|missiles|uav|airstrike|ground",
-      "countryFlag": "🇮🇱|🇱🇧|🇮🇶|🇾🇪|🇸🇾|🇮🇷|🇸🇦|🇯🇴|🇵🇸"
+
+    // ── 7. Combined region scoring (70% alert data, 30% intel) ───────────────
+    const allRegions = new Set([...Object.keys(regionWeights), ...Object.keys(intelRegionBoost)]);
+    const maxAlertW = Math.max(1e-9, ...Object.values(regionWeights));
+    const maxIntelW = Math.max(1e-9, ...Object.values(intelRegionBoost));
+    const combinedScores: Record<string, number> = {};
+    for (const region of allRegions) {
+      const aScore = (regionWeights[region] || 0) / maxAlertW;
+      const iScore = (intelRegionBoost[region] || 0) / maxIntelW;
+      combinedScores[region] = aScore * 0.70 + iScore * 0.30;
     }
-  ]
-}
-Generate 3-6 predictions and 5-8 location probabilities ordered by probability. For nextAttackWindow, analyze the inter-alert timing pattern provided. Base all predictions on actual alert velocity, geographic patterns, and threat type distribution.`;
+    const sortedRegions = Object.entries(combinedScores)
+      .filter(([r, s]) => s > 0.01 && r !== 'Unknown Region' && r !== 'Unknown')
+      .sort(([, a], [, b]) => b - a);
 
-    const userPrompt = `REAL-TIME ALERT DATA (last 6h):
-Total alerts: ${alerts.length}
-Last 30min: ${velocity30m} alerts
-Last 2h: ${velocity2h} alerts
-Velocity: ${velocityPerHour.toFixed(1)} alerts/hour
-Trend: ${isEscalating ? 'ESCALATING' : 'STABLE/DECLINING'}
+    // ── 8. Threat-type chaining (sequence likelihood) ─────────────────────────
+    const CHAINS: Record<string, string[]> = {
+      rockets:   ['rockets', 'missiles', 'airstrike'],
+      uav:       ['uav', 'airstrike', 'missiles'],
+      missiles:  ['missiles', 'airstrike', 'rockets'],
+      airstrike: ['airstrike', 'missiles', 'uav'],
+      mortar:    ['mortar', 'rockets', 'ground'],
+      anti_tank: ['anti_tank', 'ground', 'rockets'],
+    };
 
-TIMING ANALYSIS:
-Average inter-alert interval: ${avgIntervalMin.toFixed(1)} min (from ${intervals.length} measured gaps)
-Minutes since last alert: ${minutesSinceLast.toFixed(1)} min
-Statistical next-attack estimate: ${rawEstMin} min (${timingLabel})
-Timing confidence: ${(timingConfidence * 100).toFixed(0)}%
+    // ── 9. Geographic region → country/flag resolution ────────────────────────
+    const COUNTRY_MAP: Record<string, { code: string; flag: string }> = {
+      'Northern Israel': { code: 'IL', flag: '🇮🇱' },
+      'Central Israel':  { code: 'IL', flag: '🇮🇱' },
+      'Southern Israel': { code: 'IL', flag: '🇮🇱' },
+      Israel:            { code: 'IL', flag: '🇮🇱' },
+      'West Bank':       { code: 'PS', flag: '🇵🇸' },
+      Gaza:              { code: 'PS', flag: '🇵🇸' },
+      Palestine:         { code: 'PS', flag: '🇵🇸' },
+      Lebanon:           { code: 'LB', flag: '🇱🇧' },
+      Yemen:             { code: 'YE', flag: '🇾🇪' },
+      Syria:             { code: 'SY', flag: '🇸🇾' },
+      Iraq:              { code: 'IQ', flag: '🇮🇶' },
+      Iran:              { code: 'IR', flag: '🇮🇷' },
+      Jordan:            { code: 'JO', flag: '🇯🇴' },
+      'Saudi Arabia':    { code: 'SA', flag: '🇸🇦' },
+    };
+    const resolveCountry = (region: string) => {
+      for (const [key, info] of Object.entries(COUNTRY_MAP)) {
+        if (region.toLowerCase().includes(key.toLowerCase())) return info;
+      }
+      return { code: 'IL', flag: '🇮🇱' };
+    };
 
-TOP TARGETED REGIONS:
-${topRegions.map(([r, c]) => `- ${r}: ${c} alerts`).join('\n')}
+    // ── 10. Overall threat level ──────────────────────────────────────────────
+    const criticalIntelCount = classifiedMessageCache.filter(m => {
+      const age = now - new Date(m.timestamp).getTime();
+      return age < 3600000 && m.classification?.severity === 'critical';
+    }).length;
 
-THREAT TYPES:
-${topTypes.map(([t, c]) => `- ${t}: ${c} incidents`).join('\n')}
+    let threatScore = 0;
+    if      (velocity30m >= 15) threatScore += 4;
+    else if (velocity30m >= 8)  threatScore += 3;
+    else if (velocity30m >= 3)  threatScore += 2;
+    else if (velocity30m >= 1)  threatScore += 1;
+    if (isEscalating && escalationRatio > 2.5) threatScore += 2;
+    else if (isEscalating)      threatScore += 1;
+    if      (criticalIntelCount >= 5) threatScore += 2;
+    else if (criticalIntelCount >= 2) threatScore += 1;
+    if      (velocityPerHour >= 20)   threatScore += 1;
 
-RECENT ALERTS (last 30min):
-${recentAlerts.join('\n') || 'None'}
+    const overallThreatLevel =
+      threatScore >= 7 ? 'EXTREME' :
+      threatScore >= 5 ? 'HIGH' :
+      threatScore >= 3 ? 'ELEVATED' :
+      threatScore >= 1 ? 'MODERATE' : 'LOW';
 
-CLASSIFIED INTELLIGENCE (from Telegram OSINT channels — channel names are sources, NOT locations):
-${intelDigest || 'Limited OSINT available.'}`;
+    // ── 11. Data-quality-based confidence calibration ─────────────────────────
+    const dataQuality = Math.min(1,
+      (Math.min(last6h.length, 50)                  / 50)  * 0.50 +
+      (Math.min(classifiedMessageCache.length, 20)  / 20)  * 0.30 +
+      (Math.min(intervals.length, 10)               / 10)  * 0.20,
+    );
+    const overallConfidence = parseFloat(Math.min(0.92, 0.35 + dataQuality * 0.57).toFixed(2));
 
-    const fallback = {
-        predictions: topRegions.slice(0, 4).map(([region, count], i) => ({
-          region,
-          threatVector: topTypes[i]?.[0] || 'rockets',
-          probability: Math.min(0.95, 0.4 + (count as number / Math.max(alerts.length, 1)) * 0.5),
-          timeframe: velocity30m > 10 ? 'imminent' : velocity30m > 5 ? '1h' : '3h',
-          source: 'Pattern analysis',
-          rationale: `${count} alerts detected in region with ${isEscalating ? 'escalating' : 'sustained'} tempo.`,
-          severity: (count as number) > alerts.length * 0.3 ? 'critical' : (count as number) > alerts.length * 0.1 ? 'high' : 'medium',
-        })),
-        overallThreatLevel: isEscalating ? 'HIGH' : 'ELEVATED',
-        escalationVector: isEscalating ? 'Alert velocity increasing across multiple fronts' : 'Sustained pressure on primary sectors',
-        nextLikelyTarget: topRegions[0]?.[0] || 'Northern Israel',
-        confidence: 0.55,
-        patternSummary: `Data-driven fallback: ${alerts.length} alerts tracked, ${velocity30m} in last 30 minutes. ${isEscalating ? 'Escalation detected.' : 'Pattern stable.'}`,
-        generatedAt: new Date().toISOString(),
-        dataPoints: {
-          totalAlerts: alerts.length,
-          velocity30m,
-          velocity2h,
-          velocityPerHour: parseFloat(velocityPerHour.toFixed(1)),
-          isEscalating,
-          topRegions: topRegions.map(([r, c]) => ({ region: r, count: c })),
-        },
-        nextAttackWindow: { estimatedMinutes: rawEstMin, confidence: timingConfidence, basis: timingBasis, label: timingLabel },
-        locationProbabilities: topRegions.slice(0, 6).map(([region, count], i) => ({
-          location: region,
-          country: 'IL',
-          probability: Math.min(0.95, 0.3 + (count as number / Math.max(alerts.length, 1)) * 0.65),
-          threatType: topTypes[i]?.[0] || 'rockets',
-          countryFlag: '🇮🇱',
-        })),
+    // ── 12. Build per-region predictions ─────────────────────────────────────
+    const SOURCE_LABELS: Record<string, string> = {
+      rockets:   'Hamas / PIJ rocket units',
+      missiles:  'Hezbollah missile corps',
+      uav:       'UAV warfare unit',
+      airstrike: 'IDF Air Force',
+      mortar:    'Gaza militant factions',
+      anti_tank: 'Hezbollah ATM units',
+      ground:    'Ground assault forces',
+    };
+
+    const predictions = sortedRegions.slice(0, 5).map(([region, score], i) => {
+      const regionTypeDist = regionTypeMap[region] || {};
+      const domRegionType  = Object.entries(regionTypeDist).sort(([, a], [, b]) => b - a)[0]?.[0] || dominantType;
+      const hasIntelBoost  = (intelRegionBoost[region] || 0) > 0;
+      const recentHits     = regionRecentCounts[region] || 0;
+
+      // Base probability from combined score; boost if intel corroborates
+      const baseProbability = Math.min(0.93, 0.28 + score * 0.62);
+      const adjProbability  = parseFloat((hasIntelBoost ? Math.min(0.95, baseProbability * 1.10) : baseProbability).toFixed(2));
+      const severity        = adjProbability >= 0.75 ? 'critical' : adjProbability >= 0.55 ? 'high' : adjProbability >= 0.35 ? 'medium' : 'low';
+
+      const timeframe = i === 0 && rawEstMin <= 30
+        ? (rawEstMin <= 5 ? 'imminent' : '1h')
+        : i <= 1 ? '3h' : '6h';
+
+      const rationale = hasIntelBoost
+        ? `Intel-corroborated: ${(regionWeights[region] || 0).toFixed(1)} decay-weighted score + active OSINT signals.${recentHits > 0 ? ` ${recentHits} alerts in last hour.` : ''}`
+        : `${(regionWeights[region] || 0).toFixed(1)} time-decay score from ${last6h.filter(a => (a.region || a.country) === region).length} recent alerts.${recentHits > 0 ? ` ${recentHits} hits last hour.` : ''}`;
+
+      return {
+        region,
+        threatVector: CHAINS[domRegionType]?.[0] || domRegionType,
+        probability: adjProbability,
+        timeframe,
+        source: SOURCE_LABELS[domRegionType] || 'Regional threat actors',
+        rationale,
+        severity,
       };
-    attackPredictionCache = { data: fallback, fetchedAt: Date.now() };
-    return fallback;
+    });
+
+    // ── 13. Pattern summary & escalation vector ───────────────────────────────
+    const trendWord    = isEscalating ? 'escalating' : isDeescalating ? 'de-escalating' : 'steady';
+    const topRegionStr = sortedRegions.slice(0, 3).map(([r]) => r).join(', ');
+    const patternSummary =
+      `${last6h.length} alerts tracked over 6h at ${velocityPerHour.toFixed(1)}/hr ${trendWord} tempo. ` +
+      `Highest concentration: ${topRegionStr || 'no active zones'}. ` +
+      (criticalIntelCount > 0
+        ? `${criticalIntelCount} critical OSINT signal${criticalIntelCount > 1 ? 's' : ''} corroborate threat assessment.`
+        : 'OSINT signals at baseline levels.');
+
+    const escalationVector = isEscalating
+      ? `${escalationRatio.toFixed(1)}x surge detected — multi-axis pressure building across ${sortedRegions[0]?.[0] || 'primary theaters'}`
+      : isDeescalating
+        ? `Kinetic tempo declining — activity reducing across active fronts`
+        : `Sustained operational pressure in ${sortedRegions[0]?.[0] || 'active zones'}`;
+
+    // ── 14. Location probability list ────────────────────────────────────────
+    const locationProbabilities = sortedRegions.slice(0, 8).map(([location, score]) => {
+      const countryInfo  = resolveCountry(location);
+      const locTypeDist  = regionTypeMap[location] || {};
+      const locDomType   = Object.entries(locTypeDist).sort(([, a], [, b]) => b - a)[0]?.[0] || 'rockets';
+      return {
+        location,
+        country:     countryInfo.code,
+        probability: parseFloat(Math.min(0.95, 0.22 + score * 0.68).toFixed(2)),
+        threatType:  locDomType,
+        countryFlag: countryInfo.flag,
+      };
+    });
+
+    const result = {
+      predictions,
+      overallThreatLevel,
+      escalationVector,
+      nextLikelyTarget: sortedRegions[0]?.[0] || 'Northern Israel',
+      confidence: overallConfidence,
+      patternSummary,
+      generatedAt: new Date().toISOString(),
+      dataPoints: {
+        totalAlerts: alerts.length,
+        velocity30m,
+        velocity2h: last2h.length,
+        velocityPerHour: parseFloat(velocityPerHour.toFixed(1)),
+        isEscalating,
+        topRegions: sortedRegions.slice(0, 5).map(([r, s]) => ({
+          region: r,
+          count:  Math.round(s * 10),
+          score:  parseFloat(s.toFixed(3)),
+        })),
+      },
+      nextAttackWindow: {
+        estimatedMinutes: rawEstMin,
+        confidence:       parseFloat(timingConfidence.toFixed(2)),
+        basis:            timingBasis,
+        label:            timingLabel,
+      },
+      locationProbabilities,
+    };
+
+    attackPredictionCache = { data: result, fetchedAt: Date.now() };
+    return result;
   }
 
   app.get('/api/attack-prediction', async (_req, res) => {
