@@ -2985,111 +2985,115 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
   const SHORT_NAMES: Record<string, string> = { 'Saudi Arabia': 'KSA', 'United Arab Emirates': 'UAE' };
   const ACCENT: Record<string, string> = { Israel: '#3b82f6', Lebanon: '#10b981', Iran: '#a855f7', Syria: '#eab308', Iraq: '#f97316', 'Saudi Arabia': '#22c55e', Yemen: '#f43f5e', UAE: '#0ea5e9', Jordan: '#f59e0b', Kuwait: '#14b8a6', Bahrain: '#ec4899', Qatar: '#6366f1' };
 
+  const threatCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    alerts.forEach(a => { c[a.threatType] = (c[a.threatType] || 0) + 1; });
+    return c;
+  }, [alerts]);
+
   return (
     <div className="h-full flex flex-col min-h-0 ra-panel-bg" data-testid="red-alert-panel">
 
-      {/* ── HEADER ── */}
+      {/* ── HEADER — compact mission-control bar ── */}
       <div
-        className={`ra-alert-header ra-flex-center gap-2.5 shrink-0 select-none ${isMobile ? 'px-4 py-3' : 'panel-drag-handle cursor-grab active:cursor-grabbing px-3.5 py-2.5'} ${hasActiveAlerts ? 'ra-header-gradient-active' : 'ra-header-gradient-idle'}`}
-        style={{ borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.30)' : 'hsl(var(--border))'}` }}
+        className={`shrink-0 select-none ${isMobile ? 'px-4 py-2.5' : 'panel-drag-handle cursor-grab active:cursor-grabbing'}`}
+        style={{
+          borderBottom: `1px solid ${hasActiveAlerts ? 'rgba(239,68,68,0.18)' : 'hsl(var(--border))'}`,
+          background: hasActiveAlerts ? 'linear-gradient(180deg, rgba(127,29,29,0.18) 0%, transparent 100%)' : 'hsl(var(--muted))',
+        }}
       >
-        <div className="ra-flex-col gap-0.5 flex-1 min-w-0">
-          <div className="ra-flex-center gap-2">
-            <div className={`ra-glow-dot ${hasActiveAlerts ? 'ra-glow-dot--active' : 'ra-glow-dot--inactive'}`}>
-              {hasActiveAlerts && <div className="alert-dot-ping absolute inset-0 rounded-full bg-red-500" />}
+        <div className={`flex items-center gap-2 ${isMobile ? '' : 'px-3 py-2'}`}>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="relative shrink-0" style={{ width: 10, height: 10 }}>
+              <div className={`w-2.5 h-2.5 rounded-full ${hasActiveAlerts ? 'bg-red-500 eas-flash' : 'bg-red-900/40'}`} />
+              {hasActiveAlerts && <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-red-500 animate-ping opacity-30" />}
             </div>
-            <span className={`${isMobile ? 'text-[17px]' : 'text-[15px]'} font-black ra-tracking-wider uppercase ra-font-display ${hasActiveAlerts ? 'text-white' : 'text-red-500/30'}`}>
-              {language === 'ar' ? 'الإنذار الأحمر' : 'ALERTS'}
+            <span className={`${isMobile ? 'text-[15px]' : 'text-[13px]'} font-black uppercase tracking-[0.15em] ra-font-mono ${hasActiveAlerts ? 'text-red-400' : 'text-red-500/25'}`}>
+              {language === 'ar' ? 'الإنذارات' : 'ALERTS'}
             </span>
             {hasActiveAlerts && (
-              <span
-                className={`font-black text-white leading-none ra-tabular ra-font-mono rounded-md ${isMobile ? 'text-[20px] px-3 py-1' : 'text-[18px] px-2.5 py-0.5'}`}
-                style={{ background: 'linear-gradient(135deg, #dc2626, #991b1b)', boxShadow: '0 2px 14px rgba(220,38,38,0.55)' }}
-                data-testid="text-alert-count"
-              >{activeCount}</span>
-            )}
-            {liveCount > 0 && (
-              <span className="eas-flash ra-badge-xs" style={{ background: '#15803d', color: '#fff' }}>LIVE {liveCount}</span>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`font-black text-white ra-tabular ra-font-mono rounded-sm leading-none ${isMobile ? 'text-[16px] px-2 py-1' : 'text-[14px] px-1.5 py-0.5'}`}
+                  style={{ background: '#dc2626', boxShadow: '0 0 10px rgba(220,38,38,0.4)' }}
+                  data-testid="text-alert-count"
+                >{activeCount}</span>
+                {liveCount > 0 && (
+                  <span className={`${isMobile ? 'text-[9px] px-1.5 py-0.5' : 'text-[7px] px-1 py-px'} font-black ra-font-mono uppercase tracking-wider rounded-sm`} style={{ background: 'rgba(21,128,61,0.3)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>LIVE</span>
+                )}
+              </div>
             )}
           </div>
-          <span className={`${isMobile ? 'text-[10px]' : 'text-[9px]'} ra-tracking-wide uppercase ra-font-mono font-bold ${hasActiveAlerts ? 'text-red-300/40' : 'text-red-500/20'}`}>
-            OREF HOME FRONT COMMAND
-          </span>
+          <div className="flex items-center gap-1">
+            {isMobile && hasActiveAlerts && (
+              <button onClick={() => setShowSearch(p => !p)}
+                className={`w-8 h-8 rounded-md flex items-center justify-center transition-all active:scale-95 ${showSearch ? 'text-red-300' : 'text-white/30'}`}
+                style={{ background: showSearch ? 'rgba(220,38,38,0.15)' : 'transparent', border: '1px solid rgba(255,255,255,0.06)' }}
+                aria-label="Search"
+              ><Search className="w-3.5 h-3.5" /></button>
+            )}
+            {onShowHistory && (
+              <button onClick={onShowHistory} className={`${isMobile ? 'w-8 h-8' : 'w-6 h-6'} rounded-md flex items-center justify-center text-foreground/30 transition-all active:scale-95`} style={{ border: '1px solid rgba(255,255,255,0.06)' }} title="Alert History" data-testid="button-alert-history">
+                <History className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3'}`} />
+              </button>
+            )}
+            {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+            {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+          </div>
         </div>
-        <div className="ra-flex-center gap-1.5">
-          {isMobile && hasActiveAlerts && (
-            <button
-              onClick={() => setShowSearch(p => !p)}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 ${showSearch ? 'text-red-300' : 'text-white/40'}`}
-              style={{
-                background: showSearch ? 'rgba(220,38,38,0.22)' : 'rgba(255,255,255,0.05)',
-                border: showSearch ? '1px solid rgba(239,68,68,0.45)' : '1px solid rgba(255,255,255,0.08)',
-              }}
-              aria-label="Search"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-          )}
-          {onShowHistory && (
-            <button onClick={onShowHistory} className={`${isMobile ? 'w-9 h-9 rounded-xl' : 'w-[30px] h-[30px] rounded-md'} flex items-center justify-center bg-muted/40 border border-border text-foreground/50 cursor-pointer transition-all active:scale-95`} title="Alert History" data-testid="button-alert-history">
-              <History className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-        </div>
+        {hasActiveAlerts && !isMobile && (
+          <div className="px-3 pb-1.5 flex items-center gap-3">
+            <span className="text-[7px] ra-font-mono tracking-[0.2em] uppercase text-red-400/25 shrink-0">OREF</span>
+            <div className="flex items-center gap-1 flex-1 overflow-hidden">
+              {Object.entries(threatCounts).slice(0, 4).map(([type, count]) => (
+                <span key={type} className="text-[8px] ra-font-mono font-bold text-white/20 shrink-0">
+                  {THREAT_ICONS[type] || '🚀'}{count}
+                </span>
+              ))}
+            </div>
+            <span className="text-[7px] ra-font-mono text-white/15 shrink-0">{alerts.length} TTL</span>
+          </div>
+        )}
       </div>
 
-      {/* ── FILTERS ── */}
+      {/* ── FILTERS — segmented tabs ── */}
       {hasActiveAlerts && isMobile ? (
-        <div className="shrink-0 ra-section-bg ra-flex-col gap-0" style={{ borderBottom: '1px solid rgba(239,68,68,0.10)' }}>
+        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(239,68,68,0.08)', background: 'rgba(0,0,0,0.15)' }}>
           {showSearch && (
-            <div className="relative px-3 pt-2.5 pb-2">
-              <input
-                type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            <div className="relative px-3 pt-2 pb-1.5">
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search city, region...'}
-                className="ra-search-input"
-                autoFocus
-                data-testid="input-red-alert-search"
-                style={{ fontSize: 15, padding: '10px 12px 10px 38px', borderRadius: 10 }}
-              />
-              <Search className="absolute w-4 h-4 text-red-500/30" style={{ left: 22, top: '50%', transform: 'translateY(-50%)' }} />
+                className="ra-search-input" autoFocus data-testid="input-red-alert-search"
+                style={{ fontSize: 14, padding: '8px 10px 8px 34px', borderRadius: 6 }} />
+              <Search className="absolute w-3.5 h-3.5 text-red-500/30" style={{ left: 20, top: '50%', transform: 'translateY(-50%)' }} />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute w-6 h-6 flex items-center justify-center rounded-full text-white/30" style={{ top: '50%', right: 16, transform: 'translateY(-50%)' }}>
-                  <X className="w-3.5 h-3.5" />
+                <button onClick={() => setSearchQuery('')} className="absolute w-5 h-5 flex items-center justify-center rounded text-white/30" style={{ top: '50%', right: 16, transform: 'translateY(-50%)' }}>
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
           )}
-          <div className="flex gap-1.5 overflow-x-auto px-3 py-2" style={{ scrollbarWidth: 'none' }}>
-            {([['all','ALL'],['rockets','🚀 RKT'],['missiles','⚡ MSL'],['uav_intrusion','🛸 UAV'],['hostile_aircraft_intrusion','✈️ ACF']] as [string,string][]).map(([key, label]) => {
+          <div className="flex overflow-x-auto px-3 py-1.5 gap-px" style={{ scrollbarWidth: 'none' }}>
+            {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACF']] as [string,string][]).map(([key, label]) => {
               const isActive = threatFilter === key;
               return (
                 <button key={key} onClick={() => setThreatFilter(key)}
-                  className="shrink-0 font-bold transition-all active:scale-95"
-                  style={{
-                    fontSize: 12, minHeight: 32, padding: '0 12px', borderRadius: 8,
-                    background: isActive ? 'rgba(220,38,38,0.28)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${isActive ? 'rgba(239,68,68,0.55)' : 'rgba(255,255,255,0.08)'}`,
-                    color: isActive ? '#fca5a5' : 'rgba(255,255,255,0.30)',
-                    whiteSpace: 'nowrap',
-                    letterSpacing: '0.04em',
-                  }}
+                  className="shrink-0 font-bold ra-font-mono transition-all active:scale-95"
+                  style={{ fontSize: 10, padding: '4px 10px', letterSpacing: '0.1em',
+                    background: isActive ? 'rgba(220,38,38,0.25)' : 'transparent',
+                    borderBottom: isActive ? '2px solid #ef4444' : '2px solid transparent',
+                    color: isActive ? '#fca5a5' : 'rgba(255,255,255,0.25)', }}
                   data-testid={`button-threat-filter-${key}`}
-                >{label}</button>
+                >{key !== 'all' ? (THREAT_ICONS[key] || '') + ' ' : ''}{label}</button>
               );
             })}
           </div>
-          <div className="flex gap-1.5 overflow-x-auto px-3 pb-2.5" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-1 overflow-x-auto px-3 pb-2" style={{ scrollbarWidth: 'none' }}>
             <button onClick={() => setCountryFilter('ALL')}
-              className="shrink-0 font-bold transition-all active:scale-95"
-              style={{
-                fontSize: 12, minHeight: 30, padding: '0 12px', borderRadius: 8,
-                background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.2)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.28)',
-                whiteSpace: 'nowrap',
-              }}
+              className="shrink-0 ra-font-mono font-bold text-[10px] px-2 py-1 rounded-sm transition-all active:scale-95"
+              style={{ background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.18)' : 'transparent',
+                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.25)', }}
               data-testid="button-country-filter-all"
             >ALL {alerts.length}</button>
             {countryOrder.map(c => {
@@ -3099,14 +3103,10 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               const color = ACCENT[c] || '#ef4444';
               return (
                 <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
-                  className="shrink-0 font-bold transition-all active:scale-95"
-                  style={{
-                    fontSize: 12, minHeight: 30, padding: '0 10px', borderRadius: 8,
-                    background: isSelected ? color + '28' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isSelected ? color + 'aa' : color + '35'}`,
-                    color: isSelected ? '#fff' : color + 'cc',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="shrink-0 font-bold text-[10px] px-2 py-1 rounded-sm transition-all active:scale-95"
+                  style={{ background: isSelected ? color + '22' : 'transparent',
+                    border: `1px solid ${isSelected ? color + '88' : color + '25'}`,
+                    color: isSelected ? '#fff' : color + 'aa', }}
                   data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
                 >{FLAG_MAP[c]} {count}</button>
               );
@@ -3114,39 +3114,35 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
           </div>
         </div>
       ) : hasActiveAlerts ? (
-        <div className="shrink-0 border-b border-border ra-section-bg px-3 py-2 ra-flex-col gap-1.5">
-          <div className="relative">
-            <input
-              type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'ar' ? 'ابحث عن مدينة...' : 'Search city, region...'}
-              className="ra-search-input"
-              data-testid="input-red-alert-search"
-            />
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500/30" />
+        <div className="shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: 'rgba(0,0,0,0.12)' }}>
+          <div className="px-2.5 pt-1.5">
+            <div className="relative">
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={language === 'ar' ? 'ابحث...' : 'Search...'}
+                className="ra-search-input" data-testid="input-red-alert-search" />
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-red-500/25" />
+            </div>
           </div>
-          <div className="flex gap-1 flex-wrap">
-            {([['all','ALL'],['rockets','ROCKETS'],['missiles','MISSILES'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','AIRCRAFT']] as [string,string][]).map(([key, label]) => (
+          <div className="flex items-center border-b" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+            {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACF']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
-                className="ra-pill"
-                style={{
-                  background: threatFilter === key ? '#dc2626' : 'rgba(220,38,38,0.08)',
-                  borderColor: threatFilter === key ? '#dc2626' : 'rgba(239,68,68,0.22)',
-                  color: threatFilter === key ? '#fff' : 'rgba(252,165,165,0.6)',
-                }}
+                className="flex-1 ra-font-mono font-bold transition-colors"
+                style={{ fontSize: 8, padding: '5px 0', letterSpacing: '0.12em',
+                  borderBottom: threatFilter === key ? '2px solid #ef4444' : '2px solid transparent',
+                  color: threatFilter === key ? '#fca5a5' : 'rgba(255,255,255,0.22)',
+                  background: threatFilter === key ? 'rgba(220,38,38,0.08)' : 'transparent', }}
                 data-testid={`button-threat-filter-${key}`}
               >{label}</button>
             ))}
           </div>
-          <div className="flex gap-1 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-0.5 overflow-x-auto px-2 py-1" style={{ scrollbarWidth: 'none' }}>
             <button onClick={() => setCountryFilter('ALL')}
-              className="ra-pill"
-              style={{
-                background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.22)' : 'rgba(255,255,255,0.04)',
-                borderColor: countryFilter === 'ALL' ? 'rgba(239,68,68,0.55)' : 'rgba(255,255,255,0.08)',
-                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.35)',
-              }}
+              className="shrink-0 ra-font-mono font-bold text-[8px] px-1.5 py-0.5 rounded-sm transition-all"
+              style={{ background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.15)' : 'transparent',
+                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.25)',
+                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.3)' : 'transparent'}`, }}
               data-testid="button-country-filter-all"
-            >ALL ({alerts.length})</button>
+            >ALL</button>
             {countryOrder.map(c => {
               const count = countryCounts[c] || 0;
               if (!count) return null;
@@ -3154,14 +3150,12 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               const color = ACCENT[c] || '#ef4444';
               return (
                 <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
-                  className="ra-pill"
-                  style={{
-                    background: isSelected ? color + '33' : 'rgba(255,255,255,0.03)',
-                    borderColor: isSelected ? color : color + '40',
-                    color: isSelected ? '#fff' : color,
-                  }}
+                  className="shrink-0 font-bold text-[8px] px-1.5 py-0.5 rounded-sm transition-all"
+                  style={{ background: isSelected ? color + '18' : 'transparent',
+                    color: isSelected ? '#fff' : color + '88',
+                    border: `1px solid ${isSelected ? color + '55' : 'transparent'}`, }}
                   data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
-                >{FLAG_MAP[c] || ''} {SHORT_NAMES[c] || c} ({count})</button>
+                >{FLAG_MAP[c]}{count}</button>
               );
             })}
           </div>
@@ -3170,26 +3164,23 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
 
       {/* ── EMPTY STATE ── */}
       {!hasActiveAlerts && (
-        <div className="flex-1 ra-flex-col items-center justify-center px-4 py-8 text-center">
-          <div className={`${isMobile ? 'w-20 h-20 mb-5' : 'w-12 h-12 mb-3'} rounded-full flex items-center justify-center`} style={{ background: 'rgba(21,128,61,0.12)', border: '2px solid rgba(34,197,94,0.28)' }}>
-            <Shield className={`${isMobile ? 'w-9 h-9' : 'w-[26px] h-[26px]'} text-green-500`} />
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 text-center">
+          <div className={`${isMobile ? 'w-16 h-16 mb-4' : 'w-10 h-10 mb-2.5'} rounded-md flex items-center justify-center`} style={{ background: 'rgba(21,128,61,0.08)', border: '1px solid rgba(34,197,94,0.15)' }}>
+            <Shield className={`${isMobile ? 'w-7 h-7' : 'w-5 h-5'} text-green-600/60`} />
           </div>
-          <p className={`${isMobile ? 'text-[22px]' : 'text-[16px]'} font-black text-green-500 mb-1.5 ra-tracking-wide ra-font-display`}>
-            {language === 'ar' ? 'لا تنبيهات نشطة' : 'ALL CLEAR'}
+          <p className={`${isMobile ? 'text-[18px]' : 'text-[13px]'} font-black text-green-500/70 mb-1 tracking-[0.15em] ra-font-mono uppercase`}>
+            {language === 'ar' ? 'لا تنبيهات' : 'ALL CLEAR'}
           </p>
-          <p className={`${isMobile ? 'text-[13px]' : 'text-[11px]'} text-white/30 tracking-wide uppercase ra-font-mono font-semibold`}>
-            {language === 'ar' ? 'لا تهديدات نشطة' : 'No active threats detected'}
+          <p className={`${isMobile ? 'text-[11px]' : 'text-[9px]'} text-white/20 tracking-wider uppercase ra-font-mono`}>
+            {language === 'ar' ? 'لا تهديدات نشطة' : 'No active threats'}
           </p>
-          <div className={`mt-4 ${isMobile ? 'px-6 py-2.5 text-[12px]' : 'px-4 py-1.5 text-[10px]'} rounded-full ra-font-mono font-bold text-green-400 ra-tracking-wider`} style={{ background: 'rgba(21,128,61,0.15)', border: '1px solid rgba(34,197,94,0.30)' }}>
-            {language === 'ar' ? 'المراقبة نشطة' : 'MONITORING ACTIVE'}
-          </div>
         </div>
       )}
 
-      {/* ── TRIAGE LIST ── */}
+      {/* ── TRIAGE LIST — data-strip layout ── */}
       {hasActiveAlerts && (
         <ScrollArea ref={alertScrollRef} className="flex-1 min-h-0">
-          <div className={isMobile ? 'px-2 pt-2 pb-1 ra-flex-col gap-2' : ''}>
+          <div className={isMobile ? 'px-2 pt-1.5 pb-1 flex flex-col gap-1.5' : ''}>
             {triageSorted.map(alert => {
               const nowMs = Date.now();
               const elapsed = Math.floor((nowMs - new Date(alert.timestamp).getTime()) / 1000);
@@ -3200,127 +3191,102 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               const isLive = alert.source === 'live';
               const ageMs = nowMs - new Date(alert.timestamp).getTime();
               const isIncoming = ageMs < 9000 && !isExpired;
+              const threatIcon = THREAT_ICONS[alert.threatType] || '🚀';
+              const threatCode = THREAT_SHORT_CODE[alert.threatType] || 'RKT';
 
-              // per-tier card colours (red scheme)
-              const cardBg = isCritical && !isExpired
-                ? 'linear-gradient(135deg, rgba(127,29,29,0.50) 0%, rgba(69,10,10,0.55) 100%)'
-                : isExpired ? 'rgba(255,255,255,0.018)'
-                : 'rgba(255,255,255,0.04)';
-              const cardBorder = isCritical && !isExpired
-                ? '1.5px solid rgba(239,68,68,0.40)'
-                : isExpired ? '1px solid rgba(255,255,255,0.04)'
-                : '1px solid rgba(255,255,255,0.07)';
               if (isMobile) {
                 return (
-                  <div
-                    key={alert.id}
-                    className="alert-slide-in relative rounded-xl overflow-hidden"
+                  <div key={alert.id} className="alert-slide-in relative rounded-md overflow-hidden"
                     style={{
-                      background: cardBg,
-                      border: cardBorder,
-                      opacity: isExpired ? 0.38 : 1,
-                      boxShadow: isCritical && !isExpired ? '0 4px 20px rgba(220,38,38,0.18)' : 'none',
+                      background: isCritical && !isExpired ? 'rgba(127,29,29,0.35)' : isExpired ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.03)',
+                      border: isCritical && !isExpired ? '1px solid rgba(239,68,68,0.30)' : isExpired ? '1px solid rgba(255,255,255,0.03)' : '1px solid rgba(255,255,255,0.05)',
+                      opacity: isExpired ? 0.35 : 1,
                     }}
                     data-testid={`red-alert-${alert.id}`}
                   >
-                    {/* Urgency left accent bar */}
-                    {!isExpired && (
-                      <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{
-                        background: isCritical
-                          ? 'linear-gradient(to bottom, #f87171, #b91c1c)'
-                          : remaining > 0 ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.08)',
-                        borderRadius: '0 0 0 12px',
-                      }} />
-                    )}
-                    <div className="flex items-center gap-3 py-3 pr-3" style={{ paddingLeft: 14 }}>
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{
+                      background: isCritical && !isExpired ? '#ef4444' : !isExpired && remaining > 0 ? 'rgba(249,115,22,0.5)' : 'rgba(255,255,255,0.04)',
+                    }} />
+                    <div className="flex items-center gap-2.5 py-2.5 pr-3" style={{ paddingLeft: 12 }}>
                       <RedAlertCountdown alert={alert} mobile />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="flex items-center gap-1.5 mb-0.5">
                           {isIncoming && (
-                            <span className="eas-flash shrink-0 font-black text-[10px] px-2 py-0.5 rounded" style={{ background: '#b91c1c', color: '#fecaca', border: '1px solid rgba(239,68,68,0.4)', letterSpacing: '0.15em' }}>INCOMING</span>
+                            <span className="eas-flash shrink-0 font-black text-[8px] px-1.5 py-px rounded-sm ra-font-mono" style={{ background: '#b91c1c', color: '#fecaca', letterSpacing: '0.12em' }}>INCOMING</span>
                           )}
-                          <span className={`font-extrabold truncate leading-tight ${isExpired ? 'text-white/22' : isCritical ? 'text-[17px] text-white' : 'text-[16px] text-white/90'}`}>
+                          <span className={`font-extrabold truncate leading-tight ${isExpired ? 'text-white/20' : isCritical ? 'text-[15px] text-white' : 'text-[14px] text-white/85'}`}>
                             {language === 'ar' ? alert.cityAr : alert.city}
                           </span>
-                          <span className="text-[14px] shrink-0" style={{ opacity: isExpired ? 0.18 : 0.6 }}>{FLAG_MAP[alert.country]}</span>
-                          {isLive && (
-                            <span className="shrink-0 font-bold text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(21,128,61,0.25)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.22)' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
-                          )}
+                          <span className="text-[12px] shrink-0 opacity-50">{FLAG_MAP[alert.country]}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] ra-font-mono font-semibold" style={{ color: 'rgba(255,255,255,0.32)', letterSpacing: '0.04em' }}>
-                            {THREAT_ICONS[alert.threatType] || '🚀'} {THREAT_SHORT_CODE[alert.threatType] || alert.threatType.replace(/_/g, ' ').toUpperCase()}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] ra-font-mono font-bold shrink-0" style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.06em' }}>
+                            {threatIcon} {threatCode}
                           </span>
-                          <span className="text-[10px] ra-font-mono truncate" style={{ color: 'rgba(255,255,255,0.20)' }}>
+                          <span className="text-[9px] ra-font-mono truncate" style={{ color: 'rgba(255,255,255,0.15)' }}>
                             {language === 'ar' ? alert.regionAr : alert.region}
                           </span>
-                          <span className="text-[10px] ra-font-mono font-bold ml-auto shrink-0" style={{ color: 'rgba(255,255,255,0.22)' }}>{timeAgo(alert.timestamp)}</span>
+                          <span className="ml-auto flex items-center gap-1 shrink-0">
+                            {isLive && <span className="text-[7px] font-bold px-1 py-px rounded-sm ra-font-mono" style={{ background: 'rgba(21,128,61,0.2)', color: '#4ade80' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>}
+                            {alert.sourceChannel && (
+                              <a href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-0.5 text-[8px] font-bold px-1 py-px rounded-sm"
+                                style={{ background: '#0088cc12', color: '#29b6f6', textDecoration: 'none' }}
+                                onClick={(e) => e.stopPropagation()} data-testid={`tg-source-${alert.id}`}
+                              >TG</a>
+                            )}
+                            <span className="text-[8px] ra-font-mono text-white/15">{timeAgo(alert.timestamp)}</span>
+                          </span>
                         </div>
                       </div>
-                      {alert.sourceChannel && (
-                        <a
-                          href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2 py-1 rounded shrink-0 text-[10px] font-bold"
-                          style={{ background: '#0088cc18', color: '#29b6f6', border: '1px solid #0088cc33', textDecoration: 'none' }}
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`tg-source-${alert.id}`}
-                        >
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
-                          TG
-                        </a>
-                      )}
                     </div>
                   </div>
                 );
               }
 
               return (
-                <div
-                  key={alert.id}
-                  className="alert-slide-in flex items-center gap-2.5 relative"
+                <div key={alert.id} className="alert-slide-in flex items-center gap-2 group"
                   style={{
-                    padding: '8px 12px 8px 14px',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: isCritical ? 'rgba(127,29,29,0.22)' : 'transparent',
-                    borderLeft: isCritical ? '3px solid #ef4444' : '3px solid transparent',
-                    opacity: isExpired ? 0.35 : 1,
+                    padding: '5px 10px 5px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.025)',
+                    background: isCritical && !isExpired ? 'rgba(127,29,29,0.15)' : 'transparent',
+                    opacity: isExpired ? 0.30 : 1,
                     transition: 'background 0.15s',
                   }}
                   data-testid={`red-alert-${alert.id}`}
                 >
+                  <div className="shrink-0 self-stretch" style={{ width: 3, background: isCritical && !isExpired ? '#ef4444' : !isExpired && remaining > 0 ? 'rgba(249,115,22,0.4)' : 'transparent', borderRadius: '0 2px 2px 0' }} />
                   <RedAlertCountdown alert={alert} />
-                  <div className="flex-1 min-w-0">
-                    <div className="ra-flex-center gap-1.5 mb-0.5">
-                      {isIncoming && (
-                        <span className="eas-flash ra-badge-xs shrink-0" style={{ background: '#dc2626', color: '#fecaca', border: '1px solid rgba(239,68,68,0.35)', letterSpacing: '0.15em' }}>INCOMING</span>
-                      )}
-                      <span className={`font-extrabold truncate text-[13px] ${isExpired ? 'text-white/25' : 'text-white'}`}>
-                        {language === 'ar' ? alert.cityAr : alert.city}
-                      </span>
-                      <span className="text-[11px] shrink-0 opacity-40">{FLAG_MAP[alert.country]}</span>
-                      {isLive && (
-                        <span className="ra-badge-xs shrink-0" style={{ background: 'rgba(21,128,61,0.2)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.15)', letterSpacing: '0.06em' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>
-                      )}
-                      {alert.sourceChannel && (
-                        <a
-                          href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="ra-badge-xs shrink-0 flex items-center gap-0.5"
-                          style={{ background: '#0088cc22', color: '#29b6f6', border: '1px solid #0088cc44', textDecoration: 'none' }}
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`tg-source-${alert.id}`}
-                          title={`Source: ${alert.sourceChannel}`}
-                        >
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
-                          TG
-                        </a>
-                      )}
+                  <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 mb-px">
+                        {isIncoming && <span className="eas-flash text-[7px] font-black ra-font-mono px-1 py-px rounded-sm shrink-0" style={{ background: '#dc2626', color: '#fecaca', letterSpacing: '0.1em' }}>IN</span>}
+                        <span className={`font-bold truncate text-[12px] leading-tight ${isExpired ? 'text-white/20' : 'text-white/90'}`}>
+                          {language === 'ar' ? alert.cityAr : alert.city}
+                        </span>
+                        <span className="text-[10px] shrink-0 opacity-35">{FLAG_MAP[alert.country]}</span>
+                      </div>
+                      <div className="flex items-center gap-1" style={{ fontSize: 8, color: 'rgba(255,255,255,0.20)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+                        <span>{language === 'ar' ? alert.regionAr : alert.region}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5" style={{ fontSize: 9, opacity: 0.35, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-                      {language === 'ar' ? alert.regionAr : alert.region} · {THREAT_ICONS[alert.threatType] || '🚀'} {THREAT_SHORT_CODE[alert.threatType] || alert.threatType.replace(/_/g, ' ').toUpperCase()}
-                      <span className="ml-auto text-[8px]" style={{ opacity: 0.5 }}>{timeAgo(alert.timestamp)}</span>
-                    </div>
+                    <span className="text-[8px] ra-font-mono font-bold shrink-0 px-1 py-px rounded-sm" style={{ color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                      {threatIcon} {threatCode}
+                    </span>
+                    {isLive && <span className="text-[7px] font-bold px-1 py-px rounded-sm ra-font-mono shrink-0" style={{ background: 'rgba(21,128,61,0.15)', color: '#4ade80' }} data-testid={`source-badge-${alert.id}`}>LIVE</span>}
+                    {alert.sourceChannel && (
+                      <a href={alert.sourceUrl || `https://t.me/s/${alert.sourceChannel.replace(/^@/, '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-[7px] font-bold px-1 py-px rounded-sm shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ background: '#0088cc12', color: '#29b6f6', textDecoration: 'none' }}
+                        onClick={(e) => e.stopPropagation()} data-testid={`tg-source-${alert.id}`}
+                      >
+                        <svg width="7" height="7" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.636l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.923z" /></svg>
+                        TG
+                      </a>
+                    )}
+                    <span className="text-[7px] ra-font-mono text-white/12 shrink-0 tabular-nums">{timeAgo(alert.timestamp)}</span>
                   </div>
                 </div>
               );
@@ -3420,9 +3386,11 @@ const TelegramPanel = memo(function TelegramPanel({
   const [newMsgIds, setNewMsgIds] = useState<Set<string>>(new Set());
   const prevMsgIdsRef = useRef<Set<string>>(new Set());
   const topRef = useRef<HTMLDivElement>(null);
+  const [telegramTab, setTelegramTab] = useState<'feed' | 'stats' | 'channels'>('feed');
+  const [searchQuery, setSearchQuery] = useState('');
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
 
   const allChannels = useMemo(() => [...DEFAULT_CHANNELS, ...customChannels], [customChannels]);
-
   const customOnly = useMemo(() => customChannels.filter(c => !DEFAULT_CHANNELS.includes(c)), [customChannels]);
   const customQueryParam = useMemo(() => customOnly.map(c => c.replace('@', '')).join(','), [customOnly]);
 
@@ -3465,7 +3433,6 @@ const TelegramPanel = memo(function TelegramPanel({
       return true;
     });
     const msgMap = new Map(deduped.map(m => [m.id, m]));
-    // Keep existing order stable, prepend new ids at top
     const newIds = deduped.filter(m => !stableOrderRef.current.includes(m.id)).map(m => m.id);
     newIds.sort((a, b) => new Date(msgMap.get(b)!.timestamp).getTime() - new Date(msgMap.get(a)!.timestamp).getTime());
     const kept = stableOrderRef.current.filter(id => msgMap.has(id));
@@ -3485,7 +3452,6 @@ const TelegramPanel = memo(function TelegramPanel({
         if (clearNewMsgTimerRef.current) clearTimeout(clearNewMsgTimerRef.current);
         setNewMsgIds(prev => new Set([...Array.from(prev), ...freshIds]));
         clearNewMsgTimerRef.current = setTimeout(() => setNewMsgIds(new Set()), 6000);
-        // No sound for Telegram messages — sounds only fire on red alerts
       }
     }
     prevMsgIdsRef.current = currentIds;
@@ -3494,14 +3460,66 @@ const TelegramPanel = memo(function TelegramPanel({
   const [channelFilter, setChannelFilter] = useState<string | null>(null);
 
   const displayMessages = useMemo(() => {
-    if (!channelFilter) return filteredMessages;
-    return filteredMessages.filter(m => m.channel === channelFilter);
-  }, [filteredMessages, channelFilter]);
+    let msgs = !channelFilter ? filteredMessages : filteredMessages.filter(m => m.channel === channelFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      msgs = msgs.filter(m => m.text.toLowerCase().includes(q) || (m.textAr ?? '').toLowerCase().includes(q));
+    }
+    return msgs;
+  }, [filteredMessages, channelFilter, searchQuery]);
+
+  // ── Stats derived data ──────────────────────────────────────────────────────
+  const channelCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredMessages.forEach(m => { counts[m.channel] = (counts[m.channel] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [filteredMessages]);
+
+  const hourlyActivity = useMemo(() => {
+    const buckets: Record<number, number> = {};
+    const now = Date.now();
+    for (let h = 0; h < 12; h++) buckets[h] = 0;
+    filteredMessages.forEach(m => {
+      const age = (now - new Date(m.timestamp).getTime()) / 3600000;
+      const bucket = Math.floor(age);
+      if (bucket < 12) buckets[bucket] = (buckets[bucket] || 0) + 1;
+    });
+    return Array.from({ length: 12 }, (_, i) => ({ hour: i, count: buckets[i] || 0 })).reverse();
+  }, [filteredMessages]);
+
+  const topKeywords = useMemo(() => {
+    const freq: Record<string, number> = {};
+    const stop = new Set(['the','a','an','in','on','to','of','and','is','are','was','were','for','with','at','by','from','that','this','it','as','be','been','have','has','had','not','but','or','they','we','you','he','she','his','her','its','our','their']);
+    filteredMessages.forEach(m => {
+      m.text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).forEach(w => {
+        if (w.length > 3 && !stop.has(w)) freq[w] = (freq[w] || 0) + 1;
+      });
+    });
+    return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  }, [filteredMessages]);
+
+  const recentActivity = useMemo(() => {
+    const cutoff = Date.now() - 3600000;
+    return filteredMessages.filter(m => new Date(m.timestamp).getTime() > cutoff).length;
+  }, [filteredMessages]);
+
+  const breakingCount = useMemo(() => filteredMessages.filter(m => /BREAKING|URGENT|FLASH|عاجل/i.test(m.text)).length, [filteredMessages]);
+
+  // ── Priority helper ─────────────────────────────────────────────────────────
+  const getPriority = (text: string): { label: string; color: string } | null => {
+    if (/BREAKING|URGENT|FLASH|عاجل/i.test(text)) return { label: 'BREAKING', color: '#ef4444' };
+    if (/\bALERT\b|WARNING|ATTACK|STRIKE|MISSILE|صاروخ|هجوم/i.test(text)) return { label: 'ALERT', color: '#f97316' };
+    if (/DEVELOPING|UPDATE|تطور/i.test(text)) return { label: 'UPDATE', color: '#facc15' };
+    return null;
+  };
+
+  const maxHourly = Math.max(...hourlyActivity.map(h => h.count), 1);
+  const maxChannel = channelCounts.length > 0 ? channelCounts[0][1] : 1;
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="telegram-panel">
       <PanelHeader
-        title={language === 'en' ? 'Telegram OSINT' : '\u062A\u0644\u063A\u0631\u0627\u0645 OSINT'}
+        title={language === 'en' ? 'Telegram OSINT' : 'تلغرام OSINT'}
         icon={<SiTelegram className="w-3.5 h-3.5" />}
         live
         count={filteredMessages.length}
@@ -3520,45 +3538,40 @@ const TelegramPanel = memo(function TelegramPanel({
               className="w-6 h-6 flex items-center justify-center rounded hover:bg-sky-500/10 transition-colors"
               data-testid="button-toggle-channel-manager"
             >
-              <Settings className={`w-3 h-3 text-sky-400/50 hover:text-sky-400/80 transition-colors`} />
+              <Settings className="w-3 h-3 text-sky-400/50 hover:text-sky-400/80 transition-colors" />
             </button>
           </div>
         }
       />
 
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/30 bg-card/40 shrink-0 overflow-x-auto" data-testid="telegram-channel-filters">
-        <button
-          onClick={() => setChannelFilter(null)}
-          className={`px-2 py-1 rounded text-[9px] font-mono font-bold whitespace-nowrap transition-all ${
-            !channelFilter
-              ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-              : 'text-muted-foreground/50 hover:text-sky-400/70 hover:bg-sky-500/5 border border-transparent'
-          }`}
-          data-testid="button-filter-all"
-        >
-          ALL ({filteredMessages.length})
-        </button>
-        {allChannels.map(ch => {
-          const count = filteredMessages.filter(m => m.channel === ch).length;
-          if (count === 0) return null;
-          const shortName = ch.replace('@', '').slice(0, 12);
-          return (
-            <button
-              key={ch}
-              onClick={() => setChannelFilter(channelFilter === ch ? null : ch)}
-              className={`px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap transition-all ${
-                channelFilter === ch
-                  ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30'
-                  : 'text-muted-foreground/40 hover:text-sky-400/60 hover:bg-sky-500/5 border border-transparent'
-              }`}
-              data-testid={`button-filter-${ch.replace('@', '')}`}
-            >
-              {shortName} {count > 0 && <span className="text-sky-400/50 ml-0.5">{count}</span>}
-            </button>
-          );
-        })}
+      {/* Tab bar */}
+      <div className="flex border-b border-border/40 shrink-0" style={{ background: 'hsl(var(--muted))' }}>
+        {(['feed', 'stats', 'channels'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setTelegramTab(tab)}
+            className="flex-1 py-1.5 text-[9px] font-mono font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-1"
+            style={{
+              color: telegramTab === tab ? 'hsl(199 89% 70%)' : 'hsl(var(--muted-foreground) / 0.55)',
+              borderBottom: telegramTab === tab ? '2px solid hsl(199 89% 60%)' : '2px solid transparent',
+              background: telegramTab === tab ? 'hsl(199 89% 50% / 0.07)' : 'transparent',
+            }}
+          >
+            {tab === 'feed' && <SiTelegram className="w-2.5 h-2.5" />}
+            {tab === 'stats' && <BarChart3 className="w-2.5 h-2.5" />}
+            {tab === 'channels' && <Hash className="w-2.5 h-2.5" />}
+            {tab === 'feed' ? t('Feed', 'مباشر') : tab === 'stats' ? t('Stats', 'إحصاء') : t('Channels', 'قنوات')}
+            {tab === 'feed' && filteredMessages.length > 0 && (
+              <span className="text-[7px] font-mono opacity-60">{filteredMessages.length}</span>
+            )}
+            {tab === 'stats' && breakingCount > 0 && (
+              <span className="text-[7px] font-mono font-black text-red-400">{breakingCount}</span>
+            )}
+          </button>
+        ))}
       </div>
 
+      {/* Channel manager */}
       {showManager && (
         <div className="border-b border-sky-800/20 bg-sky-950/20 px-3 py-2.5 shrink-0 space-y-2">
           <div className="flex gap-1.5">
@@ -3569,7 +3582,7 @@ const TelegramPanel = memo(function TelegramPanel({
                 value={newChannel}
                 onChange={(e) => setNewChannel(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addChannel()}
-                placeholder={language === 'ar' ? '\u0627\u0633\u0645 \u0627\u0644\u0642\u0646\u0627\u0629...' : 'Add channel...'}
+                placeholder={t('Add channel...', 'اسم القناة...')}
                 className="w-full h-7 text-[11px] font-mono pl-7 pr-2 rounded-md bg-background/60 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/25 focus:outline-none focus:border-sky-500/50 transition-colors"
                 data-testid="input-telegram-channel"
               />
@@ -3579,7 +3592,7 @@ const TelegramPanel = memo(function TelegramPanel({
               className="h-7 px-3 text-[10px] font-mono font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 rounded-md border border-sky-500/25 transition-colors"
               data-testid="button-add-channel"
             >
-              {language === 'ar' ? '\u0625\u0636\u0627\u0641\u0629' : 'ADD'}
+              {t('ADD', 'إضافة')}
             </button>
           </div>
           <div className="flex flex-wrap gap-1">
@@ -3613,6 +3626,7 @@ const TelegramPanel = memo(function TelegramPanel({
         </div>
       )}
 
+      {/* Lightbox */}
       {lightboxImage && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 cursor-zoom-out"
@@ -3639,122 +3653,399 @@ const TelegramPanel = memo(function TelegramPanel({
         </div>
       )}
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-2 space-y-1.5">
-          <div ref={topRef} />
-          {displayMessages.length === 0 && (
-            <div className="px-3 py-8 text-center">
-              <SiTelegram className="w-6 h-6 text-sky-400/20 mx-auto mb-3" />
-              <p className="text-xs text-muted-foreground/60">
-                {messages.length === 0
-                  ? (language === 'ar' ? '\u062C\u0627\u0631\u064A \u062C\u0644\u0628 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A...' : 'Connecting to live feeds...')
-                  : channelFilter
-                    ? (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages from this channel')
-                    : (language === 'ar' ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0631\u0633\u0627\u0626\u0644' : 'No messages yet')}
-              </p>
+      {/* ── FEED TAB ─────────────────────────────────────────────────────────── */}
+      {telegramTab === 'feed' && (
+        <>
+          {/* Channel filter pills */}
+          <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/30 bg-card/40 shrink-0 overflow-x-auto" data-testid="telegram-channel-filters">
+            <button
+              onClick={() => setChannelFilter(null)}
+              className={`px-2 py-1 rounded text-[9px] font-mono font-bold whitespace-nowrap transition-all ${
+                !channelFilter
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                  : 'text-muted-foreground/50 hover:text-sky-400/70 hover:bg-sky-500/5 border border-transparent'
+              }`}
+              data-testid="button-filter-all"
+            >
+              ALL ({filteredMessages.length})
+            </button>
+            {allChannels.map(ch => {
+              const count = filteredMessages.filter(m => m.channel === ch).length;
+              if (count === 0) return null;
+              const shortName = ch.replace('@', '').slice(0, 12);
+              return (
+                <button
+                  key={ch}
+                  onClick={() => setChannelFilter(channelFilter === ch ? null : ch)}
+                  className={`px-2 py-1 rounded text-[9px] font-mono whitespace-nowrap transition-all ${
+                    channelFilter === ch
+                      ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30'
+                      : 'text-muted-foreground/40 hover:text-sky-400/60 hover:bg-sky-500/5 border border-transparent'
+                  }`}
+                  data-testid={`button-filter-${ch.replace('@', '')}`}
+                >
+                  {shortName} <span className="text-sky-400/50 ml-0.5">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search bar */}
+          <div className="px-2 py-1.5 border-b border-border/20 shrink-0">
+            <div className="relative">
+              <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-sky-400/40 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('Search messages…', 'بحث في الرسائل…')}
+                className="w-full h-6 text-[10px] font-mono pl-6 pr-6 rounded bg-background/50 border border-sky-800/25 text-foreground/80 placeholder:text-foreground/25 focus:outline-none focus:border-sky-500/40 transition-colors"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
             </div>
-          )}
-          {displayMessages.map((msg) => {
-            const isExpanded = expandedMsgId === msg.id;
-            const isLive = msg.id.startsWith('live_');
-            const isNew = newMsgIds.has(msg.id);
-            const text = language === 'ar' && msg.textAr ? msg.textAr : msg.text;
-            const channelName = msg.channel.replace('@', '');
-            return (
-              <div
-                key={msg.id}
-                className={`rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
-                  isNew
-                    ? 'bg-emerald-950/30 ring-1 ring-emerald-500/30'
-                    : isExpanded
-                      ? 'bg-sky-950/30 ring-1 ring-sky-500/15'
-                      : 'bg-muted/20 hover:bg-sky-950/15'
-                }`}
-                onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
-                data-testid={`telegram-msg-${msg.id}`}
-              >
-                {msg.image && !isExpanded && (
+            {searchQuery && (
+              <div className="text-[8px] font-mono text-sky-400/50 mt-0.5">{displayMessages.length} result{displayMessages.length !== 1 ? 's' : ''}</div>
+            )}
+          </div>
+
+          {/* Messages */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-2 space-y-1.5">
+              <div ref={topRef} />
+              {displayMessages.length === 0 && (
+                <div className="px-3 py-8 text-center">
+                  <SiTelegram className="w-6 h-6 text-sky-400/20 mx-auto mb-3" />
+                  <p className="text-xs text-muted-foreground/60">
+                    {searchQuery ? t('No messages match your search', 'لا توجد نتائج') :
+                     messages.length === 0 ? t('Connecting to live feeds...', 'جاري الاتصال...') :
+                     channelFilter ? t('No messages from this channel', 'لا توجد رسائل') :
+                     t('No messages yet', 'لا توجد رسائل')}
+                  </p>
+                </div>
+              )}
+              {displayMessages.map((msg) => {
+                const isExpanded = expandedMsgId === msg.id;
+                const isLive = msg.id.startsWith('live_');
+                const isNew = newMsgIds.has(msg.id);
+                const text = language === 'ar' && msg.textAr ? msg.textAr : msg.text;
+                const channelName = msg.channel.replace('@', '');
+                const priority = getPriority(msg.text);
+                const highlightText = (str: string) => {
+                  if (!searchQuery.trim()) return str;
+                  const idx = str.toLowerCase().indexOf(searchQuery.toLowerCase());
+                  if (idx === -1) return str;
+                  return str.slice(0, idx) + '【' + str.slice(idx, idx + searchQuery.length) + '】' + str.slice(idx + searchQuery.length);
+                };
+                return (
                   <div
-                    className="relative w-full h-56 overflow-hidden cursor-zoom-in"
-                    onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
-                    data-testid={`img-thumbnail-${msg.id}`}
+                    key={msg.id}
+                    className={`rounded-lg overflow-hidden transition-all duration-200 cursor-pointer ${
+                      isNew
+                        ? 'bg-emerald-950/30 ring-1 ring-emerald-500/30'
+                        : priority?.label === 'BREAKING'
+                          ? 'bg-red-950/20 ring-1 ring-red-500/20'
+                          : isExpanded
+                            ? 'bg-sky-950/30 ring-1 ring-sky-500/15'
+                            : 'bg-muted/20 hover:bg-sky-950/15'
+                    }`}
+                    onClick={() => setExpandedMsgId(isExpanded ? null : msg.id)}
+                    data-testid={`telegram-msg-${msg.id}`}
                   >
-                    <img
-                      src={msg.image}
-                      alt=""
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                      onError={(e) => { (e.target as HTMLImageElement).closest('[data-testid]')!.parentElement!.style.display = 'none'; }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5 pointer-events-none">
-                      <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
-                      <span className="text-[10px] text-white font-bold truncate">{channelName}</span>
-                      {isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/40 px-1 rounded shrink-0">NEW</span>}
-                      {isLive && !isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
-                      <span className="text-[9px] text-white/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                    {msg.image && !isExpanded && (
+                      <div
+                        className="relative w-full h-56 overflow-hidden cursor-zoom-in"
+                        onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
+                        data-testid={`img-thumbnail-${msg.id}`}
+                      >
+                        <img
+                          src={msg.image}
+                          alt=""
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          onError={(e) => { (e.target as HTMLImageElement).closest('[data-testid]')!.parentElement!.style.display = 'none'; }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+                        <div className="absolute bottom-1.5 left-2 right-2 flex items-center gap-1.5 pointer-events-none">
+                          <SiTelegram className="w-3 h-3 text-sky-400 shrink-0" />
+                          <span className="text-[10px] text-white font-bold truncate">{channelName}</span>
+                          {isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/40 px-1 rounded shrink-0">NEW</span>}
+                          {isLive && !isNew && <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/30 px-1 rounded shrink-0">LIVE</span>}
+                          <span className="text-[9px] text-white/60 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="px-2.5 py-2">
+                      {(!msg.image || isExpanded) && (
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <div className="w-5 h-5 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0">
+                            <SiTelegram className="w-3 h-3 text-sky-400/90" />
+                          </div>
+                          <span className="text-xs text-sky-400 font-bold truncate">{channelName}</span>
+                          {priority && (
+                            <span className="text-[7px] font-mono font-black px-1 py-0.5 rounded shrink-0" style={{background: priority.color + '20', color: priority.color, border: `1px solid ${priority.color}40`}}>{priority.label}</span>
+                          )}
+                          {isNew && !priority && (
+                            <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1 rounded border border-emerald-500/30 shrink-0">NEW</span>
+                          )}
+                          {isLive && !isNew && !priority && (
+                            <span className="text-[7px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground/50 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
+                        </div>
+                      )}
+
+                      {isExpanded && msg.image && (
+                        <div className="rounded-md overflow-hidden mb-2 border border-sky-800/20">
+                          <img
+                            src={msg.image}
+                            alt=""
+                            className="w-full max-h-96 object-cover bg-black/20 cursor-zoom-in hover:opacity-90 transition-opacity"
+                            loading="lazy"
+                            onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            data-testid={`img-telegram-${msg.id}`}
+                          />
+                        </div>
+                      )}
+
+                      <p className={`text-sm leading-[1.65] ${isExpanded ? 'text-foreground/90 whitespace-pre-wrap' : 'text-foreground/70 line-clamp-2'}`}>
+                        {highlightText(text)}
+                      </p>
+
+                      {isExpanded && (
+                        <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-sky-800/15">
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span className="font-mono">{new Date(msg.timestamp).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          <a
+                            href={`https://t.me/${channelName}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-[10px] text-sky-400/50 hover:text-sky-400/90 transition-colors ml-auto"
+                            data-testid={`link-telegram-channel-${msg.id}`}
+                          >
+                            <ExternalLink className="w-2.5 h-2.5" />
+                            <span>{t('Open channel', 'فتح القناة')}</span>
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </>
+      )}
+
+      {/* ── STATS TAB ────────────────────────────────────────────────────────── */}
+      {telegramTab === 'stats' && (
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-3 space-y-4">
+            {/* Summary KPIs */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { label: t('Total Msgs', 'الرسائل'), value: filteredMessages.length, color: 'text-sky-400', accent: 'hsl(199 89% 50%)' },
+                { label: t('Last Hour', 'آخر ساعة'), value: recentActivity, color: 'text-emerald-400', accent: 'hsl(160 84% 39%)' },
+                { label: t('Breaking', 'عاجل'), value: breakingCount, color: breakingCount > 0 ? 'text-red-400' : 'text-foreground/30', accent: 'hsl(0 72% 51%)' },
+              ].map(({ label, value, color, accent }) => (
+                <div key={label} className="rounded overflow-hidden border border-border/40" style={{borderLeft:`3px solid ${accent}`}}>
+                  <div className="px-2 py-1.5 bg-muted/30">
+                    <div className="text-[8px] text-foreground/40 font-mono tracking-wider leading-none">{label}</div>
+                    <div className={`text-xl font-black font-mono leading-tight tabular-nums ${color}`}>{value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 12h Activity Timeline */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="w-3.5 h-3.5 text-sky-400/70" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Activity (last 12h)', 'النشاط (12 ساعة)')}</span>
+              </div>
+              <div className="flex items-end gap-0.5 h-12 rounded bg-muted/20 border border-border/30 p-1.5">
+                {hourlyActivity.map(({ hour, count }) => (
+                  <div key={hour} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div
+                      className="w-full rounded-sm transition-all"
+                      style={{
+                        height: `${Math.max(2, (count / maxHourly) * 36)}px`,
+                        background: count > maxHourly * 0.7 ? 'hsl(199 89% 55%)' : count > 0 ? 'hsl(199 89% 40%)' : 'hsl(var(--muted))',
+                      }}
+                    />
+                    {hour % 3 === 0 && <span className="text-[6px] font-mono text-foreground/25">{hour === 0 ? 'now' : `${hour}h`}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Messages per channel */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <SiTelegram className="w-3.5 h-3.5 text-sky-400/70" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Messages by Channel', 'رسائل حسب القناة')}</span>
+              </div>
+              <div className="space-y-1.5">
+                {channelCounts.slice(0, 12).map(([ch, count]) => (
+                  <div key={ch} className="flex items-center gap-2">
+                    <span className="text-[9px] text-sky-400/70 font-mono w-[110px] truncate">{ch.replace('@', '')}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden bg-black/30">
+                      <div className="h-full rounded-full transition-all" style={{width:`${(count / maxChannel) * 100}%`, background:'hsl(199 89% 45%)'}} />
+                    </div>
+                    <span className="text-[9px] text-sky-300 font-mono font-bold w-[24px] text-right tabular-nums">{count}</span>
+                  </div>
+                ))}
+                {filteredMessages.length === 0 && (
+                  <div className="text-center py-4 text-[10px] font-mono text-foreground/30">{t('No data yet', 'لا بيانات')}</div>
                 )}
+              </div>
+            </div>
 
-                <div className="px-2.5 py-2">
-                  {(!msg.image || isExpanded) && (
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <div className="w-5 h-5 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0">
-                        <SiTelegram className="w-3 h-3 text-sky-400/90" />
+            {/* Top Keywords */}
+            {topKeywords.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Search className="w-3.5 h-3.5 text-sky-400/70" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">{t('Top Keywords', 'الكلمات الأكثر تكراراً')}</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {topKeywords.map(([word, count]) => (
+                    <button
+                      key={word}
+                      onClick={() => { setSearchQuery(word); setTelegramTab('feed'); }}
+                      className="px-2 py-0.5 rounded text-[8px] font-mono transition-all hover:opacity-80 active:scale-95"
+                      style={{
+                        background: `hsl(199 89% ${Math.max(15, 30 - (topKeywords.indexOf([word, count]) * 1))}% / 0.25)`,
+                        border: '1px solid hsl(199 89% 50% / 0.2)',
+                        color: `hsl(199 89% ${Math.max(55, 75 - topKeywords.indexOf([word, count]))}%)`,
+                        fontSize: `${Math.max(7, 9 - Math.floor(topKeywords.indexOf([word, count]) / 5))}px`,
+                      }}
+                    >
+                      {word} <span className="opacity-50">{count}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[7px] font-mono text-foreground/25 mt-1">{t('Click a keyword to search feed', 'انقر للبحث في المحادثات')}</div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      )}
+
+      {/* ── CHANNELS TAB ─────────────────────────────────────────────────────── */}
+      {telegramTab === 'channels' && (
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-3 space-y-3">
+            {/* Add channel form always visible here */}
+            <div className="rounded border border-sky-800/25 bg-sky-950/15 p-2.5 space-y-2">
+              <div className="text-[9px] font-mono font-bold text-sky-400/60 uppercase tracking-wider">{t('Add Channel', 'إضافة قناة')}</div>
+              <div className="flex gap-1.5">
+                <div className="flex-1 relative">
+                  <Hash className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-sky-400/40" />
+                  <input
+                    type="text"
+                    value={newChannel}
+                    onChange={(e) => setNewChannel(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addChannel()}
+                    placeholder={t('@channel or username', '@القناة')}
+                    className="w-full h-7 text-[11px] font-mono pl-7 pr-2 rounded bg-background/60 border border-sky-800/30 text-sky-100/90 placeholder:text-sky-400/20 focus:outline-none focus:border-sky-500/50 transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={addChannel}
+                  className="h-7 px-3 text-[10px] font-mono font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 rounded border border-sky-500/25 transition-colors flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  {t('Add', 'إضافة')}
+                </button>
+              </div>
+            </div>
+
+            {/* Default channels */}
+            <div>
+              <div className="text-[9px] font-mono font-bold text-foreground/30 uppercase tracking-wider mb-1.5">{t('Default Channels', 'القنوات الافتراضية')}</div>
+              <div className="space-y-1">
+                {DEFAULT_CHANNELS.map(ch => {
+                  const count = filteredMessages.filter(m => m.channel === ch).length;
+                  const lastMsg = filteredMessages.find(m => m.channel === ch);
+                  return (
+                    <div key={ch} className="flex items-center gap-2 p-2 rounded bg-muted/20 border border-border/30 hover:border-sky-500/20 transition-colors">
+                      <div className="w-6 h-6 rounded-full bg-sky-500/15 flex items-center justify-center shrink-0">
+                        <SiTelegram className="w-3.5 h-3.5 text-sky-400/80" />
                       </div>
-                      <span className="text-xs text-sky-400 font-bold truncate">{channelName}</span>
-                      {isNew && (
-                        <span className="text-[7px] font-mono font-bold text-emerald-300 bg-emerald-500/25 px-1 rounded border border-emerald-500/30 shrink-0">NEW</span>
-                      )}
-                      {isLive && !isNew && (
-                        <span className="text-[7px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1 rounded border border-emerald-500/20 shrink-0">LIVE</span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground/50 font-mono ml-auto tabular-nums shrink-0">{timeAgo(msg.timestamp)}</span>
-                    </div>
-                  )}
-
-                  {isExpanded && msg.image && (
-                    <div className="rounded-md overflow-hidden mb-2 border border-sky-800/20">
-                      <img
-                        src={msg.image}
-                        alt=""
-                        className="w-full max-h-96 object-cover bg-black/20 cursor-zoom-in hover:opacity-90 transition-opacity"
-                        loading="lazy"
-                        onClick={(e) => { e.stopPropagation(); setLightboxImage(msg.image!); }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        data-testid={`img-telegram-${msg.id}`}
-                      />
-                    </div>
-                  )}
-
-                  <p className={`text-sm leading-[1.65] ${isExpanded ? 'text-foreground/90 whitespace-pre-wrap' : 'text-foreground/70 line-clamp-2'}`}>{text}</p>
-
-                  {isExpanded && (
-                    <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-sky-800/15">
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
-                        <Clock className="w-2.5 h-2.5" />
-                        <span className="font-mono">{new Date(msg.timestamp).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-bold text-sky-300 font-mono truncate">{ch.replace('@', '')}</div>
+                        {lastMsg && <div className="text-[8px] text-foreground/30 font-mono truncate">{lastMsg.text.slice(0, 50)}{lastMsg.text.length > 50 ? '…' : ''}</div>}
                       </div>
-                      <a
-                        href={`https://t.me/${channelName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1 text-[10px] text-sky-400/50 hover:text-sky-400/90 transition-colors ml-auto"
-                        data-testid={`link-telegram-channel-${msg.id}`}
-                      >
-                        <ExternalLink className="w-2.5 h-2.5" />
-                        <span>{language === 'ar' ? '\u0641\u062A\u062D' : 'Open'}</span>
-                      </a>
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                        <span className="text-[9px] font-mono font-bold text-sky-400">{count}</span>
+                        <a
+                          href={`https://t.me/${ch.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="text-foreground/20 hover:text-sky-400/60 transition-colors"
+                        >
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
                     </div>
-                  )}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom channels */}
+            {customOnly.length > 0 && (
+              <div>
+                <div className="text-[9px] font-mono font-bold text-foreground/30 uppercase tracking-wider mb-1.5">{t('Custom Channels', 'قنوات مخصصة')}</div>
+                <div className="space-y-1">
+                  {customOnly.map(ch => {
+                    const count = filteredMessages.filter(m => m.channel === ch).length;
+                    return (
+                      <div key={ch} className="flex items-center gap-2 p-2 rounded bg-sky-950/20 border border-sky-800/25">
+                        <div className="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0">
+                          <SiTelegram className="w-3.5 h-3.5 text-sky-300/80" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold text-sky-200 font-mono truncate">{ch.replace('@', '')}</div>
+                          <div className="text-[8px] text-sky-400/40 font-mono">{t('Custom', 'مخصص')}</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[9px] font-mono font-bold text-sky-400">{count}</span>
+                          <a
+                            href={`https://t.me/${ch.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="text-foreground/20 hover:text-sky-400/60 transition-colors"
+                          >
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                          <button
+                            onClick={() => removeChannel(ch)}
+                            className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-500/20 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3 text-red-400/50 hover:text-red-400/80" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </ScrollArea>
+            )}
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 });
