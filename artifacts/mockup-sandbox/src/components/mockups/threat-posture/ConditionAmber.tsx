@@ -240,7 +240,7 @@ export function ConditionAmber() {
                     <span className="text-red-400">URGENT</span>
                   </div>
                   <div className="text-[10px] text-white/90 leading-tight">
-                    <span className="text-red-400 font-bold mr-1">>></span>
+                    <span className="text-red-400 font-bold mr-1">{'>'}{'>'}  </span>
                     MULTIPLE LAUNCHES DETECTED FROM LEBANESE BORDER TOWARDS GALILEE.
                   </div>
                 </div>
