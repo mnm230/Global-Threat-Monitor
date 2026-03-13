@@ -18,7 +18,16 @@ type ChannelId =
   | "telegram"
   | "xmonitor"
   | "marinetraffic"
-  | "acled";
+  | "acled"
+  | "i24"
+  | "bbc"
+  | "cnn"
+  | "skynews"
+  | "france24"
+  | "ch12"
+  | "ch13"
+  | "lbc"
+  | "dw";
 
 interface FeedItem {
   id: string;
