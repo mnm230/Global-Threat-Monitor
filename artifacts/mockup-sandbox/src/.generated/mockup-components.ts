@@ -3,6 +3,9 @@ type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 export const modules: ModuleMap = {
   "./components/mockups/redalert-refined/Polished.tsx": () => import("../components/mockups/redalert-refined/Polished.tsx"),
   "./components/mockups/redalert-refined/Tightened.tsx": () => import("../components/mockups/redalert-refined/Tightened.tsx"),
+  "./components/mockups/threat-posture/ConditionAmber.tsx": () => import("../components/mockups/threat-posture/ConditionAmber.tsx"),
+  "./components/mockups/threat-posture/ConditionGreen.tsx": () => import("../components/mockups/threat-posture/ConditionGreen.tsx"),
+  "./components/mockups/threat-posture/ConditionRed.tsx": () => import("../components/mockups/threat-posture/ConditionRed.tsx"),
   "./components/mockups/warroom-alert-redesign/ActiveSirensPanel.tsx": () => import("../components/mockups/warroom-alert-redesign/ActiveSirensPanel.tsx"),
   "./components/mockups/warroom-alert-redesign/AlertCommand.tsx": () => import("../components/mockups/warroom-alert-redesign/AlertCommand.tsx"),
   "./components/mockups/warroom-alert-redesign/AlertSeverityStack.tsx": () => import("../components/mockups/warroom-alert-redesign/AlertSeverityStack.tsx"),

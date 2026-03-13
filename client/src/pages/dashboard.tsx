@@ -1949,11 +1949,11 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-[28px] px-2.5 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
-      <span className="[&>svg]:w-3 [&>svg]:h-3 text-muted-foreground/60 shrink-0">{icon}</span>
-      <span className="text-[10px] font-bold text-foreground/70 leading-none tracking-[.08em] uppercase font-mono">{title}</span>
+    <div className="panel-drag-handle h-[32px] px-2.5 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
+      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground/60 shrink-0">{icon}</span>
+      <span className="text-[12px] font-extrabold text-foreground/80 leading-none tracking-[.08em] uppercase font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[9px] text-muted-foreground/50 tabular-nums leading-none font-mono bg-muted/40 px-1 py-px rounded-sm">
+        <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums leading-none font-mono bg-muted/40 px-1.5 py-0.5 rounded-sm">
           {count}
         </span>
       )}
@@ -1962,7 +1962,7 @@ const PanelHeader = memo(function PanelHeader({
       {live && (
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[9px] text-emerald-500/60 font-bold uppercase tracking-wider font-mono">live</span>
+          <span className="text-[10px] text-emerald-500/60 font-extrabold uppercase tracking-wider font-mono">live</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}

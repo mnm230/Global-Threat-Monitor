@@ -387,7 +387,7 @@
 
   /* ── Component atoms — compact ── */
   .ra-pill {
-    font-size: 10px; font-weight: 700;
+    font-size: 12px; font-weight: 800;
     padding: 2px 8px; border-radius: 2px;
     cursor: pointer; border: 1px solid;
     white-space: nowrap; flex-shrink: 0;
@@ -397,14 +397,14 @@
   }
 
   .ra-badge-sm {
-    font-size: 10px; font-weight: 700;
+    font-size: 12px; font-weight: 800;
     padding: 1px 6px; border-radius: 2px;
     letter-spacing: .05em; text-transform: uppercase;
     font-family: var(--font-mono);
   }
 
   .ra-badge-xs {
-    font-size: 9px; font-weight: 700;
+    font-size: 11px; font-weight: 800;
     padding: 1px 4px; border-radius: 2px;
     letter-spacing: .06em;
     font-family: var(--font-mono);
@@ -427,7 +427,7 @@
   .ra-search-input {
     width: 100%; box-sizing: border-box;
     padding: 5px 8px 5px 30px;
-    font-size: 11px;
+    font-size: 13px;
     font-family: var(--font-mono);
     background: hsl(var(--background));
     border: 1px solid hsl(var(--border));
@@ -512,6 +512,13 @@
 /* ════════════════════════════════════════════════════════════════
    PANEL DRAG HANDLE  — compact dense
    ════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   GLOBAL FONT BOOST — bigger & bolder across all panels
+   ════════════════════════════════════════════════════════════════ */
+.react-grid-item {
+  font-weight: 700;
+}
+
 .dark .panel-drag-handle {
   background: hsl(222 26% 5.5%) !important;
   border-bottom: 1px solid hsl(222 20% 10%) !important;
