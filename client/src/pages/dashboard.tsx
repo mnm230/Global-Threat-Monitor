@@ -2227,36 +2227,35 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           <p className="text-xs text-muted-foreground">No active alerts</p>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="grid p-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '3px' }}>
         {sorted.map((s) => {
           const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
           const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
           return (
             <div
               key={s.id}
-              className="px-4 py-3 hover-elevate border-l-2 border-l-red-500/40"
+              className="flex flex-col items-center justify-center text-center hover-elevate rounded-sm"
+              style={{ height: '58px', padding: '6px 8px', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.10)' }}
               data-testid={`siren-panel-${s.id}`}
             >
-              <div className="flex items-center gap-1.5 mb-1">
+              <div className="flex items-center gap-1.5 w-full justify-center mb-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
-                <span className="text-xs text-red-300/90 font-bold truncate flex-1">
+                <span className="text-[11px] text-red-300/90 font-bold truncate">
                   {language === 'ar' ? s.locationAr : s.location}
                 </span>
-                <span className="text-xs text-muted-foreground/60 font-mono tabular-nums shrink-0">
-                  {timeAgo(s.timestamp)}
-                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs px-1.5 py-0.5 rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
-                  {language === 'ar' ? threat.ar : threat.en}
-                </span>
-                <span className="text-xs text-muted-foreground/50 truncate">
-                  {language === 'ar' ? s.regionAr : s.region}
-                </span>
+              <span className={`text-[9px] px-1.5 py-px rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
+                {language === 'ar' ? threat.ar : threat.en}
+              </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[8px] text-muted-foreground/40 truncate">{language === 'ar' ? s.regionAr : s.region}</span>
+                <span className="text-[8px] text-muted-foreground/30 font-mono tabular-nums shrink-0">{timeAgo(s.timestamp)}</span>
               </div>
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -3332,20 +3331,24 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             <span className="text-[9px] text-amber-400/40 ra-font-mono font-semibold ml-auto tracking-widest uppercase">OREF</span>
           </div>
           <div className={isMobile ? 'max-h-[120px]' : 'max-h-[110px]'} style={{ overflowY: 'auto', scrollbarWidth: 'none' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1px', background: 'rgba(217,119,6,0.08)' }}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
               const sirenIcon = s.threatType === 'missile' ? '⚡' : s.threatType === 'uav' ? '🛸' : s.threatType === 'hostile_aircraft' ? '✈️' : '🚀';
               return (
-                <div key={s.id} className={`flex items-center gap-2 ${isMobile ? 'px-4 py-2.5 min-h-[44px]' : 'px-3 py-1.5'} border-t border-amber-600/[0.15]`} data-testid={`siren-panel-${s.id}`}
-                  style={{ background: 'rgba(217,119,6,0.04)' }}>
-                  <span className={`${isMobile ? 'text-[14px]' : 'text-[11px]'} shrink-0`}>{sirenIcon}</span>
-                  <span className={`${isMobile ? 'text-[14px]' : 'text-[12px]'} font-bold text-amber-100 flex-1 truncate ra-font-display`}>
-                    {language === 'ar' ? s.locationAr : s.location}
-                  </span>
-                  <span className={`${isMobile ? 'text-[11px]' : 'text-[9px]'} text-amber-400/60 ra-font-mono font-semibold shrink-0`} style={{ letterSpacing: '0.08em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
+                <div key={s.id} className="flex flex-col items-center justify-center text-center" data-testid={`siren-panel-${s.id}`}
+                  style={{ background: 'rgba(217,119,6,0.04)', height: isMobile ? '52px' : '42px', padding: isMobile ? '6px 8px' : '4px 6px' }}>
+                  <div className="flex items-center gap-1.5 w-full justify-center">
+                    <span className={`${isMobile ? 'text-[13px]' : 'text-[11px]'} shrink-0 leading-none`}>{sirenIcon}</span>
+                    <span className={`${isMobile ? 'text-[12px]' : 'text-[11px]'} font-bold text-amber-100 truncate ra-font-display leading-tight`}>
+                      {language === 'ar' ? s.locationAr : s.location}
+                    </span>
+                  </div>
+                  <span className={`${isMobile ? 'text-[9px]' : 'text-[8px]'} text-amber-400/50 ra-font-mono font-semibold uppercase leading-none mt-0.5`} style={{ letterSpacing: '0.1em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       )}
@@ -4350,6 +4353,22 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   });
   const [exportingPdf, setExportingPdf] = useState(false);
   const [analyticsTab, setAnalyticsTab] = useState<'overview' | 'regions' | 'sources' | 'patterns' | 'epicfury'>('overview');
+  const [epicFuryData, setEpicFuryData] = useState<Record<string, any> | null>(null);
+  const [epicFuryLoading, setEpicFuryLoading] = useState(false);
+  const [epicFuryFetchedAt, setEpicFuryFetchedAt] = useState<string | null>(null);
+  const [epicFuryError, setEpicFuryError] = useState(false);
+  const fetchEpicFury = useCallback(async () => {
+    setEpicFuryLoading(true);
+    setEpicFuryError(false);
+    try {
+      const res = await fetch('/api/epic-fury');
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      if (!data.error) { setEpicFuryData(data); setEpicFuryFetchedAt(new Date().toLocaleTimeString()); }
+      else setEpicFuryError(true);
+    } catch { setEpicFuryError(true); }
+    setEpicFuryLoading(false);
+  }, []);
 
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
 
@@ -5357,8 +5376,18 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
                         <span className="text-[10px] font-black text-red-300 uppercase tracking-wider font-mono">Operation Epic Fury</span>
-                        <span className="text-[7px] font-mono text-foreground/35 ml-auto">Op. Roaring Lion · 28 Feb 2026</span>
+                        <button
+                          onClick={fetchEpicFury}
+                          disabled={epicFuryLoading}
+                          className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          style={{background:'hsl(0 40% 25% / 0.6)', border:'1px solid hsl(0 50% 40% / 0.5)', color:'hsl(0 80% 75%)'}}
+                        >
+                          {epicFuryLoading ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Download className="w-2.5 h-2.5" />}
+                          {epicFuryLoading ? 'Fetching…' : 'Refresh'}
+                        </button>
                       </div>
+                      {epicFuryError && <div className="text-[7px] font-mono text-red-400/70 mb-1">Failed to fetch — site may be JS-rendered. Showing last known data.</div>}
+                      {epicFuryFetchedAt && !epicFuryError && <div className="text-[7px] font-mono text-emerald-400/60 mb-1">Live data fetched at {epicFuryFetchedAt}</div>}
                       <div className="grid grid-cols-3 gap-2 mt-2 text-center">
                         <div>
                           <div className="text-[8px] text-foreground/40 uppercase tracking-wider">Start</div>
