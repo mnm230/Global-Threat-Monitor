@@ -1228,18 +1228,18 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
-  alerts:       'hsl(0 72% 52%)',
-  telegram:     'hsl(200 72% 52%)',
-  events:       'hsl(36 80% 50%)',
-  markets:      'hsl(262 60% 58%)',
-  aiprediction: 'hsl(272 60% 58%)',
-  analytics:    'hsl(183 65% 44%)',
-  notams:       'hsl(43 75% 48%)',
-  osint:        'hsl(238 58% 58%)',
-  livefeed:     'hsl(213 58% 50%)',
-  alertmap:     'hsl(14 72% 50%)',
-  attackpred:   'hsl(26 78% 50%)',
-  rocketstats:  'hsl(172 62% 44%)',
+  alerts:       'hsl(0 65% 48%)',
+  telegram:     'hsl(210 70% 52%)',
+  events:       'hsl(36 65% 48%)',
+  markets:      'hsl(250 50% 52%)',
+  aiprediction: 'hsl(260 50% 52%)',
+  analytics:    'hsl(195 55% 42%)',
+  notams:       'hsl(40 60% 46%)',
+  osint:        'hsl(230 50% 52%)',
+  livefeed:     'hsl(215 55% 48%)',
+  alertmap:     'hsl(12 60% 46%)',
+  attackpred:   'hsl(24 60% 46%)',
+  rocketstats:  'hsl(175 50% 40%)',
 };
 
 interface Correlation {
@@ -1717,14 +1717,14 @@ const LiveClock = memo(function LiveClock() {
   });
 
   return (
-    <div className="flex items-center gap-2" data-testid="text-clock">
-      <span className="text-[12px] text-muted-foreground hidden md:inline">{dateStr}</span>
-      <div className="flex items-center gap-1 bg-muted border border-border rounded-md px-2 py-1">
-        <span className="text-[12px] text-foreground font-mono tabular-nums">{utcTime}</span>
-        <span className="text-[10px] text-muted-foreground font-mono">UTC</span>
-        <div className="w-px h-3 bg-border mx-0.5" />
-        <span className="text-[12px] text-amber-600 font-mono tabular-nums">{beirutTime}</span>
-        <span className="text-[10px] text-muted-foreground font-mono">BEY</span>
+    <div className="flex items-center gap-1.5" data-testid="text-clock">
+      <span className="text-[10px] text-muted-foreground/60 hidden md:inline font-mono">{dateStr}</span>
+      <div className="flex items-center gap-1 bg-muted/60 border border-border rounded px-1.5 py-0.5">
+        <span className="text-[10px] text-foreground/80 font-mono tabular-nums">{utcTime}</span>
+        <span className="text-[8px] text-muted-foreground/50 font-mono">UTC</span>
+        <div className="w-px h-2.5 bg-border mx-0.5" />
+        <span className="text-[10px] text-blue-400 font-mono tabular-nums">{beirutTime}</span>
+        <span className="text-[8px] text-muted-foreground/50 font-mono">BEY</span>
       </div>
     </div>
   );
@@ -1957,20 +1957,20 @@ const PanelHeader = memo(function PanelHeader({
   isMaximized?: boolean;
 }) {
   return (
-    <div className="panel-drag-handle h-[38px] px-3.5 flex items-center gap-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none">
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground shrink-0">{icon}</span>
-      <span className="text-[12px] font-semibold text-foreground/80 leading-none tracking-wider uppercase">{title}</span>
+    <div className="panel-drag-handle h-[28px] px-2.5 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
+      <span className="[&>svg]:w-3 [&>svg]:h-3 text-muted-foreground/60 shrink-0">{icon}</span>
+      <span className="text-[10px] font-bold text-foreground/70 leading-none tracking-[.08em] uppercase font-mono">{title}</span>
       {count !== undefined && (
-        <span className="text-[10px] text-muted-foreground/60 tabular-nums leading-none font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] text-muted-foreground/50 tabular-nums leading-none font-mono bg-muted/40 px-1 py-px rounded-sm">
           {count}
         </span>
       )}
       {extra}
       <div className="flex-1" />
       {live && (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          <span className="text-[10px] text-emerald-500/70 font-semibold uppercase tracking-wider">live</span>
+          <span className="text-[9px] text-emerald-500/60 font-bold uppercase tracking-wider font-mono">live</span>
         </div>
       )}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -8127,20 +8127,20 @@ export default function Dashboard() {
 
   return (
     <div className={`flex flex-col bg-background text-foreground h-screen ${isMobile || isTablet ? '!h-[100dvh]' : ''}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
-      <header className={`${isMobile ? (isLandscape ? 'h-10' : 'h-12') : isTouchDevice ? 'min-h-[48px]' : 'h-12'} border-b flex items-center justify-between px-3 md:px-4 shrink-0 relative z-50 warroom-header bg-card`}>
+      <header className={`${isMobile ? (isLandscape ? 'h-8' : 'h-9') : isTouchDevice ? 'min-h-[40px]' : 'h-9'} border-b flex items-center justify-between px-2 md:px-3 shrink-0 relative z-50 warroom-header bg-card`}>
         {/* Left — Branding */}
-        <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 hidden sm:flex bg-primary/10 border border-primary/20">
-              <span className="text-primary text-[14px]">&#x25C8;</span>
+        <div className="flex items-center gap-2 md:gap-2.5 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 hidden sm:flex bg-primary/10 border border-primary/20">
+              <span className="text-primary text-[10px]">&#x25C8;</span>
             </div>
-            <span className={`${isMobile ? 'text-[14px]' : 'text-[15px]'} font-semibold tracking-wide text-foreground select-none whitespace-nowrap`}>
+            <span className={`${isMobile ? 'text-[12px]' : 'text-[13px]'} font-bold tracking-[.08em] uppercase text-foreground select-none whitespace-nowrap font-mono`}>
               Warroom
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25">
+          <div className="flex items-center gap-1 px-1.5 py-px rounded bg-red-500/8 border border-red-500/20">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot" />
-            <span className="text-[11px] text-red-500 font-semibold">Live</span>
+            <span className="text-[9px] text-red-500 font-bold font-mono uppercase tracking-wider">Live</span>
           </div>
           {(isMobile || isTablet) && (
             <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
@@ -8151,21 +8151,21 @@ export default function Dashboard() {
         </div>
         {/* Center — Key status (desktop only) */}
         {!isMobile && !isTablet && (
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
-              <ShieldAlert className={`w-3.5 h-3.5 ${threatLevel.color}`} />
-              <span className={`text-[12px] font-semibold ${threatLevel.color}`}>{threatLevel.level}</span>
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded border ${threatLevel.bg}`} role="status" aria-live="polite" data-testid="threat-level-badge">
+              <ShieldAlert className={`w-3 h-3 ${threatLevel.color}`} />
+              <span className={`text-[10px] font-bold font-mono ${threatLevel.color}`}>{threatLevel.level}</span>
             </div>
             {redAlerts.length > 0 && (
               <>
-                <div className="w-px h-4 bg-border" />
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/25">
-                  <span className="text-[12px] font-semibold text-red-500">{redAlerts.length}</span>
-                  <span className="text-[11px] text-red-400">Alerts</span>
+                <div className="w-px h-3.5 bg-border" />
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/8 border border-red-500/20">
+                  <span className="text-[10px] font-bold text-red-500 font-mono">{redAlerts.length}</span>
+                  <span className="text-[9px] text-red-400 font-mono">ALR</span>
                 </div>
               </>
             )}
-            <div className="w-px h-4 bg-border" />
+            <div className="w-px h-3.5 bg-border" />
             <LiveClock />
           </div>
         )}
@@ -8585,8 +8585,8 @@ export default function Dashboard() {
             onLayoutChange={handleGridLayoutChange}
             draggableHandle=".panel-drag-handle"
             draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[14, 14]}
-            containerPadding={[16, 16]}
+            margin={[4, 4]}
+            containerPadding={[4, 4]}
             resizeHandles={['se', 'e', 's']}
             style={{ paddingBottom: 80 }}
           >

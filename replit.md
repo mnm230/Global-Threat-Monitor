@@ -10,11 +10,11 @@ Not specified.
 The WARROOM dashboard is built using a modern web stack, emphasizing real-time data delivery, interactive visualization, and a dark, information-dense UI.
 
 **UI/UX Decisions:**
-- **Theme:** Military command-center aesthetic with a deep dark theme, teal primary accents, and subtle glow effects. Utilizes `hsl` color values for consistency.
-- **Typography:** Fira Sans for headers and Fira Mono for data readouts, with compact font sizes for high information density.
+- **Theme:** Dense Operations / Bloomberg Terminal style with refined Blue/Navy color palette. Deep navy background (`hsl(222 28% 4%)`), blue-500 primary accent (`hsl(215 80% 56%)`), minimal shadows, sharp 3px border-radius, tight 4px grid gaps. Monospace-heavy typography.
+- **Typography:** Inter for display, JetBrains Mono for data readouts and panel headers, with compact font sizes (13px base) for maximum information density.
 - **Clocks:** Displays both UTC and Lebanon/Beirut time with timezone labels.
 - **Responsiveness:** Adaptive layouts for mobile, tablet, and desktop, with specific UI adjustments for each, including single-panel views for mobile and CSS grid layouts for tablets.
-- **Panel System:** Features customizable, resizable panels (`map`, `telegram`, `events`, `alerts`, `markets`, `netblack`, `notams`, `livefeed`, `alertmap`, `analytics`, `osint`, `sitrep`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout.
+- **Panel System:** Features customizable, resizable panels (`telegram`, `events`, `alerts`, `markets`, `notams`, `livefeed`, `alertmap`, `analytics`, `osint`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout. Internet Monitor (netblack) panel removed.
 - **Alert Map:** Full-width panel leveraging MapLibre GL with responsive overlays for different screen sizes and a red alert heatmap visualization.
 
 **Technical Implementations:**
@@ -24,7 +24,6 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Real-time Data:** Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts, including visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data with auto-classification, detailed flight info, and server-side caching.
-- **Internet Blackout Monitoring:** Uses IODA (Georgia Tech) API for real-time internet connectivity health of 13 Middle Eastern countries, combining BGP prefix counts and active probing (ping-slash24) data with rolling baseline comparison. Thresholds: >=90% online, >=70% degraded, >=30% disrupted, <30% blackout.
 - **NOTAM Panel:** Fetches/generates NOTAMs for key ME airports, inferring airspace closures from red alerts and GPS interference.
 - **Telegram OSINT:** Scrapes 50+ public Telegram channels with server-side caching and filtering, focusing on near-real-time updates for priority channels.
 - **AI Intelligence:** AI world brief panel with risk assessment and forecasting, and an AI Attack Predictor panel using Anthropic Claude for probabilistic attack predictions.
