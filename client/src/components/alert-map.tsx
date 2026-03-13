@@ -527,7 +527,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: INDIGO, boxShadow: `0 0 6px ${INDIGO}` }} />
               <span className="text-[9px] font-mono font-black uppercase tracking-widest" style={{ color: INDIGO }}>INTEL OVERLAY</span>
             </div>
-            <button onClick={() => setShowStats(false)} className="w-5 h-5 flex items-center justify-center rounded-md text-sm" style={{ color: TEXT_MUTED, background: 'rgba(255,255,255,0.05)' }}>x</button>
+            <button onClick={() => setShowStats(false)} className="w-5 h-5 flex items-center justify-center rounded-md text-sm" style={{ color: TEXT_MUTED, background: 'rgba(255,255,255,0.05)' }}>×</button>
           </div>
           <div className="overflow-y-auto p-3 flex flex-col gap-3">
             <div className="grid grid-cols-3 gap-1.5">

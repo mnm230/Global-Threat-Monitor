@@ -192,7 +192,7 @@ function useAnomalyDetection(
           id: `anom-flight-${milFlights[i].callsign}-${Date.now()}`,
           type: 'flight_convergence',
           severity: 'medium',
-          description: `Military flight convergence: ${nearby + 1} aircraft within 1 degree near ${milFlights[i].callsign}`,
+          description: `Military flight convergence: ${nearby + 1} aircraft within 1° of ${milFlights[i].callsign}`,
           timestamp: now,
         });
         break;
@@ -409,8 +409,8 @@ class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: st
         <div className="w-full h-full flex items-center justify-center bg-card/50 text-muted-foreground" data-testid={`panel-error-${this.props.panelName || 'unknown'}`}>
           <div className="text-center p-4">
             {this.props.icon || <TriangleAlert className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />}
-            <p className="text-xs font-mono mt-2">{this.props.panelName || 'Panel'} error</p>
-            <p className="text-[11px] mt-1 text-muted-foreground/60">Component failed to render</p>
+            <p className="text-xs font-mono mt-2">{this.props.panelName || 'Panel'} Error</p>
+            <p className="text-[11px] mt-1 text-muted-foreground/60">Failed to render component</p>
             <button
               onClick={() => this.setState({ hasError: false })}
               className="mt-3 px-3 py-1 text-[11px] font-mono bg-primary/10 border border-primary/30 rounded hover:bg-primary/20 text-primary transition-colors"
@@ -1259,7 +1259,7 @@ function useCorrelations(events: ConflictEvent[], alerts: RedAlert[], sirens: Si
           const items: Correlation['items'] = [{ type: 'event', id: evt.id, label: evt.title }];
           relatedAlerts.forEach(a => items.push({ type: 'alert', id: a.id, label: a.city }));
           relatedSirens.forEach(s => items.push({ type: 'siren', id: s.id, label: s.location }));
-          correlations.push({ id: `corr-${cId++}`, items, reason: 'Spatial/temporal proximity' });
+          correlations.push({ id: `corr-${cId++}`, items, reason: 'Spatial and temporal proximity' });
         }
       }
 
@@ -1975,10 +1975,11 @@ const PanelHeader = memo(function PanelHeader({
 interface FloatState { x: number; y: number; w: number; h: number; z: number }
 
 const FloatingWindow = memo(function FloatingWindow({
-  id, title, icon, children, state, onDock, onClose, onFocus,
+  id, title, icon, children, state, onDock, onClose, onFocus, onDragStart, onDragEnd,
 }: {
   id: string; title: string; icon: React.ReactNode; children: React.ReactNode;
   state: FloatState; onDock: () => void; onClose: () => void; onFocus: () => void;
+  onDragStart?: () => void; onDragEnd?: (x: number, y: number) => void;
 }) {
   const [pos, setPos] = useState({ x: state.x, y: state.y });
   const [size, setSize] = useState({ w: state.w, h: state.h });
@@ -1989,7 +1990,7 @@ const FloatingWindow = memo(function FloatingWindow({
     if ((e.target as HTMLElement).closest('button,[data-no-drag]')) return;
     drag.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y };
     e.currentTarget.setPointerCapture(e.pointerId);
-    onFocus(); e.preventDefault();
+    onFocus(); onDragStart?.(); e.preventDefault();
   };
   const onTitleMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
@@ -1998,7 +1999,11 @@ const FloatingWindow = memo(function FloatingWindow({
       y: Math.max(0, drag.current.oy + e.clientY - drag.current.my),
     });
   };
-  const onTitleUp = () => { drag.current = null; };
+  const onTitleUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return;
+    drag.current = null;
+    onDragEnd?.(e.clientX, e.clientY);
+  };
 
   const onResizeDown = (e: React.PointerEvent<HTMLDivElement>) => {
     resize.current = { mx: e.clientX, my: e.clientY, ow: size.w, oh: size.h };
@@ -2043,9 +2048,10 @@ const FloatingWindow = memo(function FloatingWindow({
         <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))', flex: 1 }}>{title}</span>
         <button
           onClick={onDock} data-no-drag title="Dock back to grid"
-          style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer', flexShrink: 0 }}
+          style={{ height: 26, padding: '0 8px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4, background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer', flexShrink: 0, fontSize: 11, fontWeight: 600 }}
         >
-          <Minimize2 style={{ width: 12, height: 12 }} />
+          <PanelLeft style={{ width: 11, height: 11 }} />
+          <span>Dock</span>
         </button>
         <button
           onClick={onClose} data-no-drag title="Close"
@@ -2541,7 +2547,7 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="filter: 'missiles', 'iran', 'critical'..."
+            placeholder="e.g. 'missiles', 'iran', 'critical'..."
             className="flex-1 bg-transparent text-[9px] font-mono text-foreground/70 placeholder:text-foreground/20 outline-none"
           />
           {query && (
@@ -2551,7 +2557,7 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
       </div>
       {filtered.length === 0 && query && (
         <div className="px-3 py-3 text-center">
-          <p className="text-[9px] text-foreground/25 font-mono">NO MATCH — try 'missile', 'high', country name</p>
+          <p className="text-[9px] text-foreground/25 font-mono">No results — try 'missile', 'high', or a country name</p>
         </div>
       )}
       {events.length === 0 && !query && (
@@ -3121,7 +3127,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             </div>
           )}
           <div className="flex overflow-x-auto px-3 py-1.5 gap-px" style={{ scrollbarWidth: 'none' }}>
-            {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACF']] as [string,string][]).map(([key, label]) => {
+            {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACFT']] as [string,string][]).map(([key, label]) => {
               const isActive = threatFilter === key;
               return (
                 <button key={key} onClick={() => setThreatFilter(key)}
@@ -3163,7 +3169,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       ) : hasActiveAlerts ? (
         <div className="shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.12)' }}>
           <div className="flex items-center border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACF']] as [string,string][]).map(([key, label]) => (
+            {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACFT']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
                 className="flex-1 ra-font-mono font-bold transition-colors"
                 style={{ fontSize: 10, padding: '6px 0', letterSpacing: '0.12em',
@@ -3377,7 +3383,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               </span>
             </div>
             <div className={`${isMobile ? 'text-[14px] min-w-[28px]' : 'text-[13px] min-w-[24px]'} font-black text-white text-center ra-tabular ra-font-mono leading-none py-0.5 rounded-sm`} style={{ background: 'rgba(239,68,68,0.5)', border: '1px solid rgba(239,68,68,0.35)' }}>{sirens.length}</div>
-            <span className={`${isMobile ? 'text-[10px]' : 'text-[9px]'} text-red-400/40 ra-font-mono font-bold`}>{regionCount} {language === 'ar' ? 'مناطق' : 'regions'}</span>
+            <span className={`${isMobile ? 'text-[10px]' : 'text-[9px]'} text-red-400/40 ra-font-mono font-bold`}>{regionCount} {language === 'ar' ? 'مناطق' : regionCount === 1 ? 'region' : 'regions'}</span>
             <div className="flex-1" />
             <span className={`${isMobile ? 'text-[10px]' : 'text-[9px]'} text-red-400/30 ra-font-mono font-bold tracking-[0.2em] uppercase`}>OREF LIVE</span>
           </div>
@@ -3423,7 +3429,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       {/* ── FOOTER ── */}
       {!isMobile && (
         <div className="shrink-0 px-3.5 py-1.5 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.25)' }}>
-          <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.20)' }}>OREF HOME FRONT CMD</span>
+          <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.20)' }}>OREF HOME FRONT COMMAND</span>
           <span className="text-[9px] ra-font-mono tracking-[0.15em]" style={{ color: 'rgba(255,255,255,0.20)' }}>{alerts.length} TOTAL</span>
         </div>
       )}
@@ -8259,6 +8265,8 @@ export default function Dashboard() {
   // ── Floating panel system ──────────────────────────────────────────────────
   const [floatingPanels, setFloatingPanels] = useState<Partial<Record<PanelId, FloatState>>>({});
   const floatTopZ = useRef(600);
+  const [draggingFloatId, setDraggingFloatId] = useState<PanelId | null>(null);
+  const dockZoneRef = useRef<HTMLDivElement | null>(null);
 
   const popOutPanel = useCallback((id: PanelId) => {
     floatTopZ.current += 1;
@@ -9005,19 +9013,42 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <RGL
-            layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
-            cols={12}
-            rowHeight={86}
-            compactType="vertical"
-            onLayoutChange={handleGridLayoutChange}
-            draggableHandle=".panel-drag-handle"
-            draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-            margin={[4, 4]}
-            containerPadding={[4, 4]}
-            resizeHandles={['se', 'e', 's']}
-            style={{ paddingBottom: 80 }}
-          >
+          <>
+            {/* Dock drop zone — visible only while dragging a floating window */}
+            <div
+              ref={dockZoneRef}
+              style={{
+                display: draggingFloatId ? 'flex' : 'none',
+                alignItems: 'center', justifyContent: 'center', gap: 8,
+                margin: '0 4px 4px',
+                height: 44,
+                borderRadius: 10,
+                border: '2px dashed hsl(185 70% 42% / 0.7)',
+                background: 'hsl(185 70% 42% / 0.07)',
+                color: 'hsl(185 70% 52%)',
+                fontSize: 12, fontWeight: 600,
+                pointerEvents: 'none',
+                transition: 'opacity 0.15s',
+              }}
+            >
+              <PanelLeft style={{ width: 14, height: 14 }} />
+              Drop here to dock
+            </div>
+            {/* CSS for always-visible resize handles */}
+            <style>{`.react-resizable-handle{opacity:1!important;background-color:rgba(255,255,255,0.08)!important;border-radius:3px}.react-resizable-handle:hover{background-color:rgba(0,220,180,0.35)!important}`}</style>
+            <RGL
+              layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
+              cols={12}
+              rowHeight={86}
+              compactType="vertical"
+              onLayoutChange={handleGridLayoutChange}
+              draggableHandle=".panel-drag-handle"
+              draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
+              margin={[6, 6]}
+              containerPadding={[4, 4]}
+              resizeHandles={['se', 'e', 's', 'sw', 'n']}
+              style={{ paddingBottom: 80 }}
+            >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
               const hasAlertGlow = id === 'alerts' && redAlerts.length > 0;
               const isFloating = !!floatingPanels[id];
@@ -9081,6 +9112,7 @@ export default function Dashboard() {
               );
             })}
           </RGL>
+          </>
         )}
       </div>
 
@@ -9098,6 +9130,17 @@ export default function Dashboard() {
             onDock={() => dockPanel(panelId)}
             onClose={() => closeFloatPanel(panelId)}
             onFocus={() => focusFloatPanel(panelId)}
+            onDragStart={() => setDraggingFloatId(panelId)}
+            onDragEnd={(x, y) => {
+              setDraggingFloatId(null);
+              const zone = dockZoneRef.current;
+              if (zone) {
+                const r = zone.getBoundingClientRect();
+                if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                  dockPanel(panelId);
+                }
+              }
+            }}
           >
             {renderPanel(panelId)}
           </FloatingWindow>
