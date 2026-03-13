@@ -5395,11 +5395,11 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                         </div>
                         <div>
                           <div className="text-[8px] text-foreground/40 uppercase tracking-wider">Day</div>
-                          <div className="text-2xl font-black font-mono text-red-400">13</div>
+                          <div className="text-2xl font-black font-mono text-red-400">{epicFuryData?.day ?? 13}</div>
                         </div>
                         <div>
                           <div className="text-[8px] text-foreground/40 uppercase tracking-wider">Updated</div>
-                          <div className="text-[11px] font-black font-mono text-foreground/80">13/03/2026</div>
+                          <div className="text-[11px] font-black font-mono text-foreground/80">{epicFuryData?.lastUpdated ?? '13/03/2026'}</div>
                         </div>
                       </div>
                     </div>
@@ -5472,9 +5472,9 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                     </div>
                     <div className="space-y-1.5">
                       {[
-                        { party: 'Israel', killed: 18, wounded: 2745 as number | null, notes: '3,400 displaced · 50,719 alerts' as string | null, color: '#60a5fa' },
-                        { party: 'Lebanon', killed: 634, wounded: 1586 as number | null, notes: '750,000 displaced' as string | null, color: '#34d399' },
-                        { party: 'Iran', killed: 1348, wounded: 6186 as number | null, notes: '~45 targeted ops (14 senior officials)' as string | null, color: '#ef4444' },
+                        { party: 'Israel', killed: epicFuryData?.israelKilled ?? 18, wounded: (epicFuryData?.israelWounded ?? 2745) as number | null, notes: '3,400 displaced · 50,719 alerts' as string | null, color: '#60a5fa' },
+                        { party: 'Lebanon', killed: epicFuryData?.lebanonKilled ?? 634, wounded: 1586 as number | null, notes: '750,000 displaced' as string | null, color: '#34d399' },
+                        { party: 'Iran', killed: epicFuryData?.iranKilled ?? 1348, wounded: (epicFuryData?.iranWounded ?? 6186) as number | null, notes: '~45 targeted ops (14 senior officials)' as string | null, color: '#ef4444' },
                         { party: 'Middle East (excl. Israel)', killed: 28, wounded: 478 as number | null, notes: null as string | null, color: '#f97316' },
                         { party: 'United States', killed: 7, wounded: null as number | null, notes: null as string | null, color: '#a78bfa' },
                       ].map(({ party, killed, wounded, notes, color }) => (
@@ -5656,6 +5656,22 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   const [liveFeed, setLiveFeed] = useState<any[]>([]);
   const [liveFeedLoading, setLiveFeedLoading] = useState(false);
   const [liveFeedError, setLiveFeedError] = useState(false);
+  const [epicData, setEpicData] = useState<Record<string, any> | null>(null);
+  const [epicLoading, setEpicLoading] = useState(false);
+  const [epicFetchedAt, setEpicFetchedAt] = useState<string | null>(null);
+  const [epicError, setEpicError] = useState(false);
+  const fetchEpic = useCallback(async () => {
+    setEpicLoading(true);
+    setEpicError(false);
+    try {
+      const res = await fetch('/api/epic-fury');
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      if (!data.error) { setEpicData(data); setEpicFetchedAt(new Date().toLocaleTimeString()); }
+      else setEpicError(true);
+    } catch { setEpicError(true); }
+    setEpicLoading(false);
+  }, []);
   const liveFetchedRef = useRef(false);
 
   const originEntries = stats ? Object.entries(stats.totalByOrigin).sort(([, a], [, b]) => b - a) : [];
@@ -6061,8 +6077,18 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
                 <span className="text-[10px] font-black text-red-400 uppercase tracking-wider font-mono">{t('Operation Epic Fury','عملية شاغت الاري')}</span>
-                <span className="text-[7px] font-mono text-foreground/40 ml-auto">Op. Roaring Lion · 28 Feb 2026</span>
+                <button
+                  onClick={fetchEpic}
+                  disabled={epicLoading}
+                  className="ml-auto flex items-center gap-1 px-1.5 py-0.5 rounded text-[7px] font-mono font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                  style={{background:'hsl(0 40% 20% / 0.7)', border:'1px solid hsl(0 50% 35% / 0.5)', color:'hsl(0 70% 70%)'}}
+                >
+                  {epicLoading ? <Loader2 className="w-2 h-2 animate-spin" /> : <Download className="w-2 h-2" />}
+                  {epicLoading ? t('Fetching…','جلب…') : t('Refresh','تحديث')}
+                </button>
               </div>
+              {epicError && <div className="text-[7px] font-mono text-red-400/60 mb-1">{t('Fetch failed — site may be JS-rendered','فشل الجلب')}</div>}
+              {epicFetchedAt && !epicError && <div className="text-[7px] font-mono text-emerald-400/50 mb-1">{t(`Live · fetched ${epicFetchedAt}`,`مباشر · ${epicFetchedAt}`)}</div>}
               <div className="grid grid-cols-3 gap-1 text-center mt-1.5">
                 <div>
                   <div className="text-[8px] text-foreground/40 uppercase tracking-wider">{t('Start','البداية')}</div>
@@ -6070,7 +6096,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 </div>
                 <div>
                   <div className="text-[8px] text-foreground/40 uppercase tracking-wider">{t('Day','اليوم')}</div>
-                  <div className="text-[15px] font-black font-mono text-red-400">13</div>
+                  <div className="text-[15px] font-black font-mono text-red-400">{epicData?.day ?? 13}</div>
                 </div>
                 <div>
                   <div className="text-[8px] text-foreground/40 uppercase tracking-wider">{t('Updated','تحديث')}</div>
@@ -6161,9 +6187,9 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                 <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Casualty Figures','الخسائر البشرية')}</span>
               </div>
               {[
-                { party: 'Israel', killed: 18, wounded: 2745, extra: '3,400 displaced · 50,719 alerts', color: '#60a5fa' },
-                { party: 'Lebanon', killed: 634, wounded: 1586 as number | null, extra: '750,000 displaced', color: '#34d399' },
-                { party: 'Iran', killed: 1348, wounded: 6186, extra: '~45 targeted ops · 14 senior officials', color: '#ef4444' },
+                { party: 'Israel', killed: epicData?.israelKilled ?? 18, wounded: (epicData?.israelWounded ?? 2745) as number | null, extra: '3,400 displaced · 50,719 alerts', color: '#60a5fa' },
+                { party: 'Lebanon', killed: epicData?.lebanonKilled ?? 634, wounded: 1586 as number | null, extra: '750,000 displaced', color: '#34d399' },
+                { party: 'Iran', killed: epicData?.iranKilled ?? 1348, wounded: (epicData?.iranWounded ?? 6186) as number | null, extra: '~45 targeted ops · 14 senior officials', color: '#ef4444' },
                 { party: 'Middle East (excl. IL)', killed: 28, wounded: 478 as number | null, extra: null as string | null, color: '#f97316' },
                 { party: 'United States', killed: 7, wounded: null as number | null, extra: null as string | null, color: '#a78bfa' },
               ].map(({ party, killed, wounded, extra, color }) => (
