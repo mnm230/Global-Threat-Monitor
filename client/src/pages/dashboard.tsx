@@ -2211,6 +2211,8 @@ const THREAT_COLORS: Record<string, string> = {
 
 function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void }) {
   const sorted = [...sirens].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const THREAT_ACCENT: Record<string, string> = { rocket: '#ef4444', missile: '#a855f7', uav: '#f59e0b', hostile_aircraft: '#3b82f6' };
+  const THREAT_ICON: Record<string, string> = { rocket: '🚀', missile: '⚡', uav: '🛸', hostile_aircraft: '✈️' };
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -2227,30 +2229,40 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
           <p className="text-xs text-muted-foreground">No active alerts</p>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="grid p-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '3px' }}>
+      <div className="flex-1 overflow-y-auto min-h-0 p-2" style={{ scrollbarWidth: 'none' }}>
+        <div className="space-y-[3px]">
         {sorted.map((s) => {
           const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
-          const colors = THREAT_COLORS[s.threatType] || THREAT_COLORS.rocket;
+          const accent = THREAT_ACCENT[s.threatType] || '#ef4444';
+          const icon = THREAT_ICON[s.threatType] || '🚀';
+          const elapsed = Math.floor((Date.now() - new Date(s.timestamp).getTime()) / 1000);
+          const remaining = s.countdown > 0 ? Math.max(0, s.countdown - elapsed) : 0;
           return (
             <div
               key={s.id}
-              className="flex flex-col items-center justify-center text-center hover-elevate rounded-sm"
-              style={{ height: '58px', padding: '6px 8px', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.10)' }}
+              className="flex items-center rounded-sm overflow-hidden hover-elevate"
+              style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${accent}18` }}
               data-testid={`siren-panel-${s.id}`}
             >
-              <div className="flex items-center gap-1.5 w-full justify-center mb-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse-dot shrink-0" />
-                <span className="text-[11px] text-red-300/90 font-bold truncate">
-                  {language === 'ar' ? s.locationAr : s.location}
-                </span>
-              </div>
-              <span className={`text-[9px] px-1.5 py-px rounded border font-bold tracking-wider uppercase font-mono ${colors}`}>
-                {language === 'ar' ? threat.ar : threat.en}
-              </span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[8px] text-muted-foreground/40 truncate">{language === 'ar' ? s.regionAr : s.region}</span>
-                <span className="text-[8px] text-muted-foreground/30 font-mono tabular-nums shrink-0">{timeAgo(s.timestamp)}</span>
+              <div className="self-stretch shrink-0" style={{ width: '3px', background: accent }} />
+              <div className="flex items-center gap-2 flex-1 min-w-0 px-2.5 py-2">
+                <span className="text-[12px] leading-none shrink-0">{icon}</span>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <span className="text-[11px] font-bold truncate leading-tight" style={{ color: `${accent}dd` }}>
+                    {language === 'ar' ? s.locationAr : s.location}
+                  </span>
+                  <span className="text-[8px] text-muted-foreground/35 truncate leading-tight mt-px">
+                    {language === 'ar' ? s.regionAr : s.region}
+                  </span>
+                </div>
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  <span className="text-[8px] font-bold uppercase ra-font-mono px-1.5 py-px rounded-sm leading-none" style={{ color: `${accent}aa`, background: `${accent}12`, border: `1px solid ${accent}20`, letterSpacing: '0.08em' }}>
+                    {language === 'ar' ? threat.ar : threat.en}
+                  </span>
+                  <span className="text-[8px] text-muted-foreground/30 ra-font-mono tabular-nums leading-none">
+                    {remaining > 0 ? `T-${remaining}s` : timeAgo(s.timestamp)}
+                  </span>
+                </div>
               </div>
             </div>
           );
@@ -3318,40 +3330,50 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
       )}
 
       {/* ── SIRENS FOOTER ── */}
-      {sirens.length > 0 && (
-        <div className="shrink-0 border-t" style={{ borderColor: 'rgba(217,119,6,0.40)', background: 'linear-gradient(to bottom, hsl(30 35% 8%), hsl(30 25% 6%))' }}>
-          <div className={`${isMobile ? 'px-4 py-2.5' : 'px-3 py-2'} flex items-center gap-2`}>
-            <div className="relative shrink-0">
-              <div className={`${isMobile ? 'w-3 h-3' : 'w-2.5 h-2.5'} rounded-full bg-amber-400 eas-flash`} />
+      {sirens.length > 0 && (() => {
+        const THREAT_ACCENT: Record<string, string> = { rocket: '#ef4444', missile: '#a855f7', uav: '#f59e0b', hostile_aircraft: '#3b82f6' };
+        const THREAT_ICON: Record<string, string> = { rocket: '🚀', missile: '⚡', uav: '🛸', hostile_aircraft: '✈️' };
+        return (
+        <div className="shrink-0" style={{ borderTop: '2px solid rgba(239,68,68,0.35)', background: 'linear-gradient(180deg, rgba(239,68,68,0.06) 0%, rgba(0,0,0,0.4) 100%)' }}>
+          <div className={`${isMobile ? 'px-4 py-2' : 'px-3 py-1.5'} flex items-center gap-2`}>
+            <div className="flex items-center gap-1.5">
+              <div className="relative">
+                <div className={`${isMobile ? 'w-2.5 h-2.5' : 'w-2 h-2'} rounded-full bg-red-500 eas-flash`} />
+                <div className={`absolute inset-0 ${isMobile ? 'w-2.5 h-2.5' : 'w-2 h-2'} rounded-full bg-red-500 animate-ping opacity-40`} />
+              </div>
+              <span className={`${isMobile ? 'text-[11px]' : 'text-[9px]'} font-black uppercase tracking-[0.2em] text-red-400/80 ra-font-mono`}>
+                {language === 'ar' ? 'صفارات' : 'SIRENS'}
+              </span>
             </div>
-            <span className={`${isMobile ? 'text-[13px]' : 'text-[11px]'} font-extrabold ra-tracking-wide uppercase text-amber-400 ra-font-display`}>
-              {language === 'ar' ? 'صفارات الإنذار' : 'ACTIVE SIRENS'}
-            </span>
-            <span className={`${isMobile ? 'text-[15px] px-2.5 py-0.5' : 'text-[13px] px-2 py-px'} font-black text-white ra-tabular ra-font-mono rounded-md`} style={{ background: 'rgba(180,83,9,0.6)', border: '1px solid rgba(217,119,6,0.4)' }}>{sirens.length}</span>
-            <span className="text-[9px] text-amber-400/40 ra-font-mono font-semibold ml-auto tracking-widest uppercase">OREF</span>
+            <div className={`${isMobile ? 'text-[14px] min-w-[28px]' : 'text-[12px] min-w-[22px]'} font-black text-white text-center ra-tabular ra-font-mono leading-none py-0.5 rounded-sm`} style={{ background: 'rgba(239,68,68,0.5)', border: '1px solid rgba(239,68,68,0.35)' }}>{sirens.length}</div>
+            <div className="flex-1" />
+            <span className="text-[7px] text-red-400/25 ra-font-mono font-bold tracking-[0.25em] uppercase">OREF LIVE</span>
           </div>
-          <div className={isMobile ? 'max-h-[120px]' : 'max-h-[110px]'} style={{ overflowY: 'auto', scrollbarWidth: 'none' }}>
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1px', background: 'rgba(217,119,6,0.08)' }}>
+          <div className={isMobile ? 'max-h-[130px]' : 'max-h-[115px]'} style={{ overflowY: 'auto', scrollbarWidth: 'none' }}>
+            <div className={`flex flex-wrap ${isMobile ? 'gap-1 px-3 pb-2' : 'gap-[3px] px-2 pb-1.5'}`}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
-              const sirenIcon = s.threatType === 'missile' ? '⚡' : s.threatType === 'uav' ? '🛸' : s.threatType === 'hostile_aircraft' ? '✈️' : '🚀';
+              const accent = THREAT_ACCENT[s.threatType] || '#ef4444';
+              const icon = THREAT_ICON[s.threatType] || '🚀';
               return (
-                <div key={s.id} className="flex flex-col items-center justify-center text-center" data-testid={`siren-panel-${s.id}`}
-                  style={{ background: 'rgba(217,119,6,0.04)', height: isMobile ? '52px' : '42px', padding: isMobile ? '6px 8px' : '4px 6px' }}>
-                  <div className="flex items-center gap-1.5 w-full justify-center">
-                    <span className={`${isMobile ? 'text-[13px]' : 'text-[11px]'} shrink-0 leading-none`}>{sirenIcon}</span>
-                    <span className={`${isMobile ? 'text-[12px]' : 'text-[11px]'} font-bold text-amber-100 truncate ra-font-display leading-tight`}>
-                      {language === 'ar' ? s.locationAr : s.location}
-                    </span>
-                  </div>
-                  <span className={`${isMobile ? 'text-[9px]' : 'text-[8px]'} text-amber-400/50 ra-font-mono font-semibold uppercase leading-none mt-0.5`} style={{ letterSpacing: '0.1em' }}>{language === 'ar' ? threat.ar : threat.en}</span>
+                <div key={s.id} className="flex items-center gap-1 rounded-sm overflow-hidden" data-testid={`siren-panel-${s.id}`}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${accent}22`, height: isMobile ? '28px' : '24px' }}>
+                  <div className="self-stretch shrink-0" style={{ width: '3px', background: accent }} />
+                  <span className="text-[10px] leading-none shrink-0 pl-0.5">{icon}</span>
+                  <span className={`${isMobile ? 'text-[11px]' : 'text-[10px]'} font-bold truncate leading-none pr-1.5`} style={{ color: `${accent}dd`, maxWidth: isMobile ? '120px' : '100px' }}>
+                    {language === 'ar' ? s.locationAr : s.location}
+                  </span>
+                  <span className={`${isMobile ? 'text-[7px]' : 'text-[6px]'} font-bold uppercase ra-font-mono pr-1.5 shrink-0 leading-none`} style={{ color: `${accent}66`, letterSpacing: '0.08em' }}>
+                    {language === 'ar' ? threat.ar : threat.en}
+                  </span>
                 </div>
               );
             })}
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* ── FOOTER ── */}
       {!isMobile && (
