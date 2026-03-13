@@ -3381,7 +3381,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             <div className="flex-1" />
             <span className={`${isMobile ? 'text-[10px]' : 'text-[9px]'} text-red-400/30 ra-font-mono font-bold tracking-[0.2em] uppercase`}>OREF LIVE</span>
           </div>
-          <div className={isMobile ? 'max-h-[130px]' : 'max-h-[115px]'} style={{ overflowY: 'auto', scrollbarWidth: 'none' }}>
+          <div className={isMobile ? 'max-h-[220px]' : 'max-h-[200px]'} style={{ overflowY: 'auto', scrollbarWidth: 'none' }}>
             <div className={`flex flex-wrap ${isMobile ? 'gap-1.5 px-3 pb-2' : 'gap-1 px-2 pb-1.5'}`}>
             {sirens.map(s => {
               const threat = THREAT_LABELS[s.threatType] || THREAT_LABELS.rocket;
