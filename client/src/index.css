@@ -770,17 +770,6 @@
 }
 .mobile-panel-hidden { visibility: hidden; pointer-events: none; }
 
-/* ════════════════════════════════════════════════════════════════
-   NOTAM MAP POPUP
-   ════════════════════════════════════════════════════════════════ */
-.notam-popup .leaflet-popup-content-wrapper {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  box-shadow: 0 2px 8px rgba(0,0,0,.10);
-  padding: 0; border-radius: 3px;
-}
-.notam-popup .leaflet-popup-content { margin: 0; }
-.notam-popup .leaflet-popup-tip { background: hsl(var(--card)); }
 
 /* ════════════════════════════════════════════════════════════════
    TOUCH DEVICES

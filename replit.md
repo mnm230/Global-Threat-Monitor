@@ -14,7 +14,7 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Typography:** Inter for display, JetBrains Mono for data readouts and panel headers, with compact font sizes (13px base) for maximum information density.
 - **Clocks:** Displays both UTC and Lebanon/Beirut time with timezone labels.
 - **Responsiveness:** Adaptive layouts for mobile, tablet, and desktop, with specific UI adjustments for each, including single-panel views for mobile and CSS grid layouts for tablets.
-- **Panel System:** Features customizable, resizable panels (`telegram`, `events`, `alerts`, `markets`, `notams`, `livefeed`, `alertmap`, `analytics`, `osint`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout. Internet Monitor (netblack) panel removed.
+- **Panel System:** Features customizable, resizable panels (`telegram`, `events`, `alerts`, `markets`, `livefeed`, `alertmap`, `analytics`, `osint`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout. Internet Monitor (netblack) and NOTAM panels removed.
 - **Alert Map:** Full-width panel leveraging MapLibre GL with responsive overlays for different screen sizes and a red alert heatmap visualization.
 
 **Technical Implementations:**
@@ -24,7 +24,6 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Real-time Data:** Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts, including visual urgency tiers and trilingual support.
 - **ADS-B Tracking:** Live ADS-B data with auto-classification, detailed flight info, and server-side caching.
-- **NOTAM Panel:** Fetches/generates NOTAMs for key ME airports, inferring airspace closures from red alerts and GPS interference.
 - **Telegram OSINT:** Scrapes 50+ public Telegram channels with server-side caching and filtering, focusing on near-real-time updates for priority channels.
 - **AI Intelligence:** AI world brief panel with risk assessment and forecasting, and an AI Attack Predictor panel using Anthropic Claude for probabilistic attack predictions.
 - **Rocket/Missile Stats:** Dedicated panel tracking rocket, missile, and drone launches, including origin inference, intercept rates, and active fronts.

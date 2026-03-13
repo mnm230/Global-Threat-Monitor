@@ -10,7 +10,7 @@ function sanitizeText(text: string): string {
     .replace(/javascript\s*:/gi, '')
     .replace(/on\w+\s*=/gi, '');
 }
-import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor, NOTAMItem } from "@shared/schema";
+import type { NewsItem, CommodityData, ConflictEvent, FlightData, ShipData, TelegramMessage, SirenAlert, RedAlert, CyberEvent, ThermalHotspot, ThreatClassification, ClassifiedMessage, AlertPattern, FalseAlarmScore, AnalyticsSnapshot, LLMAssessment, RedditPost, SanctionMatch, WeatherData, SatelliteImage, BreakingNewsItem, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow, RocketStats, RocketCorridor } from "@shared/schema";
 
 
 // --- Shared news category classifier ---
@@ -2872,246 +2872,6 @@ async function fetchCyberEvents(): Promise<CyberEvent[]> {
 }
 
 
-// ── NOTAM Monitoring (Middle East Airspace) ──────────────────────────────────
-const ME_AIRPORTS: Array<{ icao: string; name: string; country: string; lat: number; lng: number }> = [
-  // Israel
-  { icao: 'LLBG', name: 'Ben Gurion Intl', country: 'Israel', lat: 32.01, lng: 34.87 },
-  { icao: 'LLSD', name: 'Sde Dov', country: 'Israel', lat: 32.11, lng: 34.78 },
-  { icao: 'LLOV', name: 'Ovda', country: 'Israel', lat: 29.94, lng: 34.94 },
-  // Lebanon
-  { icao: 'OLBA', name: 'Beirut Rafic Hariri', country: 'Lebanon', lat: 33.82, lng: 35.49 },
-  // Iran
-  { icao: 'OIIE', name: 'Tehran Imam Khomeini', country: 'Iran', lat: 35.42, lng: 51.15 },
-  { icao: 'OIII', name: 'Tehran Mehrabad', country: 'Iran', lat: 35.69, lng: 51.31 },
-  { icao: 'OISS', name: 'Shiraz Intl', country: 'Iran', lat: 29.54, lng: 52.59 },
-  { icao: 'OIBB', name: 'Bandar Abbas Intl', country: 'Iran', lat: 27.22, lng: 56.38 },
-  { icao: 'OIKB', name: 'Birjand Intl', country: 'Iran', lat: 32.90, lng: 59.27 },
-  // Iraq
-  { icao: 'ORBI', name: 'Baghdad Intl', country: 'Iraq', lat: 33.26, lng: 44.23 },
-  { icao: 'ORER', name: 'Erbil Intl', country: 'Iraq', lat: 36.24, lng: 43.96 },
-  { icao: 'ORSU', name: 'Sulaymaniyah Intl', country: 'Iraq', lat: 35.56, lng: 45.31 },
-  // Syria
-  { icao: 'OSDI', name: 'Damascus Intl', country: 'Syria', lat: 33.41, lng: 36.52 },
-  { icao: 'OSAP', name: 'Aleppo Intl', country: 'Syria', lat: 36.18, lng: 37.22 },
-  // Jordan
-  { icao: 'OJAI', name: 'Amman Queen Alia', country: 'Jordan', lat: 31.72, lng: 35.99 },
-  // Yemen
-  { icao: 'OYAA', name: "Sana'a Intl", country: 'Yemen', lat: 15.48, lng: 44.22 },
-  { icao: 'OYSN', name: 'Aden Intl', country: 'Yemen', lat: 12.83, lng: 45.03 },
-  { icao: 'OYHN', name: 'Hodeidah Intl', country: 'Yemen', lat: 14.75, lng: 43.00 },
-  // --- GCC ---
-  // Saudi Arabia
-  { icao: 'OEJN', name: 'Jeddah King Abdulaziz', country: 'Saudi Arabia', lat: 21.68, lng: 39.16 },
-  { icao: 'OERK', name: 'Riyadh King Khalid', country: 'Saudi Arabia', lat: 24.96, lng: 46.70 },
-  { icao: 'OEMA', name: 'Madinah Prince Mohammad', country: 'Saudi Arabia', lat: 24.55, lng: 39.70 },
-  { icao: 'OEGN', name: 'Jizan Regional', country: 'Saudi Arabia', lat: 16.90, lng: 42.59 },
-  { icao: 'OEBH', name: 'Bisha', country: 'Saudi Arabia', lat: 19.98, lng: 42.62 },
-  { icao: 'OEDM', name: 'King Salman Air Base', country: 'Saudi Arabia', lat: 24.46, lng: 44.13 },
-  { icao: 'OEDF', name: 'Dammam King Fahd Intl', country: 'Saudi Arabia', lat: 26.47, lng: 49.80 },
-  { icao: 'OETB', name: 'Tabuk Regional', country: 'Saudi Arabia', lat: 28.37, lng: 36.62 },
-  // UAE
-  { icao: 'OMDB', name: 'Dubai Intl', country: 'UAE', lat: 25.25, lng: 55.36 },
-  { icao: 'OMAA', name: 'Abu Dhabi Intl', country: 'UAE', lat: 24.43, lng: 54.65 },
-  { icao: 'OMDW', name: 'Dubai World Central (Al Maktoum)', country: 'UAE', lat: 24.90, lng: 55.17 },
-  { icao: 'OMFJ', name: 'Fujairah Intl', country: 'UAE', lat: 25.11, lng: 56.32 },
-  { icao: 'OMAD', name: 'Al Dhafra Air Base', country: 'UAE', lat: 24.25, lng: 54.55 },
-  { icao: 'OMRK', name: 'Ras Al Khaimah Intl', country: 'UAE', lat: 25.61, lng: 55.94 },
-  // Qatar
-  { icao: 'OTHH', name: 'Doha Hamad Intl', country: 'Qatar', lat: 25.27, lng: 51.61 },
-  { icao: 'OTBH', name: 'Al Udeid Air Base', country: 'Qatar', lat: 25.12, lng: 51.31 },
-  // Bahrain
-  { icao: 'OBBI', name: 'Bahrain Intl', country: 'Bahrain', lat: 26.27, lng: 50.63 },
-  { icao: 'OBBS', name: 'Isa Air Base (Sakhir)', country: 'Bahrain', lat: 26.02, lng: 50.59 },
-  // Kuwait
-  { icao: 'OKBK', name: 'Kuwait Intl', country: 'Kuwait', lat: 29.23, lng: 47.97 },
-  { icao: 'OKAJ', name: 'Ali Al Salem Air Base', country: 'Kuwait', lat: 29.35, lng: 47.52 },
-  // Oman
-  { icao: 'OOMS', name: 'Muscat Intl', country: 'Oman', lat: 23.59, lng: 58.28 },
-  { icao: 'OOSA', name: 'Salalah Intl', country: 'Oman', lat: 17.04, lng: 54.09 },
-  { icao: 'OOSH', name: 'Sohar Intl', country: 'Oman', lat: 24.40, lng: 56.63 },
-  { icao: 'OOMX', name: 'Masirah Air Base', country: 'Oman', lat: 20.67, lng: 58.89 },
-];
-
-// GCC-specific NOTAM data: known standing restrictions, GPS issues, exercise areas
-const GCC_STANDING_NOTAMS: Array<{
-  icao: string; country: string; lat: number; lng: number;
-  type: NOTAMItem['type']; severity: NOTAMItem['severity'];
-  radiusNm: number; text: string; location: string;
-}> = [
-  // UAE — Persian Gulf GPS/GNSS spoofing (well-documented ongoing condition)
-  { icao: 'OMDB', country: 'UAE', lat: 25.25, lng: 55.36, type: 'navigation_warning', severity: 'high', radiusNm: 150,
-    location: 'Dubai/Persian Gulf FIR',
-    text: 'NAV WARNING: GPS/GNSS SPOOFING REPORTED THROUGHOUT OMAE FIR AND PERSIAN GULF. RNAV/RNP APPROACHES MAY BE UNRELIABLE. POSITION ERRORS UP TO 60NM OBSERVED. PILOTS REPORT ALL ANOMALIES TO ATC. USE CONVENTIONAL NAVIGATION BACKUP. VALID UNTIL FURTHER NOTICE.' },
-  { icao: 'OMAA', country: 'UAE', lat: 24.43, lng: 54.65, type: 'military_exercise', severity: 'high', radiusNm: 80,
-    location: 'Abu Dhabi / Al Dhafra',
-    text: 'MIL EXERCISE: MILITARY EXERCISE IN PROGRESS WITHIN 80NM OF OMAA. AL DHAFRA AIR BASE OPERATIONAL TEMPO ELEVATED. INCREASED MILITARY TRAFFIC. COORDINATE ALL OVERFLIGHT REQUESTS WITH UAE MILITARY ATC PRIOR TO ENTRY. AIRSPACE D-OMAA ACTIVE.' },
-  // Qatar — Al Udeid restricted zone
-  { icao: 'OTBH', country: 'Qatar', lat: 25.12, lng: 51.31, type: 'flight_restriction', severity: 'critical', radiusNm: 30,
-    location: 'Al Udeid Air Base Qatar',
-    text: 'PROHIBITED AREA QA-P01: AIRSPACE WITHIN 30NM/FL600 OF AL UDEID AIR BASE (OTBH) PROHIBITED TO CIVIL AIRCRAFT WITHOUT PRIOR COORDINATION. USAF/QEAF OPERATIONS IN PROGRESS. VIOLATORS SUBJECT TO INTERCEPT. COORDINATE VIA DOHA ATC.' },
-  // Saudi Arabia — Empty Quarter military exercise area
-  { icao: 'OEDM', country: 'Saudi Arabia', lat: 24.46, lng: 44.13, type: 'military_exercise', severity: 'high', radiusNm: 200,
-    location: 'Rub Al Khali (Empty Quarter)',
-    text: 'MIL EXERCISE: SAUDI ARABIAN AIR FORCE EXERCISE "FALCON SHIELD" — ACTIVE WITHIN 200NM OF KING SALMAN AIR BASE (OEDM). LIVE WEAPONS RANGE ACTIVE BELOW FL250. OVERFLIGHTS REQUIRE PRIOR COORDINATION WITH RSAF. DANGER AREA SA-D201 ACTIVE.' },
-  // Saudi Arabia — Red Sea naval corridor
-  { icao: 'OEJN', country: 'Saudi Arabia', lat: 21.68, lng: 39.16, type: 'navigation_warning', severity: 'medium', radiusNm: 120,
-    location: 'Red Sea / Jeddah FIR',
-    text: 'NAV WARNING: RED SEA FIR — HOUTHI MARITIME DRONE AND ANTI-SHIP MISSILE ACTIVITY ONGOING. VESSELS AND AIRCRAFT OPERATING BELOW 5000FT OVER RED SEA SOUTH OF N20° EXERCISE EXTREME CAUTION. GPS JAMMING REPORTED. SEA LANES BAIS/SUEZ TRANSIT ELEVATED THREAT.' },
-  // Saudi Arabia — Jizan/Yemen border restriction
-  { icao: 'OEGN', country: 'Saudi Arabia', lat: 16.90, lng: 42.59, type: 'airspace_closure', severity: 'critical', radiusNm: 60,
-    location: 'Jizan / Saudi-Yemen Border',
-    text: 'AIRSPACE CLOSURE: PROHIBITED AREA SA-P05 — AIRSPACE WITHIN 60NM OF JIZAN (OEGN) AND ALONG SAUDI-YEMEN BORDER CORRIDOR CLOSED TO CIVIL AVIATION. ACTIVE HOUTHI CROSS-BORDER FIRE. BALLISTIC MISSILE AND UAV THREAT IN AREA. AVOIDANCE MANDATORY.' },
-  // Bahrain — US 5th Fleet/Naval Air Station
-  { icao: 'OBBS', country: 'Bahrain', lat: 26.02, lng: 50.59, type: 'military_exercise', severity: 'high', radiusNm: 40,
-    location: 'Isa Air Base / NSA Bahrain',
-    text: 'MIL EXERCISE: CENTCOM JOINT MARITIME EXERCISE IN PROGRESS. NSA BAHRAIN (OBBS/ISA AIR BASE) OPERATIONAL. CARRIER STRIKE GROUP OPERATIONS IN PERSIAN GULF. AIRSPACE BELOW FL180 WITHIN 40NM SUBJECT TO TEMPORARY FLIGHT RESTRICTIONS. COORDINATE WITH BAHRAIN ATC.' },
-  // Kuwait — Ali Al Salem (USAF forward base)
-  { icao: 'OKAJ', country: 'Kuwait', lat: 29.35, lng: 47.52, type: 'flight_restriction', severity: 'high', radiusNm: 25,
-    location: 'Ali Al Salem Air Base Kuwait',
-    text: 'FLIGHT RESTRICTION: ALI AL SALEM AIR BASE (OKAJ) — RESTRICTED AIRSPACE WITHIN 25NM. USAF OPERATIONS IN PROGRESS. CIVIL AIRCRAFT PROHIBITED WITHOUT ADVANCE CLEARANCE FROM KUWAIT CIVIL AVIATION. ACTIVE MILITARY TRAFFIC IN CIRCUIT.' },
-  // Oman — Masirah Island (strategic air base)
-  { icao: 'OOMX', country: 'Oman', lat: 20.67, lng: 58.89, type: 'military_exercise', severity: 'medium', radiusNm: 50,
-    location: 'Masirah Island Air Base Oman',
-    text: 'MIL EXERCISE: ROYAL AIR FORCE OF OMAN EXERCISE ACTIVE AT MASIRAH AIR BASE (OOMX). INCREASED MILITARY TRAFFIC. RESTRICTED AREA OM-R07 ACTIVE SURFACE TO FL200. NON-PARTICIPATING AIRCRAFT MAINTAIN CLEAR OF RESTRICTED AREA. DURATION: 72HR.' },
-  // UAE/Oman — Strait of Hormuz navigation warning
-  { icao: 'OMFJ', country: 'UAE', lat: 25.11, lng: 56.32, type: 'navigation_warning', severity: 'critical', radiusNm: 100,
-    location: 'Strait of Hormuz / Fujairah FIR',
-    text: 'NAV WARNING: STRAIT OF HORMUZ AND GULF OF OMAN — IRGCN NAVAL ACTIVITY ELEVATED. MARITIME DRONE OPERATIONS REPORTED. GPS JAMMING/SPOOFING ACTIVE. AIRCRAFT BELOW FL100 OVER STRAIT EXERCISE EXTREME CAUTION. IRANIAN INTERCEPT ACTIVITY REPORTED. OMFJ/OOMS FIR TRANSITION REQUIRES ATC COORDINATION.' },
-  // Qatar — GPS interference (documented around Doha)
-  { icao: 'OTHH', country: 'Qatar', lat: 25.27, lng: 51.61, type: 'navigation_warning', severity: 'medium', radiusNm: 60,
-    location: 'Doha / Qatar FIR',
-    text: 'NAV WARNING: GPS INTERFERENCE REPORTED WITHIN OTBD/OTHH TERMINAL AREA AND QATAR FIR. POSITION DEGRADATION OBSERVED ON APPROACH. RNAV/RNP APPROACHES NOT GUARANTEED RELIABLE. CONVENTIONAL ILS BACKUP IN USE AT OTHH. PILOTS REPORT ALL NAV ANOMALIES TO DOHA ATC 119.850.' },
-];
-
-let notamCache: { data: NOTAMItem[]; fetchedAt: number } | null = null;
-const NOTAM_CACHE_TTL = 300_000;
-
-function classifyNotamType(text: string): NOTAMItem['type'] {
-  const t = text.toUpperCase();
-  if (/CLOSED|CLOSURE|CLSD/.test(t)) return 'airspace_closure';
-  if (/TFR|TEMPORARY FLIGHT RESTRICTION|PROHIBITED/.test(t)) return 'tfr';
-  if (/MILITARY|MIL EXERCISE|EXERCISE|LIVE FIRING|WEAPONS/.test(t)) return 'military_exercise';
-  if (/HAZARD|OBSTACLE|CRANE|TOWER|LASER/.test(t)) return 'hazard';
-  if (/GPS|GNSS|NAV.*UNRELIABLE|NAVIGATION.*WARNING|RNP|RNAV/.test(t)) return 'navigation_warning';
-  return 'flight_restriction';
-}
-
-function classifyNotamSeverity(text: string, type: NOTAMItem['type']): NOTAMItem['severity'] {
-  if (type === 'airspace_closure') return 'critical';
-  if (type === 'tfr') return 'high';
-  if (type === 'military_exercise') return 'high';
-  const t = text.toUpperCase();
-  if (/DANGER|CRITICAL|PROHIBITED|UNLIMIT/.test(t)) return 'critical';
-  if (/HAZARD|CAUTION|RESTRICTED/.test(t)) return 'high';
-  if (/WARNING|ADVISORY/.test(t)) return 'medium';
-  return 'low';
-}
-
-async function fetchNOTAMs(): Promise<NOTAMItem[]> {
-  if (notamCache && Date.now() - notamCache.fetchedAt < NOTAM_CACHE_TTL) return notamCache.data;
-
-  const notams: NOTAMItem[] = [];
-  const now = new Date();
-
-  const icaoList = ME_AIRPORTS.map(a => a.icao).join(',');
-  try {
-    const resp = await fetch('https://notams.aim.faa.gov/notamSearch/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        searchType: 0,
-        designatorsForNotamList: icaoList,
-        notamType: 'N',
-        formatType: 'DOMESTIC',
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (resp.ok) {
-      const text = await resp.text();
-      try {
-        const data = JSON.parse(text);
-        if (Array.isArray(data?.notamList)) {
-          for (const n of data.notamList.slice(0, 50)) {
-            const rawText = n.icaoMessage || n.traditionalMessage || n.notamText || '';
-            const icao = n.facilityDesignator || n.icaoId || '';
-            const airport = ME_AIRPORTS.find(a => a.icao === icao);
-            const type = classifyNotamType(rawText);
-            notams.push({
-              id: n.notamNumber || `notam_${icao}_${notams.length}`,
-              location: airport?.name || icao,
-              icao,
-              type,
-              text: rawText.slice(0, 500),
-              effectiveFrom: n.startDate || now.toISOString(),
-              effectiveTo: n.endDate || new Date(now.getTime() + 86400000).toISOString(),
-              severity: classifyNotamSeverity(rawText, type),
-              country: airport?.country || 'Unknown',
-              coordinates: airport ? { lat: airport.lat, lng: airport.lng } : undefined,
-              source: 'FAA NOTAM',
-            });
-          }
-        }
-      } catch {}
-    }
-  } catch (err) {
-    console.log(`[NOTAM] FAA API unavailable, using data-driven generation`);
-  }
-
-  if (notams.length < 5) {
-    // Only generate NOTAMs for airports in internationally declared no-fly zones.
-    // Do NOT infer airspace closures from alert activity — alerts in a country do NOT mean
-    // civil airports are closed. Iraq, Iran, Lebanon airports are all currently operational.
-    const DECLARED_NO_FLY: Record<string, { type: NOTAMItem['type']; text: string }> = {
-      Syria: { type: 'airspace_closure', text: 'AIRSPACE CLOSURE: Syrian FIR — civil aviation suspended. Active conflict. Do not enter.' },
-      Yemen: { type: 'airspace_closure', text: 'AIRSPACE CLOSURE: Yemen FIR — civil aviation suspended. Active conflict. Do not enter.' },
-    };
-
-    for (const airport of ME_AIRPORTS) {
-      const noFly = DECLARED_NO_FLY[airport.country];
-      if (noFly) {
-        notams.push({
-          id: `notam_nofly_${airport.icao}`,
-          location: airport.name,
-          icao: airport.icao,
-          type: noFly.type,
-          text: noFly.text,
-          effectiveFrom: new Date(now.getTime() - 24 * 3600000).toISOString(),
-          effectiveTo: new Date(now.getTime() + 72 * 3600000).toISOString(),
-          severity: 'critical',
-          country: airport.country,
-          coordinates: { lat: airport.lat, lng: airport.lng },
-          source: 'Declared no-fly zone',
-        });
-      }
-    }
-
-  }
-
-  // Always include GCC standing NOTAMs
-  for (const g of GCC_STANDING_NOTAMS) {
-    if (!notams.find(n => n.icao === g.icao && n.type === g.type)) {
-      notams.push({
-        id: `gcc_standing_${g.icao}_${g.type}`,
-        location: g.location,
-        icao: g.icao,
-        type: g.type,
-        text: g.text,
-        effectiveFrom: new Date(now.getTime() - 24 * 3600000).toISOString(),
-        effectiveTo: new Date(now.getTime() + 72 * 3600000).toISOString(),
-        severity: g.severity,
-        country: g.country,
-        coordinates: { lat: g.lat, lng: g.lng },
-        radiusNm: g.radiusNm,
-        source: 'GCC Standing NOTAM',
-      });
-    }
-  }
-
-  console.log(`[NOTAM] ${notams.length} NOTAMs (${notams.filter(n => n.severity === 'critical').length} critical)`);
-  notamCache = { data: notams, fetchedAt: Date.now() };
-  return notams;
-}
-
 // --- Tzevaadom WebSocket client for real-time push alerts ---
 let tzevaadomWsAlerts: RedAlert[] = [];
 let tzevaadomWsConnected = false;
@@ -3815,7 +3575,6 @@ export async function registerRoutes(
     }, 500));
 
     staggerTimers.push(setTimeout(() => {
-      fetchNOTAMs().then(notams => send('notams', notams));
       fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
     }, 1500));
 
@@ -3863,7 +3622,6 @@ export async function registerRoutes(
     }), 90000));
 
     intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 30000));
-    intervals.push(setInterval(() => fetchNOTAMs().then(notams => send('notams', notams)), 180000));
 
     intervals.push(setInterval(async () => {
       const tgMsgs = latestTgMsgs.length > 0 ? latestTgMsgs : await fetchPriorityTelegram().catch(() => []);
@@ -3936,15 +3694,6 @@ export async function registerRoutes(
   });
 
 
-  app.get('/api/notams', async (_req, res) => {
-    const data = await fetchNOTAMs();
-    res.json(data);
-  });
-
-  app.post('/api/notams/clear-cache', (_req, res) => {
-    notamCache = null;
-    res.json({ ok: true, message: 'NOTAM cache cleared' });
-  });
 
 
   app.get('/api/x-feed', async (_req, res) => {

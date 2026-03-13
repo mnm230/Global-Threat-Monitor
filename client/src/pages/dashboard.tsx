@@ -23,7 +23,7 @@ import type {
   TelegramMessage,
   SirenAlert,
   RedAlert,
-  NOTAMItem,
+
   ThermalHotspot,
   BreakingNewsItem,
   Sitrep,
@@ -91,7 +91,6 @@ import {
   ArrowRight,
   Flame,
   Download,
-  FileWarning,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -282,7 +281,6 @@ interface SSEData {
   sirens: SirenAlert[];
   redAlerts: RedAlert[];
   telegramMessages: TelegramMessage[];
-  notams: NOTAMItem[];
   thermalHotspots: ThermalHotspot[];
   breakingNews: BreakingNewsItem[];
   attackPrediction: AttackPrediction | null;
@@ -294,7 +292,7 @@ function useSSE(): SSEData {
   const [state, setState] = useState<Omit<SSEData, 'connected'>>({
     news: [], commodities: [], events: [], flights: [], ships: [],
     sirens: [], redAlerts: [], telegramMessages: [],
-    notams: [], thermalHotspots: [], breakingNews: [],
+    thermalHotspots: [], breakingNews: [],
     attackPrediction: null, rocketStats: null,
   });
   const [connected, setConnected] = useState(false);
@@ -354,9 +352,6 @@ function useSSE(): SSEData {
       });
       es.addEventListener('telegram', (e) => {
         try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
-      });
-      es.addEventListener('notams', (e) => {
-        try { pending.current.notams = JSON.parse(e.data); scheduleFlush(); } catch {}
       });
       es.addEventListener('thermal', (e) => {
         try { pending.current.thermalHotspots = JSON.parse(e.data); scheduleFlush(); } catch {}
@@ -660,7 +655,7 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'notams' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
@@ -669,7 +664,6 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
   alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
-  notams: { icon: FileWarning, label: 'NOTAMs', labelAr: 'إشعارات الطيران' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
   analytics: { icon: BarChart3, label: 'Analytics', labelAr: '\u062A\u062D\u0644\u064A\u0644\u0627\u062A' },
@@ -1180,26 +1174,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, notams: false, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, notams: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, notams: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, notams: 22, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, notams: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, notams: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1221,8 +1215,7 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'osint',        x: 0,  y: 18, w: 6,  h: 6,  minW: 3, minH: 2 },
   { i: 'analytics',    x: 6,  y: 18, w: 6,  h: 6,  minW: 2, minH: 2 },
   // Row 5 — Data pair
-  { i: 'notams',       x: 0,  y: 24, w: 6,  h: 5,  minW: 2, minH: 2 },
-  { i: 'attackpred',   x: 6,  y: 24, w: 6,  h: 5,  minW: 2, minH: 3 },
+  { i: 'attackpred',   x: 0,  y: 24, w: 12,  h: 5,  minW: 2, minH: 3 },
   // Row 6 — Stats
   { i: 'rocketstats',  x: 0,  y: 29, w: 12, h: 6,  minW: 2, minH: 3 },
 ];
@@ -1234,7 +1227,6 @@ const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   markets:      'hsl(250 50% 52%)',
   aiprediction: 'hsl(260 50% 52%)',
   analytics:    'hsl(195 55% 42%)',
-  notams:       'hsl(40 60% 46%)',
   osint:        'hsl(230 50% 52%)',
   livefeed:     'hsl(215 55% 48%)',
   alertmap:     'hsl(12 60% 46%)',
@@ -2662,292 +2654,7 @@ const CYBER_TYPE_COLORS: Record<string, string> = { ddos: 'text-orange-400 bg-or
 
 
 
-// ── NOTAM Panel ──────────────────────────────────────────────────────────────
-const NOTAM_TYPE_LABELS: Record<string, { en: string; ar: string }> = {
-  airspace_closure:    { en: 'CLOSURE',  ar: 'إغلاق' },
-  flight_restriction:  { en: 'RESTRICT', ar: 'تقييد' },
-  tfr:                 { en: 'TFR',      ar: 'TFR' },
-  hazard:              { en: 'HAZARD',   ar: 'خطر' },
-  military_exercise:   { en: 'MIL EX',   ar: 'تدريب' },
-  navigation_warning:  { en: 'NAV WARN', ar: 'تحذير' },
-};
-const NOTAM_TYPE_COLORS: Record<string, string> = {
-  airspace_closure:   'text-red-300 bg-red-500/10 border-red-500/30',
-  flight_restriction: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
-  tfr:                'text-orange-300 bg-orange-500/10 border-orange-500/30',
-  hazard:             'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
-  military_exercise:  'text-purple-300 bg-purple-500/10 border-purple-500/30',
-  navigation_warning: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
-};
-const NOTAM_SEV_BORDER: Record<string, string> = {
-  critical: 'rgb(239 68 68 / 0.55)', high: 'rgb(249 115 22 / 0.45)', medium: 'rgb(234 179 8 / 0.35)', low: 'transparent',
-};
 
-const NOTAM_SEV_COLOR: Record<string, string> = {
-  critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#22d3ee',
-};
-const NOTAM_TYPE_HEX: Record<string, string> = {
-  airspace_closure: '#ef4444', tfr: '#f97316', flight_restriction: '#f59e0b',
-  military_exercise: '#a855f7', hazard: '#eab308', navigation_warning: '#22d3ee',
-};
-
-const NOTAMPanel = memo(function NOTAMPanel({ notams, language, onClose, onMaximize, isMaximized }: { notams: NOTAMItem[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
-  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const [filterType, setFilterType] = useState<string>('all');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const layerGroupRef = useRef<any>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const mapReadyRef = useRef(false);
-  const [mapReady, setMapReady] = useState(false);
-
-  const activeNotams = useMemo(() => {
-    const now = Date.now();
-    return notams.filter(n => new Date(n.effectiveTo).getTime() > now);
-  }, [notams]);
-
-  const filtered = useMemo(() =>
-    filterType === 'all' ? activeNotams : activeNotams.filter(n => n.type === filterType),
-    [activeNotams, filterType]
-  );
-
-  const closureCount = useMemo(() => activeNotams.filter(n => n.type === 'airspace_closure').length, [activeNotams]);
-  const tfrCount = useMemo(() => activeNotams.filter(n => n.type === 'tfr' || n.type === 'flight_restriction').length, [activeNotams]);
-  const navCount = useMemo(() => activeNotams.filter(n => n.type === 'navigation_warning').length, [activeNotams]);
-
-  // Init Leaflet map — delay slightly so the container has a real pixel height
-  useEffect(() => {
-    if (mapReadyRef.current) return;
-    const timer = setTimeout(() => {
-      const el = mapContainerRef.current;
-      if (!el || mapRef.current) return;
-      const Lf = (window as any).L;
-      if (!Lf) return;
-
-      mapReadyRef.current = true;
-      const map = Lf.map(el, {
-        center: [30, 42],
-        zoom: 4,
-        zoomControl: false,
-        attributionControl: false,
-      });
-
-      Lf.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 18,
-        subdomains: 'abcd',
-        attribution: '© OpenStreetMap · CartoDB',
-      }).addTo(map);
-
-      Lf.control.zoom({ position: 'topright' }).addTo(map);
-
-      layerGroupRef.current = Lf.layerGroup().addTo(map);
-      mapRef.current = map;
-      setMapReady(true);
-
-      setTimeout(() => map.invalidateSize(), 200);
-    }, 80);
-
-    return () => {
-      clearTimeout(timer);
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        layerGroupRef.current = null;
-        mapReadyRef.current = false;
-        setMapReady(false);
-      }
-    };
-  }, []);
-
-  // Re-plot NOTAM circles whenever filtered list or selection changes
-  useEffect(() => {
-    const Lf = (window as any).L;
-    if (!Lf || !mapRef.current || !layerGroupRef.current) return;
-    layerGroupRef.current.clearLayers();
-
-    const withCoords = filtered.filter(n => n.coordinates);
-    const bounds: [number, number][] = [];
-
-    withCoords.forEach(n => {
-      const { lat, lng } = n.coordinates!;
-      const typeColor = NOTAM_TYPE_HEX[n.type] || NOTAM_SEV_COLOR[n.severity] || '#22d3ee';
-      const radiusM = (n.radiusNm ?? 15) * 1852;
-      const isSelected = n.id === selectedId;
-
-      const circle = Lf.circle([lat, lng], {
-        radius: radiusM,
-        color: typeColor,
-        fillColor: typeColor,
-        fillOpacity: isSelected ? 0.35 : 0.12,
-        weight: isSelected ? 2.5 : 1.5,
-        opacity: isSelected ? 1 : 0.65,
-        dashArray: n.type === 'military_exercise' ? '6 4' : undefined,
-      }).addTo(layerGroupRef.current);
-
-      const typeLabel = NOTAM_TYPE_LABELS[n.type]?.en || n.type;
-      const fmt = (d: string) => new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-
-      const popupEl = document.createElement('div');
-      popupEl.style.cssText = `font-family:monospace;font-size:11px;min-width:180px;color:#e2e8f0;background:#0f172a;padding:8px;border-radius:6px;border:1px solid ${typeColor}55`;
-      const title = document.createElement('b');
-      title.style.color = typeColor;
-      title.textContent = `${n.icao} \u00B7 ${n.location}`;
-      const badge = document.createElement('span');
-      badge.style.cssText = `font-size:9px;background:${typeColor}22;border:1px solid ${typeColor}44;border-radius:3px;padding:1px 5px;color:${typeColor};display:inline-block;margin-top:4px`;
-      badge.textContent = typeLabel.toUpperCase();
-      const desc = document.createElement('span');
-      desc.style.cssText = 'color:#94a3b8;font-size:10px;display:block;margin-top:6px';
-      desc.textContent = n.text.slice(0, 180) + (n.text.length > 180 ? '\u2026' : '');
-      const dates = document.createElement('span');
-      dates.style.cssText = 'color:#475569;font-size:9px;display:block;margin-top:4px';
-      dates.textContent = `${fmt(n.effectiveFrom)} \u2192 ${fmt(n.effectiveTo)}`;
-      const meta = document.createElement('span');
-      meta.style.cssText = 'color:#475569;font-size:9px;display:block';
-      meta.textContent = `${n.country} \u00B7 ${n.radiusNm ?? 15} NM`;
-      popupEl.append(title, document.createElement('br'), badge, desc, dates, meta);
-      circle.bindPopup(popupEl, { maxWidth: 260, className: 'notam-popup' });
-
-      circle.on('click', () => {
-        setSelectedId(n.id);
-        setTimeout(() => {
-          const el = listRef.current?.querySelector(`[data-notam-id="${n.id}"]`) as HTMLElement | null;
-          el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 60);
-      });
-
-      bounds.push([lat, lng]);
-    });
-
-    // Fit bounds only when there are circles and filter changed (not on every re-render)
-    if (bounds.length > 0 && !selectedId) {
-      try { mapRef.current.fitBounds(bounds, { padding: [30, 30], maxZoom: 6 }); } catch {}
-    }
-  }, [filtered, selectedId, mapReady]);
-
-  // Invalidate map size on maximize toggle or after first render
-  useEffect(() => {
-    const t = setTimeout(() => mapRef.current?.invalidateSize(), 150);
-    return () => clearTimeout(t);
-  }, [isMaximized]);
-
-  return (
-    <div className="h-full flex flex-col min-h-0" data-testid="notams-panel">
-      <PanelHeader
-        title={t('NOTAMs', 'إشعارات الطيران')}
-        icon={<FileWarning className="w-3.5 h-3.5" />}
-        live count={activeNotams.length}
-        onClose={onClose} onMaximize={onMaximize} isMaximized={isMaximized}
-      />
-
-      {/* Stat pills — click to filter */}
-      <div className="shrink-0 px-3 py-1.5 border-b border-border flex items-center gap-3" style={{ background: 'hsl(var(--muted))' }}>
-        {[
-          { label: 'ACTIVE', count: activeNotams.length, color: '#22d3ee', filter: 'all' },
-          { label: 'CLOSURE', count: closureCount, color: '#ef4444', filter: 'airspace_closure' },
-          { label: 'TFR', count: tfrCount, color: '#f97316', filter: 'tfr' },
-          { label: 'NAV', count: navCount, color: '#eab308', filter: 'navigation_warning' },
-        ].map(s => (
-          <button key={s.label} onClick={() => setFilterType(s.filter)}
-            className="flex flex-col items-center gap-0 transition-opacity"
-            style={{ opacity: filterType === s.filter ? 1 : 0.45 }}
-            data-testid={`notam-stat-${s.label.toLowerCase()}`}>
-            <span className="text-[13px] font-black font-mono leading-tight" style={{ color: s.color }}>{s.count}</span>
-            <span className="text-[7px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>{s.label}</span>
-          </button>
-        ))}
-        <div className="flex-1" />
-        {['military_exercise', 'hazard', 'flight_restriction'].map(ft => (
-          <button key={ft} onClick={() => setFilterType(filterType === ft ? 'all' : ft)}
-            data-testid={`notam-filter-${ft}`}
-            className="text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border transition-colors whitespace-nowrap"
-            style={{
-              background: filterType === ft ? (NOTAM_TYPE_HEX[ft] || '#888') + '22' : 'transparent',
-              color: filterType === ft ? (NOTAM_TYPE_HEX[ft] || '#888') : 'rgba(255,255,255,0.25)',
-              borderColor: filterType === ft ? (NOTAM_TYPE_HEX[ft] || '#888') + '66' : 'rgba(255,255,255,0.08)',
-            }}>
-            {NOTAM_TYPE_LABELS[ft]?.[language === 'ar' ? 'ar' : 'en'] || ft}
-          </button>
-        ))}
-      </div>
-
-      {/* Map — fixed 200px, always visible */}
-      <div className="shrink-0 relative" style={{ height: 200, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
-
-        {/* Legend */}
-        <div className="absolute bottom-1.5 left-1.5 z-[1000] flex flex-col gap-0.5 pointer-events-none"
-          style={{ background: 'rgba(10,15,28,0.88)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 4, padding: '3px 6px' }}>
-          {[['CLOSURE','#ef4444'],['TFR','#f97316'],['MIL EX','#a855f7'],['NAV','#22d3ee'],['HAZARD','#eab308']].map(([lbl, col]) => (
-            <div key={lbl} className="flex items-center gap-1">
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: col as string }} />
-              <span style={{ fontSize: 6, fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em' }}>{lbl}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* No-coords placeholder */}
-        {filtered.filter(n => n.coordinates).length === 0 && filtered.length > 0 && (
-          <div className="absolute inset-0 flex items-end justify-center pb-2 z-[999] pointer-events-none">
-            <span className="text-[8px] font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.25)' }}>
-              No coordinates — showing list only
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Scrollable list */}
-      <div ref={listRef} className="flex-1 overflow-y-auto min-h-0 divide-y divide-border" style={{ overscrollBehavior: 'contain' }}>
-        {filtered.length === 0 && (
-          <div className="px-3 py-8 text-center">
-            <FileWarning className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(34,211,238,0.15)' }} />
-            <p className="text-[10px] font-mono" style={{ color: 'rgba(34,211,238,0.3)' }}>{t('NO ACTIVE NOTAMs', 'لا توجد إشعارات نشطة')}</p>
-          </div>
-        )}
-        {filtered.map(n => {
-          const isSelected = n.id === selectedId;
-          const typeColor = NOTAM_TYPE_HEX[n.type] || '#888';
-          return (
-            <div
-              key={n.id}
-              data-notam-id={n.id}
-              data-testid={`notam-item-${n.id}`}
-              onClick={() => {
-                setSelectedId(isSelected ? null : n.id);
-                if (n.coordinates && mapRef.current) {
-                  mapRef.current.setView([n.coordinates.lat, n.coordinates.lng], 6, { animate: true });
-                }
-              }}
-              className="px-3 py-2 border-l-2 cursor-pointer transition-colors hover:bg-muted/20"
-              style={{
-                borderLeftColor: NOTAM_SEV_BORDER[n.severity] || 'transparent',
-                background: isSelected ? typeColor + '0e' : 'transparent',
-              }}
-            >
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[9px] px-1 py-px rounded font-black font-mono bg-white/[0.06] text-white/40 border border-border shrink-0">{n.icao}</span>
-                <span className={`text-[8px] px-1 py-px rounded border font-black font-mono shrink-0 ${NOTAM_TYPE_COLORS[n.type] || 'text-foreground/50 bg-muted border-border'}`}>
-                  {NOTAM_TYPE_LABELS[n.type]?.[language === 'ar' ? 'ar' : 'en'] || n.type}
-                </span>
-                <span className="text-[9px] font-mono text-foreground/40 truncate flex-1">{n.location}</span>
-                {n.coordinates && <span style={{ fontSize: 9, opacity: 0.4 }}>📍</span>}
-              </div>
-              <p className="text-[9px] text-foreground/50 leading-relaxed line-clamp-2 font-mono mb-0.5">{n.text}</p>
-              <div className="flex items-center gap-1.5 text-[8px] font-mono text-foreground/20">
-                <span>{n.country}</span>
-                <span>·</span>
-                <span>{new Date(n.effectiveFrom).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                <span>→</span>
-                <span>{new Date(n.effectiveTo).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                {n.radiusNm && <span className="ml-auto">{n.radiusNm} NM</span>}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-})
 
 
 function getAlertUrgencyTier(remaining: number, countdown: number): 'critical' | 'urgent' | 'warning' | 'standard' | 'expired' {
@@ -3070,7 +2777,7 @@ const LIVE_CHANNELS = [
   { id: 'sky',     label: 'SKY AR',   labelAr: 'سكاي عربية', channelId: 'UCdsMKkuVRqTmYKvIiMbZJmA', videoId: 'U--OjmpjF5o' },
   { id: 'france',  label: 'F24 ENG',  labelAr: 'فرانس 24',   channelId: 'UCQfwfsi5VrQ8yKZ-UWmAEFg', videoId: '' },
   { id: 'jadeed',  label: 'AL JADEED', labelAr: 'الجديد',     channelId: 'UCBKJsRj3mSsg_eDHrsYOHMg', videoId: '' },
-  { id: 'araby',   label: 'AL ARABY', labelAr: 'العربي',      channelId: 'UCbqBj1gZsJJjU2jCVasqL-g', videoId: '' },
+  { id: 'araby',   label: 'AL ARABY', labelAr: 'العربي',      channelId: 'UCbqBj1gZsJJjU2jCVasqL-g', videoId: 'e2RgSa1Wt5o' },
 ] as const;
 
 const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximize, isMaximized }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean }) {
@@ -4642,7 +4349,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
     staleTime: 0,
   });
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [analyticsTab, setAnalyticsTab] = useState<'overview' | 'regions' | 'sources' | 'patterns'>('overview');
+  const [analyticsTab, setAnalyticsTab] = useState<'overview' | 'regions' | 'sources' | 'patterns' | 'epicfury'>('overview');
 
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
 
@@ -5065,7 +4772,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
       </div>
 
       <div className="flex border-b border-border shrink-0" style={{ background: 'hsl(var(--muted))' }}>
-        {(['overview', 'regions', 'sources', 'patterns'] as const).map(tab => (
+        {(['overview', 'regions', 'sources', 'patterns', 'epicfury'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setAnalyticsTab(tab)}
@@ -5079,6 +4786,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
             {tab === 'overview' ? t('Overview', '\u0646\u0638\u0631\u0629') :
              tab === 'regions' ? t('Regions', '\u0645\u0646\u0627\u0637\u0642') :
              tab === 'sources' ? t('Sources', '\u0645\u0635\u0627\u062F\u0631') :
+             tab === 'epicfury' ? t('Op. Fury', '\u0634\u0627\u063a\u062a') :
              t('Patterns', '\u0623\u0646\u0645\u0627\u0637')}
           </button>
         ))}
@@ -5642,6 +5350,123 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
                 </>
               )}
 
+              {analyticsTab === 'epicfury' && (
+                <>
+                  <div className="rounded border border-red-500/30 overflow-hidden" style={{background:'linear-gradient(135deg,rgb(127 29 29/0.7),rgb(60 10 10/0.5))'}}>
+                    <div className="px-3 py-2.5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                        <span className="text-[10px] font-black text-red-300 uppercase tracking-wider font-mono">Operation Epic Fury</span>
+                        <span className="text-[7px] font-mono text-foreground/35 ml-auto">Op. Roaring Lion · 28 Feb 2026</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+                        <div>
+                          <div className="text-[8px] text-foreground/40 uppercase tracking-wider">Start</div>
+                          <div className="text-[11px] font-black font-mono text-foreground/80">28/02/2026</div>
+                        </div>
+                        <div>
+                          <div className="text-[8px] text-foreground/40 uppercase tracking-wider">Day</div>
+                          <div className="text-2xl font-black font-mono text-red-400">13</div>
+                        </div>
+                        <div>
+                          <div className="text-[8px] text-foreground/40 uppercase tracking-wider">Updated</div>
+                          <div className="text-[11px] font-black font-mono text-foreground/80">13/03/2026</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Rocket className="w-3.5 h-3.5 text-orange-400/70" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">Cumulative Metrics</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([
+                        { label: 'Ballistic Missiles', value: '~1,040', color: 'text-red-400', accent: 'hsl(0 72% 51%)', sub: 'Region-wide' },
+                        { label: 'Drones / UAVs', value: '~3,000', color: 'text-yellow-400', accent: 'hsl(48 96% 53%)', sub: 'Region-wide' },
+                        { label: 'Missiles to Israel', value: '~200', color: 'text-orange-400', accent: 'hsl(25 95% 53%)', sub: 'Directed' },
+                        { label: 'Lebanon Salvos', value: '150+', color: 'text-purple-400', accent: 'hsl(270 60% 60%)', sub: 'Incidents' },
+                        { label: 'Countries Attacked', value: '12', color: 'text-blue-400', accent: 'hsl(215 90% 60%)', sub: 'States' },
+                        { label: 'Launchers Destroyed', value: '300', color: 'text-emerald-400', accent: 'hsl(160 84% 39%)', sub: 'Confirmed' },
+                      ] as const).map(({ label, value, color, accent, sub }) => (
+                        <div key={label} className="rounded overflow-hidden border border-border/50" style={{borderLeft:`3px solid ${accent}`}}>
+                          <div className="px-2 py-1.5 bg-muted/30">
+                            <div className="text-[8px] text-foreground/40 font-mono tracking-wider leading-none truncate">{label}</div>
+                            <div className={`text-lg font-black font-mono leading-tight tabular-nums ${color}`}>{value}</div>
+                            <div className="text-[7px] text-foreground/25 font-mono">{sub}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="w-3.5 h-3.5 text-emerald-400/70" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">Interception Events by Country</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {([
+                        { country: 'UAE', value: 1797 },
+                        { country: 'Kuwait', value: 682 },
+                        { country: 'Bahrain', value: 285 },
+                        { country: 'Qatar', value: 237 },
+                        { country: 'Saudi Arabia', value: 170 },
+                        { country: 'Oman', value: 15 },
+                      ] as const).map(({ country, value }) => {
+                        const pct = (value / 1797) * 100;
+                        return (
+                          <div key={country} className="flex items-center gap-2">
+                            <span className="text-[9px] text-foreground/60 font-mono w-[100px] truncate">{country}</span>
+                            <div className="flex-1 h-2 rounded-full overflow-hidden bg-black/30">
+                              <div className="h-full rounded-full" style={{width:`${pct}%`, background:'hsl(160 84% 39%)'}} />
+                            </div>
+                            <span className="text-[9px] text-emerald-400 font-mono font-bold w-[36px] text-right tabular-nums">{value.toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-400/70" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">Casualty Figures</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {[
+                        { party: 'Israel', killed: 18, wounded: 2745 as number | null, notes: '3,400 displaced · 50,719 alerts' as string | null, color: '#60a5fa' },
+                        { party: 'Lebanon', killed: 634, wounded: null as number | null, notes: '750,000 displaced' as string | null, color: '#34d399' },
+                        { party: 'Iran', killed: 1348, wounded: 6186 as number | null, notes: '~45 targeted ops' as string | null, color: '#ef4444' },
+                        { party: 'United States', killed: 7, wounded: null as number | null, notes: null as string | null, color: '#a78bfa' },
+                      ].map(({ party, killed, wounded, notes, color }) => (
+                        <div key={party} className="rounded p-2.5 bg-muted/20 border border-border/40">
+                          <span className="text-[10px] font-bold font-mono" style={{ color }}>{party}</span>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
+                            <div className="flex flex-col">
+                              <span className="text-[7px] text-foreground/35 uppercase tracking-wider">Killed</span>
+                              <span className="text-[13px] font-black font-mono text-red-400 tabular-nums leading-tight">{killed.toLocaleString()}</span>
+                            </div>
+                            {wounded != null && (
+                              <div className="flex flex-col">
+                                <span className="text-[7px] text-foreground/35 uppercase tracking-wider">Wounded</span>
+                                <span className="text-[13px] font-black font-mono text-orange-400 tabular-nums leading-tight">{wounded.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {notes && <span className="text-[8px] font-mono text-foreground/30 self-end pb-0.5">{notes}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="text-[7px] text-foreground/25 text-center font-mono pt-1">
+                    Source: littlemoiz.com · IDF Spokesperson · INSS · Ynet · Day 13 (13/03/2026)
+                  </div>
+                </>
+              )}
+
             </TooltipProvider>
           )}
         </div>
@@ -5769,7 +5594,7 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
 
 function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; stats: RocketStats | null }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const [activeTab, setActiveTab] = useState<'overview' | 'gcc' | 'lebanon' | 'live'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'gcc' | 'lebanon' | 'epic' | 'live'>('overview');
   const [liveFeed, setLiveFeed] = useState<any[]>([]);
   const [liveFeedLoading, setLiveFeedLoading] = useState(false);
   const [liveFeedError, setLiveFeedError] = useState(false);
@@ -5865,6 +5690,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
     { id: 'overview', label: t('Overview','نظرة') },
     { id: 'gcc',      label: t('GCC','الخليج') },
     { id: 'lebanon',  label: t('Lebanon','لبنان') },
+    { id: 'epic',     label: t('Op. Fury','شاغت') },
     { id: 'live',     label: t('Live','مباشر') },
   ] as const;
 
@@ -6169,6 +5995,105 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               ))}
             </div>
             <div className="text-[7px] text-foreground/30 text-center font-mono">{t('Sources: IDF, UNIFIL, NowLebanon, LBCI, Alma Research, CSIS.','المصادر: الجيش الإسرائيلي، يونيفيل، ناو لبنان، LBCI، Alma.')}</div>
+          </>
+        ) : activeTab === 'epic' ? (
+          <>
+            {/* Operation Header */}
+            <div className="rounded p-2" style={{background:'hsl(0 30% 16% / 0.5)', border:'1px solid hsl(0 50% 30% / 0.4)'}}>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <span className="text-[10px] font-black text-red-400 uppercase tracking-wider font-mono">{t('Operation Epic Fury','عملية شاغت الاري')}</span>
+                <span className="text-[7px] font-mono text-foreground/40 ml-auto">Op. Roaring Lion · 28 Feb 2026</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1 text-center mt-1.5">
+                <div>
+                  <div className="text-[8px] text-foreground/40 uppercase tracking-wider">{t('Start','البداية')}</div>
+                  <div className="text-[9px] font-bold font-mono text-foreground/80">28/02/2026</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-foreground/40 uppercase tracking-wider">{t('Day','اليوم')}</div>
+                  <div className="text-[15px] font-black font-mono text-red-400">13</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-foreground/40 uppercase tracking-wider">{t('Updated','تحديث')}</div>
+                  <div className="text-[9px] font-bold font-mono text-foreground/80">13/03/2026</div>
+                </div>
+              </div>
+            </div>
+
+            {/* KPI Grid */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { label: t('Ballistic Missiles','صواريخ باليستية'), value: '~1,040', color: '#ef4444', sub: t('Region-wide','المنطقة') },
+                { label: t('Drones / UAVs','طائرات مسيّرة'), value: '~3,000', color: '#facc15', sub: t('Region-wide','المنطقة') },
+                { label: t('Missiles → Israel','صواريخ نحو إسرائيل'), value: '~200', color: '#f97316', sub: t('Directed','موجّهة') },
+                { label: t('Lebanon Salvos','ضربات لبنان'), value: '150+', color: '#a78bfa', sub: t('Incidents','حوادث') },
+                { label: t('Countries Attacked','دول مهاجَمة'), value: '12', color: '#60a5fa', sub: t('States','دول') },
+                { label: t('Launchers Destroyed','قاذفات مدمّرة'), value: '300', color: '#34d399', sub: t('Confirmed','مؤكّد') },
+              ].map(({ label, value, color, sub }) => (
+                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:`1px solid ${color}28`}}>
+                  <div className="text-[13px] font-black font-mono" style={{ color }}>{value}</div>
+                  <div className="text-[7px] text-foreground/60 font-bold uppercase tracking-wider leading-tight">{label}</div>
+                  <div className="text-[6px] text-foreground/30 font-mono mt-0.5">{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Interception Events by Country */}
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <Shield className="w-3 h-3 text-emerald-400" />
+                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Interception Events by Country','حوادث الاعتراض بالدولة')}</span>
+              </div>
+              {[
+                { country: 'UAE', value: 1797 },
+                { country: 'Kuwait', value: 682 },
+                { country: 'Bahrain', value: 285 },
+                { country: 'Qatar', value: 237 },
+                { country: 'Saudi Arabia', value: 170 },
+                { country: 'Oman', value: 15 },
+              ].map(({ country, value }, _i, arr) => {
+                const max = arr[0].value;
+                return (
+                  <div key={country} className="flex items-center gap-1.5 mb-0.5">
+                    {getCountryIcon(country)}
+                    <span className="text-[8px] text-foreground/60 font-mono w-[90px] truncate">{country}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
+                      <div className="h-full rounded-full" style={{width:`${(value/max)*100}%`, background:'#34d399'}} />
+                    </div>
+                    <span className="text-[8px] text-emerald-400 font-mono font-bold w-[34px] text-right">{value.toLocaleString()}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Casualties */}
+            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
+              <div className="flex items-center gap-1 mb-1.5">
+                <AlertTriangle className="w-3 h-3 text-red-400" />
+                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Casualty Figures','الخسائر البشرية')}</span>
+              </div>
+              {[
+                { party: 'Israel', killed: 18, wounded: 2745, extra: '3,400 displaced · 50,719 alerts', color: '#60a5fa' },
+                { party: 'Lebanon', killed: 634, wounded: null as number | null, extra: '750,000 displaced', color: '#34d399' },
+                { party: 'Iran', killed: 1348, wounded: 6186, extra: '~45 targeted ops', color: '#ef4444' },
+                { party: 'United States', killed: 7, wounded: null as number | null, extra: null as string | null, color: '#a78bfa' },
+              ].map(({ party, killed, wounded, extra, color }) => (
+                <div key={party} className="mb-1.5 last:mb-0 pb-1.5 last:pb-0" style={{borderBottom:'1px solid hsl(var(--border) / 0.5)'}}>
+                  <div className="flex items-center gap-1 mb-0.5">
+                    {getCountryIcon(party)}
+                    <span className="text-[9px] font-bold font-mono" style={{ color }}>{party}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 pl-4">
+                    <span className="text-[8px] font-mono text-foreground/40">{t('Killed','قتلى')}: <span className="text-red-400 font-bold">{killed.toLocaleString()}</span></span>
+                    {wounded != null && <span className="text-[8px] font-mono text-foreground/40">{t('Wounded','جرحى')}: <span className="text-orange-400 font-bold">{wounded.toLocaleString()}</span></span>}
+                    {extra && <span className="text-[8px] font-mono text-foreground/30">{extra}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-[7px] text-foreground/30 text-center font-mono">{t('Source: littlemoiz.com · IDF Spokesperson · INSS · Ynet · Day 13 (13/03/2026)','المصدر: littlemoiz.com · المتحدث الإسرائيلي · INSS · يديعوت')}</div>
           </>
         ) : (
           /* Live Feed */
@@ -7393,7 +7318,7 @@ function PanelSidebar({
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
   const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
-  const bottomGroup: PanelId[] = ['events', 'markets', 'notams', 'alertmap', 'analytics', 'osint', 'attackpred', 'rocketstats'];
+  const bottomGroup: PanelId[] = ['events', 'markets', 'alertmap', 'analytics', 'osint', 'attackpred', 'rocketstats'];
 
 
   const renderBtn = (id: PanelId) => {
@@ -7738,7 +7663,7 @@ export default function Dashboard() {
 
 
 
-  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true, notams: true };
+  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
@@ -7787,7 +7712,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, notams, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -7952,7 +7877,7 @@ export default function Dashboard() {
   });
 
   const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'livefeed'];
-  const bottomRow: PanelId[] = ['events', 'markets', 'notams', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
+  const bottomRow: PanelId[] = ['events', 'markets', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
   const activeBottom = bottomRow.filter(id => visiblePanels[id]);
@@ -7967,7 +7892,7 @@ export default function Dashboard() {
     setReadyPanels(new Set(topRow));
     const batches: PanelId[][] = [
       ['events', 'markets', 'aiprediction'],
-      ['notams', 'analytics', 'osint'],
+      ['analytics', 'osint'],
       ['attackpred', 'rocketstats', 'livefeed'],
     ];
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -7987,7 +7912,7 @@ export default function Dashboard() {
   const defaultWidths: Record<PanelId, number> = {
     telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
     events: 22, markets: 28,
-    notams: 22, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
+    analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
   const [colWidths, setColWidths] = useState<Record<PanelId, number>>(() => {
     try {
@@ -8106,8 +8031,6 @@ export default function Dashboard() {
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} soundEnabled={soundEnabled} silentMode={settings.silentMode} volume={settings.volume} />;
         case 'markets':
           return <CommoditiesPanel commodities={commodities} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
-        case 'notams':
-          return <NOTAMPanel notams={notams} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'livefeed':
           return <LiveFeedPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alertmap':
@@ -8274,7 +8197,6 @@ export default function Dashboard() {
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
               markets: commodities.length > 0 ? `${commodities.length}` : '',
-              notams: notams.length > 0 ? `${notams.length}` : '',
               alertmap: redAlerts.length > 0 ? `${redAlerts.length}` : '',
               analytics: '',
             }}
@@ -8511,7 +8433,7 @@ export default function Dashboard() {
                 {allPanels.filter(id => !(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
-                  const count = id === 'notams' ? notams.length : 0;
+                  const count = 0;
                   return (
                     <button
                       key={id}
