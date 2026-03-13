@@ -26,8 +26,7 @@ type ChannelId =
   | "france24"
   | "ch12"
   | "ch13"
-  | "lbc"
-  | "dw";
+  | "lbc";
 
 interface FeedItem {
   id: string;
@@ -385,6 +384,256 @@ const CHANNELS: Channel[] = [
     ],
     locations: ["the West Bank", "southern Gaza", "northern Lebanon", "Syria", "the Sinai", "Yemen", "Iraq"],
   },
+
+  // ── Arabic TV ─────────────────────────────────────────────────────────────────
+  {
+    id: "jadeed" as any,
+    name: "Al Jadeed",
+    handle: "الجديد",
+    icon: "ج",
+    accent: "#38bdf8",
+    bg: "rgba(56,189,248,0.08)",
+    tag: "AR-TV",
+    description: "Lebanese independent — Beirut ground coverage, neutral-ish",
+    headlines: [
+      "الجديد: انفجار يهز {loc} — فرق الإنقاذ تتحرك",
+      "Al Jadeed exclusive: Lebanese sources on {loc} ceasefire status",
+      "الجديد: مراسلتنا في {loc} ترصد الأوضاع لحظة بلحظة",
+      "Al Jadeed: {n} injured in {loc} as strikes continue overnight",
+      "الجديد: حراك دبلوماسي لوقف إطلاق النار في {loc}",
+      "Al Jadeed reporter sheltering in {loc} — live update via phone",
+      "الجديد عاجل: دمار واسع في {loc} بعد الغارات الليلية",
+    ],
+    bodies: [
+      "Al Jadeed correspondent live: 'We are hearing explosions at regular intervals. Civil defense teams are overwhelmed in {loc}.'",
+      "مراسلة الجديد: الدمار واسع النطاق في {loc}، وفرق الدفاع المدني تعمل بطاقتها القصوى.",
+      "Al Jadeed: Local health authorities report {n} casualties, figures unconfirmed by independent sources.",
+    ],
+    locations: ["Beirut", "southern Lebanon", "Tyre", "Sidon", "Baalbek", "the Bekaa Valley", "Dahiyeh", "Nabatieh"],
+  },
+  {
+    id: "alarabytv" as any,
+    name: "Al Araby TV",
+    handle: "العربي",
+    icon: "ع",
+    accent: "#a78bfa",
+    bg: "rgba(167,139,250,0.08)",
+    tag: "AR-TV",
+    description: "Qatar-backed pan-Arab — opposition & diaspora angle",
+    headlines: [
+      "العربي: مصادر في {loc} تتحدث عن تصعيد غير مسبوق",
+      "Al Araby TV: Opposition groups in {loc} warn of humanitarian collapse",
+      "العربي: ناشطون يوثقون انتهاكات في {loc} — فيديوهات",
+      "Al Araby TV: {n} civilian structures hit in {loc} — report",
+      "العربي: مطالبات بتحقيق دولي في أحداث {loc}",
+      "Al Araby TV: Diaspora communities rally over {loc} situation",
+      "العربي عاجل: مصادر في {loc} تؤكد سقوط ضحايا مدنيين",
+    ],
+    bodies: [
+      "Al Araby TV: Activist networks documented the incidents using satellite imagery and on-the-ground testimonies from {loc}.",
+      "العربي: ناشطون حقوقيون يطالبون بمحاسبة المسؤولين عن الانتهاكات في {loc}.",
+      "Al Araby correspondent: 'The voices from inside {loc} are telling a very different story from official accounts.'",
+    ],
+    locations: ["Gaza", "the West Bank", "Beirut", "Ramallah", "Jenin", "Rafah", "Damascus", "Iraqi Kurdistan"],
+  },
+
+  // ── TV Channels ──────────────────────────────────────────────────────────────
+  {
+    id: "i24",
+    name: "i24 NEWS",
+    handle: "i24NEWS",
+    icon: "📺",
+    accent: "#38bdf8",
+    bg: "rgba(56,189,248,0.09)",
+    tag: "TV",
+    description: "Israeli English-language broadcast — Tel Aviv studio",
+    headlines: [
+      "i24 LIVE: Sirens heard in {loc} — correspondent on ground",
+      "i24 CHYRON: Iron Dome intercepts detected over {loc}",
+      "LIVE BROADCAST: Explosions reported in {loc} region",
+      "i24 EXCLUSIVE: IDF official speaks on {loc} operation",
+      "BREAKING — i24: Hostage family speaks out following {loc} news",
+      "i24 REPORTER: Smoke visible from studio in direction of {loc}",
+      "ON AIR: Emergency press conference live from {loc}",
+    ],
+    bodies: [
+      "i24 NEWS correspondent reporting live from the scene: 'We can hear the Iron Dome interceptors firing overhead. Residents are moving to shelters.'",
+      "Studio anchor: 'We are receiving unconfirmed reports of additional launches. Our team in {loc} is attempting to confirm.'",
+      "i24's military correspondent: 'This is consistent with what we've seen in previous escalation rounds — a coordinated multi-front pressure campaign.'",
+    ],
+    locations: ["Tel Aviv", "Haifa", "Ashkelon", "the north", "the southern envelope", "Jerusalem", "the border"],
+  },
+  {
+    id: "bbc",
+    name: "BBC World News",
+    handle: "BBC News",
+    icon: "BBC",
+    accent: "#e11d48",
+    bg: "rgba(225,29,72,0.08)",
+    tag: "TV",
+    description: "BBC World News broadcast — international coverage",
+    headlines: [
+      "BBC: Our correspondent in {loc} reports heavy gunfire overnight",
+      "LIVE: BBC panel — analysts assess {loc} ground situation",
+      "BBC VERIFIED: Video from {loc} shows aftermath of strike",
+      "BBC NEWSNIGHT: {loc} crisis — what happens next?",
+      "BBC: UK foreign secretary calls for ceasefire in {loc}",
+      "BBC BREAKING: {n} reported dead in {loc} — unverified",
+      "BBC WORLD SERVICE: {loc} residents describe night of bombardment",
+    ],
+    bodies: [
+      "BBC correspondent: 'The situation here is extremely tense. We've been moved from our original position twice in the last hour due to security concerns.'",
+      "The BBC cannot independently verify casualty figures cited by local health authorities.",
+      "BBC analysis: The diplomatic track appears to have stalled, with both sides hardening their public positions ahead of any potential talks.",
+    ],
+    locations: ["Gaza City", "Beirut", "Jerusalem", "Ramallah", "Tel Aviv", "Cairo", "Amman"],
+  },
+  {
+    id: "cnn",
+    name: "CNN International",
+    handle: "CNN",
+    icon: "CNN",
+    accent: "#dc2626",
+    bg: "rgba(220,38,38,0.08)",
+    tag: "TV",
+    description: "CNN International — breaking news and analysis",
+    headlines: [
+      "CNN BREAKING: Massive explosion heard in {loc} — anchor",
+      "CNN: Source tells us ground operation imminent in {loc}",
+      "LIVE COVERAGE: CNN team sheltering as sirens sound in {loc}",
+      "CNN EXCLUSIVE: Senior official briefs on {loc} strategy",
+      "CNN: Hostage deal 'closer than ever' — source familiar with talks",
+      "SITUATION ROOM: {loc} updates — {n} rockets fired since midnight",
+      "CNN REPORTER: 'I can see the smoke from where I'm standing in {loc}'",
+    ],
+    bodies: [
+      "CNN's anchor: 'We want to warn viewers that some of the images coming in from {loc} are disturbing.'",
+      "A source familiar with the negotiations told CNN the two sides remain 'far apart' on key issues.",
+      "CNN military analyst: 'What we're seeing is a calibrated escalation designed to achieve specific tactical objectives.'",
+    ],
+    locations: ["Tel Aviv", "Gaza", "Washington DC", "Beirut", "the West Bank", "Cairo", "the region"],
+  },
+  {
+    id: "skynews",
+    name: "Sky News",
+    handle: "Sky News",
+    icon: "SKY",
+    accent: "#0ea5e9",
+    bg: "rgba(14,165,233,0.08)",
+    tag: "TV",
+    description: "Sky News — British rolling news broadcast",
+    headlines: [
+      "SKY: LIVE — {loc} latest as situation deteriorates",
+      "Sky News correspondent pinned down in {loc} — reports via phone",
+      "SKY BREAKING: Israeli PM addresses nation following {loc} attack",
+      "Sky News: UK nationals advised to leave {loc} immediately",
+      "EXCLUSIVE — Sky News: Ceasefire proposal 'on the table' — source",
+      "Sky News: International airport in {loc} suspends flights",
+      "SKY DATA: {n} incidents logged in {loc} in past 48 hours",
+    ],
+    bodies: [
+      "Sky News presenter: 'We can now bring you live pictures from our camera in {loc} — you can see the smoke on the horizon.'",
+      "Sky correspondent via phone: 'There's been a significant escalation in the past 20 minutes. We're hearing repeated explosions.'",
+      "Sky News analysis: The pattern of strikes suggests a deliberate targeting of logistics infrastructure.",
+    ],
+    locations: ["the Middle East", "London", "Beirut", "Tel Aviv", "Gaza", "the border region", "Riyadh"],
+  },
+  {
+    id: "france24",
+    name: "France 24",
+    handle: "France 24",
+    icon: "F24",
+    accent: "#3b82f6",
+    bg: "rgba(59,130,246,0.08)",
+    tag: "TV",
+    description: "France 24 English — Paris-based international news",
+    headlines: [
+      "France 24: Paris condemns strikes on {loc} civilian area",
+      "F24 LIVE: Our reporter in {loc} — 'the situation is critical'",
+      "France 24: EU emergency summit called over {loc} crisis",
+      "F24 BREAKING: French nationals trapped in {loc} — embassy confirms",
+      "France 24 correspondent: Night sky over {loc} lit by explosions",
+      "F24 ANALYSIS: {loc} — decoding the escalation ladder",
+      "France 24: Macron calls for 'maximum restraint' following {loc}",
+    ],
+    bodies: [
+      "France 24 correspondent in the field: 'The French embassy has been trying to reach nationals in the area. Communications are intermittent.'",
+      "France 24 analyst: 'Paris is walking a difficult line here — maintaining alliance commitments while appealing to Arab partners.'",
+    ],
+    locations: ["Beirut", "Paris", "Gaza", "Jerusalem", "Cairo", "Ramallah", "southern Lebanon"],
+  },
+  {
+    id: "ch12",
+    name: "Channel 12",
+    handle: "N12 / Keshet",
+    icon: "12",
+    accent: "#f97316",
+    bg: "rgba(249,115,22,0.08)",
+    tag: "TV",
+    description: "Keshet N12 — Israeli commercial TV, Hebrew breaking news",
+    headlines: [
+      "N12 BREAKING: Sirens in {loc} — מצב חירום — stay in shelter",
+      "Channel 12: צבע אדום — Red Alert declared in {loc}",
+      "N12 REPORTER live from {loc}: rockets visible from position",
+      "Channel 12: PM's office to hold press conference — {loc} related",
+      "N12 EXCLUSIVE: IDF source confirms operation in {loc} widening",
+      "Channel 12: {n} קטיושות — Katyushas fired toward {loc}",
+      "N12: Cabinet session ends — war cabinet votes on {loc} response",
+    ],
+    bodies: [
+      "N12 anchor reporting live: 'We are asking all residents of {loc} to remain in their protected spaces until further notice.'",
+      "Channel 12 military correspondent: 'The IDF is not confirming details, but our sources say the operation entered a new phase tonight.'",
+    ],
+    locations: ["Tel Aviv", "Haifa", "the north", "Kiryat Shmona", "Beer Sheva", "Ashkelon", "the envelope"],
+  },
+  {
+    id: "ch13",
+    name: "Channel 13",
+    handle: "N13 / Reshet",
+    icon: "13",
+    accent: "#a855f7",
+    bg: "rgba(168,85,247,0.08)",
+    tag: "TV",
+    description: "Reshet N13 — Israeli commercial TV, investigative & breaking",
+    headlines: [
+      "Channel 13: מיוחד — Special report from {loc}",
+      "N13 BREAKING: Drone shot down over {loc} — IDF confirms",
+      "Channel 13: Hospital in {loc} overwhelmed — footage obtained",
+      "N13 EXCLUSIVE: Leaked intel — {loc} threat assessment",
+      "Channel 13: {n} rockets since sunset — {loc} under sustained fire",
+      "N13: Families of hostages protest outside {loc} — live",
+      "Channel 13 reporter: 'This is the most intense night we've seen in {loc}'",
+    ],
+    bodies: [
+      "Channel 13 anchor: 'Our correspondent managed to reach the scene in {loc}. We will go live as soon as the connection is stable.'",
+      "N13 security correspondent: 'Multiple sources confirm the strike package was larger than initially reported.'",
+    ],
+    locations: ["Tel Aviv", "the south", "Sderot", "the north", "Haifa", "Jerusalem", "Gaza border communities"],
+  },
+  {
+    id: "lbc",
+    name: "LBC Lebanon",
+    handle: "LBCI",
+    icon: "LBC",
+    accent: "#10b981",
+    bg: "rgba(16,185,129,0.08)",
+    tag: "TV",
+    description: "Lebanese Broadcasting Corporation — Beirut-based live coverage",
+    headlines: [
+      "LBCI: Explosion heard in {loc} — correspondent rushing to scene",
+      "LBC: Lebanese army on high alert following {loc} incident",
+      "LBCI BREAKING: {n} killed in {loc} strike — health ministry",
+      "LBC: Hezbollah releases statement on {loc} operation",
+      "LBCI: Mass exodus from {loc} as fighting intensifies",
+      "LBC correspondent in {loc}: 'Buildings still on fire, no fire trucks'",
+      "LBCI: Beirut airport warns of airspace closure near {loc}",
+    ],
+    bodies: [
+      "LBCI correspondent reporting: 'We arrived at the scene in {loc} to find emergency teams still working. The smell of smoke is overwhelming.'",
+      "Lebanon's Information Minister issued a statement condemning what he called 'flagrant aggression' against Lebanese territory.",
+    ],
+    locations: ["southern Lebanon", "Beirut", "Tyre", "Sidon", "Baalbek", "the Bekaa", "Dahiyeh"],
+  },
 ];
 
 const SEV_CFG: Record<Severity, { color: string; bg: string; dot: string }> = {
@@ -404,6 +653,8 @@ const TAG_COLORS: Record<string, string> = {
   SOCIAL:   "#818cf8",
   MARITIME: "#06b6d4",
   DATA:     "#4ade80",
+  TV:       "#e879f9",
+  "AR-TV":  "#fb923c",
 };
 
 // ─── Mock Generation ──────────────────────────────────────────────────────────
@@ -431,6 +682,10 @@ function pickSeverity(ch: Channel): Severity {
   if (ch.id === "oref" || ch.id === "idf") {
     const r = Math.random();
     return r < 0.3 ? "BREAKING" : r < 0.55 ? "URGENT" : r < 0.8 ? "DEVELOPING" : "UPDATE";
+  }
+  if (ch.tag === "TV" || ch.tag === "AR-TV") {
+    const r = Math.random();
+    return r < 0.22 ? "BREAKING" : r < 0.48 ? "URGENT" : r < 0.75 ? "DEVELOPING" : "UPDATE";
   }
   if (ch.tag === "SOCIAL") {
     return Math.random() < 0.15 ? "BREAKING" : Math.random() < 0.4 ? "UPDATE" : "DEVELOPING";
@@ -531,16 +786,26 @@ function FeedCard({
         }}>
           {ch.handle}
         </span>
-        {/* Tag */}
-        <span style={{
-          fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 3,
-          color: TAG_COLORS[ch.tag] || "#aaa",
-          border: `1px solid ${TAG_COLORS[ch.tag] || "#aaa"}30`,
-          letterSpacing: "0.12em", flexShrink: 0,
-          fontFamily: "'JetBrains Mono', monospace",
-        }}>
-          {ch.tag}
-        </span>
+        {/* Tag — TV channels get ON AIR pill */}
+        {ch.tag === "TV" ? (
+          <span style={{
+            fontSize: 7, fontWeight: 900, padding: "2px 6px", borderRadius: 3,
+            color: "#e879f9", background: "rgba(232,121,249,0.12)",
+            border: "1px solid rgba(232,121,249,0.3)",
+            letterSpacing: "0.12em", flexShrink: 0,
+            fontFamily: "'JetBrains Mono', monospace",
+          }}>ON AIR</span>
+        ) : (
+          <span style={{
+            fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 3,
+            color: TAG_COLORS[ch.tag] || "#aaa",
+            border: `1px solid ${(TAG_COLORS[ch.tag] || "#aaa")}30`,
+            letterSpacing: "0.12em", flexShrink: 0,
+            fontFamily: "'JetBrains Mono', monospace",
+          }}>
+            {ch.tag}
+          </span>
+        )}
         {/* Severity */}
         <span style={{
           fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3,
@@ -757,7 +1022,7 @@ export default function LiveFeedV2() {
 
         {/* ── SIDEBAR ──────────────────────────────────────────────── */}
         <div style={{
-          width: 172, flexShrink: 0,
+          width: 182, flexShrink: 0,
           borderRight: "1px solid rgba(255,255,255,0.06)",
           display: "flex", flexDirection: "column",
           background: "rgba(0,0,0,0.25)",
@@ -788,7 +1053,7 @@ export default function LiveFeedV2() {
           })()}
 
           {/* Group labels */}
-          {["WIRE", "OFFICIAL", "OSINT", "ANALYSIS", "REGIONAL", "SOCIAL", "MARITIME", "DATA"].map(tag => {
+          {["TV", "AR-TV", "WIRE", "OFFICIAL", "REGIONAL", "OSINT", "ANALYSIS", "SOCIAL", "MARITIME", "DATA"].map(tag => {
             const chs = SOURCES.filter(c => c.tag === tag);
             if (chs.length === 0) return null;
             return (

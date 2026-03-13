@@ -34,7 +34,8 @@
       "Bash(git add:*)",
       "WebFetch(domain:www.wikidata.org)",
       "WebFetch(domain:f24.my)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "WebFetch(domain:iptv-org.github.io)"
     ]
   }
 }
