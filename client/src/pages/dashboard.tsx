@@ -6100,7 +6100,7 @@ function AlertHistoryTimeline({ language }: { language: 'en' | 'ar' }) {
 
 function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; stats: RocketStats | null }) {
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
-  const [activeTab, setActiveTab] = useState<'overview' | 'gcc' | 'lebanon' | 'epic' | 'live'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'epic' | 'live'>('overview');
   const [liveFeed, setLiveFeed] = useState<any[]>([]);
   const [liveFeedLoading, setLiveFeedLoading] = useState(false);
   const [liveFeedError, setLiveFeedError] = useState(false);
@@ -6123,25 +6123,12 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   const liveFetchedRef = useRef(false);
 
   const originEntries = stats ? Object.entries(stats.totalByOrigin).sort(([, a], [, b]) => b - a) : [];
-  const targetEntries = stats ? Object.entries(stats.totalByTarget).sort(([, a], [, b]) => b - a).slice(0, 8) : [];
+  const targetEntries = stats ? Object.entries(stats.totalByTarget).sort(([, a], [, b]) => b - a).slice(0, 10) : [];
   const maxOrigin = originEntries.length > 0 ? Math.max(...originEntries.map(e => e[1])) : 1;
   const maxTarget = targetEntries.length > 0 ? Math.max(...targetEntries.map(e => e[1])) : 1;
 
-  const corridorsToIsrael = stats?.corridors.filter(c => c.targetCountry === 'Israel') || [];
-  const corridorsFromIsrael = stats?.corridors.filter(c => c.originCountry === 'Israel') || [];
-  const totalToIsrael = corridorsToIsrael.reduce((s, c) => s + c.totalLaunches, 0);
-  const totalFromIsrael = corridorsFromIsrael.reduce((s, c) => s + c.totalLaunches, 0);
-
-  const gccCorridors = stats?.gccCorridors || [];
-  const gccIncoming = gccCorridors.filter(c => ['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'].includes(c.targetCountry));
-  const gccOutgoing = gccCorridors.filter(c => ['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman'].includes(c.originCountry));
-  const totalGCCHits = gccIncoming.reduce((s, c) => s + c.totalLaunches, 0);
-  const totalGCCIntercepted = gccIncoming.reduce((s, c) => s + c.intercepted, 0);
-  const lblCorridors = stats?.lebanonCorridors || [];
-  const lblToIsrael = lblCorridors.filter(c => c.originCountry === 'Lebanon');
-  const lblFromIsrael = lblCorridors.filter(c => c.originCountry === 'Israel' && c.targetCountry === 'Lebanon');
-  const totalLblFired = lblToIsrael.reduce((s, c) => s + c.totalLaunches, 0);
-  const totalLblReceived = lblFromIsrael.reduce((s, c) => s + c.totalLaunches, 0);
+  const corridors = stats?.corridors || [];
+  const totalAlerts = stats?.totalAlerts || 0;
 
   useEffect(() => {
     if (activeTab !== 'live' || liveFetchedRef.current) return;
@@ -6177,7 +6164,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   };
   const attackTypeLabel = (at: string) => ({'rocket':'ROCKET','missile':'MISSILE','drone':'DRONE','airstrike':'AIRSTRIKE','naval':'NAVAL'}[at] || 'EVENT');
 
-  const CorridorRow = ({ c, barColor, maxLaunches }: { c: RocketCorridor; barColor: string; maxLaunches: number }) => (
+  const CorridorRow = ({ c, barColor, maxAlerts }: { c: RocketCorridor; barColor: string; maxAlerts: number }) => (
     <div className="flex items-center gap-1.5 text-[9px] py-0.5">
       {getCountryIcon(c.originCountry)}
       <span className="text-foreground/70 font-mono w-[60px] truncate">{c.origin}</span>
@@ -6185,33 +6172,37 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
       {getCountryIcon(c.targetCountry)}
       <span className="text-foreground/50 font-mono w-[60px] truncate">{c.target}</span>
       <div className="flex-1 h-1.5 rounded-full overflow-hidden mx-1" style={{ background: 'hsl(var(--muted))' }}>
-        <div className="h-full rounded-full" style={{ width: `${Math.max(4, (c.totalLaunches / Math.max(maxLaunches, 1)) * 100)}%`, background: c.active ? barColor : barColor + '55' }} />
+        <div className="h-full rounded-full" style={{ width: `${Math.max(4, (c.totalAlerts / Math.max(maxAlerts, 1)) * 100)}%`, background: c.active ? barColor : barColor + '55' }} />
       </div>
-      <span className="text-foreground/80 font-mono font-bold w-[36px] text-right">{c.totalLaunches.toLocaleString()}</span>
+      <span className="text-foreground/80 font-mono font-bold w-[36px] text-right">{c.totalAlerts.toLocaleString()}</span>
       {c.active && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: barColor }} />}
     </div>
   );
 
-  const TypeBreakdown = ({ corridors, color }: { corridors: RocketCorridor[]; color: string }) => {
-    const rockets = corridors.reduce((s, c) => s + c.rockets, 0);
-    const missiles = corridors.reduce((s, c) => s + c.missiles, 0);
-    const drones = corridors.reduce((s, c) => s + c.drones, 0);
-    const intercepted = corridors.reduce((s, c) => s + c.intercepted, 0);
-    const total = corridors.reduce((s, c) => s + c.totalLaunches, 0);
+  const TypeBreakdown = ({ corridorList, color }: { corridorList: RocketCorridor[]; color: string }) => {
+    const rockets = corridorList.reduce((s, c) => s + c.rockets, 0);
+    const missiles = corridorList.reduce((s, c) => s + c.missiles, 0);
+    const drones = corridorList.reduce((s, c) => s + c.drones, 0);
+    const total = corridorList.reduce((s, c) => s + c.totalAlerts, 0);
+    if (!total) return null;
     return (
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 pt-1.5" style={{ borderTop: `1px solid ${color}18` }}>
         {rockets > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Rockets','صواريخ')}: <span className="text-orange-400 font-bold">{rockets.toLocaleString()}</span></span>}
         {missiles > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Missiles','قذائف')}: <span className="text-red-400 font-bold">{missiles.toLocaleString()}</span></span>}
-        {drones > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Drones','مسيّرات')}: <span className="text-yellow-400 font-bold">{drones.toLocaleString()}</span></span>}
-        {total > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('Intercept','اعتراض')}: <span className="text-emerald-400 font-bold">{intercepted.toLocaleString()} ({total > 0 ? ((intercepted/total)*100).toFixed(0) : 0}%)</span></span>}
+        {drones > 0 && <span className="text-[8px] font-mono text-foreground/40">{t('UAV/Drones','مسيّرات')}: <span className="text-yellow-400 font-bold">{drones.toLocaleString()}</span></span>}
       </div>
     );
   };
 
+  const threatTypeLabels: Record<string, { label: string; color: string }> = {
+    rockets: { label: t('Rockets','صواريخ'), color: '#f97316' },
+    missiles: { label: t('Missiles','قذائف'), color: '#ef4444' },
+    uav_intrusion: { label: t('UAV Intrusion','مسيّرات'), color: '#facc15' },
+    hostile_aircraft_intrusion: { label: t('Hostile Aircraft','طائرات معادية'), color: '#a78bfa' },
+  };
+
   const TABS = [
     { id: 'overview', label: t('Overview','نظرة') },
-    { id: 'gcc',      label: t('GCC','الخليج') },
-    { id: 'lebanon',  label: t('Lebanon','لبنان') },
     { id: 'epic',     label: t('Op. Fury','شاغت') },
     { id: 'live',     label: t('Live','مباشر') },
   ] as const;
@@ -6219,7 +6210,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-rocketstats">
       <PanelHeader
-        title={t('Launch Statistics', 'إحصائيات الإطلاق')}
+        title={t('Alert Statistics', 'إحصائيات التنبيهات')}
         icon={<Rocket className="w-3.5 h-3.5" />}
         live
         onClose={onClose}
@@ -6227,11 +6218,10 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
         isMaximized={isMaximized}
         feedKey="rocketstats"
         extra={
-          <span className="text-[9px] text-yellow-500/70 font-mono px-1 py-0.5 rounded" style={{background:'hsl(45 80% 30% / 0.15)', border:'1px solid hsl(45 60% 40% / 0.2)'}} data-testid="badge-estimated">{t('EST.', 'تقدير')}</span>
+          <span className="text-[9px] text-foreground/40 font-mono px-1 py-0.5 rounded" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}} data-testid="badge-live-data">{t('LIVE DATA', 'بيانات حية')}</span>
         }
       />
 
-      {/* Tab bar */}
       <div className="flex shrink-0 border-b" style={{background:'hsl(var(--muted))', borderColor:'hsl(var(--border))'}}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -6250,14 +6240,10 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
           </div>
         ) : activeTab === 'overview' ? (
           <>
-            <div className="grid grid-cols-4 gap-1.5" data-testid="stats-summary">
+            <div className="grid grid-cols-3 gap-1.5" data-testid="stats-summary">
               <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
-                <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-launches">{stats!.totalLaunches.toLocaleString()}</div>
-                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Total Launches', 'إجمالي')}</div>
-              </div>
-              <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(120 30% 25% / 0.3)'}}>
-                <div className="text-[15px] font-black text-emerald-400 font-mono" data-testid="text-intercepted">{stats!.totalIntercepted.toLocaleString()}</div>
-                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Intercepted', 'اعتراض')}</div>
+                <div className="text-[15px] font-black text-primary font-mono" data-testid="text-total-alerts">{totalAlerts.toLocaleString()}</div>
+                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Total Alerts', 'إجمالي التنبيهات')}</div>
               </div>
               <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(0 30% 25% / 0.3)'}}>
                 <div className="text-[15px] font-black text-orange-400 font-mono" data-testid="text-last-24h">{stats!.last24h}</div>
@@ -6265,260 +6251,112 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               </div>
               <div className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:'1px solid hsl(45 30% 25% / 0.3)'}}>
                 <div className="text-[15px] font-black text-yellow-400 font-mono" data-testid="text-active-fronts">{stats!.activeFronts}</div>
-                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Active Fronts', 'جبهات')}</div>
+                <div className="text-[7px] text-foreground/50 uppercase tracking-wider">{t('Active Fronts', 'جبهات نشطة')}</div>
               </div>
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Intercept Rate', 'نسبة الاعتراض')}</span>
-                <span className="text-[11px] font-black text-emerald-400 font-mono" data-testid="text-intercept-rate">{(stats!.interceptRate * 100).toFixed(1)}%</span>
+            {Object.keys(stats!.byThreatType || {}).length > 0 && (
+              <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <Rocket className="w-3 h-3 text-primary/70" />
+                  <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('By Threat Type', 'حسب نوع التهديد')}</span>
+                </div>
+                <div className="space-y-1">
+                  {Object.entries(stats!.byThreatType).sort(([,a],[,b]) => b - a).map(([type, count]) => {
+                    const info = threatTypeLabels[type] || { label: type, color: '#94a3b8' };
+                    const maxThreat = Math.max(...Object.values(stats!.byThreatType), 1);
+                    return (
+                      <div key={type} className="flex items-center gap-1.5">
+                        <span className="text-[8px] font-mono w-[85px] truncate" style={{ color: info.color }}>{info.label}</span>
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--background))'}}>
+                          <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxThreat) * 100}%`, background: info.color}} />
+                        </div>
+                        <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right font-bold">{count.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="w-full h-2 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                <div className="h-full rounded-full transition-[width] duration-700" style={{width:`${stats!.interceptRate * 100}%`, background:'linear-gradient(90deg, hsl(120 70% 35%), hsl(120 80% 45%))'}} />
-              </div>
-            </div>
+            )}
 
-            <div className="rounded p-2" style={{background:'hsl(0 30% 16% / 0.4)', border:'1px solid hsl(0 40% 30% / 0.3)'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-red-400" />
-                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`→ Israel (${corridorsToIsrael.reduce((s,c)=>s+c.totalLaunches,0).toLocaleString()})`, `نحو إسرائيل`)}</span>
+            {corridors.length > 0 && (
+              <div className="rounded p-2" style={{background:'hsl(0 30% 16% / 0.4)', border:'1px solid hsl(0 40% 30% / 0.3)'}}>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <ArrowRight className="w-3 h-3 text-red-400" />
+                  <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`Alert Corridors (${totalAlerts.toLocaleString()})`, `ممرات التنبيهات`)}</span>
+                </div>
+                <div className="space-y-0.5" data-testid="corridors-list">
+                  {corridors.slice(0, 10).map((c, i) => (
+                    <CorridorRow key={i} c={c} barColor="#ef4444" maxAlerts={corridors[0]?.totalAlerts || 1} />
+                  ))}
+                </div>
+                <TypeBreakdown corridorList={corridors} color="#ef4444" />
               </div>
-              <div className="space-y-0.5" data-testid="corridors-to-israel">
-                {corridorsToIsrael.slice(0, 7).map((c, i) => (
-                  <CorridorRow key={i} c={c} barColor="#ef4444" maxLaunches={corridorsToIsrael[0]?.totalLaunches || 1} />
-                ))}
-              </div>
-              <TypeBreakdown corridors={corridorsToIsrael} color="#ef4444" />
-            </div>
+            )}
 
-            <div className="rounded p-2" style={{background:'hsl(32 30% 14% / 0.4)', border:'1px solid hsl(32 40% 28% / 0.3)'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-amber-400" />
-                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{t(`From Israel (${corridorsFromIsrael.reduce((s,c)=>s+c.totalLaunches,0).toLocaleString()})`, `من إسرائيل`)}</span>
+            {corridors.length === 0 && (
+              <div className="rounded p-3 text-center" style={{background:'hsl(var(--muted) / 0.3)', border:'1px solid hsl(var(--border))'}}>
+                <div className="text-[9px] font-mono text-foreground/40">{t('No rocket/missile/UAV alerts recorded yet. Corridors populate from live Tzevaadom data.','لم يتم تسجيل تنبيهات بعد. البيانات تُجمع من مصدر حي.')}</div>
               </div>
-              <div className="space-y-0.5" data-testid="corridors-from-israel">
-                {corridorsFromIsrael.slice(0, 7).map((c, i) => (
-                  <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={corridorsFromIsrael[0]?.totalLaunches || 1} />
-                ))}
-              </div>
-              <TypeBreakdown corridors={corridorsFromIsrael} color="#60a5fa" />
-            </div>
+            )}
 
-            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <Rocket className="w-3 h-3 text-primary/70" />
-                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('By Launch Origin', 'حسب مصدر الإطلاق')}</span>
-              </div>
-              <div className="space-y-1" data-testid="origin-chart">
-                {originEntries.map(([origin, count], i) => (
-                  <div key={origin} className="flex items-center gap-1.5" data-testid={`origin-bar-${i}`}>
-                    <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{origin}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                      <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(32 92% 50%)' : 'hsl(32 60% 38%)'}} />
+            {originEntries.length > 0 && (
+              <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <Rocket className="w-3 h-3 text-primary/70" />
+                  <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('By Estimated Origin', 'حسب المصدر المقدّر')}</span>
+                </div>
+                <div className="space-y-1" data-testid="origin-chart">
+                  {originEntries.map(([origin, count], i) => (
+                    <div key={origin} className="flex items-center gap-1.5" data-testid={`origin-bar-${i}`}>
+                      <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{origin}</span>
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--background))'}}>
+                        <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(32 92% 50%)' : 'hsl(32 60% 38%)'}} />
+                      </div>
+                      <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                     </div>
-                    <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <Target className="w-3 h-3 text-red-400/70" />
-                <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Top Targets', 'الأهداف الرئيسية')}</span>
-              </div>
-              <div className="space-y-1" data-testid="target-chart">
-                {targetEntries.map(([target, count], i) => (
-                  <div key={target} className="flex items-center gap-1.5" data-testid={`target-bar-${i}`}>
-                    <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{target}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                      <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
+            {targetEntries.length > 0 && (
+              <div className="rounded p-2" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
+                <div className="flex items-center gap-1 mb-1.5">
+                  <Target className="w-3 h-3 text-red-400/70" />
+                  <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-wider">{t('Top Alert Regions', 'أكثر المناطق تنبيهاً')}</span>
+                </div>
+                <div className="space-y-1" data-testid="target-chart">
+                  {targetEntries.map(([target, count], i) => (
+                    <div key={target} className="flex items-center gap-1.5" data-testid={`target-bar-${i}`}>
+                      <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{target}</span>
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--background))'}}>
+                        <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxTarget) * 100}%`, background: count === maxTarget ? 'hsl(0 70% 50%)' : 'hsl(0 50% 35%)'}} />
+                      </div>
+                      <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                     </div>
-                    <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-2 gap-1.5">
               <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Peak Hour', 'ساعة الذروة')}</div>
-                <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats!.peakHour} UTC</div>
+                <div className="text-[12px] font-bold text-primary font-mono" data-testid="text-peak-hour">{stats!.peakHour}{stats!.peakHour !== '—' ? ' UTC' : ''}</div>
               </div>
               <div className="rounded p-1.5" style={{background:'hsl(var(--muted))', border:'1px solid hsl(var(--border))'}}>
                 <div className="text-[7px] text-foreground/40 uppercase tracking-wider mb-0.5">{t('Last Hour', 'الساعة الأخيرة')}</div>
                 <div className="text-[12px] font-bold font-mono" data-testid="text-last-1h">
                   <span className={stats!.last1h > 5 ? 'text-red-400' : stats!.last1h > 0 ? 'text-orange-400' : 'text-green-400'}>{stats!.last1h}</span>
-                  <span className="text-[8px] text-foreground/40 ml-1">{t('launches', 'إطلاقات')}</span>
+                  <span className="text-[8px] text-foreground/40 ml-1">{t('alerts', 'تنبيهات')}</span>
                 </div>
               </div>
             </div>
 
             <div className="text-[7px] text-foreground/30 text-center font-mono" data-testid="text-rocket-generated-at">
-              {t('Origins inferred from geography. Intercepts estimated. Sources: ACLED, UN PoE, IDF, MOFA.', 'المصادر مستنتجة. تقديرية. ACLED، فريق خبراء الأمم المتحدة.')}
+              {t('Live data from Tzevaadom + Telegram. Origins estimated from geography. Alert ≠ confirmed launch.', 'بيانات حية من צבע אדום + تيليغرام. المصادر مقدّرة جغرافياً. تنبيه ≠ إطلاق مؤكد.')}
             </div>
-          </>
-        ) : activeTab === 'gcc' ? (
-          <>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { label: t('GCC Attacks Total','هجمات الخليج'), value: totalGCCHits.toLocaleString(), color: '#f97316' },
-                { label: t('Intercepted','اعتراض'), value: totalGCCIntercepted.toLocaleString(), color: '#34d399' },
-                { label: t('Intercept Rate','نسبة اعتراض'), value: totalGCCHits > 0 ? `${((totalGCCIntercepted/totalGCCHits)*100).toFixed(0)}%` : '—', color: '#60a5fa' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:`1px solid ${color}28`}}>
-                  <div className="text-[14px] font-black font-mono" style={{ color }}>{value}</div>
-                  <div className="text-[7px] text-foreground/50 uppercase tracking-wider leading-tight mt-0.5">{label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded p-2 text-[8px] font-mono text-foreground/50 leading-relaxed" style={{background:'hsl(45 30% 15% / 0.3)', border:'1px solid hsl(45 40% 25% / 0.3)'}}>
-              <span className="text-yellow-400 font-bold">{t('CONTEXT','السياق')}: </span>
-              {t('Houthi forces have fired 4,000+ ballistic missiles, cruise missiles, and UAVs at Saudi Arabia since 2015 (UN Panel of Experts). UAE directly attacked Jan 2022. Red Sea shipping attacks began late 2023 targeting 70+ vessels.','الحوثيون أطلقوا 4,000+ صاروخ وطائرة مسيّرة على السعودية منذ 2015. هجمات البحر الأحمر استهدفت 70+ سفينة منذ أواخر 2023.')}
-            </div>
-
-            <div className="rounded p-2" style={{background:'hsl(25 30% 15% / 0.5)', border:'1px solid hsl(25 40% 28% / 0.4)'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-orange-400" />
-                <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wider">{t(`Attacks on GCC States (${totalGCCHits.toLocaleString()})`,`هجمات على الخليج`)}</span>
-              </div>
-              <div className="space-y-0.5">
-                {gccIncoming.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#f97316" maxLaunches={gccIncoming[0]?.totalLaunches || 1} />)}
-              </div>
-              <TypeBreakdown corridors={gccIncoming} color="#f97316" />
-            </div>
-
-            {gccOutgoing.length > 0 && (
-              <div className="rounded p-2" style={{background:'hsl(32 25% 12% / 0.5)', border:'1px solid hsl(32 35% 22% / 0.4)'}}>
-                <div className="flex items-center gap-1 mb-1.5">
-                  <ArrowRight className="w-3 h-3 text-amber-400" />
-                  <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{t('Saudi/Coalition Strikes on Yemen','ضربات التحالف على اليمن')}</span>
-                </div>
-                <div className="space-y-0.5">
-                  {gccOutgoing.map((c, i) => <CorridorRow key={i} c={c} barColor="#22d3ee" maxLaunches={gccOutgoing[0]?.totalLaunches || 1} />)}
-                </div>
-              </div>
-            )}
-
-            {(() => {
-              const usYemen = (stats?.corridors || []).filter(c => c.originCountry === 'United States' && c.targetCountry === 'Yemen');
-              if (!usYemen.length) return null;
-              return (
-                <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.5)', border:'1px solid hsl(var(--border))'}}>
-                  <div className="flex items-center gap-1 mb-1.5">
-                    <Globe className="w-3 h-3 text-blue-400" />
-                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t('US/Coalition → Yemen','الولايات المتحدة ← اليمن')}</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {usYemen.map((c, i) => <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={usYemen[0]?.totalLaunches || 1} />)}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.4)', border:'1px solid hsl(var(--border))'}}>
-              <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('GCC Target Breakdown','توزيع الهجمات')}</div>
-              {(['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'] as const).map(country => {
-                const total = gccIncoming.filter(c => c.targetCountry === country).reduce((s, c) => s + c.totalLaunches, 0);
-                if (!total) return null;
-                const allTotals = ['Saudi Arabia','UAE','Kuwait','Bahrain','Qatar','Oman','International'].map(c2 => gccIncoming.filter(c => c.targetCountry === c2).reduce((s, c) => s + c.totalLaunches, 0));
-                const maxT = Math.max(...allTotals, 1);
-                return (
-                  <div key={country} className="flex items-center gap-1.5 mb-0.5">
-                    {getCountryIcon(country)}
-                    <span className="text-[8px] text-foreground/60 font-mono w-[90px] truncate">{country}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                      <div className="h-full rounded-full" style={{width:`${(total/maxT)*100}%`, background:'#f97316'}} />
-                    </div>
-                    <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{total.toLocaleString()}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="text-[7px] text-foreground/30 text-center font-mono">{t('Sources: UN PoE on Yemen 2015–2024, ACLED, Saudi MOFA, Bellingcat, CSIS Missile Defense Project.','المصادر: فريق الخبراء الأممي، ACLED، CSIS.')}</div>
-          </>
-        ) : activeTab === 'lebanon' ? (
-          <>
-            <div className="grid grid-cols-2 gap-1.5">
-              {[
-                { label: t('Hezbollah → Israel','حزب الله ← إسرائيل'), value: totalLblFired.toLocaleString(), color: '#f97316', sub: t('Since Oct 7, 2023','منذ 7 أكتوبر 2023') },
-                { label: t('Israel → Lebanon','إسرائيل ← لبنان'), value: totalLblReceived.toLocaleString(), color: '#60a5fa', sub: t('Since Oct 7, 2023','منذ 7 أكتوبر 2023') },
-              ].map(({ label, value, color, sub }) => (
-                <div key={label} className="rounded p-1.5 text-center" style={{background:'hsl(var(--muted))', border:`1px solid ${color}28`}}>
-                  <div className="text-[16px] font-black font-mono" style={{ color }}>{value}</div>
-                  <div className="text-[7px] text-foreground/60 font-bold uppercase tracking-wider">{label}</div>
-                  <div className="text-[6px] text-foreground/30 font-mono mt-0.5">{sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded p-2 text-[8px] font-mono text-foreground/50 leading-relaxed" style={{background:'hsl(120 20% 12% / 0.4)', border:'1px solid hsl(120 30% 20% / 0.3)'}}>
-              <span className="text-green-400 font-bold">{t('CONTEXT','السياق')}: </span>
-              {t('Since Oct 7 2023, Hezbollah fired ~9,500 rockets, missiles & drones at northern Israel. Israel launched 3,000+ airstrikes on Lebanon in Sep–Oct 2024. Hezbollah arsenal estimated at 150,000+ total projectiles.','منذ 7 أكتوبر 2023 أطلق حزب الله ~9,500 صاروخ وطائرة. إسرائيل نفّذت 3,000+ غارة في سبتمبر-أكتوبر 2024.')}
-            </div>
-
-            <div className="rounded p-2" style={{background:'hsl(0 25% 15% / 0.5)', border:'1px solid hsl(0 40% 28% / 0.4)'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-red-400" />
-                <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">{t(`Hezbollah → Israel (${totalLblFired.toLocaleString()})`,`حزب الله → إسرائيل`)}</span>
-              </div>
-              <div className="space-y-0.5">
-                {lblToIsrael.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#ef4444" maxLaunches={lblToIsrael[0]?.totalLaunches || 1} />)}
-              </div>
-              <TypeBreakdown corridors={lblToIsrael} color="#ef4444" />
-            </div>
-
-            <div className="rounded p-2" style={{background:'hsl(32 25% 12% / 0.5)', border:'1px solid hsl(32 40% 22% / 0.4)'}}>
-              <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-amber-400" />
-                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{t(`IDF → Lebanon (${totalLblReceived.toLocaleString()})`,`الجيش الإسرائيلي → لبنان`)}</span>
-              </div>
-              <div className="space-y-0.5">
-                {lblFromIsrael.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={lblFromIsrael[0]?.totalLaunches || 1} />)}
-              </div>
-              <TypeBreakdown corridors={lblFromIsrael} color="#60a5fa" />
-            </div>
-
-            <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.4)', border:'1px solid hsl(var(--border))'}}>
-              <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('Hezbollah Arsenal Estimate','تقديرات ترسانة حزب الله')}</div>
-              {[
-                { label: t('Short-range rockets (< 40km)','قصيرة المدى'), value: '100,000+', color: '#f97316' },
-                { label: t('Medium-range rockets (40–200km)','متوسطة المدى'), value: '45,000+', color: '#ef4444' },
-                { label: t('Long-range / precision (> 200km)','دقيقة بعيدة المدى'), value: '5,000+', color: '#dc2626' },
-                { label: t('UAVs / Drones','طائرات مسيّرة'), value: '2,000+', color: '#facc15' },
-                { label: t('Anti-tank missiles (Kornet etc.)','مضادة للدروع'), value: '10,000+', color: '#a78bfa' },
-                { label: t('Anti-ship missiles (Yakhont/C-802)','مضادة للسفن'), value: '~100', color: '#7c3aed' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="flex items-center justify-between py-0.5">
-                  <span className="text-[8px] text-foreground/50 font-mono flex-1 truncate pr-2">{label}</span>
-                  <span className="text-[9px] font-bold font-mono" style={{ color }}>{value}</span>
-                </div>
-              ))}
-              <div className="text-[7px] text-foreground/25 font-mono mt-1.5">{t("Source: IDF, CSIS, IISS Military Balance, Jane's Defence","المصدر: الجيش الإسرائيلي، CSIS، IISS")}</div>
-            </div>
-
-            <div className="rounded p-2" style={{background:'hsl(var(--muted) / 0.4)', border:'1px solid hsl(var(--border))'}}>
-              <div className="text-[9px] font-bold text-foreground/70 uppercase tracking-wider mb-1.5">{t('Key Escalation Points','نقاط التصعيد الرئيسية')}</div>
-              {[
-                { date: 'Oct 8 2023', event: t('Hezbollah opens northern front in solidarity with Gaza','حزب الله يفتح الجبهة الشمالية'), color: '#ef4444' },
-                { date: 'Jan 2–3 2024', event: t('IDF kills Saleh Arouri (Hamas) in Beirut strike','الجيش الإسرائيلي يقتل صالح العاروري في بيروت'), color: '#f97316' },
-                { date: 'Apr 13 2024', event: t('Iran direct attack on Israel: 300+ drones/missiles','إيران تهاجم إسرائيل مباشرة بـ 300+ صاروخ'), color: '#dc2626' },
-                { date: 'Jul 30 2024', event: t('IDF kills Fuad Shukr (Hezbollah cmdr) in Beirut','مقتل فؤاد شكر في بيروت'), color: '#f97316' },
-                { date: 'Sep 17 2024', event: t('Pager/walkie-talkie attacks: 1,000+ Hezbollah casualties','هجمات أجهزة النداء: 1000+ إصابة'), color: '#facc15' },
-                { date: 'Sep 27 2024', event: t('IDF kills Nasrallah (Hezbollah SG) in Dahieh','مقتل نصر الله في ضاحية بيروت'), color: '#dc2626' },
-                { date: 'Oct 1 2024', event: t('Iran fires 181 ballistic missiles at Israel','إيران تطلق 181 صاروخاً باليستياً'), color: '#dc2626' },
-                { date: 'Nov 27 2024', event: t('Lebanon–Israel ceasefire agreement','اتفاق وقف إطلاق النار لبنان-إسرائيل'), color: '#34d399' },
-              ].map(({ date, event, color }) => (
-                <div key={date} className="flex gap-2 mb-1 last:mb-0">
-                  <span className="text-[7px] font-mono text-foreground/35 shrink-0 pt-0.5 w-[68px]">{date}</span>
-                  <div className="w-px shrink-0 rounded-full self-stretch" style={{ background: color + '50' }} />
-                  <span className="text-[8px] font-mono text-foreground/60 leading-tight">{event}</span>
-                </div>
-              ))}
-            </div>
-            <div className="text-[7px] text-foreground/30 text-center font-mono">{t('Sources: IDF, UNIFIL, NowLebanon, LBCI, Alma Research, CSIS.','المصادر: الجيش الإسرائيلي، يونيفيل، ناو لبنان، LBCI، Alma.')}</div>
           </>
         ) : activeTab === 'epic' ? (
           <>

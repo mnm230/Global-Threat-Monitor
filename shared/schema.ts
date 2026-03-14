@@ -362,25 +362,21 @@ export interface RocketCorridor {
   originCountry: string;
   target: string;
   targetCountry: string;
-  totalLaunches: number;
+  totalAlerts: number;
   rockets: number;
   missiles: number;
   drones: number;
-  intercepted: number;
-  lastLaunch: string;
+  lastAlert: string;
   threatTypes: string[];
   active: boolean;
 }
 
 export interface RocketStats {
   corridors: RocketCorridor[];
-  gccCorridors: RocketCorridor[];
-  lebanonCorridors: RocketCorridor[];
   totalByOrigin: Record<string, number>;
   totalByTarget: Record<string, number>;
-  totalLaunches: number;
-  totalIntercepted: number;
-  interceptRate: number;
+  totalAlerts: number;
+  byThreatType: Record<string, number>;
   peakHour: string;
   activeFronts: number;
   last24h: number;

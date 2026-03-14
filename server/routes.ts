@@ -3820,6 +3820,7 @@ export async function registerRoutes(
     const corridorMap: Record<string, RocketCorridor> = {};
     const totalByOrigin: Record<string, number> = {};
     const totalByTarget: Record<string, number> = {};
+    const byThreatType: Record<string, number> = {};
     const hourBuckets: Record<string, number> = {};
 
     const rocketTypes = new Set(['rockets', 'missiles', 'hostile_aircraft_intrusion', 'uav_intrusion']);
@@ -3837,146 +3838,53 @@ export async function registerRoutes(
           originCountry,
           target: targetRegion,
           targetCountry,
-          totalLaunches: 0,
+          totalAlerts: 0,
           rockets: 0,
           missiles: 0,
           drones: 0,
-          intercepted: 0,
-          lastLaunch: alert.timestamp,
+          lastAlert: alert.timestamp,
           threatTypes: [],
           active: false,
         };
       }
       const c = corridorMap[corridorKey];
-      c.totalLaunches++;
+      c.totalAlerts++;
       if (alert.threatType === 'rockets') c.rockets++;
       else if (alert.threatType === 'missiles') c.missiles++;
       else if (alert.threatType === 'uav_intrusion' || alert.threatType === 'hostile_aircraft_intrusion') c.drones++;
 
-      if (alert.threatType === 'missiles' || alert.threatType === 'hostile_aircraft_intrusion') {
-        c.intercepted++;
-      } else if (alert.threatType === 'uav_intrusion') {
-        if (c.drones % 3 !== 0) c.intercepted++;
-      } else {
-        if (c.rockets % 6 !== 0) c.intercepted++;
-      }
       if (!c.threatTypes.includes(alert.threatType)) c.threatTypes.push(alert.threatType);
-      if (new Date(alert.timestamp) > new Date(c.lastLaunch)) c.lastLaunch = alert.timestamp;
+      if (new Date(alert.timestamp) > new Date(c.lastAlert)) c.lastAlert = alert.timestamp;
 
       const ageMs = now - new Date(alert.timestamp).getTime();
       if (ageMs < 3600000) c.active = true;
 
       totalByOrigin[origin] = (totalByOrigin[origin] || 0) + 1;
       totalByTarget[targetRegion] = (totalByTarget[targetRegion] || 0) + 1;
+      byThreatType[alert.threatType] = (byThreatType[alert.threatType] || 0) + 1;
 
       const alertHour = new Date(alert.timestamp).getUTCHours().toString().padStart(2, '0') + ':00';
       hourBuckets[alertHour] = (hourBuckets[alertHour] || 0) + 1;
     }
 
-    if (Object.keys(corridorMap).length < 3) {
-      // ── Historically-sourced corridor data ──────────────────────────────────
-      // Israel / Gaza / Lebanon front (Oct 2023–2024 conflict data)
-      // Yemen / GCC data: Houthi campaign 2015–2024 (ACLED, UN Panel of Experts reports)
-      // Lebanon front: UNIFIL + IDF + Hezbollah reporting (Sep–Oct 2024 escalation)
-      const synthCorridors: Partial<RocketCorridor>[] = [
-        // ── HEZBOLLAH → ISRAEL (northern front) ──
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Kiryat Shmona', targetCountry: 'Israel', totalLaunches: 2140, rockets: 1820, missiles: 210, drones: 110, intercepted: 1730, active: true, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Upper Galilee', targetCountry: 'Israel', totalLaunches: 1480, rockets: 1190, missiles: 195, drones: 95, intercepted: 1210, active: true, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Nahariya', targetCountry: 'Israel', totalLaunches: 870, rockets: 720, missiles: 90, drones: 60, intercepted: 710, active: true, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Safed', targetCountry: 'Israel', totalLaunches: 640, rockets: 540, missiles: 70, drones: 30, intercepted: 520, active: true, threatTypes: ['rockets', 'missiles'] },
-        { origin: 'Lebanon', originCountry: 'Lebanon', target: 'Haifa', targetCountry: 'Israel', totalLaunches: 320, rockets: 180, missiles: 110, drones: 30, intercepted: 295, active: false, threatTypes: ['missiles', 'rockets', 'uav_intrusion'] },
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Acre', targetCountry: 'Israel', totalLaunches: 290, rockets: 240, missiles: 35, drones: 15, intercepted: 240, active: false, threatTypes: ['rockets', 'missiles'] },
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Metula', targetCountry: 'Israel', totalLaunches: 415, rockets: 350, missiles: 48, drones: 17, intercepted: 340, active: false, threatTypes: ['rockets', 'missiles'] },
-        { origin: 'South Lebanon', originCountry: 'Lebanon', target: 'Western Galilee', targetCountry: 'Israel', totalLaunches: 520, rockets: 435, missiles: 58, drones: 27, intercepted: 420, active: true, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        // ── ISRAEL → LEBANON ──
-        { origin: 'Israel', originCountry: 'Israel', target: 'South Lebanon', targetCountry: 'Lebanon', totalLaunches: 3100, rockets: 0, missiles: 2540, drones: 560, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Dahieh (Beirut)', targetCountry: 'Lebanon', totalLaunches: 280, rockets: 0, missiles: 255, drones: 25, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Baalbek', targetCountry: 'Lebanon', totalLaunches: 195, rockets: 0, missiles: 162, drones: 33, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Tyre', targetCountry: 'Lebanon', totalLaunches: 210, rockets: 0, missiles: 178, drones: 32, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Sidon', targetCountry: 'Lebanon', totalLaunches: 145, rockets: 0, missiles: 122, drones: 23, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Nabatieh', targetCountry: 'Lebanon', totalLaunches: 175, rockets: 0, missiles: 148, drones: 27, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ── GAZA → ISRAEL ──
-        { origin: 'Gaza', originCountry: 'Palestine', target: 'Gaza Envelope', targetCountry: 'Israel', totalLaunches: 4820, rockets: 4180, missiles: 390, drones: 250, intercepted: 4120, active: false, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'Gaza', originCountry: 'Palestine', target: 'Ashkelon', targetCountry: 'Israel', totalLaunches: 1240, rockets: 1080, missiles: 110, drones: 50, intercepted: 1050, active: false, threatTypes: ['rockets', 'missiles'] },
-        { origin: 'Gaza', originCountry: 'Palestine', target: 'Ashdod', targetCountry: 'Israel', totalLaunches: 690, rockets: 580, missiles: 80, drones: 30, intercepted: 580, active: false, threatTypes: ['rockets', 'missiles'] },
-        { origin: 'Gaza', originCountry: 'Palestine', target: 'Be\'er Sheva', targetCountry: 'Israel', totalLaunches: 380, rockets: 300, missiles: 60, drones: 20, intercepted: 320, active: false, threatTypes: ['rockets', 'missiles'] },
-        // ── ISRAEL → GAZA ──
-        { origin: 'Israel', originCountry: 'Israel', target: 'Gaza City', targetCountry: 'Palestine', totalLaunches: 7200, rockets: 0, missiles: 6100, drones: 1100, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Khan Younis', targetCountry: 'Palestine', totalLaunches: 2800, rockets: 0, missiles: 2350, drones: 450, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Rafah', targetCountry: 'Palestine', totalLaunches: 1950, rockets: 0, missiles: 1650, drones: 300, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ── IRAN → ISRAEL (direct strikes) ──
-        { origin: 'Iran', originCountry: 'Iran', target: 'Israel', targetCountry: 'Israel', totalLaunches: 514, rockets: 0, missiles: 120, drones: 394, intercepted: 499, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ── SYRIA → ISRAEL ──
-        { origin: 'Syria', originCountry: 'Syria', target: 'Golan Heights', targetCountry: 'Israel', totalLaunches: 185, rockets: 130, missiles: 40, drones: 15, intercepted: 158, active: false, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        // ── IRAQ PMF → ISRAEL ──
-        { origin: 'Iraq (PMF)', originCountry: 'Iraq', target: 'Eilat', targetCountry: 'Israel', totalLaunches: 78, rockets: 0, missiles: 42, drones: 36, intercepted: 71, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ── ISRAEL → SYRIA / IRAN ──
-        { origin: 'Israel', originCountry: 'Israel', target: 'Damascus', targetCountry: 'Syria', totalLaunches: 340, rockets: 0, missiles: 300, drones: 40, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Israel', originCountry: 'Israel', target: 'Isfahan (Iran)', targetCountry: 'Iran', totalLaunches: 22, rockets: 0, missiles: 18, drones: 4, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ══ GCC THEATRE — Yemen/Houthi attacks 2015–2024 ══
-        // Source: UN Panel of Experts on Yemen, Saudi MOFA, ACLED, Bellingcat
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Riyadh', targetCountry: 'Saudi Arabia', totalLaunches: 410, rockets: 0, missiles: 256, drones: 154, intercepted: 395, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Jizan', targetCountry: 'Saudi Arabia', totalLaunches: 1840, rockets: 1420, missiles: 280, drones: 140, intercepted: 1590, active: true, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Najran', targetCountry: 'Saudi Arabia', totalLaunches: 1220, rockets: 980, missiles: 160, drones: 80, intercepted: 1040, active: true, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Khamis Mushait / Abha', targetCountry: 'Saudi Arabia', totalLaunches: 380, rockets: 120, missiles: 170, drones: 90, intercepted: 342, active: false, threatTypes: ['rockets', 'missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Aramco Abqaiq', targetCountry: 'Saudi Arabia', totalLaunches: 25, rockets: 0, missiles: 14, drones: 11, intercepted: 0, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Abu Dhabi', targetCountry: 'UAE', totalLaunches: 8, rockets: 0, missiles: 3, drones: 5, intercepted: 5, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Dubai', targetCountry: 'UAE', totalLaunches: 3, rockets: 0, missiles: 0, drones: 3, intercepted: 2, active: false, threatTypes: ['uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Red Sea Shipping', targetCountry: 'International', totalLaunches: 165, rockets: 0, missiles: 92, drones: 73, intercepted: 68, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Yemen (Houthis)', originCountry: 'Yemen', target: 'Eilat', targetCountry: 'Israel', totalLaunches: 92, rockets: 0, missiles: 45, drones: 47, intercepted: 84, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ── US/Coalition → Yemen ──
-        { origin: 'US/Coalition', originCountry: 'United States', target: 'Sanaa', targetCountry: 'Yemen', totalLaunches: 145, rockets: 0, missiles: 128, drones: 17, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'US/Coalition', originCountry: 'United States', target: 'Hodeidah', targetCountry: 'Yemen', totalLaunches: 88, rockets: 0, missiles: 76, drones: 12, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Saudi Arabia (RSAF)', originCountry: 'Saudi Arabia', target: 'Sanaa', targetCountry: 'Yemen', totalLaunches: 6200, rockets: 0, missiles: 5100, drones: 1100, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Saudi Arabia (RSAF)', originCountry: 'Saudi Arabia', target: 'Hodeidah Port', targetCountry: 'Yemen', totalLaunches: 1800, rockets: 0, missiles: 1480, drones: 320, intercepted: 0, active: true, threatTypes: ['missiles', 'uav_intrusion'] },
-        // ── Iran proxies → Gulf states ──
-        { origin: 'Iraq (PMF)', originCountry: 'Iraq', target: 'Riyadh', targetCountry: 'Saudi Arabia', totalLaunches: 18, rockets: 0, missiles: 10, drones: 8, intercepted: 15, active: false, threatTypes: ['missiles', 'uav_intrusion'] },
-        { origin: 'Iraq (PMF)', originCountry: 'Iraq', target: 'Kuwait', targetCountry: 'Kuwait', totalLaunches: 6, rockets: 0, missiles: 2, drones: 4, intercepted: 4, active: false, threatTypes: ['uav_intrusion', 'missiles'] },
-      ];
-      for (const s of synthCorridors) {
-        const key = `${s.origin}→${s.target}`;
-        if (!corridorMap[key]) {
-          corridorMap[key] = {
-            ...s as RocketCorridor,
-            lastLaunch: new Date(now - Math.random() * 86400000).toISOString(),
-          };
-          totalByOrigin[s.origin!] = (totalByOrigin[s.origin!] || 0) + s.totalLaunches!;
-          totalByTarget[s.target!] = (totalByTarget[s.target!] || 0) + s.totalLaunches!;
-        }
-      }
-    }
-
-    const corridors = Object.values(corridorMap).sort((a, b) => b.totalLaunches - a.totalLaunches);
-    const totalLaunches = corridors.reduce((s, c) => s + c.totalLaunches, 0);
-    const totalIntercepted = corridors.reduce((s, c) => s + c.intercepted, 0);
+    const corridors = Object.values(corridorMap).sort((a, b) => b.totalAlerts - a.totalAlerts);
+    const totalAlerts = corridors.reduce((s, c) => s + c.totalAlerts, 0);
     const activeFronts = new Set(corridors.filter(c => c.active).map(c => `${c.originCountry}→${c.targetCountry}`)).size;
 
-    const peakHour = Object.entries(hourBuckets).sort(([, a], [, b]) => b - a)[0]?.[0] || '14:00';
+    const peakHour = Object.entries(hourBuckets).sort(([, a], [, b]) => b - a)[0]?.[0] || '—';
 
-    const last24h = alerts.filter(a => rocketTypes.has(a.threatType) && now - new Date(a.timestamp).getTime() < 86400000).length || Math.floor(totalLaunches * 0.12);
-    const last1h = alerts.filter(a => rocketTypes.has(a.threatType) && now - new Date(a.timestamp).getTime() < 3600000).length || Math.floor(totalLaunches * 0.008);
-
-    const GCC_COUNTRIES = new Set(['Saudi Arabia', 'UAE', 'Kuwait', 'Bahrain', 'Qatar', 'Oman', 'International']);
-    const LEBANON_COUNTRIES = new Set(['Lebanon', 'Israel']);
-    const gccCorridors = corridors.filter(c => GCC_COUNTRIES.has(c.targetCountry) || (c.originCountry === 'Yemen' && GCC_COUNTRIES.has(c.targetCountry)));
-    const lebanonCorridors = corridors.filter(c =>
-      c.originCountry === 'Lebanon' || c.targetCountry === 'Lebanon' ||
-      (c.originCountry === 'Israel' && ['South Lebanon', 'Dahieh (Beirut)', 'Baalbek', 'Tyre', 'Sidon', 'Nabatieh'].some(t => c.target.startsWith(t))) ||
-      (c.targetCountry === 'Israel' && c.originCountry === 'Lebanon')
-    );
+    const last24h = alerts.filter(a => rocketTypes.has(a.threatType) && now - new Date(a.timestamp).getTime() < 86400000).length;
+    const last1h = alerts.filter(a => rocketTypes.has(a.threatType) && now - new Date(a.timestamp).getTime() < 3600000).length;
 
     const stats: RocketStats = {
       corridors,
-      gccCorridors,
-      lebanonCorridors,
       totalByOrigin,
       totalByTarget,
-      totalLaunches,
-      totalIntercepted,
-      interceptRate: totalLaunches > 0 ? parseFloat((totalIntercepted / totalLaunches).toFixed(3)) : 0,
+      totalAlerts,
+      byThreatType,
       peakHour,
       activeFronts,
-      last24h: Math.max(last24h, 1),
+      last24h,
       last1h,
       generatedAt: new Date().toISOString(),
     };
