@@ -3,103 +3,103 @@
 @tailwind utilities;
 
 /* ════════════════════════════════════════════════════════════════
-   DESIGN TOKENS  — Refined Blue / Navy · Dense Operations
+   DESIGN TOKENS  — Warm Command Center · Charcoal + Orange/Gold
    ════════════════════════════════════════════════════════════════ */
 :root {
-  --background:        216 20% 95%;
-  --foreground:        220 22% 12%;
-  --border:            216 16% 86%;
-  --card:              0 0% 100%;
-  --card-foreground:   220 22% 12%;
-  --popover:           0 0% 100%;
-  --popover-foreground:220 22% 12%;
-  --primary:           215 75% 50%;
-  --primary-foreground:0 0% 100%;
-  --secondary:         216 18% 92%;
-  --secondary-foreground:220 16% 28%;
-  --muted:             216 16% 93%;
-  --muted-foreground:  218 12% 48%;
-  --accent:            216 22% 91%;
-  --accent-foreground: 215 50% 24%;
+  --background:        30 8% 94%;
+  --foreground:        25 12% 14%;
+  --border:            30 8% 84%;
+  --card:              30 6% 98%;
+  --card-foreground:   25 12% 14%;
+  --popover:           30 6% 98%;
+  --popover-foreground:25 12% 14%;
+  --primary:           32 92% 50%;
+  --primary-foreground:25 20% 6%;
+  --secondary:         30 8% 90%;
+  --secondary-foreground:25 10% 30%;
+  --muted:             30 6% 91%;
+  --muted-foreground:  25 8% 46%;
+  --accent:            30 10% 89%;
+  --accent-foreground: 32 60% 30%;
   --destructive:       0 70% 50%;
   --destructive-foreground:0 0% 100%;
-  --input:             216 16% 86%;
-  --ring:              215 75% 50%;
+  --input:             30 8% 84%;
+  --ring:              32 92% 50%;
 
-  --sidebar:                216 18% 93%;
-  --sidebar-foreground:     220 16% 24%;
-  --sidebar-border:         216 16% 86%;
-  --sidebar-primary:        215 75% 50%;
-  --sidebar-primary-foreground:0 0% 100%;
-  --sidebar-accent:         216 16% 89%;
-  --sidebar-accent-foreground:220 16% 24%;
-  --sidebar-ring:           215 75% 50%;
+  --sidebar:                30 8% 92%;
+  --sidebar-foreground:     25 10% 26%;
+  --sidebar-border:         30 8% 84%;
+  --sidebar-primary:        32 92% 50%;
+  --sidebar-primary-foreground:25 20% 6%;
+  --sidebar-accent:         30 8% 88%;
+  --sidebar-accent-foreground:25 10% 26%;
+  --sidebar-ring:           32 92% 50%;
 
-  --chart-1: 215 75% 50%;
-  --chart-2: 200 72% 48%;
+  --chart-1: 32 92% 50%;
+  --chart-2: 24 85% 48%;
   --chart-3: 0 70% 50%;
-  --chart-4: 262 62% 56%;
-  --chart-5: 195 65% 48%;
+  --chart-4: 45 80% 50%;
+  --chart-5: 16 75% 50%;
 
-  --font-sans:    'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono:    'JetBrains Mono', 'Fira Code', 'Fira Mono', 'SF Mono', monospace;
-  --font-display: 'Inter', system-ui, sans-serif;
+  --font-sans:    'Fira Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'Fira Mono', 'JetBrains Mono', 'SF Mono', monospace;
+  --font-display: 'Fira Sans', system-ui, sans-serif;
 
-  --radius: 3px;
+  --radius: 4px;
 
-  --shadow-xs:  0 1px 2px rgba(0,0,0,.04);
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.06);
-  --shadow:     0 1px 4px rgba(0,0,0,.06);
-  --shadow-md:  0 2px 6px rgba(0,0,0,.07);
-  --shadow-lg:  0 3px 10px rgba(0,0,0,.08);
+  --shadow-xs:  0 1px 2px rgba(0,0,0,.05);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.07);
+  --shadow:     0 1px 4px rgba(0,0,0,.07);
+  --shadow-md:  0 2px 6px rgba(0,0,0,.08);
+  --shadow-lg:  0 3px 10px rgba(0,0,0,.10);
 
   --elevate-1: rgba(0,0,0,.02);
   --elevate-2: rgba(0,0,0,.04);
-  --button-outline: rgba(0,0,0,.06);
+  --button-outline: rgba(0,0,0,.08);
   --spacing: .25rem;
 }
 
 .dark {
-  --background:        222 28% 4%;
-  --foreground:        213 14% 82%;
-  --border:            222 20% 10%;
-  --card:              222 24% 6%;
-  --card-foreground:   213 14% 82%;
-  --popover:           222 24% 7%;
-  --popover-foreground:213 14% 82%;
-  --primary:           215 80% 56%;
-  --primary-foreground:222 28% 4%;
-  --secondary:         222 18% 9%;
-  --secondary-foreground:213 12% 65%;
-  --muted:             222 20% 8%;
-  --muted-foreground:  218 12% 42%;
-  --accent:            222 18% 9%;
-  --accent-foreground: 213 12% 65%;
+  --background:        20 10% 5%;
+  --foreground:        30 10% 78%;
+  --border:            20 8% 12%;
+  --card:              20 10% 7%;
+  --card-foreground:   30 10% 78%;
+  --popover:           20 10% 8%;
+  --popover-foreground:30 10% 78%;
+  --primary:           32 92% 50%;
+  --primary-foreground:20 10% 5%;
+  --secondary:         20 8% 10%;
+  --secondary-foreground:30 8% 62%;
+  --muted:             20 8% 9%;
+  --muted-foreground:  25 6% 40%;
+  --accent:            20 8% 10%;
+  --accent-foreground: 30 8% 62%;
   --destructive:       0 68% 54%;
   --destructive-foreground:0 0% 100%;
-  --input:             222 18% 11%;
-  --ring:              215 80% 56%;
+  --input:             20 8% 13%;
+  --ring:              32 92% 50%;
 
-  --sidebar:                222 26% 5%;
-  --sidebar-foreground:     213 12% 68%;
-  --sidebar-border:         222 20% 9%;
-  --sidebar-primary:        215 80% 56%;
-  --sidebar-primary-foreground:222 28% 4%;
-  --sidebar-accent:         222 18% 8%;
-  --sidebar-accent-foreground:213 12% 68%;
-  --sidebar-ring:           215 80% 56%;
+  --sidebar:                20 10% 6%;
+  --sidebar-foreground:     30 8% 65%;
+  --sidebar-border:         20 8% 11%;
+  --sidebar-primary:        32 92% 50%;
+  --sidebar-primary-foreground:20 10% 5%;
+  --sidebar-accent:         20 8% 9%;
+  --sidebar-accent-foreground:30 8% 65%;
+  --sidebar-ring:           32 92% 50%;
 
-  --chart-1: 215 80% 56%;
-  --chart-2: 200 72% 52%;
+  --chart-1: 32 92% 50%;
+  --chart-2: 24 85% 52%;
   --chart-3: 0 68% 54%;
-  --chart-4: 262 62% 60%;
-  --chart-5: 195 65% 52%;
+  --chart-4: 45 80% 55%;
+  --chart-5: 16 75% 55%;
 
   --shadow-xs:  none;
-  --shadow-sm:  0 1px 2px rgba(0,0,0,.40);
-  --shadow:     0 1px 4px rgba(0,0,0,.45);
-  --shadow-md:  0 2px 8px rgba(0,0,0,.50);
-  --shadow-lg:  0 4px 14px rgba(0,0,0,.55);
+  --shadow-sm:  0 1px 2px rgba(0,0,0,.45);
+  --shadow:     0 1px 4px rgba(0,0,0,.50);
+  --shadow-md:  0 2px 8px rgba(0,0,0,.55);
+  --shadow-lg:  0 4px 14px rgba(0,0,0,.60);
 
   --elevate-1: rgba(255,255,255,.02);
   --elevate-2: rgba(255,255,255,.035);
@@ -133,16 +133,16 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(222 16% 20%) transparent;
+    scrollbar-color: hsl(25 8% 22%) transparent;
   }
-  .dark * { scrollbar-color: hsl(222 16% 14%) transparent; }
+  .dark * { scrollbar-color: hsl(25 8% 16%) transparent; }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: hsl(222 14% 24%); border-radius: 2px; }
-  .dark ::-webkit-scrollbar-thumb { background: hsl(222 14% 16%); }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(222 14% 32%); }
-  .dark ::-webkit-scrollbar-thumb:hover { background: hsl(222 14% 22%); }
+  ::-webkit-scrollbar-thumb { background: hsl(25 8% 24%); border-radius: 2px; }
+  .dark ::-webkit-scrollbar-thumb { background: hsl(25 8% 16%); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(25 8% 32%); }
+  .dark ::-webkit-scrollbar-thumb:hover { background: hsl(25 8% 22%); }
 
   .react-grid-item ::-webkit-scrollbar { width: 3px; height: 3px; }
 
@@ -182,12 +182,12 @@
   .react-grid-item .text-foreground\/30 { color: hsl(var(--foreground) / 0.45) !important; }
 
   ::selection {
-    background: hsl(215 70% 56% / .20);
+    background: hsl(32 92% 50% / .20);
     color: hsl(var(--foreground));
   }
 
   :focus-visible {
-    outline: 1px solid hsl(215 70% 56% / .50);
+    outline: 1px solid hsl(32 92% 50% / .50);
     outline-offset: 1px;
     border-radius: 2px;
   }
@@ -220,7 +220,7 @@
   }
 
   .dash-panel:focus-within {
-    border-color: hsl(215 70% 56% / .35);
+    border-color: hsl(32 92% 50% / .35);
   }
 
   .dash-panel-header {
@@ -314,9 +314,9 @@
     box-shadow: var(--shadow-sm);
   }
 
-  .warroom-glow-amber  { box-shadow: 0 0 6px hsl(215 70% 50% / .08); }
-  .warroom-glow-indigo { box-shadow: 0 0 6px hsl(215 83% 53% / .10); }
-  .warroom-glow-cyan   { box-shadow: 0 0 6px hsl(185 72% 50% / .08); }
+  .warroom-glow-amber  { box-shadow: 0 0 6px hsl(32 92% 50% / .10); }
+  .warroom-glow-indigo { box-shadow: 0 0 6px hsl(24 85% 48% / .10); }
+  .warroom-glow-cyan   { box-shadow: 0 0 6px hsl(45 80% 50% / .08); }
   .warroom-glow-red    { box-shadow: 0 0 6px hsl(0 70% 50% / .10); }
 
   /* ── Animations ── */
@@ -469,16 +469,16 @@
     content: ''; display: block;
     width: 8px; height: 8px; border-radius: 50%;
   }
-  .ra-glow-dot--active::before   { background: #3b82f6; box-shadow: 0 0 6px rgba(59,130,246,.50); }
-  .ra-glow-dot--inactive::before { background: rgba(59,130,246,.18); }
+  .ra-glow-dot--active::before   { background: hsl(32 92% 50%); box-shadow: 0 0 6px hsl(32 92% 50% / .50); }
+  .ra-glow-dot--inactive::before { background: hsl(32 92% 50% / .18); }
 
-  .ra-header-gradient-active { background: hsl(215 70% 50% / .06); }
+  .ra-header-gradient-active { background: hsl(32 80% 50% / .06); }
   .ra-header-gradient-idle   { background: hsl(var(--muted)); }
 
   .ra-empty-circle {
     width: 40px; height: 40px; border-radius: 50%;
-    background: hsl(215 70% 56% / .06);
-    border: 1px solid hsl(215 70% 56% / .18);
+    background: hsl(32 92% 50% / .06);
+    border: 1px solid hsl(32 92% 50% / .18);
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 8px;
   }
@@ -511,20 +511,20 @@
   }
   .ra-card:hover::after  { background: rgba(255,255,255,0.03); }
   .ra-card:focus-visible {
-    outline: 1px solid hsl(215 70% 56% / .50);
+    outline: 1px solid hsl(32 92% 50% / .50);
     outline-offset: 0px;
   }
 
-  .ra-search-input::placeholder { color: hsl(215 40% 40% / .40); }
+  .ra-search-input::placeholder { color: hsl(25 20% 40% / .40); }
   .ra-search-input:focus {
-    border-color: hsl(215 70% 56% / .45);
-    box-shadow: 0 0 0 1px hsl(215 70% 56% / .12);
+    border-color: hsl(32 92% 50% / .45);
+    box-shadow: 0 0 0 1px hsl(32 92% 50% / .12);
     outline: none;
   }
 
   .ra-pill:hover   { opacity: .85; }
   .ra-pill:focus-visible {
-    outline: 1px solid hsl(215 70% 56% / .50);
+    outline: 1px solid hsl(32 92% 50% / .50);
     outline-offset: 0px;
   }
 }
@@ -540,8 +540,8 @@
 }
 
 .dark .panel-drag-handle {
-  background: hsl(222 26% 5.5%) !important;
-  border-bottom: 1px solid hsl(222 20% 10%) !important;
+  background: hsl(20 10% 7%) !important;
+  border-bottom: 1px solid hsl(20 8% 12%) !important;
 }
 
 .panel-drag-handle {
@@ -598,8 +598,8 @@
   box-shadow: none;
 }
 .dark .warroom-header {
-  background: hsl(222 28% 5%);
-  border-bottom-color: hsl(222 20% 9%);
+  background: hsl(20 10% 6%);
+  border-bottom-color: hsl(20 8% 11%);
   box-shadow: 0 1px 3px rgba(0,0,0,.40);
 }
 
@@ -630,7 +630,7 @@
    REACT GRID LAYOUT — tight Bloomberg grid
    ════════════════════════════════════════════════════════════════ */
 .react-grid-item {
-  border-radius: 3px;
+  border-radius: 4px;
   isolation: isolate;
   transition: none;
 }
@@ -648,23 +648,23 @@
 }
 
 .react-grid-item:not(.react-draggable-dragging):hover {
-  box-shadow: 0 0 0 1px hsl(215 70% 56% / .20) !important;
+  box-shadow: 0 0 0 1px hsl(32 92% 50% / .20) !important;
 }
 .dark .react-grid-item:not(.react-draggable-dragging):hover {
-  box-shadow: 0 0 0 1px hsl(215 70% 56% / .25) !important;
+  box-shadow: 0 0 0 1px hsl(32 92% 50% / .25) !important;
 }
 
 .react-grid-item.react-draggable-dragging {
   opacity: .97; z-index: 100;
-  box-shadow: 0 4px 16px rgba(0,0,0,.30), 0 0 0 1px hsl(215 70% 56% / .35) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,.30), 0 0 0 1px hsl(32 92% 50% / .35) !important;
   cursor: grabbing !important;
   transition: none !important;
 }
 
 .react-grid-item.react-grid-placeholder {
-  background: hsl(215 70% 56% / .05) !important;
-  border: 1px dashed hsl(215 70% 56% / .30) !important;
-  border-radius: 3px !important;
+  background: hsl(32 92% 50% / .05) !important;
+  border: 1px dashed hsl(32 92% 50% / .30) !important;
+  border-radius: 4px !important;
   opacity: 1 !important;
   box-shadow: none !important;
 }
@@ -678,13 +678,13 @@
 .react-resizable-handle:hover { opacity: 1 !important; }
 
 .react-grid-item > .react-resizable-handle::after {
-  border-color: hsl(215 70% 56% / .40) !important;
+  border-color: hsl(32 92% 50% / .40) !important;
   border-width: 2px !important;
   width: 8px !important; height: 8px !important;
   border-radius: 1px;
 }
 .react-grid-item > .react-resizable-handle:hover::after {
-  border-color: hsl(215 70% 56% / .75) !important;
+  border-color: hsl(32 92% 50% / .75) !important;
   width: 10px !important; height: 10px !important;
 }
 
@@ -702,7 +702,7 @@
 .react-resizable-handle-w::after {
   width: 2px !important; height: 16px !important;
   border: none !important;
-  background: hsl(215 70% 56% / .30);
+  background: hsl(32 92% 50% / .30);
   border-radius: 1px;
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -710,7 +710,7 @@
 .react-resizable-handle-s::after {
   width: 16px !important; height: 2px !important;
   border: none !important;
-  background: hsl(215 70% 56% / .30);
+  background: hsl(32 92% 50% / .30);
   border-radius: 1px;
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -718,7 +718,7 @@
 .react-resizable-handle-e:hover::after,
 .react-resizable-handle-w:hover::after,
 .react-resizable-handle-s:hover::after {
-  background: hsl(215 70% 56% / .65) !important;
+  background: hsl(32 92% 50% / .65) !important;
 }
 
 [data-testid="resizable-panels"] {
@@ -726,20 +726,20 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: hsl(222 16% 20%) transparent;
+  scrollbar-color: hsl(25 8% 22%) transparent;
 }
 .dark [data-testid="resizable-panels"] {
-  background: hsl(222 28% 3.5%);
-  scrollbar-color: hsl(222 16% 12%) transparent;
+  background: hsl(20 10% 4%);
+  scrollbar-color: hsl(25 8% 14%) transparent;
 }
 [data-testid="resizable-panels"]::-webkit-scrollbar { width: 4px; }
 [data-testid="resizable-panels"]::-webkit-scrollbar-track { background: transparent; }
 [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
-  background: hsl(222 14% 22%);
+  background: hsl(25 8% 22%);
   border-radius: 2px;
 }
 .dark [data-testid="resizable-panels"]::-webkit-scrollbar-thumb {
-  background: hsl(222 14% 14%);
+  background: hsl(25 8% 14%);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -788,12 +788,12 @@
 }
 .warroom-mobile-swipe-dots .dot {
   display: block; width: 5px; height: 5px; border-radius: 50%;
-  background: hsl(222 14% 28%);
+  background: hsl(25 8% 28%);
   transition: width .2s ease, border-radius .2s ease, background-color .2s ease;
 }
 .warroom-mobile-swipe-dots .dot.active {
   width: 14px; border-radius: 2px;
-  background: hsl(215 75% 55%);
+  background: hsl(32 92% 50%);
 }
 .mobile-panel-hidden { visibility: hidden; pointer-events: none; }
 

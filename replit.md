@@ -10,8 +10,8 @@ Not specified.
 The WARROOM dashboard is built using a modern web stack, emphasizing real-time data delivery, interactive visualization, and a dark, information-dense UI.
 
 **UI/UX Decisions:**
-- **Theme:** Dense Operations / Bloomberg Terminal style with refined Blue/Navy color palette. Deep navy background (`hsl(222 28% 4%)`), blue-500 primary accent (`hsl(215 80% 56%)`), minimal shadows, sharp 3px border-radius, tight 4px grid gaps. Monospace-heavy typography.
-- **Typography:** Inter for display, JetBrains Mono for data readouts and panel headers, with compact font sizes (13px base) for maximum information density.
+- **Theme:** Warm Command Center — dark charcoal background (`hsl(20 10% 5%)`), orange-gold primary accent (`hsl(32 92% 50%)`), minimal shadows, 4px border-radius, tight 4px grid gaps. Monospace-heavy typography. All scrollbar, focus, selection, glow, and grid interaction colors use warm hsl(32/25/20) tones instead of blue.
+- **Typography:** Fira Sans for display/body, Fira Mono for data readouts and panel headers, with compact font sizes (13px base) for maximum information density. Google Fonts loads Fira Sans + Fira Mono.
 - **Clocks:** Displays both UTC and Lebanon/Beirut time with timezone labels.
 - **Responsiveness:** Adaptive layouts for mobile, tablet, and desktop, with specific UI adjustments for each, including single-panel views for mobile and CSS grid layouts for tablets.
 - **Panel System:** Features customizable, resizable panels (`telegram`, `events`, `alerts`, `markets`, `livefeed`, `alertmap`, `analytics`, `osint`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout. Internet Monitor (netblack) and NOTAM panels removed.
@@ -36,7 +36,7 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Panel Controls Visibility:** Pop-out buttons always visible at 40% opacity (previously hidden until hover). Maximize/minimize buttons have aria-labels.
 - **Text Readability:** CSS font-size floor rules (`.react-grid-item` and global) enforce 11px minimum for all text classes. Inline fontSize values throughout dashboard also enforce 11px floor. Opacity floors for muted/foreground text in panels (minimum 0.35-0.45 alpha).
 - **XSS Security:** `escHtml()` utility sanitizes all external data in the export report HTML (event titles, descriptions, country names, callsigns, ship names, market symbols) before interpolation into `document.write`.
-- **Color System:** Theme tokens (`bg-background`, `border-primary`) replace hardcoded `#080c14` backgrounds and cyan borders in popup overlays. AIPrediction panel headers/tabs use `text-primary` instead of violet. Semantic cyan accent retained for intelligence/monitoring data types (UAV, Telegram, live feeds).
+- **Color System:** Warm Command Center tokens throughout. All structural UI accents (header bar, breaking news, toolbar buttons, focus rings, grid hover/drag/placeholder, resize handles, mobile dots) use orange/amber tones. Data-semantic colors (country chips, severity badges, cyber types, stat grid values) retain functional colors (red/purple/emerald/cyan/blue) for differentiation. AIPrediction panel uses amber accents.
 - **Accessibility:** Implemented `aria-labels` and `role="status"`.
 - **Feature Specifications:** Includes core panels like Breaking News, Markets, YouTube Live, Analytics, Cyber Threats, and mapping tools such as Map Search, Maritime EEZ Layer, Animated Missile Arcs, and Threat Heat Maps. Alerting features include Live Sirens, Anomaly Detection, Desktop Notifications, and Alert Filtering. Intelligence and workflow tools provide Language Toggle, Panel Maximization, Threat Level Banner, Analyst Notes, Correlation Engine, and PDF export for reports. Interactive elements enable click-to-detail on radar panels. Sound improvements include modern emergency broadcast alert tones and distinct chimes for Telegram OSINT messages.
 

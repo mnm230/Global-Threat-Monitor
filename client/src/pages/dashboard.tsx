@@ -1249,13 +1249,13 @@ const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   alerts:       'hsl(0 65% 48%)',
-  telegram:     'hsl(210 70% 52%)',
+  telegram:     'hsl(32 80% 48%)',
   events:       'hsl(36 65% 48%)',
   markets:      'hsl(250 50% 52%)',
   aiprediction: 'hsl(260 50% 52%)',
-  analytics:    'hsl(195 55% 42%)',
-  osint:        'hsl(230 50% 52%)',
-  livefeed:     'hsl(215 55% 48%)',
+  analytics:    'hsl(24 70% 45%)',
+  osint:        'hsl(40 70% 48%)',
+  livefeed:     'hsl(28 65% 46%)',
   alertmap:     'hsl(12 60% 46%)',
   attackpred:   'hsl(24 60% 46%)',
   rocketstats:  'hsl(175 50% 40%)',
@@ -1744,7 +1744,7 @@ const LiveClock = memo(function LiveClock() {
         <span className="text-[10px] text-foreground/80 font-mono tabular-nums">{utcTime}</span>
         <span className="text-[8px] text-muted-foreground/50 font-mono">UTC</span>
         <div className="w-px h-2.5 bg-border mx-0.5" />
-        <span className="text-[10px] text-blue-400 font-mono tabular-nums">{beirutTime}</span>
+        <span className="text-[10px] text-primary font-mono tabular-nums">{beirutTime}</span>
         <span className="text-[8px] text-muted-foreground/50 font-mono">BEY</span>
       </div>
     </div>
@@ -1815,10 +1815,10 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
             </>
           ) : (
             <>
-              <div className={`w-4 h-4 rounded-sm flex items-center justify-center ${hasCritical ? 'animate-siren-flash' : ''}`} style={{background: hasCritical ? 'hsl(30 80% 50% / 0.15)' : 'hsl(200 60% 50% / 0.1)', border: hasCritical ? '1px solid hsl(30 80% 50% / 0.4)' : '1px solid hsl(200 60% 50% / 0.3)'}}>
-                <Zap className={`w-2.5 h-2.5 ${hasCritical ? 'text-amber-400/90' : 'text-cyan-400/80'}`} />
+              <div className={`w-4 h-4 rounded-sm flex items-center justify-center ${hasCritical ? 'animate-siren-flash' : ''}`} style={{background: hasCritical ? 'hsl(30 80% 50% / 0.15)' : 'hsl(32 80% 50% / 0.1)', border: hasCritical ? '1px solid hsl(30 80% 50% / 0.4)' : '1px solid hsl(32 80% 50% / 0.25)'}}>
+                <Zap className={`w-2.5 h-2.5 ${hasCritical ? 'text-amber-400/90' : 'text-amber-500/70'}`} />
               </div>
-              <span className={`text-[9px] font-bold uppercase tracking-[0.25em] font-mono whitespace-nowrap ${hasCritical ? 'text-amber-400/70' : 'text-cyan-400/50'}`}>
+              <span className={`text-[9px] font-bold uppercase tracking-[0.25em] font-mono whitespace-nowrap ${hasCritical ? 'text-amber-400/70' : 'text-amber-500/50'}`}>
                 {language === 'en' ? 'BREAKING' : '\u0639\u0627\u062C\u0644'}
               </span>
               <Badge variant={hasCritical ? 'destructive' : 'secondary'} className="text-[8px] px-1.5 py-0 h-[14px] font-mono font-bold">
@@ -1851,9 +1851,9 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
                 {item.severity === 'critical' ? (
                   <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
                 ) : (
-                  <Zap className="w-3 h-3 text-cyan-400 shrink-0" />
+                  <Zap className="w-3 h-3 text-amber-500 shrink-0" />
                 )}
-                <span className={`font-bold ${item.severity === 'critical' ? 'text-amber-300' : 'text-cyan-300'}`}>
+                <span className={`font-bold ${item.severity === 'critical' ? 'text-amber-300' : 'text-amber-400/80'}`}>
                   {(item.headline || '').length > 100 ? (item.headline || '').slice(0, 100) + '...' : (item.headline || '')}
                 </span>
                 <span className="text-foreground/20 text-[9px]">
@@ -1868,7 +1868,7 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
         <Button
           size="sm"
           variant="ghost"
-          className={`text-[10px] px-2 h-6 font-mono shrink-0 ${hasSirens ? 'text-red-400 hover:bg-red-900/30' : hasCritical ? 'text-amber-400 hover:bg-amber-900/20' : 'text-cyan-400 hover:bg-cyan-900/20'}`}
+          className={`text-[10px] px-2 h-6 font-mono shrink-0 ${hasSirens ? 'text-red-400 hover:bg-red-900/30' : hasCritical ? 'text-amber-400 hover:bg-amber-900/20' : 'text-amber-500 hover:bg-amber-900/20'}`}
           data-testid="button-siren-expand"
         >
           {expanded ? '\u25B2' : '\u25BC'} {language === 'en' ? 'Details' : '\u062A\u0641\u0627\u0635\u064A\u0644'}
@@ -1913,9 +1913,9 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
                     {item.severity === 'critical' ? (
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     ) : (
-                      <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     )}
-                    <span className={`text-[11px] font-bold ${item.severity === 'critical' ? 'text-amber-300' : 'text-cyan-300'}`}>
+                    <span className={`text-[11px] font-bold ${item.severity === 'critical' ? 'text-amber-300' : 'text-amber-400/80'}`}>
                       {item.headline}
                     </span>
                     <span className="text-[9px] text-foreground/30 font-mono ml-auto shrink-0 tabular-nums">
@@ -5224,7 +5224,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
               <button
                 onClick={exportPdf}
                 disabled={exportingPdf || !analytics}
-                className="w-6 h-6 rounded flex items-center justify-center text-foreground/30 hover:text-blue-400 hover:bg-blue-500/10 transition-colors disabled:opacity-30"
+                className="w-6 h-6 rounded flex items-center justify-center text-foreground/30 hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-30"
                 aria-label="Export Intelligence Report"
                 data-testid="button-export-pdf"
               >
@@ -5262,7 +5262,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 space-y-4">
           {!analytics ? (
-            <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-blue-400/40 animate-spin mx-auto" /></div>
+            <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-primary/40 animate-spin mx-auto" /></div>
           ) : (
             <TooltipProvider delayDuration={200}>
 
@@ -5583,7 +5583,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
                   <div className="rounded border border-border bg-muted/20 p-2.5" data-testid="section-quick-stats">
                     <div className="flex items-center gap-2 mb-2">
-                      <Activity className="w-3 h-3 text-cyan-400/60" />
+                      <Activity className="w-3 h-3 text-amber-400/60" />
                       <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-foreground/40 font-mono">{t('Session Intelligence Summary', '\u0645\u0644\u062E\u0635 \u0627\u0644\u0627\u0633\u062A\u062E\u0628\u0627\u0631\u0627\u062A')}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -6292,10 +6292,10 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <TypeBreakdown corridors={corridorsToIsrael} color="#ef4444" />
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(210 30% 16% / 0.4)', border:'1px solid hsl(210 40% 30% / 0.3)'}}>
+            <div className="rounded p-2" style={{background:'hsl(32 30% 14% / 0.4)', border:'1px solid hsl(32 40% 28% / 0.3)'}}>
               <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-blue-400" />
-                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t(`From Israel (${corridorsFromIsrael.reduce((s,c)=>s+c.totalLaunches,0).toLocaleString()})`, `من إسرائيل`)}</span>
+                <ArrowRight className="w-3 h-3 text-amber-400" />
+                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{t(`From Israel (${corridorsFromIsrael.reduce((s,c)=>s+c.totalLaunches,0).toLocaleString()})`, `من إسرائيل`)}</span>
               </div>
               <div className="space-y-0.5" data-testid="corridors-from-israel">
                 {corridorsFromIsrael.slice(0, 7).map((c, i) => (
@@ -6391,10 +6391,10 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
             </div>
 
             {gccOutgoing.length > 0 && (
-              <div className="rounded p-2" style={{background:'hsl(200 30% 14% / 0.5)', border:'1px solid hsl(200 40% 25% / 0.4)'}}>
+              <div className="rounded p-2" style={{background:'hsl(32 25% 12% / 0.5)', border:'1px solid hsl(32 35% 22% / 0.4)'}}>
                 <div className="flex items-center gap-1 mb-1.5">
-                  <ArrowRight className="w-3 h-3 text-cyan-400" />
-                  <span className="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">{t('Saudi/Coalition Strikes on Yemen','ضربات التحالف على اليمن')}</span>
+                  <ArrowRight className="w-3 h-3 text-amber-400" />
+                  <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{t('Saudi/Coalition Strikes on Yemen','ضربات التحالف على اليمن')}</span>
                 </div>
                 <div className="space-y-0.5">
                   {gccOutgoing.map((c, i) => <CorridorRow key={i} c={c} barColor="#22d3ee" maxLaunches={gccOutgoing[0]?.totalLaunches || 1} />)}
@@ -6470,10 +6470,10 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
               <TypeBreakdown corridors={lblToIsrael} color="#ef4444" />
             </div>
 
-            <div className="rounded p-2" style={{background:'hsl(210 25% 14% / 0.5)', border:'1px solid hsl(210 40% 25% / 0.4)'}}>
+            <div className="rounded p-2" style={{background:'hsl(32 25% 12% / 0.5)', border:'1px solid hsl(32 40% 22% / 0.4)'}}>
               <div className="flex items-center gap-1 mb-1.5">
-                <ArrowRight className="w-3 h-3 text-blue-400" />
-                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">{t(`IDF → Lebanon (${totalLblReceived.toLocaleString()})`,`الجيش الإسرائيلي → لبنان`)}</span>
+                <ArrowRight className="w-3 h-3 text-amber-400" />
+                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">{t(`IDF → Lebanon (${totalLblReceived.toLocaleString()})`,`الجيش الإسرائيلي → لبنان`)}</span>
               </div>
               <div className="space-y-0.5">
                 {lblFromIsrael.sort((a,b) => b.totalLaunches - a.totalLaunches).map((c, i) => <CorridorRow key={i} c={c} barColor="#60a5fa" maxLaunches={lblFromIsrael[0]?.totalLaunches || 1} />)}
@@ -7704,7 +7704,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
         {!prediction ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+              <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
               <span className="text-[10px] text-white/40">Generating AI predictions...</span>
             </div>
           </div>
@@ -7765,7 +7765,7 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
             {/* Velocity Strip */}
             <div className="flex items-center gap-2 px-1">
               <div className="flex items-center gap-1.5 flex-1">
-                <Activity className="w-3 h-3 text-cyan-400/70" />
+                <Activity className="w-3 h-3 text-amber-400/70" />
                 <span className="text-[9px] text-white/50">{prediction.dataPoints.totalAlerts} alerts</span>
               </div>
               <div className="flex items-center gap-1.5 flex-1">
@@ -7839,10 +7839,10 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
               ))}
             </div>
 
-            <div className="p-2 rounded border border-cyan-500/15 bg-cyan-500/5">
+            <div className="p-2 rounded border border-amber-500/15 bg-amber-500/5">
               <div className="flex items-center gap-1.5 mb-1">
-                <Brain className="w-3 h-3 text-cyan-400/70" />
-                <span className="text-[9px] font-semibold text-cyan-300/80 uppercase tracking-wider">{language === 'ar' ? 'تحليل الأنماط' : 'Pattern Analysis'}</span>
+                <Brain className="w-3 h-3 text-amber-400/70" />
+                <span className="text-[9px] font-semibold text-amber-300/80 uppercase tracking-wider">{language === 'ar' ? 'تحليل الأنماط' : 'Pattern Analysis'}</span>
               </div>
               <p className="text-[9px] text-white/50 leading-relaxed" data-testid="text-pattern-summary">{prediction.patternSummary}</p>
             </div>
@@ -8727,10 +8727,10 @@ export default function Dashboard() {
               <Button size="sm" variant="ghost" className={`px-2 h-7 rounded text-[11px] ${soundEnabled ? 'text-primary' : 'text-foreground/30'} hover:text-foreground/80 hover:bg-muted/40 active:bg-muted/60 transition-all duration-150`} onClick={() => setSoundEnabled(p => !p)} data-testid="button-sound-toggle" aria-label={soundEnabled ? 'Mute sounds' : 'Enable sounds'}>
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-cyan-400 hover:bg-cyan-500/[0.08] active:bg-cyan-500/15 transition-all duration-150" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] active:bg-amber-500/15 transition-all duration-150" onClick={() => setShowNotes(true)} data-testid="button-notes" aria-label="Analyst Notes" title="Analyst Notes">
                 <StickyNote className="w-3.5 h-3.5" />
               </Button>
-              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-cyan-400 hover:bg-cyan-500/[0.08] active:bg-cyan-500/15 transition-all duration-150" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
+              <Button size="sm" variant="ghost" className="px-2 h-7 rounded text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] active:bg-amber-500/15 transition-all duration-150" onClick={() => setShowWatchlist(true)} data-testid="button-watchlist" aria-label="Watchlist" title="Watchlist">
                 <Eye className="w-3.5 h-3.5" />
               </Button>
               <div className="relative">
@@ -8927,7 +8927,7 @@ export default function Dashboard() {
                 style={{
                   paddingTop: 8,
                   paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))',
-                  background: 'hsl(220 22% 5%)',
+                  background: 'hsl(20 10% 5%)',
                   borderTop: '1px solid rgba(239,68,68,0.12)',
                 }}
                 data-testid="mobile-tab-bar"
@@ -9044,10 +9044,10 @@ export default function Dashboard() {
                   style={{
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
-                    background: 'hsl(220 14% 7%)',
+                    background: 'hsl(20 10% 7%)',
                     borderRadius: 12,
                     overflow: 'hidden',
-                    border: id === 'alerts' ? '1px solid hsl(0 72% 51% / 0.35)' : '1px solid hsl(220 12% 13%)',
+                    border: id === 'alerts' ? '1px solid hsl(0 72% 51% / 0.35)' : '1px solid hsl(20 8% 13%)',
                     boxShadow: '0 2px 14px rgba(0,0,0,.60)',
                   }}
                 >
@@ -9091,7 +9091,7 @@ export default function Dashboard() {
               Drop here to dock
             </div>
             {/* CSS for always-visible resize handles */}
-            <style>{`.react-resizable-handle{opacity:1!important;background-color:rgba(255,255,255,0.08)!important;border-radius:3px}.react-resizable-handle:hover{background-color:rgba(0,220,180,0.35)!important}`}</style>
+            <style>{`.react-resizable-handle{opacity:1!important;background-color:rgba(255,255,255,0.08)!important;border-radius:4px}.react-resizable-handle:hover{background-color:hsl(32 92% 50% / 0.35)!important}`}</style>
             <RGL
               layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
               cols={12}
@@ -9116,12 +9116,12 @@ export default function Dashboard() {
                   style={{
                     '--panel-accent': PANEL_ACCENTS[id] || 'hsl(var(--primary))',
                     borderRadius: 12,
-                    background: isFloating ? 'hsl(220 12% 9%)' : 'hsl(220 14% 7%)',
+                    background: isFloating ? 'hsl(20 8% 9%)' : 'hsl(20 10% 7%)',
                     border: isFloating
-                      ? '1.5px dashed hsl(220 12% 16%)'
+                      ? '1.5px dashed hsl(20 8% 16%)'
                       : hasAlertGlow
                         ? '1px solid hsl(0 70% 50% / 0.45)'
-                        : '1px solid hsl(220 12% 13%)',
+                        : '1px solid hsl(20 8% 13%)',
                     boxShadow: hasAlertGlow && !isFloating
                       ? '0 0 0 3px hsl(0 70% 50% / 0.08), 0 4px 20px rgba(0,0,0,.60)'
                       : '0 2px 12px rgba(0,0,0,.55)',
@@ -9212,15 +9212,15 @@ export default function Dashboard() {
               onClick={() => physicsScrollRef.current.scrollTo(0)}
               style={{
                 pointerEvents: 'auto', width: 36, height: 36, borderRadius: '50%',
-                background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.25)',
+                background: 'hsl(20 10% 8% / 0.88)', border: '1px solid hsl(32 92% 50% / 0.25)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 12px rgba(0,220,180,0.12)',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 12px hsl(32 92% 50% / 0.12)',
                 transition: 'opacity 0.2s, transform 0.2s',
               }}
               title="Scroll to top"
               aria-label="Scroll to top"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,220,180,0.7)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(32 92% 50% / 0.7)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 15l-6-6-6 6"/>
               </svg>
             </button>
@@ -9230,15 +9230,15 @@ export default function Dashboard() {
               onClick={() => physicsScrollRef.current.scrollBy(window.innerHeight * 0.75)}
               style={{
                 pointerEvents: 'auto', width: 36, height: 36, borderRadius: '50%',
-                background: 'rgba(20,26,38,0.88)', border: '1px solid rgba(0,220,180,0.3)',
+                background: 'hsl(20 10% 8% / 0.88)', border: '1px solid hsl(32 92% 50% / 0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 14px rgba(0,220,180,0.15)',
+                cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.5), 0 0 14px hsl(32 92% 50% / 0.15)',
                 transition: 'opacity 0.2s, transform 0.2s',
               }}
               title="Scroll down"
               aria-label="Scroll down"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,220,180,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(32 92% 50% / 0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6"/>
               </svg>
             </button>
