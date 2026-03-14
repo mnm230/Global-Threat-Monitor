@@ -506,10 +506,10 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
       onMouseDown={() => setIsDragging(true)}
       onTouchStart={handleTouchStart}
       data-testid="resize-handle"
-      style={{ background: isDragging ? undefined : 'linear-gradient(to ' + (direction === 'col' ? 'right' : 'bottom') + ', transparent, hsl(185 60% 8%), transparent)' }}
+      style={{ background: isDragging ? undefined : 'linear-gradient(to ' + (direction === 'col' ? 'right' : 'bottom') + ', transparent, hsl(32 40% 10%), transparent)' }}
     >
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-20 -ml-[9px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-20 -mt-[9px]'} rounded transition-colors ${isDragging ? 'bg-primary/10' : 'bg-transparent group-hover:bg-primary/5'}`} />
-      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-10' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[2px] w-10'} rounded-full transition-all duration-200 ${isDragging ? 'bg-primary shadow-[0_0_8px_hsl(185_100%_42%/0.5)]' : 'bg-transparent group-hover:bg-primary/50'}`} />
+      <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-10' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[2px] w-10'} rounded-full transition-all duration-200 ${isDragging ? 'bg-primary shadow-[0_0_8px_hsl(32_92%_50%/0.5)]' : 'bg-transparent group-hover:bg-primary/50'}`} />
     </div>
   );
 }
@@ -723,7 +723,7 @@ function PanelMaximizeButton({ isMaximized, onToggle }: { isMaximized: boolean; 
       onClick={(e) => { e.stopPropagation(); onToggle(); }}
       className={`${touchBtnClass} rounded flex items-center justify-center text-foreground/40 hover:text-primary hover:bg-primary/15 active:bg-primary/25 active:scale-95 transition-all duration-100 warroom-panel-maximize`}
       style={{ border: '1px solid transparent' }}
-      onMouseEnter={e => (e.currentTarget.style.border = '1px solid hsl(185 100% 42% / 0.35)')}
+      onMouseEnter={e => (e.currentTarget.style.border = '1px solid hsl(32 92% 50% / 0.35)')}
       onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
       title={isMaximized ? "Restore panel" : "Maximize panel"}
       aria-label={isMaximized ? "Restore panel" : "Maximize panel"}
@@ -6315,7 +6315,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
                   <div key={origin} className="flex items-center gap-1.5" data-testid={`origin-bar-${i}`}>
                     <span className="text-[8px] text-foreground/60 font-mono w-[75px] truncate">{origin}</span>
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:'hsl(var(--muted))'}}>
-                      <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(185 100% 42%)' : 'hsl(185 60% 35%)'}} />
+                      <div className="h-full rounded-full transition-[width] duration-500" style={{width:`${(count / maxOrigin) * 100}%`, background: count === maxOrigin ? 'hsl(32 92% 50%)' : 'hsl(32 60% 38%)'}} />
                     </div>
                     <span className="text-[8px] text-foreground/70 font-mono w-[34px] text-right">{count.toLocaleString()}</span>
                   </div>
@@ -6716,7 +6716,7 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
             })}
             {liveFeed.length > 0 && (
               <button className="w-full py-1.5 rounded text-[8px] font-mono font-bold uppercase tracking-wider transition-all hover:bg-white/5"
-                style={{border:'1px solid hsl(var(--border))', color:'hsl(185 60% 45%)'}}
+                style={{border:'1px solid hsl(var(--border))', color:'hsl(32 80% 50%)'}}
                 onClick={() => { liveFetchedRef.current = false; setLiveFeed([]); setActiveTab('overview'); setTimeout(() => setActiveTab('live'), 50); }}>
                 {t('Refresh Feed','تحديث')}
               </button>
@@ -9079,9 +9079,9 @@ export default function Dashboard() {
                 margin: '0 4px 4px',
                 height: 44,
                 borderRadius: 10,
-                border: '2px dashed hsl(185 70% 42% / 0.7)',
-                background: 'hsl(185 70% 42% / 0.07)',
-                color: 'hsl(185 70% 52%)',
+                border: '2px dashed hsl(32 92% 50% / 0.7)',
+                background: 'hsl(32 92% 50% / 0.07)',
+                color: 'hsl(32 92% 55%)',
                 fontSize: 12, fontWeight: 600,
                 pointerEvents: 'none',
                 transition: 'opacity 0.15s',
