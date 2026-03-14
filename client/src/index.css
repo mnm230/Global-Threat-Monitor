@@ -153,7 +153,7 @@
   }
 
   .react-grid-item .text-\[6px\],
-  .react-grid-item .text-\[7px\]  { font-size: 10px !important; font-weight: 600 !important; }
+  .react-grid-item .text-\[7px\]  { font-size: 11px !important; font-weight: 600 !important; }
   .react-grid-item .text-\[8px\]  { font-size: 11px !important; font-weight: 500 !important; }
   .react-grid-item .text-\[9px\]  { font-size: 11px !important; }
   .react-grid-item .text-\[10px\] { font-size: 11px !important; }
@@ -161,10 +161,10 @@
   .react-grid-item .text-\[12px\] { font-size: 12px !important; }
   .react-grid-item .text-xs       { font-size: 12px !important; }
 
-  .text-\[6px\]  { font-size: 8px !important; font-weight: 600 !important; }
-  .text-\[7px\]  { font-size: 9px !important; font-weight: 600 !important; }
-  .text-\[8px\]  { font-size: 9px !important; font-weight: 500 !important; }
-  .text-\[9px\]  { font-size: 10px !important; }
+  .text-\[6px\]  { font-size: 11px !important; font-weight: 600 !important; }
+  .text-\[7px\]  { font-size: 11px !important; font-weight: 600 !important; }
+  .text-\[8px\]  { font-size: 11px !important; font-weight: 500 !important; }
+  .text-\[9px\]  { font-size: 11px !important; }
   .text-\[10px\] { font-size: 11px !important; }
   .text-\[11px\] { font-size: 11px !important; }
   .text-\[12px\] { font-size: 12px !important; }

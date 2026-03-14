@@ -986,14 +986,15 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="osint-timeline-panel">
-      <div className="panel-drag-handle px-3 border-b flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none h-9">
-        <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/90" style={{fontFamily:'var(--font-display)'}}>OSINT TIMELINE</span>
-        <div className="flex-1" />
-        <FreshnessBadge lastUpdate={freshness['osint']} />
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
+      <PanelHeader
+        title={language === 'en' ? 'OSINT Timeline' : 'جدول OSINT'}
+        icon={<Activity className="w-3.5 h-3.5" />}
+        live
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        feedKey="osint"
+      />
       <div className="px-2 py-1 border-b border-border flex gap-1 shrink-0 flex-wrap" style={{background:'hsl(var(--muted))'}}>
         {filterBtns.map(({ key, label }) => (
           <button
@@ -1611,6 +1612,10 @@ function EventTimeline({ events, language }: { events: ConflictEvent[]; language
   );
 }
 
+function escHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function generateExportReport(
   events: ConflictEvent[],
   flights: FlightData[],
@@ -1664,33 +1669,33 @@ tr:hover{background:#ffffff05}
 <button class="print-btn" onclick="window.print()">PRINT / PDF</button>
 <h1>WARROOM INTELLIGENCE REPORT</h1>
 <div class="meta">Generated: ${new Date(now).toLocaleString()} UTC | Classification: OPEN SOURCE</div>
-<div style="margin-bottom:24px"><span class="threat" style="color:${tc};border-color:${tc}44;background:${tc}15">THREAT LEVEL: ${threatLevel.level}</span></div>
+<div style="margin-bottom:24px"><span class="threat" style="color:${tc};border-color:${tc}44;background:${tc}15">THREAT LEVEL: ${escHtml(threatLevel.level)}</span></div>
 
 <h2>Executive Summary</h2>
 <p style="font-size:12px;line-height:1.8;color:#ccc;margin:8px 0">${alerts.length} active red alerts across ${Object.keys(byCountry).length} countries. ${sirens.length} sirens active. ${events.length} conflict events tracked. ${milFlights.length} military/surveillance flights airborne. ${ships.length} vessels monitored in strait.</p>
 
 <h2>Red Alert Status (${alerts.length} Active)</h2>
-${alerts.length > 0 ? `<div class="country-row">${Object.entries(byCountry).map(([c, n]) => `<div class="country-badge">${c}: <span>${n}</span></div>`).join('')}</div>` : '<p style="font-size:12px;color:#22c55e">No active alerts</p>'}
+${alerts.length > 0 ? `<div class="country-row">${Object.entries(byCountry).map(([c, n]) => `<div class="country-badge">${escHtml(c)}: <span>${n}</span></div>`).join('')}</div>` : '<p style="font-size:12px;color:#22c55e">No active alerts</p>'}
 
 <h2>Top Events</h2>
 <table><thead><tr><th>Severity</th><th>Event</th><th>Description</th><th>Type</th></tr></thead><tbody>
-${topEvents.map(e => `<tr><td><span class="sev" style="color:${sevColors[e.severity] || '#6b7280'}">${e.severity.toUpperCase()}</span></td><td style="color:#fff">${e.title}</td><td style="color:#aaa">${e.description.slice(0, 120)}</td><td style="color:#888">${e.type}</td></tr>`).join('')}
+${topEvents.map(e => `<tr><td><span class="sev" style="color:${sevColors[e.severity] || '#6b7280'}">${escHtml(e.severity.toUpperCase())}</span></td><td style="color:#fff">${escHtml(e.title)}</td><td style="color:#aaa">${escHtml(e.description.slice(0, 120))}</td><td style="color:#888">${escHtml(e.type)}</td></tr>`).join('')}
 </tbody></table>
 
 <h2>Military Activity (${milFlights.length} Flights)</h2>
 <table><thead><tr><th>Callsign</th><th>Type</th><th>Altitude</th><th>Heading</th></tr></thead><tbody>
-${milFlights.map(f => `<tr><td style="color:#fff">${f.callsign}</td><td>${f.type.toUpperCase()}</td><td>${f.altitude.toLocaleString()} ft</td><td>${Math.round(f.heading)}</td></tr>`).join('')}
+${milFlights.map(f => `<tr><td style="color:#fff">${escHtml(f.callsign)}</td><td>${escHtml(f.type.toUpperCase())}</td><td>${f.altitude.toLocaleString()} ft</td><td>${Math.round(f.heading)}</td></tr>`).join('')}
 </tbody></table>
 
 
 <h2>Maritime Situation (${ships.length} Vessels)</h2>
 <table><thead><tr><th>Vessel</th><th>Type</th><th>Flag</th><th>Speed</th><th>Heading</th></tr></thead><tbody>
-${ships.map(s => `<tr><td style="color:#fff">${s.name}</td><td>${s.type.toUpperCase()}</td><td>${s.flag}</td><td>${s.speed} kn</td><td>${headingToCompass(s.heading)}</td></tr>`).join('')}
+${ships.map(s => `<tr><td style="color:#fff">${escHtml(s.name)}</td><td>${escHtml(s.type.toUpperCase())}</td><td>${escHtml(s.flag)}</td><td>${s.speed} kn</td><td>${headingToCompass(s.heading)}</td></tr>`).join('')}
 </tbody></table>
 
 <h2>Market Impact</h2>
 <table><thead><tr><th>Symbol</th><th>Price</th><th>Change</th></tr></thead><tbody>
-${movers.map(c => `<tr><td style="color:#fff">${c.symbol}</td><td>${c.currency === 'USD' ? '$' : ''}${c.price.toFixed(c.price < 10 ? 4 : 2)}</td><td class="${c.changePercent >= 0 ? 'pos' : 'neg'}">${c.changePercent >= 0 ? '+' : ''}${c.changePercent.toFixed(2)}%</td></tr>`).join('')}
+${movers.map(c => `<tr><td style="color:#fff">${escHtml(c.symbol)}</td><td>${c.currency === 'USD' ? '$' : ''}${c.price.toFixed(c.price < 10 ? 4 : 2)}</td><td class="${c.changePercent >= 0 ? 'pos' : 'neg'}">${c.changePercent >= 0 ? '+' : ''}${c.changePercent.toFixed(2)}%</td></tr>`).join('')}
 </tbody></table>
 
 <div class="footer">Made by M.M — WARROOM v2.0 | Open Source Intelligence Terminal | ${now}</div>
@@ -2516,7 +2521,7 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
               <div className="flex items-center gap-1.5 mb-1">
                 <span
                   className="text-foreground/25 shrink-0 inline-block"
-                  style={{ transform: `rotate(${f.heading}deg)`, fontSize: '9px', lineHeight: 1 }}
+                  style={{ transform: `rotate(${f.heading}deg)`, fontSize: '11px', lineHeight: 1 }}
                 >▲</span>
                 <span className="text-xs font-bold font-mono text-foreground/90 truncate flex-1">{f.callsign}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
@@ -2753,7 +2758,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
               <div className="flex items-center gap-1.5 mb-1">
                 <span
                   className="text-foreground/30 shrink-0 inline-block"
-                  style={{ transform: `rotate(${s.heading}deg)`, fontSize: '10px', lineHeight: 1 }}
+                  style={{ transform: `rotate(${s.heading}deg)`, fontSize: '11px', lineHeight: 1 }}
                 >▲</span>
                 <span className="text-xs font-bold font-mono text-foreground truncate flex-1">{s.name}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded border font-bold font-mono ${style.color} ${style.bg}`}>
@@ -2872,7 +2877,7 @@ function RedAlertCountdown({ alert, mobile }: { alert: RedAlert; mobile?: boolea
         <div style={{ fontSize: numSize, fontWeight: 900, lineHeight: 1, fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
           {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
         </div>
-        <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 800, opacity: isCritical ? 0.95 : 0.55 }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 800, opacity: isCritical ? 0.95 : 0.55 }}>
           {isImmediate ? 'IMM' : remaining > 0 ? 'SEC' : 'EXP'}
         </div>
         {!isImmediate && tier !== 'expired' && (
@@ -2900,7 +2905,7 @@ function RedAlertCountdown({ alert, mobile }: { alert: RedAlert; mobile?: boolea
       <div style={{ fontSize: numSize, fontWeight: 900, lineHeight: 1, fontFamily: 'var(--font-mono)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
         {isImmediate ? 'NOW' : remaining > 0 ? `${remaining}` : '--'}
       </div>
-      <div style={{ fontSize: 9, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 800, opacity: 0.75 }}>
+      <div style={{ fontSize: 11, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 800, opacity: 0.75 }}>
         {isImmediate ? 'IMM' : remaining > 0 ? 'SEC' : 'EXP'}
       </div>
     </div>
@@ -3048,6 +3053,7 @@ const THREAT_ICONS: Record<string, string> = {
 };
 
 const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], language, onClose, onMaximize, isMaximized, onShowHistory }: { alerts: RedAlert[]; sirens?: SirenAlert[]; language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; onShowHistory?: () => void }) {
+  const freshness = useContext(FeedFreshnessContext);
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -3172,6 +3178,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                 <History className={`${isMobile ? 'w-3.5 h-3.5' : 'w-3 h-3'}`} />
               </button>
             )}
+            <FreshnessBadge lastUpdate={freshness['alerts']} />
             {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
             {onClose && <PanelMinimizeButton onMinimize={onClose} />}
           </div>
@@ -3201,7 +3208,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               return (
                 <button key={key} onClick={() => setThreatFilter(key)}
                   className="shrink-0 font-bold ra-font-mono transition-all active:scale-95"
-                  style={{ fontSize: 10, padding: '4px 10px', letterSpacing: '0.1em',
+                  style={{ fontSize: 11, padding: '4px 10px', letterSpacing: '0.1em',
                     background: isActive ? 'rgba(220,38,38,0.25)' : 'transparent',
                     borderBottom: isActive ? '2px solid #ef4444' : '2px solid transparent',
                     color: isActive ? '#fca5a5' : 'rgba(255,255,255,0.25)', }}
@@ -3241,7 +3248,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
             {([['all','ALL'],['rockets','RKT'],['missiles','MSL'],['uav_intrusion','UAV'],['hostile_aircraft_intrusion','ACFT']] as [string,string][]).map(([key, label]) => (
               <button key={key} onClick={() => setThreatFilter(key)}
                 className="flex-1 ra-font-mono font-bold transition-colors"
-                style={{ fontSize: 10, padding: '6px 0', letterSpacing: '0.12em',
+                style={{ fontSize: 11, padding: '6px 0', letterSpacing: '0.12em',
                   borderBottom: threatFilter === key ? '2px solid #ef4444' : '2px solid transparent',
                   color: threatFilter === key ? '#fca5a5' : 'rgba(255,255,255,0.22)',
                   background: threatFilter === key ? 'rgba(220,38,38,0.08)' : 'transparent', }}
@@ -3401,7 +3408,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
                         </span>
                         <span className="text-[12px] shrink-0 opacity-35">{FLAG_MAP[alert.country]}</span>
                       </div>
-                      <div className="flex items-center gap-1" style={{ fontSize: 10, color: 'rgba(255,255,255,0.20)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+                      <div className="flex items-center gap-1" style={{ fontSize: 11, color: 'rgba(255,255,255,0.20)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
                         <span>{language === 'ar' ? alert.regionAr : alert.region}</span>
                       </div>
                     </div>
@@ -4081,7 +4088,7 @@ const TelegramPanel = memo(function TelegramPanel({
                         background: `hsl(199 89% ${Math.max(15, 30 - (topKeywords.indexOf([word, count]) * 1))}% / 0.25)`,
                         border: '1px solid hsl(199 89% 50% / 0.2)',
                         color: `hsl(199 89% ${Math.max(55, 75 - topKeywords.indexOf([word, count]))}%)`,
-                        fontSize: `${Math.max(7, 9 - Math.floor(topKeywords.indexOf([word, count]) / 5))}px`,
+                        fontSize: `${Math.max(11, 13 - Math.floor(topKeywords.indexOf([word, count]) / 5))}px`,
                       }}
                     >
                       {word} <span className="opacity-50">{count}</span>
@@ -4233,14 +4240,14 @@ function MapLegend({ activeView, language }: { activeView: string; language: 'en
         fontFamily: "var(--font-mono)",
       }}
     >
-      <div style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 7 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: 7 }}>
         {activeView === 'conflict' ? 'EVENT TYPES' : 'AIRCRAFT'}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         {items.map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}80`, flexShrink: 0 }} />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{label}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{label}</span>
           </div>
         ))}
       </div>
@@ -4449,35 +4456,29 @@ function AlertMapPanel({
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="alertmap-panel">
-      {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute top-0 left-0 right-0 h-[1px]" style={{background:'linear-gradient(90deg,transparent 5%,rgba(99,102,241,0.5) 30%,rgba(99,102,241,0.7) 50%,rgba(99,102,241,0.5) 70%,transparent 95%)'}} />
-        <div className={`w-2 h-2 rounded-full shrink-0 ${activeAlerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-emerald-500/70'}`} />
-        <MapPin className="w-3 h-3 text-foreground/40 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/55" style={{fontFamily:'var(--font-display)'}}>
-          {language === 'en' ? 'Alert Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}
-        </span>
-        {activeAlerts.length > 0 && (
-          <span className="text-[9px] px-1.5 py-0.5 font-mono font-black bg-red-500/20 text-red-300 rounded border border-red-500/30 animate-pulse">
-            {activeAlerts.length} ACTIVE
-          </span>
-        )}
-        <div className="flex-1" />
-        {/* Compact threat pills */}
-        <div className="flex items-center gap-1">
-          {Object.entries(ALERT_THREAT_META).map(([key, meta]) => {
-            const count = byThreat[key] || 0;
-            if (count === 0) return null;
-            return (
-              <span key={key} className={`text-[9px] font-black px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor} font-mono`}>
-                {meta.icon}{count}
-              </span>
-            );
-          })}
-        </div>
-        {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
+      <PanelHeader
+        title={language === 'en' ? 'Alert Map' : '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A'}
+        icon={<MapPin className="w-3.5 h-3.5" />}
+        live
+        count={activeAlerts.length > 0 ? activeAlerts.length : undefined}
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        feedKey="alertmap"
+        extra={
+          <div className="flex items-center gap-1">
+            {Object.entries(ALERT_THREAT_META).map(([key, meta]) => {
+              const count = byThreat[key] || 0;
+              if (count === 0) return null;
+              return (
+                <span key={key} className={`text-[9px] font-black px-1 py-0.5 rounded ${meta.bgColor} ${meta.textColor} border ${meta.borderColor} font-mono`}>
+                  {meta.icon}{count}
+                </span>
+              );
+            })}
+          </div>
+        }
+      />
 
       {/* Map area — takes all remaining space */}
       <div className="flex-1 relative min-h-0">
@@ -4575,8 +4576,8 @@ const MapSection = memo(function MapSection({
               <div style={{ width: 4, height: 4, borderRadius: 1, background: activeMode.color + '44', transition: 'background-color 0.2s ease' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,211,238,0.82)', lineHeight: 1.25 }}>THEATRE OF OPERATIONS</span>
-              <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.26em', color: 'rgba(255,255,255,0.16)', lineHeight: 1 }}>MIDDLE EAST · MENA · GULF</span>
+              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,211,238,0.82)', lineHeight: 1.25 }}>THEATRE OF OPERATIONS</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.26em', color: 'rgba(255,255,255,0.16)', lineHeight: 1 }}>MIDDLE EAST · MENA · GULF</span>
             </div>
           </div>
 
@@ -4590,7 +4591,7 @@ const MapSection = memo(function MapSection({
                 <button key={m.key} onClick={() => setActiveView(m.key)} data-testid={`button-map-${m.key}`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '3px 9px', fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+                    padding: '3px 9px', fontSize: 11, fontWeight: 800, letterSpacing: '0.12em',
                     borderRadius: 4, border: 'none', cursor: 'pointer',
                     background: active ? `${m.color}1e` : 'transparent',
                     color: active ? m.color : 'rgba(255,255,255,0.22)',
@@ -4610,7 +4611,7 @@ const MapSection = memo(function MapSection({
             {statRow.map(({ label, value, color, pulse }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: `${color}0e`, border: `1px solid ${color}22`, borderRadius: 4 }}>
                 {pulse && <div style={{ width: 4, height: 4, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}`, animation: 'eas-flash 1.1s ease-in-out infinite', flexShrink: 0, transform: 'translateZ(0)' }} />}
-                <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.20)', letterSpacing: '0.1em' }}>{label}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.20)', letterSpacing: '0.1em' }}>{label}</span>
                 <span style={{ fontSize: 12, fontWeight: 900, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
               </div>
             ))}
@@ -4619,7 +4620,7 @@ const MapSection = memo(function MapSection({
           {hasActiveThreats && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'rgba(239,68,68,0.09)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 4, animation: 'eas-pulse-border 1.2s ease-in-out infinite', flexShrink: 0, transform: 'translateZ(0)' }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 7px rgba(239,68,68,0.8)', animation: 'eas-flash 0.8s ease-in-out infinite', transform: 'translateZ(0)' }} />
-              <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.18em', color: '#ef4444' }}>ACTIVE THREAT</span>
+              <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.18em', color: '#ef4444' }}>ACTIVE THREAT</span>
             </div>
           )}
 
@@ -4633,7 +4634,7 @@ const MapSection = memo(function MapSection({
               return (
                 <div key={provider} style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   {provider !== 'CARTO' && <div style={{ width: 1, height: 10, background: 'rgba(255,255,255,0.06)', margin: '0 1px' }} />}
-                  <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.12em', color: isProviderActive ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.15)', padding: '0 3px', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', color: isProviderActive ? 'rgba(34,211,238,0.5)' : 'rgba(255,255,255,0.15)', padding: '0 3px', fontFamily: 'monospace' }}>
                     {provider}
                   </span>
                   {providerStyles.map(s => (
@@ -4644,7 +4645,7 @@ const MapSection = memo(function MapSection({
                       title={`${s.provider} ${s.label}`}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 3,
-                        padding: '2px 6px', fontSize: 8, fontWeight: 700,
+                        padding: '2px 6px', fontSize: 11, fontWeight: 700,
                         letterSpacing: '0.06em', borderRadius: 3, border: 'none',
                         cursor: 'pointer',
                         background: mapStyleId === s.id ? 'rgba(34,211,238,0.12)' : 'transparent',
@@ -4668,13 +4669,13 @@ const MapSection = memo(function MapSection({
           {/* NASA FIRMS badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 7px', background: 'rgba(255,107,53,0.07)', border: '1px solid rgba(255,107,53,0.20)', borderRadius: 4, flexShrink: 0 }}>
             <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#ff6b35', boxShadow: '0 0 5px rgba(255,107,53,0.65)' }} />
-            <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,107,53,0.65)' }}>FIRMS</span>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', color: 'rgba(255,107,53,0.65)' }}>FIRMS</span>
           </div>
 
           {/* LIVE */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.20)', borderRadius: 4, flexShrink: 0 }}>
             <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.65)', animation: 'eas-flash 1.8s ease-in-out infinite', transform: 'translateZ(0)' }} />
-            <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,197,94,0.65)' }}>LIVE</span>
+            <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(34,197,94,0.65)' }}>LIVE</span>
           </div>
 
           {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
@@ -4690,8 +4691,8 @@ const MapSection = memo(function MapSection({
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2,5,12,0.96)', flexDirection: 'column', gap: 14 }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', border: '2px solid rgba(34,211,238,0.14)', borderTop: '2px solid rgba(34,211,238,0.85)', animation: 'spin 0.9s linear infinite' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 10, color: 'rgba(34,211,238,0.45)', letterSpacing: '0.22em', fontFamily: 'monospace' }}>INITIALISING MAP</span>
-                  <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.14)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>THEATRE OF OPERATIONS</span>
+                  <span style={{ fontSize: 11, color: 'rgba(34,211,238,0.45)', letterSpacing: '0.22em', fontFamily: 'monospace' }}>INITIALISING MAP</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.14)', letterSpacing: '0.2em', fontFamily: 'monospace' }}>THEATRE OF OPERATIONS</span>
                 </div>
               </div>
             }>
@@ -5235,30 +5236,33 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-analytics">
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
-        <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
-        <div className="flex-1" />
-        <FreshnessBadge lastUpdate={freshness['analytics']} />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={exportPdf}
-              disabled={exportingPdf || !analytics}
-              className="w-6 h-6 rounded flex items-center justify-center text-foreground/30 hover:text-blue-400 hover:bg-blue-500/10 transition-colors disabled:opacity-30"
-              data-testid="button-export-pdf"
-            >
-              {exportingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono">
-            Export Intelligence Report (PDF)
-          </TooltipContent>
-        </Tooltip>
-        {onMaximize && <button onClick={onMaximize} className="w-5 h-5 rounded flex items-center justify-center text-foreground/30 hover:text-foreground/60 hover:bg-white/10 transition-colors" data-testid="button-maximize-analytics">{isMaximized ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}</button>}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
+      <PanelHeader
+        title={t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}
+        icon={<BarChart3 className="w-3.5 h-3.5" />}
+        live
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        feedKey="analytics"
+        extra={
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={exportPdf}
+                disabled={exportingPdf || !analytics}
+                className="w-6 h-6 rounded flex items-center justify-center text-foreground/30 hover:text-blue-400 hover:bg-blue-500/10 transition-colors disabled:opacity-30"
+                aria-label="Export Intelligence Report"
+                data-testid="button-export-pdf"
+              >
+                {exportingPdf ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="bg-black/90 border-white/10 text-[10px] font-mono">
+              Export Intelligence Report (PDF)
+            </TooltipContent>
+          </Tooltip>
+        }
+      />
 
       <div className="flex border-b border-border shrink-0" style={{ background: 'hsl(var(--muted))' }}>
         {(['overview', 'regions', 'sources', 'patterns', 'epicfury'] as const).map(tab => (
@@ -6240,16 +6244,18 @@ function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }:
 
   return (
     <div className="h-full flex flex-col min-h-0" data-testid="panel-rocketstats">
-      {/* Header */}
-      <div className="panel-drag-handle h-9 px-3 flex items-center gap-2 shrink-0 relative cursor-grab active:cursor-grabbing">
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-primary/25" />
-        <Rocket className="w-3.5 h-3.5 text-orange-400" />
-        <span className="text-[10px] font-bold tracking-wider text-foreground/90 uppercase font-mono flex-1">{t('Launch Statistics', 'إحصائيات الإطلاق')}</span>
-        <span className="text-[7px] text-yellow-500/70 font-mono px-1 py-0.5 rounded" style={{background:'hsl(45 80% 30% / 0.15)', border:'1px solid hsl(45 60% 40% / 0.2)'}} data-testid="badge-estimated">{t('EST.', 'تقدير')}</span>
-        {stats && <span className="text-[8px] text-primary/60 font-mono">{new Date(stats.generatedAt).toLocaleTimeString()}</span>}
-        <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={() => onMaximize?.()} />
-        <PanelMinimizeButton onMinimize={() => onClose?.()} />
-      </div>
+      <PanelHeader
+        title={t('Launch Statistics', 'إحصائيات الإطلاق')}
+        icon={<Rocket className="w-3.5 h-3.5" />}
+        live
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        feedKey="rocketstats"
+        extra={
+          <span className="text-[9px] text-yellow-500/70 font-mono px-1 py-0.5 rounded" style={{background:'hsl(45 80% 30% / 0.15)', border:'1px solid hsl(45 60% 40% / 0.2)'}} data-testid="badge-estimated">{t('EST.', 'تقدير')}</span>
+        }
+      />
 
       {/* Tab bar */}
       <div className="flex shrink-0 border-b" style={{background:'hsl(var(--muted))', borderColor:'hsl(var(--border))'}}>
@@ -6890,23 +6896,29 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
 
   return (
     <div className="flex flex-col h-full bg-card" data-testid="panel-aiprediction">
-      <div className="panel-drag-handle h-10 px-3 flex items-center gap-2.5 shrink-0 cursor-grab active:cursor-grabbing select-none bg-card border-b border-border">
-        <Brain className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-        <span className="text-[12px] font-semibold text-foreground/80 leading-none">AI Prediction</span>
-        {prediction?.dataPoints?.isEscalating && (
-          <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-500/10 text-red-500 rounded-full border border-red-500/25 animate-pulse">
-            Escalating
-          </span>
-        )}
-        <div className="flex-1" />
-        {prediction && (
-          <span className="text-[11px] text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/25 font-medium">
-            {confPct}% conf
-          </span>
-        )}
-        {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
-        {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-      </div>
+      <PanelHeader
+        title={language === 'ar' ? 'توقعات الذكاء الاصطناعي' : 'AI Prediction'}
+        icon={<Brain className="w-3.5 h-3.5" />}
+        live
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        feedKey="aiprediction"
+        extra={
+          <>
+            {prediction?.dataPoints?.isEscalating && (
+              <span className="px-2 py-0.5 text-[10px] font-semibold bg-red-500/10 text-red-500 rounded-sm border border-red-500/25 animate-pulse">
+                Escalating
+              </span>
+            )}
+            {prediction && (
+              <span className="text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded-sm border border-primary/25 font-medium">
+                {confPct}% conf
+              </span>
+            )}
+          </>
+        }
+      />
 
       <div className="flex border-b border-border shrink-0 overflow-x-auto scrollbar-none bg-card">
         {(['forecast', 'vectors', 'pattern', 'intel', 'ask'] as const).map(tab => (
@@ -6915,7 +6927,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
             onClick={() => setActiveTab(tab)}
             className={`shrink-0 flex-1 py-2 text-[12px] font-medium transition-all ${
               activeTab === tab
-                ? tab === 'ask' ? 'text-emerald-500 border-b-2 border-emerald-500 bg-emerald-500/8' : 'text-violet-400 border-b-2 border-violet-500 bg-violet-500/8'
+                ? tab === 'ask' ? 'text-emerald-500 border-b-2 border-emerald-500 bg-emerald-500/8' : 'text-primary border-b-2 border-primary bg-primary/8'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
             data-testid={`button-aipred-tab-${tab}`}
@@ -6933,8 +6945,8 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
         {!prediction ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
             <div className="relative">
-              <Brain className="w-8 h-8 text-violet-400/30" />
-              <Loader2 className="w-4 h-4 text-violet-500 animate-spin absolute -bottom-1 -right-1" />
+              <Brain className="w-8 h-8 text-primary/30" />
+              <Loader2 className="w-4 h-4 text-primary animate-spin absolute -bottom-1 -right-1" />
             </div>
             <span className="text-sm text-muted-foreground">{language === 'ar' ? '\u062C\u0627\u0631\u064D \u062A\u0648\u0644\u064A\u062F \u0627\u0644\u062A\u0648\u0642\u0639\u0627\u062A\u2026' : 'Analyzing threat patterns...'}</span>
           </div>
@@ -7304,8 +7316,8 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                       <div key={i} className={`flex flex-col gap-0.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                         {msg.role === 'ai' && m && (
                           <div className="flex items-center gap-1 mb-0.5">
-                            <span style={{ fontSize: 10 }}>{m.icon}</span>
-                            <span className="text-[7px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
+                            <span style={{ fontSize: 11 }}>{m.icon}</span>
+                            <span className="text-[9px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
                           </div>
                         )}
                         <div
@@ -7332,8 +7344,8 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                     <div className="flex flex-col items-start gap-0.5">
                       {(() => { const m = AI_MODELS.find(x => x.id === chatModel); return m ? (
                         <div className="flex items-center gap-1 mb-0.5">
-                          <span style={{ fontSize: 10 }}>{m.icon}</span>
-                          <span className="text-[7px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
+                          <span style={{ fontSize: 11 }}>{m.icon}</span>
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
                         </div>
                       ) : null; })()}
                       <div
@@ -7699,19 +7711,20 @@ function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, pred
 
   return (
     <div className="flex flex-col h-full" data-testid="panel-attackpred">
-      <div className="panel-drag-handle flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0 cursor-grab active:cursor-grabbing select-none">
-        <div className="flex items-center gap-2">
-          <Crosshair className="w-3.5 h-3.5 text-red-400" />
-          <span className="text-[11px] font-semibold tracking-wide uppercase text-white/90">{language === 'ar' ? 'توقع الهجوم بالذكاء الاصطناعي' : 'AI Attack Predictor'}</span>
-          {prediction?.dataPoints?.isEscalating && (
-            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-red-500/25 text-red-300 rounded border border-red-500/30 animate-pulse" data-testid="badge-escalating">ESCALATING</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          {onMaximize && <PanelMaximizeButton isMaximized={isMaximized || false} onToggle={onMaximize} />}
-          {onClose && <PanelMinimizeButton onMinimize={onClose} />}
-        </div>
-      </div>
+      <PanelHeader
+        title={language === 'ar' ? 'توقع الهجوم بالذكاء الاصطناعي' : 'AI Attack Predictor'}
+        icon={<Crosshair className="w-3.5 h-3.5" />}
+        live
+        onClose={onClose}
+        onMaximize={onMaximize}
+        isMaximized={isMaximized}
+        feedKey="attackpred"
+        extra={
+          prediction?.dataPoints?.isEscalating ? (
+            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/25 text-red-300 rounded-sm border border-red-500/30 animate-pulse" data-testid="badge-escalating">ESCALATING</span>
+          ) : undefined
+        }
+      />
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2.5 min-h-0">
         {!prediction ? (
@@ -8066,12 +8079,12 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80" onClick={onClose} data-testid="popup-map-overlay">
-      <div className="relative w-[92vw] max-w-[800px] h-[70vh] max-h-[600px] rounded-lg border border-cyan-500/20 bg-[#080c14] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()} data-testid="popup-map-container">
-        <div className="absolute top-0 left-0 right-0 z-[1000] flex items-center justify-between px-3 py-2 bg-[#080c14]/95 border-b border-cyan-500/15">
+      <div className="relative w-[92vw] max-w-[800px] h-[70vh] max-h-[600px] rounded-lg border border-primary/20 bg-background shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()} data-testid="popup-map-container">
+        <div className="absolute top-0 left-0 right-0 z-[1000] flex items-center justify-between px-3 py-2 bg-background/95 border-b border-primary/15">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-cyan-400" />
-              <span className="text-[11px] font-mono font-bold text-cyan-300">{language === 'en' ? 'LIVE TRACKING' : 'تتبع مباشر'}</span>
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              <span className="text-[11px] font-mono font-bold text-primary">{language === 'en' ? 'LIVE TRACKING' : 'تتبع مباشر'}</span>
             </div>
             <span className={`text-sm font-mono font-bold ${typeColor}`}>{liveData.callsign}</span>
             <span className="text-[10px] font-mono text-foreground/30 uppercase">{liveData.type}</span>
@@ -8080,7 +8093,7 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 z-[1000] flex items-center gap-4 px-3 py-2 bg-[#080c14]/95 border-t border-cyan-500/15">
+        <div className="absolute bottom-0 left-0 right-0 z-[1000] flex items-center gap-4 px-3 py-2 bg-background/95 border-t border-primary/15">
           <div className="flex items-center gap-1">
             <span className="text-[9px] font-mono text-foreground/30">ALT</span>
             <span className="text-[11px] font-mono text-foreground/70 tabular-nums">{liveData.altitude.toLocaleString()}ft</span>
