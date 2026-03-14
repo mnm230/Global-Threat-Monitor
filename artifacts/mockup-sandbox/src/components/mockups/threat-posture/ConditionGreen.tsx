@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Shield, Radio, TrendingUp, TrendingDown, Globe, Newspaper, Activity } from 'lucide-react';
 
 const MOCK_TELEGRAM = [
@@ -25,17 +25,25 @@ const MOCK_MARKETS = [
   { symbol: 'BTC', price: '64,210', change: '+2.15%', up: true },
 ];
 
-export function ConditionGreen() {
-  const [time, setTime] = useState('14:32:01 UTC');
-
+// Isolated clock — no parent re-renders every second
+const GreenClock = memo(function GreenClock() {
+  const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    // In a real app this would tick
-    const interval = setInterval(() => {
+    const fmt = () => {
       const d = new Date();
-      setTime(`${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}:${d.getUTCSeconds().toString().padStart(2, '0')} UTC`);
-    }, 1000);
-    return () => clearInterval(interval);
+      return `${d.getUTCHours().toString().padStart(2,'0')}:${d.getUTCMinutes().toString().padStart(2,'0')}:${d.getUTCSeconds().toString().padStart(2,'0')} UTC`;
+    };
+    if (ref.current) ref.current.textContent = fmt();
+    const iv = setInterval(() => { if (ref.current) ref.current.textContent = fmt(); }, 1000);
+    return () => clearInterval(iv);
   }, []);
+  return <span ref={ref} />;
+});
+
+// Stable random bar heights — generated once, never re-randomized
+const BAR_HEIGHTS = Array.from({ length: 24 }, () => 5 + Math.random() * 20);
+
+export function ConditionGreen() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-5" style={{ backgroundColor: 'hsl(222 28% 4%)' }}>
@@ -62,7 +70,7 @@ export function ConditionGreen() {
             CONDITION GREEN
           </div>
           <div className="flex items-center gap-4 text-[11px]">
-            <span>{time}</span>
+            <GreenClock />
             <div className="bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded flex items-center gap-1 text-[9px]">
               <Shield size={10} /> ALL CLEAR
             </div>
@@ -86,7 +94,7 @@ export function ConditionGreen() {
                       <span>[{msg.channel}]</span>
                       <span>{msg.time}</span>
                     </div>
-                    <div className="text-white/60 truncate">{msg.text}</div>
+                    <div className="text-white/60 truncate" title={msg.text}>{msg.text}</div>
                   </div>
                 ))}
               </div>
@@ -136,12 +144,9 @@ export function ConditionGreen() {
               </div>
               <div className="p-4 flex-1 flex items-end justify-between gap-1">
                 {/* Mock bar chart with low values */}
-                {[...Array(24)].map((_, i) => {
-                  const h = 5 + Math.random() * 20;
-                  return (
-                    <div key={i} className="w-full bg-blue-500/20 rounded-t" style={{ height: `${h}%` }}></div>
-                  );
-                })}
+                {BAR_HEIGHTS.map((h, i) => (
+                  <div key={i} className="w-full bg-blue-500/20 rounded-t" style={{ height: `${h}%` }} />
+                ))}
               </div>
               <div className="px-4 pb-2 text-[8px] text-white/30 flex justify-between">
                 <span>T-24H</span>
@@ -188,7 +193,7 @@ export function ConditionGreen() {
         <div className="flex items-center justify-between px-2 text-[9px] text-white/30 tracking-widest mt-auto border-t border-white/5 pt-2">
           <div>OREF HOME FRONT CMD</div>
           <div>PANELS: 11/11 [NOMINAL]</div>
-          <div>{time} SYS_OK</div>
+          <div><GreenClock /> SYS_OK</div>
         </div>
 
       </div>

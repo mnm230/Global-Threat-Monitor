@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { Shield, AlertTriangle, Crosshair, Radio, Activity, MapPin, Siren, AlertOctagon, TrendingUp, X } from 'lucide-react';
 
-export function ConditionRed() {
-  const [time, setTime] = useState(new Date());
-
+// Isolated clock — updates DOM directly, no full component re-render
+const RedClock = memo(function RedClock({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    const fmt = () => new Date().toISOString().substring(11, 19);
+    if (ref.current) ref.current.textContent = fmt();
+    const iv = setInterval(() => { if (ref.current) ref.current.textContent = fmt(); }, 1000);
+    return () => clearInterval(iv);
   }, []);
+  return <span ref={ref} className={className} style={style} />;
+});
 
-  const timeString = time.toISOString().substring(11, 19);
+export function ConditionRed() {
 
   return (
     <div className="cr-wrapper" style={{ fontFamily: '"JetBrains Mono", "SF Mono", "Fira Code", monospace' }}>
@@ -19,7 +23,7 @@ export function ConditionRed() {
           background-color: hsl(222, 28%, 4%);
           background-image: linear-gradient(rgba(127, 29, 29, 0.06), rgba(127, 29, 29, 0.06));
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           padding: 12px;
           color: #e2e8f0;
@@ -29,8 +33,9 @@ export function ConditionRed() {
         }
 
         .cr-dashboard {
-          width: 800px;
-          height: 500px;
+          width: 100%;
+          max-width: 800px;
+          min-height: 500px;
           background: #0b1120;
           border: 1px solid rgba(239, 68, 68, 0.25);
           border-radius: 3px;
@@ -383,6 +388,14 @@ export function ConditionRed() {
         .cr-dim {
           opacity: 0.5;
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .cr-warning-stripe { animation: none; }
+          .cr-rapid-pulse { animation: none; }
+          .cr-seek-shelter { animation: none; }
+          .cr-alert-row { animation: none; }
+          .cr-countdown { animation: none; }
+        }
       `}</style>
 
       <div className="cr-dashboard">
@@ -396,7 +409,7 @@ export function ConditionRed() {
           </div>
           <div className="cr-status-left">
             <span className="cr-seek-shelter">SEEK SHELTER</span>
-            <span style={{ color: '#f87171' }}>{timeString} UTC</span>
+            <RedClock style={{ color: '#f87171' }} /> <span style={{ color: '#f87171' }}> UTC</span>
           </div>
         </div>
 
@@ -426,7 +439,7 @@ export function ConditionRed() {
                   { city: 'HAIFA', region: 'CARMEL', threat: 'UAV', countdown: '45', critical: false, flag: '🇮🇱' },
                   { city: 'SAFED', region: 'UPPER GALILEE', threat: 'ROCKET', countdown: '90', critical: false, flag: '🇮🇱' },
                 ].map((alert, i) => (
-                  <div key={i} className={`cr-alert-row ${alert.critical ? 'critical' : ''}`} style={{ animationDelay: \`\${i * 0.05}s\` }}>
+                  <div key={i} className={`cr-alert-row ${alert.critical ? 'critical' : ''}`} style={{ animationDelay: `${i * 0.05}s` }}>
                     <div className={`cr-countdown ${alert.critical ? 'critical' : ''} ${alert.countdown === 'NOW' ? 'now' : ''}`}>
                       {alert.countdown}
                     </div>
