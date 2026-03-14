@@ -1757,32 +1757,6 @@ function formatPrice(c: CommodityData): string {
   return `${prefix}${c.price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
-const TickerBar = memo(function TickerBar({ commodities }: { commodities: CommodityData[] }) {
-  if (!commodities.length) return <div className="h-7 border-b border-border bg-muted/60" />;
-  const items = useMemo(() => [...commodities, ...commodities, ...commodities], [commodities]);
-
-  return (
-    <div className="h-8 border-b border-border overflow-hidden relative shrink-0 bg-muted/30" data-testid="ticker-bar">
-      <div className="absolute inset-y-0 left-0 w-16 z-10 flex items-center gap-1 pl-3 bg-gradient-to-r from-muted/80 to-transparent">
-        <span className="text-[11px] font-semibold text-muted-foreground">MKT</span>
-      </div>
-      <div className="absolute inset-y-0 right-0 w-12 z-10 bg-gradient-to-l from-muted/80 to-transparent" />
-      <div className="absolute flex items-center h-full gap-6 animate-ticker-scroll whitespace-nowrap pl-16">
-        {items.map((c, i) => (
-          <span key={`${c.symbol}-${i}`} className="inline-flex items-center gap-1.5 font-mono text-[11px]">
-            <span className="text-muted-foreground font-semibold">{c.symbol}</span>
-            <span className="text-foreground tabular-nums">{formatPrice(c)}</span>
-            <span className={`inline-flex items-center gap-0.5 tabular-nums font-semibold ${c.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-              {c.change >= 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-              {c.change >= 0 ? '+' : ''}{c.changePercent.toFixed(2)}%
-            </span>
-            <span className="text-border mx-0.5">{'\u2502'}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-});
 
 const THREAT_LABELS: Record<string, { en: string; ar: string; icon: string }> = {
   rocket: { en: 'ROCKET FIRE', ar: '\u0625\u0637\u0644\u0627\u0642 \u0635\u0648\u0627\u0631\u064A\u062E', icon: '\u{1F680}' },
@@ -8852,23 +8826,12 @@ export default function Dashboard() {
         </>
       )}
 
-      {!isMobile && <TickerBar commodities={commodities} />}
-
-      {isMobile && commodities.length > 0 && (
+      {isMobile && redAlerts.length > 0 && (
         <div className="warroom-mobile-mini-ticker shrink-0" data-testid="mobile-mini-ticker">
-          {commodities.filter(c => c.category === 'commodity').slice(0, 5).map(c => (
-            <div key={c.symbol} className="flex items-center gap-1 whitespace-nowrap">
-              <span className="text-[8px] font-mono font-bold text-foreground/30">{c.symbol}</span>
-              <span className="text-[8px] font-mono text-foreground/50">${c.price.toFixed(c.price > 100 ? 0 : 2)}</span>
-              <span className={`text-[7px] font-mono font-bold ${c.changePercent >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                {c.changePercent >= 0 ? '+' : ''}{c.changePercent.toFixed(1)}%
-              </span>
-            </div>
-          ))}
           {redAlerts.length > 0 && (
             <div className="flex items-center gap-1 whitespace-nowrap ml-auto">
               <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[8px] font-mono font-bold text-red-400/70">{redAlerts.length} ALERTS</span>
+              <span className="text-[9px] font-mono font-bold text-red-400/70">{redAlerts.length} ALERTS</span>
             </div>
           )}
         </div>
