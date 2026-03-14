@@ -949,6 +949,7 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
   isMaximized?: boolean;
 }) {
   type FilterKey = 'all' | 'alert' | 'telegram' | 'event';
+  const freshness = useContext(FeedFreshnessContext);
   const [filter, setFilter] = useState<FilterKey>('all');
   const listRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
@@ -989,6 +990,7 @@ function OsintTimelinePanel({ alerts, messages, events, language, onClose, onMax
         <Activity className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground/90" style={{fontFamily:'var(--font-display)'}}>OSINT TIMELINE</span>
         <div className="flex-1" />
+        <FreshnessBadge lastUpdate={freshness['osint']} />
         {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
         {onClose && <PanelMinimizeButton onMinimize={onClose} />}
       </div>
@@ -1561,15 +1563,13 @@ function LayoutPresetsDropdown({ language, presets, onLoad, onSave, onDelete, on
 function EventTimeline({ events, language }: { events: ConflictEvent[]; language: 'en' | 'ar' }) {
   const [hoveredEvent, setHoveredEvent] = useState<ConflictEvent | null>(null);
 
-  const now = Date.now();
-  const oneHourAgo = now - 3600000;
-
   const timelineEvents = useMemo(() => {
+    const oneHourAgo = Date.now() - 3600000;
     return events.filter(e => new Date(e.timestamp).getTime() > oneHourAgo).map(e => ({
       ...e,
       position: ((new Date(e.timestamp).getTime() - oneHourAgo) / 3600000) * 100,
     }));
-  }, [events, oneHourAgo]);
+  }, [events]);
 
   const sevColor: Record<string, string> = {
     critical: 'bg-red-500',
@@ -4839,6 +4839,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
   }, []);
 
   const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+  const freshness = useContext(FeedFreshnessContext);
 
   const patterns = analytics?.patterns ?? [];
   const falseAlarms = analytics?.falseAlarms ?? [];
@@ -5239,6 +5240,7 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         <BarChart3 className="w-3.5 h-3.5 text-blue-400/55 shrink-0" />
         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/55 font-mono">{t('Analytics', '\u062A\u062D\u0644\u064A\u0644\u0627\u062A')}</span>
         <div className="flex-1" />
+        <FreshnessBadge lastUpdate={freshness['analytics']} />
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -6773,6 +6775,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   const [chatLoading, setChatLoading] = useState(false);
   const [streamingText, setStreamingText] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatAbortRef = useRef<AbortController | null>(null);
 
   const AI_MODELS: { id: AIChatModel; label: string; color: string; icon: string; short: string }[] = [
     { id: 'claude', label: 'Claude Opus', color: '#a78bfa', icon: '🔮', short: 'Claude' },
@@ -6784,6 +6787,10 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   const sendQuestion = async (q?: string) => {
     const question = (q || chatInput).trim();
     if (!question || chatLoading) return;
+    // Cancel any in-progress stream
+    chatAbortRef.current?.abort();
+    chatAbortRef.current = new AbortController();
+    const signal = chatAbortRef.current.signal;
     setChatInput('');
     setChatHistory(h => [...h, { role: 'user', text: question, ts: Date.now() }]);
     setChatLoading(true);
@@ -6793,6 +6800,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
       const resp = await fetch('/api/ai-analyst', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({
           question,
           model: chatModel,
@@ -6813,8 +6821,9 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
+      let streamDone = false;
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
@@ -6822,10 +6831,10 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
         for (const line of lines) {
           if (!line.startsWith('data:')) continue;
           const raw = line.slice(5).trim();
-          if (raw === '[DONE]') break;
+          if (raw === '[DONE]') { streamDone = true; break; }
           try {
             const parsed = JSON.parse(raw);
-            if (parsed.error) { accumulated = `Error: ${parsed.error}`; break; }
+            if (parsed.error) { accumulated = `Error: ${parsed.error}`; streamDone = true; break; }
             if (parsed.text) { accumulated += parsed.text; setStreamingText(accumulated); }
           } catch {}
         }
@@ -6835,6 +6844,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
       setChatHistory(h => [...h, { role: 'ai', text: finalText, model: chatModel, ts: Date.now() }]);
       setStreamingText('');
     } catch (err: any) {
+      if (err?.name === 'AbortError') return;
       setChatHistory(h => [...h, { role: 'ai', text: `Error: ${err?.message || 'Failed to connect'}`, model: chatModel, ts: Date.now() }]);
       setStreamingText('');
     } finally {
@@ -7042,7 +7052,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                 {/* FROM WHERE */}
                 <div className="rounded-xl border border-border bg-card p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
                       <ArrowRight className="w-3.5 h-3.5 text-orange-500" />
                     </div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">From Where — Likely Origins</span>
@@ -8314,7 +8324,7 @@ export default function Dashboard() {
         updated.set(item.i, item as GridItemLayout);
       }
       const merged = Array.from(updated.values());
-      localStorage.setItem('warroom_grid_layout_v9', JSON.stringify(merged));
+      try { localStorage.setItem('warroom_grid_layout_v9', JSON.stringify(merged)); } catch {}
       return merged;
     });
   }, []);
@@ -8516,7 +8526,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (panelPersistTimeout.current) clearTimeout(panelPersistTimeout.current);
     panelPersistTimeout.current = setTimeout(() => {
-      localStorage.setItem('warroom_panel_state_v2', JSON.stringify({ visiblePanels, colWidths, rowSplit }));
+      try { localStorage.setItem('warroom_panel_state_v2', JSON.stringify({ visiblePanels, colWidths, rowSplit })); } catch {}
     }, 500);
   }, [visiblePanels, colWidths, rowSplit]);
 
@@ -8524,7 +8534,7 @@ export default function Dashboard() {
     const preset: LayoutPreset = { name, visiblePanels: { ...visiblePanels }, colWidths: { ...colWidths }, rowSplit, gridLayout: [...gridLayout] };
     const customPresets = savedPresets.filter(p => !BUILT_IN_PRESETS.find(b => b.name === p.name) && p.name !== name);
     customPresets.push(preset);
-    localStorage.setItem('warroom_layouts', JSON.stringify(customPresets));
+    try { localStorage.setItem('warroom_layouts', JSON.stringify(customPresets)); } catch {}
     setSavedPresets([...BUILT_IN_PRESETS, ...customPresets]);
   }, [visiblePanels, colWidths, rowSplit, gridLayout, savedPresets]);
 
@@ -8534,14 +8544,14 @@ export default function Dashboard() {
     setRowSplit(preset.rowSplit);
     if (preset.gridLayout && preset.gridLayout.length > 0) {
       setGridLayout(preset.gridLayout);
-      localStorage.setItem('warroom_grid_layout_v9', JSON.stringify(preset.gridLayout));
+      try { localStorage.setItem('warroom_grid_layout_v9', JSON.stringify(preset.gridLayout)); } catch {}
     }
     setMaximizedPanel(null);
   }, []);
 
   const deletePreset = useCallback((name: string) => {
     const customPresets = savedPresets.filter(p => !BUILT_IN_PRESETS.find(b => b.name === p.name) && p.name !== name);
-    localStorage.setItem('warroom_layouts', JSON.stringify(customPresets));
+    try { localStorage.setItem('warroom_layouts', JSON.stringify(customPresets)); } catch {}
     setSavedPresets([...BUILT_IN_PRESETS, ...customPresets]);
   }, [savedPresets]);
 
