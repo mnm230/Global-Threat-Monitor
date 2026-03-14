@@ -4037,24 +4037,7 @@ export async function registerRoutes(
       if (ageHours < 1) regionRecentCounts[region] = (regionRecentCounts[region] || 0) + 1;
     }
 
-    // ── Sparse-data baseline: seed historical ME conflict priors when live data is thin ──
-    // This prevents empty predictions during quiet periods; weights are low (0.05–0.15)
-    // so any real alerts will dominate immediately.
-    if (last6h.length < 5) {
-      const BASELINE: Array<[string, number, string]> = [
-        ['Northern Israel', 0.15, 'rockets'],
-        ['Gaza',            0.12, 'rockets'],
-        ['Lebanon',         0.10, 'missiles'],
-        ['West Bank',       0.07, 'rockets'],
-        ['Southern Israel', 0.06, 'rockets'],
-        ['Yemen',           0.05, 'uav'],
-      ];
-      for (const [region, w, type] of BASELINE) {
-        regionWeights[region] = (regionWeights[region] || 0) + w;
-        if (!regionTypeMap[region]) regionTypeMap[region] = {};
-        regionTypeMap[region][type] = (regionTypeMap[region][type] || 0) + 1;
-      }
-    }
+    // No synthetic baseline — if there's no real alert data, predictions will be empty
 
     // ── 3. Threat type distribution (decay-weighted over last 6h) ────────────
     const typeWeights: Record<string, number> = {};
@@ -4062,14 +4045,9 @@ export async function registerRoutes(
       const ageHours = (now - new Date(a.timestamp).getTime()) / 3600000;
       typeWeights[a.threatType] = (typeWeights[a.threatType] || 0) + Math.exp(-DECAY * ageHours);
     }
-    // Seed type baseline if no real data
-    if (Object.keys(typeWeights).length === 0) {
-      typeWeights['rockets'] = 0.12;
-      typeWeights['missiles'] = 0.08;
-      typeWeights['uav'] = 0.05;
-    }
+    // No synthetic type seeds — empty means no data
     const sortedTypes = Object.entries(typeWeights).sort(([, a], [, b]) => b - a);
-    const dominantType = sortedTypes[0]?.[0] || 'rockets';
+    const dominantType = sortedTypes[0]?.[0] || 'unknown';
 
     // ── 4. Velocity & escalation metrics ─────────────────────────────────────
     const velocity30m = last30m.length;
@@ -4094,11 +4072,11 @@ export async function registerRoutes(
     const lastAlertTs = sortedRecent.length > 0 ? new Date(sortedRecent[sortedRecent.length - 1].timestamp).getTime() : now - 3600000;
     const minutesSinceLast = (now - lastAlertTs) / 60000;
     const rawEstMin = Math.max(0, Math.round(estInterval - minutesSinceLast));
-    const timingLabel = rawEstMin <= 5 ? 'imminent' : rawEstMin <= 20 ? '~15min' : rawEstMin <= 45 ? '~30min' : rawEstMin <= 90 ? '~1h' : rawEstMin <= 150 ? '~2h' : 'unknown';
+    const timingLabel = intervals.length === 0 ? 'unknown' : rawEstMin <= 5 ? 'imminent' : rawEstMin <= 20 ? '~15min' : rawEstMin <= 45 ? '~30min' : rawEstMin <= 90 ? '~1h' : rawEstMin <= 150 ? '~2h' : 'unknown';
     const timingBasis = intervals.length >= 3
       ? `Median interval ${medianInterval.toFixed(0)} min from ${intervals.length} gaps; ${minutesSinceLast.toFixed(0)} min since last alert`
       : `Insufficient gap data (${intervals.length} samples); velocity-based estimate`;
-    const timingConfidence = Math.min(0.88, 0.25 + (Math.min(intervals.length, 12) / 12) * 0.63);
+    const timingConfidence = Math.min(0.82, (Math.min(intervals.length, 12) / 12) * 0.82);
 
     // ── 6. Telegram intel signal amplification ────────────────────────────────
     // Keywords that indicate imminent/active kinetic events
@@ -4178,7 +4156,7 @@ export async function registerRoutes(
       for (const [key, info] of Object.entries(COUNTRY_MAP)) {
         if (region.toLowerCase().includes(key.toLowerCase())) return info;
       }
-      return { code: 'IL', flag: '🇮🇱' };
+      return { code: '??', flag: '🏳️' };
     };
 
     // ── 10. Overall threat level ──────────────────────────────────────────────
@@ -4210,17 +4188,17 @@ export async function registerRoutes(
       (Math.min(classifiedMessageCache.length, 20)  / 20)  * 0.30 +
       (Math.min(intervals.length, 10)               / 10)  * 0.20,
     );
-    const overallConfidence = parseFloat(Math.min(0.92, 0.35 + dataQuality * 0.57).toFixed(2));
+    const overallConfidence = parseFloat(Math.min(0.85, dataQuality * 0.85).toFixed(2));
 
     // ── 12. Build per-region predictions ─────────────────────────────────────
     const SOURCE_LABELS: Record<string, string> = {
-      rockets:   'Hamas / PIJ rocket units',
-      missiles:  'Hezbollah missile corps',
-      uav:       'UAV warfare unit',
-      airstrike: 'IDF Air Force',
-      mortar:    'Gaza militant factions',
-      anti_tank: 'Hezbollah ATM units',
-      ground:    'Ground assault forces',
+      rockets:   'Rocket alert source',
+      missiles:  'Missile alert source',
+      uav:       'UAV/drone alert source',
+      airstrike: 'Airstrike alert source',
+      mortar:    'Mortar alert source',
+      anti_tank: 'Anti-tank alert source',
+      ground:    'Ground alert source',
     };
 
     const predictions = sortedRegions.slice(0, 5).map(([region, score], i) => {
@@ -4230,12 +4208,12 @@ export async function registerRoutes(
       const recentHits     = regionRecentCounts[region] || 0;
 
       // Base probability from combined score; boost if intel corroborates
-      const baseProbability = Math.min(0.93, 0.28 + score * 0.62);
-      const adjProbability  = parseFloat((hasIntelBoost ? Math.min(0.95, baseProbability * 1.10) : baseProbability).toFixed(2));
+      const baseProbability = Math.min(0.85, score * 0.80);
+      const adjProbability  = parseFloat((hasIntelBoost ? Math.min(0.88, baseProbability * 1.08) : baseProbability).toFixed(2));
       const severity        = adjProbability >= 0.75 ? 'critical' : adjProbability >= 0.55 ? 'high' : adjProbability >= 0.35 ? 'medium' : 'low';
 
-      const timeframe = i === 0 && rawEstMin <= 30
-        ? (rawEstMin <= 5 ? 'imminent' : '1h')
+      const timeframe = intervals.length < 2 ? 'unknown'
+        : i === 0 && rawEstMin <= 30 ? (rawEstMin <= 5 ? 'imminent' : '1h')
         : i <= 1 ? '3h' : '6h';
 
       const rationale = hasIntelBoost
@@ -4273,23 +4251,28 @@ export async function registerRoutes(
     const locationProbabilities = sortedRegions.slice(0, 8).map(([location, score]) => {
       const countryInfo  = resolveCountry(location);
       const locTypeDist  = regionTypeMap[location] || {};
-      const locDomType   = Object.entries(locTypeDist).sort(([, a], [, b]) => b - a)[0]?.[0] || 'rockets';
+      const locDomType   = Object.entries(locTypeDist).sort(([, a], [, b]) => b - a)[0]?.[0] || 'unknown';
       return {
         location,
         country:     countryInfo.code,
-        probability: parseFloat(Math.min(0.95, 0.22 + score * 0.68).toFixed(2)),
+        probability: parseFloat(Math.min(0.88, score * 0.82).toFixed(2)),
         threatType:  locDomType,
         countryFlag: countryInfo.flag,
       };
     });
 
+    const insufficientData = last6h.length < 3;
+
     const result = {
-      predictions,
-      overallThreatLevel,
-      escalationVector,
-      nextLikelyTarget: sortedRegions[0]?.[0] || 'Northern Israel',
-      confidence: overallConfidence,
-      patternSummary,
+      predictions: insufficientData ? [] : predictions,
+      overallThreatLevel: insufficientData ? 'LOW' : overallThreatLevel,
+      escalationVector: insufficientData ? 'Insufficient alert data for escalation analysis' : escalationVector,
+      nextLikelyTarget: sortedRegions[0]?.[0] || null,
+      confidence: insufficientData ? 0 : overallConfidence,
+      patternSummary: insufficientData
+        ? `Only ${last6h.length} alert(s) in last 6 hours — insufficient data for reliable predictions. Predictions will populate as more alerts are received.`
+        : patternSummary,
+      insufficientData,
       generatedAt: new Date().toISOString(),
       dataPoints: {
         totalAlerts: alerts.length,
@@ -4416,7 +4399,7 @@ export async function registerRoutes(
 
     const threatLevel  = ctx.threatLevel  || 'MODERATE';
     const confidence   = Math.round((ctx.confidence || 0.5) * 100);
-    const nextTarget   = ctx.nextTarget   || 'Northern Israel';
+    const nextTarget   = ctx.nextTarget   || 'Unknown';
     const escVector    = ctx.escalationVector || '';
     const velocity     = (ctx.velocityPerHour as number | undefined) ?? 0;
     const velocity30m  = (ctx.velocity30m    as number | undefined) ?? 0;

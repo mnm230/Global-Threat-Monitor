@@ -245,9 +245,10 @@ interface AttackPrediction {
   }>;
   overallThreatLevel: string;
   escalationVector: string;
-  nextLikelyTarget: string;
+  nextLikelyTarget: string | null;
   confidence: number;
   patternSummary: string;
+  insufficientData?: boolean;
   generatedAt: string;
   dataPoints: {
     totalAlerts: number;
@@ -6767,6 +6768,18 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
             {activeTab === 'forecast' && (
               <div className="p-3 space-y-3">
 
+                {prediction.insufficientData && (
+                  <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center">
+                    <AlertTriangle className="w-6 h-6 text-yellow-500/60 mx-auto mb-2" />
+                    <div className="text-sm font-medium text-yellow-400/80 mb-1">
+                      {language === 'ar' ? 'بيانات غير كافية' : 'Insufficient Data'}
+                    </div>
+                    <div className="text-xs text-muted-foreground leading-relaxed">
+                      {prediction.patternSummary}
+                    </div>
+                  </div>
+                )}
+
                 {/* Threat Level Summary Row */}
                 <div className={`rounded-xl border p-3 flex items-center gap-3 ${threatBg(threatLevel)}`}>
                   <div className="flex flex-col items-center justify-center w-14 shrink-0">
@@ -6851,7 +6864,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                     </div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Where — Most Likely Target</span>
                   </div>
-                  <div className="text-lg font-bold text-foreground mb-3">{prediction.nextLikelyTarget}</div>
+                  <div className="text-lg font-bold text-foreground mb-3">{prediction.nextLikelyTarget || (language === 'ar' ? 'بيانات غير كافية' : 'Insufficient data')}</div>
                   {prediction.locationProbabilities && prediction.locationProbabilities.length > 0 && (
                     <div className="space-y-1.5">
                       {prediction.locationProbabilities.slice(0, 5).map((lp, i) => {
@@ -6917,8 +6930,9 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
                   )}
                 </div>
 
-                <div className="text-[11px] text-muted-foreground/50 text-center">
-                  Updated {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                <div className="text-[10px] text-muted-foreground/40 text-center space-y-1">
+                  <div>{language === 'ar' ? 'تحليل إحصائي للأنماط — ليس استخبارات مؤكدة' : 'Statistical pattern analysis — not confirmed intelligence'}</div>
+                  <div>Updated {prediction.generatedAt ? new Date(prediction.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
                 </div>
               </div>
             )}
