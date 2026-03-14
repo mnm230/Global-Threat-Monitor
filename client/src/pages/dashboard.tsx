@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, Component, memo, type ErrorInfo, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense, Component, memo, createContext, useContext, type ErrorInfo, type ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import GridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 import type { LayoutItem as GridItemLayout, Layout as GridLayout2 } from 'react-grid-layout/legacy';
@@ -272,6 +272,8 @@ interface AttackPrediction {
   }>;
 }
 
+type FeedFreshness = Record<string, number>;
+
 interface SSEData {
   news: NewsItem[];
   commodities: CommodityData[];
@@ -286,20 +288,40 @@ interface SSEData {
   attackPrediction: AttackPrediction | null;
   rocketStats: RocketStats | null;
   connected: boolean;
+  feedFreshness: FeedFreshness;
 }
 
 function useSSE(): SSEData {
-  const [state, setState] = useState<Omit<SSEData, 'connected'>>({
+  const [state, setState] = useState<Omit<SSEData, 'connected' | 'feedFreshness'>>({
     news: [], commodities: [], events: [], flights: [], ships: [],
     sirens: [], redAlerts: [], telegramMessages: [],
     thermalHotspots: [], breakingNews: [],
     attackPrediction: null, rocketStats: null,
   });
   const [connected, setConnected] = useState(false);
+  const feedFreshnessRef = useRef<FeedFreshness>({});
+  const [feedFreshness, setFeedFreshness] = useState<FeedFreshness>({});
   const retryCount = useRef(0);
   const maxRetries = 5;
-  const pending = useRef<Partial<Omit<SSEData, 'connected'>>>({});
+  const pending = useRef<Partial<Omit<SSEData, 'connected' | 'feedFreshness'>>>({});
   const rafId = useRef<number | null>(null);
+
+  const markFresh = useCallback((feed: string) => {
+    feedFreshnessRef.current[feed] = Date.now();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const next = feedFreshnessRef.current;
+      setFeedFreshness(prev => {
+        const keys = Object.keys(next);
+        if (keys.length !== Object.keys(prev).length) return { ...next };
+        for (const k of keys) { if (prev[k] !== next[k]) return { ...next }; }
+        return prev;
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const scheduleFlush = useCallback(() => {
     if (rafId.current !== null) return;
@@ -325,7 +347,7 @@ function useSSE(): SSEData {
       };
 
       es.addEventListener('commodities', (e) => {
-        try { pending.current.commodities = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.commodities = JSON.parse(e.data); markFresh('markets'); scheduleFlush(); } catch {}
       });
       es.addEventListener('events', (e) => {
         try {
@@ -333,40 +355,42 @@ function useSSE(): SSEData {
           pending.current.events = d.events || [];
           pending.current.flights = d.flights || [];
           pending.current.ships = d.ships || [];
+          markFresh('events'); markFresh('livefeed'); markFresh('ships');
           scheduleFlush();
         } catch {}
       });
       es.addEventListener('news', (e) => {
-        try { pending.current.news = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.news = JSON.parse(e.data); markFresh('osint'); scheduleFlush(); } catch {}
       });
       es.addEventListener('sirens', (e) => {
-        try { pending.current.sirens = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.sirens = JSON.parse(e.data); markFresh('sirens'); scheduleFlush(); } catch {}
       });
       es.addEventListener('red-alerts', (e) => {
         try {
           const raw: RedAlert[] = JSON.parse(e.data);
           const seen = new Set<string>();
           pending.current.redAlerts = raw.filter(a => seen.has(a.id) ? false : (seen.add(a.id), true));
+          markFresh('alerts'); markFresh('alertmap');
           scheduleFlush();
         } catch {}
       });
       es.addEventListener('telegram', (e) => {
-        try { pending.current.telegramMessages = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.telegramMessages = JSON.parse(e.data); markFresh('telegram'); scheduleFlush(); } catch {}
       });
       es.addEventListener('thermal', (e) => {
-        try { pending.current.thermalHotspots = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.thermalHotspots = JSON.parse(e.data); markFresh('thermal'); scheduleFlush(); } catch {}
       });
       es.addEventListener('breaking-news', (e) => {
-        try { pending.current.breakingNews = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.breakingNews = JSON.parse(e.data); markFresh('breaking'); scheduleFlush(); } catch {}
       });
       es.addEventListener('analytics', (e) => {
-        try { queryClient.setQueryData(['/api/analytics'], (old: any) => ({ ...old, ...JSON.parse(e.data) })); } catch {}
+        try { queryClient.setQueryData(['/api/analytics'], (old: any) => ({ ...old, ...JSON.parse(e.data) })); markFresh('analytics'); } catch {}
       });
       es.addEventListener('attack-prediction', (e) => {
-        try { pending.current.attackPrediction = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.attackPrediction = JSON.parse(e.data); markFresh('attackpred'); markFresh('aiprediction'); scheduleFlush(); } catch {}
       });
       es.addEventListener('rocket-stats', (e) => {
-        try { pending.current.rocketStats = JSON.parse(e.data); scheduleFlush(); } catch {}
+        try { pending.current.rocketStats = JSON.parse(e.data); markFresh('rocketstats'); scheduleFlush(); } catch {}
       });
 
       es.onerror = () => {
@@ -389,7 +413,7 @@ function useSSE(): SSEData {
     };
   }, [scheduleFlush]);
 
-  return useMemo(() => ({ ...state, connected }), [state, connected]);
+  return useMemo(() => ({ ...state, connected, feedFreshness }), [state, connected, feedFreshness]);
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -1929,6 +1953,39 @@ function SirenBanner({ sirens, breakingNews = [], language, hidden }: { sirens: 
   );
 }
 
+const FeedFreshnessContext = createContext<FeedFreshness>({});
+
+function FreshnessBadge({ lastUpdate }: { lastUpdate?: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  if (!lastUpdate) return null;
+  const age = Math.floor((now - lastUpdate) / 1000);
+  if (age < 15) return (
+    <span className="flex items-center gap-1 text-[10px] font-bold ra-font-mono tabular-nums" style={{ color: 'rgba(16,185,129,0.6)' }} data-testid="freshness-live">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
+      LIVE
+    </span>
+  );
+  if (age < 60) return (
+    <span className="text-[10px] font-bold ra-font-mono tabular-nums" style={{ color: 'rgba(234,179,8,0.6)' }} data-testid="freshness-delayed">
+      {age}s
+    </span>
+  );
+  if (age < 300) return (
+    <span className="text-[10px] font-bold ra-font-mono tabular-nums" style={{ color: 'rgba(239,68,68,0.6)' }} data-testid="freshness-stale">
+      {Math.floor(age / 60)}m
+    </span>
+  );
+  return (
+    <span className="text-[10px] font-bold ra-font-mono tabular-nums px-1 rounded-sm" style={{ color: 'rgba(239,68,68,0.8)', background: 'rgba(239,68,68,0.1)' }} data-testid="freshness-offline">
+      STALE
+    </span>
+  );
+}
+
 const PanelHeader = memo(function PanelHeader({
   title,
   icon,
@@ -1938,6 +1995,7 @@ const PanelHeader = memo(function PanelHeader({
   extra,
   onMaximize,
   isMaximized,
+  feedKey,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -1947,7 +2005,10 @@ const PanelHeader = memo(function PanelHeader({
   extra?: React.ReactNode;
   onMaximize?: () => void;
   isMaximized?: boolean;
+  feedKey?: string;
 }) {
+  const freshness = useContext(FeedFreshnessContext);
+  const feedLastUpdate = feedKey ? freshness[feedKey] : undefined;
   return (
     <div className="panel-drag-handle h-[32px] px-2.5 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
       <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground/60 shrink-0">{icon}</span>
@@ -1959,12 +2020,14 @@ const PanelHeader = memo(function PanelHeader({
       )}
       {extra}
       <div className="flex-1" />
-      {live && (
+      {feedLastUpdate ? (
+        <FreshnessBadge lastUpdate={feedLastUpdate} />
+      ) : live ? (
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
           <span className="text-[10px] text-emerald-500/60 font-extrabold uppercase tracking-wider font-mono">live</span>
         </div>
-      )}
+      ) : null}
       {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
       {onClose && <PanelMinimizeButton onMinimize={onClose} />}
     </div>
@@ -2168,6 +2231,7 @@ const CommoditiesPanel = memo(function CommoditiesPanel({
         onClose={onClose}
         onMaximize={onMaximize}
         isMaximized={isMaximized}
+        feedKey="markets"
       />
       <div className="shrink-0 px-2.5 py-2 border-b border-border flex items-center gap-2 flex-wrap" data-testid="market-summary-bar">
         <div className="flex items-center gap-1.5 text-[10px] font-mono">
@@ -2238,6 +2302,7 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
         live
         count={sirens.length}
         onClose={onClose}
+        feedKey="sirens"
       />
       {sirens.length === 0 && (
         <div className="px-3 py-8 text-center">
@@ -2374,6 +2439,7 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
         onClose={onClose}
         onMaximize={onMaximize}
         isMaximized={isMaximized}
+        feedKey="livefeed"
       />
       {flights.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -2538,6 +2604,7 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
         onClose={onClose}
         onMaximize={onMaximize}
         isMaximized={isMaximized}
+        feedKey="events"
       />
       {/* AI Natural Language Filter */}
       <div className="px-2 py-1.5 border-b border-border" style={{background:'hsl(var(--muted))'}}>
@@ -2632,6 +2699,7 @@ function MaritimePanel({ ships, language, onClose, onMaximize, isMaximized }: { 
         onClose={onClose}
         onMaximize={onMaximize}
         isMaximized={isMaximized}
+        feedKey="ships"
       />
       {ships.length === 0 && (
         <div className="px-3 py-6 text-center">
@@ -2886,6 +2954,7 @@ const LiveFeedPanel = memo(function LiveFeedPanel({ language, onClose, onMaximiz
         onClose={onClose}
         onMaximize={onMaximize}
         isMaximized={isMaximized}
+        feedKey="livefeed"
         extra={
           <div className="flex items-center gap-1">
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/25">
@@ -3611,6 +3680,7 @@ const TelegramPanel = memo(function TelegramPanel({
         onClose={onClose}
         onMaximize={onMaximize}
         isMaximized={isMaximized}
+        feedKey="telegram"
         extra={
           <div className="flex items-center gap-1">
             {newMsgIds.size > 0 && (
@@ -8224,7 +8294,7 @@ export default function Dashboard() {
   });
 
   const sse = useSSE();
-  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected } = sse;
+  const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected, feedFreshness } = sse;
 
   const [mapFocusLocation, setMapFocusLocation] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [popupTrackFlight, setPopupTrackFlight] = useState<{ callsign: string; lat: number; lng: number; heading: number; altitude: number; speed: number; type: string; source: 'radar' } | null>(null);
@@ -8562,7 +8632,7 @@ export default function Dashboard() {
     return panel ?? null;
   };
 
-  return (
+  return (<FeedFreshnessContext.Provider value={feedFreshness}>
     <div className={`flex flex-col bg-background text-foreground h-screen ${isMobile || isTablet ? '!h-[100dvh]' : ''}`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingLeft: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-left, 0px)' : undefined, paddingRight: (isMobile || isTablet) && isLandscape ? 'env(safe-area-inset-right, 0px)' : undefined }} data-testid="dashboard">
       <header className={`${isMobile ? (isLandscape ? 'h-8' : 'h-9') : isTouchDevice ? 'min-h-[40px]' : 'h-9'} border-b flex items-center justify-between px-2 md:px-3 shrink-0 relative z-50 warroom-header bg-card`}>
         {/* Left — Branding */}
@@ -9096,7 +9166,8 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => { e.stopPropagation(); popOutPanel(id); }}
                           data-no-drag
-                          className="absolute top-[42px] right-1.5 z-[90] opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150"
+                          className="absolute top-[42px] right-1.5 z-[90] opacity-40 hover:opacity-100 transition-opacity duration-150"
+                          aria-label="Pop out panel"
                           title="Pop out as floating window"
                           style={{ width: 22, height: 22, borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}
                         >
@@ -9253,5 +9324,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </FeedFreshnessContext.Provider>
   );
 }

@@ -152,6 +152,15 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  .react-grid-item .text-\[6px\],
+  .react-grid-item .text-\[7px\]  { font-size: 10px !important; font-weight: 600 !important; }
+  .react-grid-item .text-\[8px\]  { font-size: 11px !important; font-weight: 500 !important; }
+  .react-grid-item .text-\[9px\]  { font-size: 11px !important; }
+  .react-grid-item .text-\[10px\] { font-size: 11px !important; }
+  .react-grid-item .text-\[11px\] { font-size: 12px !important; }
+  .react-grid-item .text-\[12px\] { font-size: 12px !important; }
+  .react-grid-item .text-xs       { font-size: 12px !important; }
+
   .text-\[6px\]  { font-size: 8px !important; font-weight: 600 !important; }
   .text-\[7px\]  { font-size: 9px !important; font-weight: 600 !important; }
   .text-\[8px\]  { font-size: 9px !important; font-weight: 500 !important; }
@@ -160,6 +169,17 @@
   .text-\[11px\] { font-size: 11px !important; }
   .text-\[12px\] { font-size: 12px !important; }
   .text-xs       { font-size: 11px !important; }
+
+  .react-grid-item .text-muted-foreground\/10 { color: hsl(var(--muted-foreground) / 0.35) !important; }
+  .react-grid-item .text-muted-foreground\/15 { color: hsl(var(--muted-foreground) / 0.40) !important; }
+  .react-grid-item .text-muted-foreground\/20 { color: hsl(var(--muted-foreground) / 0.40) !important; }
+  .react-grid-item .text-muted-foreground\/25 { color: hsl(var(--muted-foreground) / 0.45) !important; }
+  .react-grid-item .text-muted-foreground\/30 { color: hsl(var(--muted-foreground) / 0.45) !important; }
+  .react-grid-item .text-foreground\/10 { color: hsl(var(--foreground) / 0.35) !important; }
+  .react-grid-item .text-foreground\/15 { color: hsl(var(--foreground) / 0.40) !important; }
+  .react-grid-item .text-foreground\/20 { color: hsl(var(--foreground) / 0.40) !important; }
+  .react-grid-item .text-foreground\/25 { color: hsl(var(--foreground) / 0.45) !important; }
+  .react-grid-item .text-foreground\/30 { color: hsl(var(--foreground) / 0.45) !important; }
 
   ::selection {
     background: hsl(215 70% 56% / .20);
