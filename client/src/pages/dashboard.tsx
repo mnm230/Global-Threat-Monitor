@@ -680,14 +680,14 @@ function useAlertSound(alerts: { id: string; threatType?: string }[], enabled: b
   }, [alerts, enabled, silentMode, volume]);
 }
 
-type PanelId = 'events' | 'alerts' | 'markets' | 'telegram' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+type PanelId = 'events' | 'alerts' | 'regional' | 'markets' | 'telegram' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
 
 const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; labelAr: string }> = {
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
-
   telegram: { icon: Send, label: 'Telegram', labelAr: '\u062A\u0644\u063A\u0631\u0627\u0645' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
-  alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: '\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
+  alerts: { icon: AlertOctagon, label: 'IL Alerts', labelAr: 'تحذيرات إسرائيل' },
+  regional: { icon: Globe, label: 'Regional Attacks', labelAr: 'هجمات إقليمية' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
   alertmap: { icon: MapPin, label: 'Alert Map', labelAr: '\u062E\u0631\u064A\u0637\u0629 \u0627\u0644\u0625\u0646\u0630\u0627\u0631\u0627\u062A' },
@@ -1229,27 +1229,29 @@ const BUILT_IN_PRESETS: LayoutPreset[] = [
 const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
-  // Row 1 — Hero: Alerts | Map | Telegram
-  { i: 'alerts',       x: 0,  y: 0,  w: 4,  h: 8,  minW: 3, minH: 4 },
-  { i: 'alertmap',     x: 4,  y: 0,  w: 5,  h: 8,  minW: 3, minH: 4 },
-  { i: 'telegram',     x: 9,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 3 },
-  // Row 2 — Intel strip: AI | Events | Markets | Netblack
+  // Row 1 — Hero: IL Alerts | Regional Attacks | Map | Telegram
+  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 4 },
+  { i: 'regional',     x: 3,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 4 },
+  { i: 'alertmap',     x: 6,  y: 0,  w: 4,  h: 8,  minW: 3, minH: 4 },
+  { i: 'telegram',     x: 10, y: 0,  w: 2,  h: 8,  minW: 2, minH: 3 },
+  // Row 2 — Intel strip: AI | Events | Markets
   { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
   { i: 'events',       x: 3,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'markets',      x: 6,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
+  { i: 'markets',      x: 6,  y: 8,  w: 6,  h: 6,  minW: 2, minH: 2 },
   // Row 3 — Wide feed
   { i: 'livefeed',     x: 0,  y: 14, w: 12, h: 4,  minW: 2, minH: 2 },
   // Row 4 — Analysis pair
   { i: 'osint',        x: 0,  y: 18, w: 6,  h: 6,  minW: 3, minH: 2 },
   { i: 'analytics',    x: 6,  y: 18, w: 6,  h: 6,  minW: 2, minH: 2 },
   // Row 5 — Data pair
-  { i: 'attackpred',   x: 0,  y: 24, w: 12,  h: 5,  minW: 2, minH: 3 },
+  { i: 'attackpred',   x: 0,  y: 24, w: 12, h: 5,  minW: 2, minH: 3 },
   // Row 6 — Stats
   { i: 'rocketstats',  x: 0,  y: 29, w: 12, h: 6,  minW: 2, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   alerts:       'hsl(0 65% 48%)',
+  regional:     'hsl(142 55% 38%)',
   telegram:     'hsl(32 80% 48%)',
   events:       'hsl(36 65% 48%)',
   markets:      'hsl(250 50% 52%)',
@@ -6583,94 +6585,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
   ships?: ShipData[];
   thermalHotspots?: ThermalHotspot[];
 }) {
-  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern' | 'intel' | 'ask'>('forecast');
-
-  // ── ASK AI Chat State ──
-  type AIChatModel = 'claude' | 'openai' | 'grok' | 'gemini';
-  interface ChatMsg { role: 'user' | 'ai'; text: string; model?: AIChatModel; ts: number; }
-  const [chatModel, setChatModel] = useState<AIChatModel>('claude');
-  const [chatHistory, setChatHistory] = useState<ChatMsg[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [streamingText, setStreamingText] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const chatAbortRef = useRef<AbortController | null>(null);
-
-  const AI_MODELS: { id: AIChatModel; label: string; color: string; icon: string; short: string }[] = [
-    { id: 'claude', label: 'Claude Opus', color: '#a78bfa', icon: '🔮', short: 'Claude' },
-    { id: 'openai', label: 'GPT-4.1',    color: '#4ade80', icon: '🤖', short: 'GPT-4' },
-    { id: 'grok',   label: 'Grok 3',     color: '#60a5fa', icon: '⚡', short: 'Grok'  },
-    { id: 'gemini', label: 'Gemini Flash',color: '#fb923c', icon: '💎', short: 'Gemini'},
-  ];
-
-  const sendQuestion = async (q?: string) => {
-    const question = (q || chatInput).trim();
-    if (!question || chatLoading) return;
-    // Cancel any in-progress stream
-    chatAbortRef.current?.abort();
-    chatAbortRef.current = new AbortController();
-    const signal = chatAbortRef.current.signal;
-    setChatInput('');
-    setChatHistory(h => [...h, { role: 'user', text: question, ts: Date.now() }]);
-    setChatLoading(true);
-    setStreamingText('');
-
-    try {
-      const resp = await fetch('/api/ai-analyst', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal,
-        body: JSON.stringify({
-          question,
-          model: chatModel,
-          clientContext: prediction ? {
-            threatLevel: prediction.overallThreatLevel,
-            confidence: prediction.confidence,
-            nextTarget: prediction.nextLikelyTarget,
-            nextAttackWindow: prediction.nextAttackWindow,
-            locationProbabilities: prediction.locationProbabilities?.slice(0, 5),
-            escalationVector: prediction.escalationVector,
-            velocity30m: prediction.dataPoints?.velocity30m,
-            velocityPerHour: prediction.dataPoints?.velocityPerHour,
-            isEscalating: prediction.dataPoints?.isEscalating,
-          } : undefined,
-        }),
-      });
-      if (!resp.body) throw new Error('No response body');
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-      let streamDone = false;
-
-      while (!streamDone) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (!line.startsWith('data:')) continue;
-          const raw = line.slice(5).trim();
-          if (raw === '[DONE]') { streamDone = true; break; }
-          try {
-            const parsed = JSON.parse(raw);
-            if (parsed.error) { accumulated = `Error: ${parsed.error}`; streamDone = true; break; }
-            if (parsed.text) { accumulated += parsed.text; setStreamingText(accumulated); }
-          } catch {}
-        }
-      }
-
-      const finalText = accumulated || '(no response)';
-      setChatHistory(h => [...h, { role: 'ai', text: finalText, model: chatModel, ts: Date.now() }]);
-      setStreamingText('');
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
-      setChatHistory(h => [...h, { role: 'ai', text: `Error: ${err?.message || 'Failed to connect'}`, model: chatModel, ts: Date.now() }]);
-      setStreamingText('');
-    } finally {
-      setChatLoading(false);
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-    }
-  };
+  const [activeTab, setActiveTab] = useState<'forecast' | 'vectors' | 'pattern' | 'intel'>('forecast');
 
   const threatColor = (level: string) => ({
     EXTREME: 'text-red-400', HIGH: 'text-orange-400', ELEVATED: 'text-yellow-400',
@@ -6734,13 +6649,13 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
       />
 
       <div className="flex border-b border-border shrink-0 overflow-x-auto scrollbar-none bg-card">
-        {(['forecast', 'vectors', 'pattern', 'intel', 'ask'] as const).map(tab => (
+        {(['forecast', 'vectors', 'pattern', 'intel'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`shrink-0 flex-1 py-2 text-[12px] font-medium transition-all ${
               activeTab === tab
-                ? tab === 'ask' ? 'text-emerald-500 border-b-2 border-emerald-500 bg-emerald-500/8' : 'text-primary border-b-2 border-primary bg-primary/8'
+                ? 'text-primary border-b-2 border-primary bg-primary/8'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
             data-testid={`button-aipred-tab-${tab}`}
@@ -6748,8 +6663,7 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
             {tab === 'forecast' ? (language === 'ar' ? 'التوقع' : 'Forecast') :
              tab === 'vectors'  ? (language === 'ar' ? 'التهديدات' : 'Vectors') :
              tab === 'pattern'  ? (language === 'ar' ? 'النمط' : 'Pattern') :
-             tab === 'intel'    ? (language === 'ar' ? 'المصادر' : 'Intel') :
-             (language === 'ar' ? 'اسأل AI' : '✦ Ask AI')}
+             (language === 'ar' ? 'المصادر' : 'Intel')}
           </button>
         ))}
       </div>
@@ -7067,158 +6981,6 @@ function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, predict
               </div>
             )}
 
-
-            {activeTab === 'ask' && (
-              <div className="flex flex-col h-full" style={{ minHeight: 300 }}>
-                {/* Model selector */}
-                <div className="shrink-0 px-3 pt-3 pb-2">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="text-[11px] font-semibold text-muted-foreground">{language === 'ar' ? 'نموذج الذكاء الاصطناعي' : 'AI Model'}</div>
-                    {chatHistory.length > 0 && (
-                      <button
-                        onClick={() => { setChatHistory([]); setStreamingText(''); }}
-                        className="text-[11px] text-muted-foreground hover:text-red-500 transition-colors px-2 py-0.5 rounded border border-border"
-                      >
-                        {language === 'ar' ? 'مسح' : 'Clear'}
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {AI_MODELS.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => setChatModel(m.id)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all active:scale-95"
-                        style={{
-                          background: chatModel === m.id ? `${m.color}15` : 'hsl(var(--muted))',
-                          border: chatModel === m.id ? `1px solid ${m.color}40` : '1px solid hsl(var(--border))',
-                          color: chatModel === m.id ? m.color : 'hsl(var(--muted-foreground))',
-                        }}
-                      >
-                        <span style={{ fontSize: 12 }}>{m.icon}</span>
-                        {m.short}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Suggested questions */}
-                {chatHistory.length === 0 && !chatLoading && (
-                  <div className="shrink-0 px-3 pb-2">
-                    <div className="text-[11px] font-semibold text-muted-foreground mb-1.5">{language === 'ar' ? 'أسئلة مقترحة' : 'Suggested questions'}</div>
-                    <div className="flex flex-col gap-1">
-                      {(language === 'ar' ? [
-                        'ما هي أحدث التهديدات الآن؟',
-                        'هل الوضع يتصاعد أم مستقر؟',
-                        'ما هي المنطقة الأكثر خطراً؟',
-                        'متى سيكون الهجوم القادم المتوقع؟',
-                        'ما احتمال توسع الصراع؟',
-                      ] : [
-                        'What are the most active threats right now?',
-                        'When is the next attack likely and where?',
-                        'Which locations have the highest strike probability?',
-                        'Is the situation escalating or stable?',
-                        'Analyze the current threat pattern and predict next moves.',
-                        'What does the OSINT say about Iran right now?',
-                      ]).map(q => (
-                        <button
-                          key={q}
-                          onClick={() => sendQuestion(q)}
-                          disabled={chatLoading}
-                          className="text-left px-3 py-2 rounded-lg text-[12px] transition-all hover:bg-violet-500/10 active:scale-98 disabled:opacity-40 text-violet-400 border border-violet-500/20 bg-violet-500/5"
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Chat history */}
-                <div className="flex-1 overflow-y-auto px-3 pb-2 space-y-2 min-h-0">
-                  {chatHistory.map((msg, i) => {
-                    const m = AI_MODELS.find(x => x.id === msg.model);
-                    return (
-                      <div key={i} className={`flex flex-col gap-0.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                        {msg.role === 'ai' && m && (
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <span style={{ fontSize: 11 }}>{m.icon}</span>
-                            <span className="text-[9px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
-                          </div>
-                        )}
-                        <div
-                          className="max-w-[92%] px-3 py-2 rounded-xl text-[12px] leading-relaxed"
-                          style={{
-                            background: msg.role === 'user'
-                              ? 'hsl(var(--primary))'
-                              : 'hsl(var(--muted))',
-                            border: msg.role === 'user'
-                              ? '1px solid hsl(var(--primary))'
-                              : `1px solid hsl(var(--border))`,
-                            color: msg.role === 'user' ? 'white' : 'hsl(var(--foreground))',
-                            whiteSpace: 'pre-wrap',
-                          }}
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Streaming indicator */}
-                  {chatLoading && (
-                    <div className="flex flex-col items-start gap-0.5">
-                      {(() => { const m = AI_MODELS.find(x => x.id === chatModel); return m ? (
-                        <div className="flex items-center gap-1 mb-0.5">
-                          <span style={{ fontSize: 11 }}>{m.icon}</span>
-                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider" style={{ color: m.color }}>{m.label}</span>
-                        </div>
-                      ) : null; })()}
-                      <div
-                        className="max-w-[92%] px-3 py-2 rounded-xl text-[12px] leading-relaxed"
-                        style={{ background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--foreground))', whiteSpace: 'pre-wrap' }}
-                      >
-                        {streamingText || (
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <span className="animate-pulse">●</span>
-                            <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
-                            <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div ref={chatEndRef} />
-                </div>
-
-                {/* Input */}
-                <div className="shrink-0 px-3 pb-3 pt-1.5 border-t border-border">
-                  <div className="flex gap-2 items-end">
-                    <textarea
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); } }}
-                      placeholder={language === 'ar' ? 'اسأل المحلل الاستخباراتي...' : 'Ask the intelligence analyst...'}
-                      disabled={chatLoading}
-                      rows={2}
-                      className="flex-1 resize-none rounded-lg px-3 py-2 text-[13px] outline-none transition-all disabled:opacity-40 bg-background border border-border text-foreground placeholder:text-muted-foreground focus:border-violet-400"
-                    />
-                    <button
-                      onClick={() => sendQuestion()}
-                      disabled={chatLoading || !chatInput.trim()}
-                      className="shrink-0 px-4 py-2 rounded-lg font-medium text-[12px] transition-all active:scale-95 disabled:opacity-30 bg-violet-600 text-white hover:bg-violet-700"
-                      style={{ minHeight: 52 }}
-                    >
-                      {chatLoading ? '...' : (language === 'ar' ? 'إرسال' : 'SEND')}
-                    </button>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground/60 mt-1 text-center">
-                    {language === 'ar' ? 'Enter للإرسال · Shift+Enter لسطر جديد' : 'Enter to send · Shift+Enter for newline'}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {activeTab === 'intel' && (() => {
               // ── Compute raw signal scores from live data ──────────────────
@@ -7967,7 +7729,7 @@ export default function Dashboard() {
   const panelsScrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const SWIPE_TABS: PanelId[] = ['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'];
+  const SWIPE_TABS: PanelId[] = ['alertmap', 'alerts', 'regional', 'telegram', 'events'];
 
   useEffect(() => {
     let raf = 0;
@@ -8094,7 +7856,7 @@ export default function Dashboard() {
 
 
 
-  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
+  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, regional: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
@@ -8309,7 +8071,7 @@ export default function Dashboard() {
     try { return JSON.parse(localStorage.getItem('warroom_watchlist') || '[]'); } catch { return []; }
   });
 
-  const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'livefeed'];
+  const topRow: PanelId[] = ['telegram', 'alertmap', 'alerts', 'regional', 'livefeed'];
   const bottomRow: PanelId[] = ['events', 'markets', 'analytics', 'osint', 'attackpred', 'rocketstats', 'aiprediction'];
   const allPanels: PanelId[] = [...topRow, ...bottomRow];
   const activeTop = topRow.filter(id => visiblePanels[id]);
@@ -8707,12 +8469,12 @@ export default function Dashboard() {
               onTouchEnd={handleTouchEnd}
             >
               {/* All SWIPE_TABS panels always mounted — prevents unmount/remount flicker on tab switch */}
-              {(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).map(id => (
+              {(SWIPE_TABS).map(id => (
                 <div key={id} className={`absolute inset-0 flex flex-col ${mobileActivePanel === id ? 'z-10' : 'z-0 mobile-panel-hidden'}`}>
                   {renderPanel(id)}
                 </div>
               ))}
-              {!['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'].includes(mobileActivePanel) && (
+              {!(['alertmap', 'alerts', 'regional', 'telegram', 'events'] as PanelId[]).includes(mobileActivePanel) && (
                 <div className="absolute inset-0 flex flex-col z-10">
                   {renderPanel(mobileActivePanel)}
                 </div>

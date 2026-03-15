@@ -218,10 +218,21 @@ const FREE_NEWS_RSS_FEEDS = [
   { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
   { url: 'https://news.google.com/rss/search?q=iran+israel+war&hl=en-US&gl=US&ceid=US:en', source: 'Google News War' },
   { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
+  // Lebanon
   { url: 'https://news.google.com/rss/search?q=lebanon+war+hezbollah&hl=en-US&gl=US&ceid=US:en', source: 'Google News Lebanon' },
   { url: 'https://news.google.com/rss/search?q=south+lebanon+IDF+hezbollah+airstrike&hl=en-US&gl=US&ceid=US:en', source: 'Google News S.Lebanon' },
   { url: 'https://news.google.com/rss/search?q=beirut+strike+explosion+lebanon&hl=en-US&gl=US&ceid=US:en', source: 'Google News Beirut' },
   { url: 'https://news.google.com/rss/search?q=nabatieh+tyre+sidon+lebanon+military&hl=en-US&gl=US&ceid=US:en', source: 'Google News Leb Cities' },
+  // Yemen & Houthis
+  { url: 'https://news.google.com/rss/search?q=houthi+attack+missile+drone+red+sea&hl=en-US&gl=US&ceid=US:en', source: 'Google News Houthi' },
+  { url: 'https://news.google.com/rss/search?q=yemen+strike+airstrike+killed&hl=en-US&gl=US&ceid=US:en', source: 'Google News Yemen' },
+  // Syria
+  { url: 'https://news.google.com/rss/search?q=syria+airstrike+attack+military&hl=en-US&gl=US&ceid=US:en', source: 'Google News Syria' },
+  // Iraq
+  { url: 'https://news.google.com/rss/search?q=iraq+attack+drone+militia+pmu&hl=en-US&gl=US&ceid=US:en', source: 'Google News Iraq' },
+  // GCC
+  { url: 'https://news.google.com/rss/search?q=saudi+arabia+attack+houthi+missile&hl=en-US&gl=US&ceid=US:en', source: 'Google News KSA' },
+  { url: 'https://news.google.com/rss/search?q=uae+attack+drone+security&hl=en-US&gl=US&ceid=US:en', source: 'Google News UAE' },
 ];
 
 let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
@@ -3906,15 +3917,34 @@ export async function registerRoutes(
   let conflictFeedCache: { data: any[]; fetchedAt: number } | null = null;
   const CONFLICT_FEED_TTL = 30_000;
 
-  const GCC_KEYWORDS = ['saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'aramco', 'uae', 'abu dhabi', 'dubai', 'kuwait', 'bahrain', 'qatar', 'oman', 'gcc', 'gulf', 'houthi', 'hodeidah', 'sanaa', 'red sea', 'bab el-mandeb', 'strait of hormuz'];
-  const LEBANON_KEYWORDS = ['lebanon', 'beirut', 'hezbollah', 'dahieh', 'south lebanon', 'nabatieh', 'baalbek', 'tyre', 'sidon', 'nahariya', 'kiryat shmona', 'safed', 'unifil', 'litani', 'bekaa', 'nasrallah'];
-  const ATTACK_KEYWORDS = ['rocket', 'missile', 'drone', 'uav', 'strike', 'attack', 'launch', 'intercept', 'barrage', 'salvo', 'ballistic', 'airstrike', 'bombing', 'shelling', 'fire', 'hit'];
+  const GCC_KEYWORDS = ['saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'aramco', 'uae', 'abu dhabi', 'dubai', 'kuwait', 'bahrain', 'qatar', 'oman', 'muscat', 'gcc', 'gulf', 'strait of hormuz'];
+  const LEBANON_KEYWORDS = ['lebanon', 'beirut', 'hezbollah', 'dahieh', 'south lebanon', 'nabatieh', 'baalbek', 'tyre', 'sidon', 'unifil', 'litani', 'bekaa', 'nasrallah', 'bint jbeil'];
+  const YEMEN_KEYWORDS = ['yemen', 'houthi', 'hodeidah', 'sanaa', 'aden', 'taiz', 'marib', 'ansar allah', 'red sea', 'bab el-mandeb', 'ansarallah'];
+  const SYRIA_KEYWORDS = ['syria', 'damascus', 'aleppo', 'idlib', 'deir ez-zor', 'raqqa', 'daraa', 'homs', 'hama', 'sdf', 'isis', 'hayat tahrir', 'hts'];
+  const IRAQ_KEYWORDS = ['iraq', 'baghdad', 'mosul', 'basra', 'kirkuk', 'erbil', 'pmu', 'kataib hezbollah', 'hashd', 'kurdistan', 'anbar', 'fallujah'];
+  const EGYPT_KEYWORDS = ['egypt', 'cairo', 'sinai', 'rafah crossing', 'egyptian', 'suez', 'port said'];
+  const JORDAN_KEYWORDS = ['jordan', 'amman', 'aqaba', 'zarqa', 'irbid', 'jordanian'];
+  const ATTACK_KEYWORDS = ['rocket', 'missile', 'drone', 'uav', 'strike', 'attack', 'launch', 'intercept', 'barrage', 'salvo', 'ballistic', 'airstrike', 'bombing', 'shelling', 'fire', 'hit', 'explosion', 'killed', 'wounded', 'casualties', 'raid', 'offensive'];
 
   function classifyConflictFeedItem(title: string): { attackType: string; relevance: string } {
     const lo = title.toLowerCase();
     const isGCC = GCC_KEYWORDS.some(k => lo.includes(k));
     const isLebanon = LEBANON_KEYWORDS.some(k => lo.includes(k));
-    const relevance = isGCC && isLebanon ? 'both' : isGCC ? 'gcc' : isLebanon ? 'lebanon' : 'general';
+    const isYemen = YEMEN_KEYWORDS.some(k => lo.includes(k));
+    const isSyria = SYRIA_KEYWORDS.some(k => lo.includes(k));
+    const isIraq = IRAQ_KEYWORDS.some(k => lo.includes(k));
+    const isEgypt = EGYPT_KEYWORDS.some(k => lo.includes(k));
+    const isJordan = JORDAN_KEYWORDS.some(k => lo.includes(k));
+
+    let relevance = 'general';
+    if (isLebanon) relevance = 'lebanon';
+    else if (isYemen) relevance = 'yemen';
+    else if (isGCC) relevance = 'gcc';
+    else if (isSyria) relevance = 'syria';
+    else if (isIraq) relevance = 'iraq';
+    else if (isEgypt) relevance = 'egypt';
+    else if (isJordan) relevance = 'jordan';
+    if (isGCC && isLebanon) relevance = 'both';
 
     let attackType = 'other';
     if (/drone|uav|shaheed|shahed/i.test(lo)) attackType = 'drone';
@@ -3948,8 +3978,8 @@ export async function registerRoutes(
       // Also try GDELT doc API for conflict-specific articles
       let gdeltItems: any[] = [];
       try {
-        const gccQ = encodeURIComponent('(rocket OR missile OR drone OR strike OR attack) (Saudi OR Yemen OR Houthi OR Lebanon OR Hezbollah OR GCC OR UAE OR Bahrain)');
-        const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gccQ}&mode=artlist&maxrecords=20&format=json&sort=datedesc&timespan=24h&sourcelang=eng`;
+        const gccQ = encodeURIComponent('(rocket OR missile OR drone OR strike OR attack OR airstrike OR shelling OR killed) (Saudi OR Yemen OR Houthi OR Lebanon OR Hezbollah OR GCC OR UAE OR Bahrain OR Syria OR Iraq OR Egypt OR Jordan OR Oman OR Kuwait OR Qatar)');
+        const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gccQ}&mode=artlist&maxrecords=40&format=json&sort=datedesc&timespan=24h&sourcelang=eng`;
         const gdeltRes = await fetch(gdeltUrl, { signal: AbortSignal.timeout(8000) });
         if (gdeltRes.ok) {
           const gdeltJson = await gdeltRes.json() as { articles?: Array<{ title?: string; url?: string; seendate?: string; domain?: string }> };
@@ -3966,11 +3996,12 @@ export async function registerRoutes(
 
       const combined = [...allItems, ...gdeltItems];
 
-      // Filter for GCC or Lebanon relevance with attack context
+      // Filter for regional Arab country relevance with attack context
+      const ALL_REGIONAL_KEYWORDS = [...GCC_KEYWORDS, ...LEBANON_KEYWORDS, ...YEMEN_KEYWORDS, ...SYRIA_KEYWORDS, ...IRAQ_KEYWORDS, ...EGYPT_KEYWORDS, ...JORDAN_KEYWORDS];
       const filtered = combined.filter(item => {
         const lo = item.title.toLowerCase();
         const hasAttack = ATTACK_KEYWORDS.some(k => lo.includes(k));
-        const isRelevant = GCC_KEYWORDS.some(k => lo.includes(k)) || LEBANON_KEYWORDS.some(k => lo.includes(k));
+        const isRelevant = ALL_REGIONAL_KEYWORDS.some(k => lo.includes(k));
         return hasAttack && isRelevant;
       });
 
