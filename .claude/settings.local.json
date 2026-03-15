@@ -39,7 +39,9 @@
       "Bash(echo \"OpenAI base URL: $AI_INTEGRATIONS_OPENAI_BASE_URL\" && echo \"Anthropic base URL: $AI_INTEGRATIONS_ANTHROPIC_BASE_URL\" && echo \"Gemini base URL: $AI_INTEGRATIONS_GEMINI_BASE_URL\" && echo \"OpenRouter base URL: $AI_INTEGRATIONS_OPENROUTER_BASE_URL\")",
       "WebFetch(domain:littlemoiz.com)",
       "Bash(find:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(git commit:*)",
+      "Read(//home/runner/workspace/**)"
     ]
   }
 }

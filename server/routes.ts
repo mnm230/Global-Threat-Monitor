@@ -3929,18 +3929,28 @@ export async function registerRoutes(
     }
   });
 
-  // ── Live conflict feed: GCC / Lebanon filtered news ────────────────────────
+  // ── Live conflict feed: Regional Arab attack news + IL border sirens ────────
   let conflictFeedCache: { data: any[]; fetchedAt: number } | null = null;
-  const CONFLICT_FEED_TTL = 30_000;
+  const CONFLICT_FEED_TTL = 15_000; // 15s — fresher updates
 
   const GCC_KEYWORDS = ['saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'aramco', 'uae', 'abu dhabi', 'dubai', 'kuwait', 'bahrain', 'qatar', 'oman', 'muscat', 'gcc', 'gulf', 'strait of hormuz'];
-  const LEBANON_KEYWORDS = ['lebanon', 'beirut', 'hezbollah', 'dahieh', 'south lebanon', 'nabatieh', 'baalbek', 'tyre', 'sidon', 'unifil', 'litani', 'bekaa', 'nasrallah', 'bint jbeil'];
-  const YEMEN_KEYWORDS = ['yemen', 'houthi', 'hodeidah', 'sanaa', 'aden', 'taiz', 'marib', 'ansar allah', 'red sea', 'bab el-mandeb', 'ansarallah'];
-  const SYRIA_KEYWORDS = ['syria', 'damascus', 'aleppo', 'idlib', 'deir ez-zor', 'raqqa', 'daraa', 'homs', 'hama', 'sdf', 'isis', 'hayat tahrir', 'hts'];
-  const IRAQ_KEYWORDS = ['iraq', 'baghdad', 'mosul', 'basra', 'kirkuk', 'erbil', 'pmu', 'kataib hezbollah', 'hashd', 'kurdistan', 'anbar', 'fallujah'];
-  const EGYPT_KEYWORDS = ['egypt', 'cairo', 'sinai', 'rafah crossing', 'egyptian', 'suez', 'port said'];
+  const LEBANON_KEYWORDS = ['lebanon', 'beirut', 'hezbollah', 'south lebanon', 'nabatieh', 'baalbek', 'tyre', 'sidon', 'unifil', 'litani', 'bekaa', 'nasrallah', 'bint jbeil', 'dahieh', 'dahiyeh', 'southern lebanon', 'amal', 'laad'];
+  const YEMEN_KEYWORDS = ['yemen', 'houthi', 'hodeidah', 'hudaydah', 'sanaa', 'aden', 'taiz', 'marib', 'ansar allah', 'red sea', 'bab el-mandeb', 'ansarallah', 'houthis'];
+  const SYRIA_KEYWORDS = ['syria', 'damascus', 'aleppo', 'idlib', 'deir ez-zor', 'raqqa', 'daraa', 'homs', 'hama', 'sdf', 'isis', 'hayat tahrir', 'hts', 'syrian', 'latakia', 'derazor'];
+  const IRAQ_KEYWORDS = ['iraq', 'baghdad', 'mosul', 'basra', 'kirkuk', 'erbil', 'pmu', 'kataib hezbollah', 'hashd', 'kurdistan', 'anbar', 'fallujah', 'iraqi', 'najaf', 'karbala'];
+  const EGYPT_KEYWORDS = ['egypt', 'cairo', 'sinai', 'rafah crossing', 'egyptian', 'suez', 'port said', 'north sinai'];
   const JORDAN_KEYWORDS = ['jordan', 'amman', 'aqaba', 'zarqa', 'irbid', 'jordanian'];
-  const ATTACK_KEYWORDS = ['rocket', 'missile', 'drone', 'uav', 'strike', 'attack', 'launch', 'intercept', 'barrage', 'salvo', 'ballistic', 'airstrike', 'bombing', 'shelling', 'fire', 'hit', 'explosion', 'killed', 'wounded', 'casualties', 'raid', 'offensive'];
+  const ATTACK_KEYWORDS = ['rocket', 'missile', 'drone', 'uav', 'strike', 'attack', 'launch', 'intercept', 'barrage', 'salvo', 'ballistic', 'airstrike', 'bombing', 'shelling', 'killed', 'wounded', 'casualties', 'raid', 'offensive', 'explosion', 'fire', 'hit', 'artillery', 'mortar', 'infiltration', 'breach', 'clash', 'operation'];
+
+  // Northern Israel border cities — sirens here indicate Lebanon/Hezbollah attacks
+  const NORTH_ISRAEL_BORDER_CITIES = [
+    'Kiryat Shmona', 'Metula', 'Shlomi', 'Nahariya', 'Avivim', 'Rosh Hanikra',
+    'Maalot-Tarshiha', 'Karmiel', 'Safed', 'Tzfat', 'Acre', 'Akko', 'Haifa',
+    'Beit Hillel', 'Manara', 'Margaliot', 'Yiftah', 'Ramot Naftali', 'Dishon',
+    'Yiron', 'Jish', 'Fassouta', 'Arab al-Aramshe', 'Sasa', 'Hurfeish',
+    'Peki\'in', 'Tarshiha', 'Kabul', 'Shfaram', 'Majd al-Krum',
+    'Golan Heights', 'הר דב', 'כרמיאל', 'קריית שמונה', 'מטולה', 'שלומי', 'נהריה',
+  ];
 
   function classifyConflictFeedItem(title: string): { attackType: string; relevance: string } {
     const lo = title.toLowerCase();
@@ -3960,16 +3970,131 @@ export async function registerRoutes(
     else if (isIraq) relevance = 'iraq';
     else if (isEgypt) relevance = 'egypt';
     else if (isJordan) relevance = 'jordan';
-    if (isGCC && isLebanon) relevance = 'both';
+    if (isGCC && isYemen) relevance = 'gcc'; // Yemen attacks on GCC = GCC
+    if (isLebanon && isGCC) relevance = 'both';
 
     let attackType = 'other';
-    if (/drone|uav|shaheed|shahed/i.test(lo)) attackType = 'drone';
-    else if (/ballistic|cruise|hypersonic/i.test(lo)) attackType = 'missile';
-    else if (/rocket|mortar/i.test(lo)) attackType = 'rocket';
-    else if (/airstrike|air strike|bombing|warplane|jet|f-35|f-16/i.test(lo)) attackType = 'airstrike';
-    else if (/naval|ship|vessel|destroyer|frigate/i.test(lo)) attackType = 'naval';
+    if (/drone|uav|shaheed|shahed|kamikaze/i.test(lo)) attackType = 'drone';
+    else if (/ballistic|cruise|hypersonic|qassam|katyusha|grad/i.test(lo)) attackType = 'missile';
+    else if (/rocket|mortar|rpg/i.test(lo)) attackType = 'rocket';
+    else if (/airstrike|air strike|bombing|warplane|jet|f-35|f-16|f-15|apache/i.test(lo)) attackType = 'airstrike';
+    else if (/naval|ship|vessel|destroyer|frigate|tanker|cargo/i.test(lo)) attackType = 'naval';
+    else if (/artillery|shelling|cannon/i.test(lo)) attackType = 'artillery';
     else if (/missile/i.test(lo)) attackType = 'missile';
     return { attackType, relevance };
+  }
+
+  // Build synthetic items from northern Israel sirens (→ Lebanon-origin attacks)
+  function buildLebanonSirenItems(): any[] {
+    const cutoff = Date.now() - 6 * 60 * 60 * 1000; // last 6 hours
+    const borderAlerts = (alertHistory.length > 0 ? alertHistory : latestAlerts)
+      .filter(a => {
+        const ts = new Date(a.timestamp).getTime();
+        if (ts < cutoff) return false;
+        const city = a.city || '';
+        const region = a.region || '';
+        return NORTH_ISRAEL_BORDER_CITIES.some(bc =>
+          city.includes(bc) || region.includes(bc) || bc.includes(city)
+        );
+      });
+
+    // Group alerts that fired within 3 minutes of each other as a single event
+    const grouped: RedAlert[][] = [];
+    const sorted = [...borderAlerts].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    for (const alert of sorted) {
+      const ts = new Date(alert.timestamp).getTime();
+      const last = grouped[grouped.length - 1];
+      if (last && ts - new Date(last[0].timestamp).getTime() < 3 * 60 * 1000) {
+        last.push(alert);
+      } else {
+        grouped.push([alert]);
+      }
+    }
+
+    return grouped.map((group, i) => {
+      const first = group[0];
+      const cities = [...new Set(group.map(a => a.city).filter(Boolean))].slice(0, 3);
+      const threatType = first.threatType || 'rockets';
+      const attackType = threatType.includes('uav') ? 'drone' : threatType.includes('missile') ? 'missile' : 'rocket';
+      const cityList = cities.join(', ') || first.region || 'Northern Israel';
+      return {
+        id: `siren_border_${first.id || i}`,
+        title: `🚨 Hezbollah ${attackType === 'drone' ? 'drone' : attackType === 'missile' ? 'missile' : 'rocket'} attack: ${cityList} (northern Israel border)`,
+        source: 'Tzeva Adom (Live Siren)',
+        url: undefined,
+        timestamp: first.timestamp,
+        attackType,
+        relevance: 'lebanon',
+        isSiren: true, // flag for frontend
+        cities,
+        count: group.length,
+      };
+    }).reverse(); // newest first
+  }
+
+  // Dedicated RSS feeds queried only for the conflict feed
+  const REGIONAL_RSS_FEEDS = [
+    // Lebanon / Hezbollah
+    { url: 'https://www.naharnet.com/stories/en/rss.xml', source: 'Naharnet (Lebanon)' },
+    { url: 'https://today.lorientlejour.com/rss', source: "L'Orient Today" },
+    { url: 'https://news.google.com/rss/search?q=hezbollah+attack+rocket+lebanon&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Hezbollah' },
+    { url: 'https://news.google.com/rss/search?q=south+lebanon+military+attack+airstrike&hl=en-US&gl=US&ceid=US:en', source: 'GNews: S.Lebanon' },
+    // Yemen / Houthis
+    { url: 'https://news.google.com/rss/search?q=houthi+attack+missile+drone+ship+red+sea&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Houthi' },
+    { url: 'https://news.google.com/rss/search?q=yemen+airstrikes+killed+casualties&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Yemen' },
+    // Syria
+    { url: 'https://news.google.com/rss/search?q=syria+attack+airstrike+killed+military&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Syria' },
+    { url: 'https://www.syriahr.com/en/feed/', source: 'Syrian Observatory' },
+    // Iraq
+    { url: 'https://news.google.com/rss/search?q=iraq+drone+attack+militia+killed&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Iraq' },
+    // GCC
+    { url: 'https://news.google.com/rss/search?q=saudi+arabia+houthi+missile+attack&hl=en-US&gl=US&ceid=US:en', source: 'GNews: KSA' },
+    { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', source: 'The National (UAE)' },
+    { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya' },
+  ];
+
+  let regionalRssCache: { data: any[]; fetchedAt: number } | null = null;
+  const REGIONAL_RSS_TTL = 60_000; // 60s per feed batch
+
+  async function fetchRegionalRSS(): Promise<any[]> {
+    if (regionalRssCache && Date.now() - regionalRssCache.fetchedAt < REGIONAL_RSS_TTL) {
+      return regionalRssCache.data;
+    }
+    const items: any[] = [];
+    await Promise.allSettled(REGIONAL_RSS_FEEDS.map(async ({ url, source }) => {
+      try {
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WARROOM/2.0; +https://warroom.app)', 'Accept': 'application/rss+xml, application/xml, text/xml, */*' },
+          signal: AbortSignal.timeout(7000),
+        });
+        if (!res.ok) return;
+        const xml = await res.text();
+        const entries = xml.split(/<item[\s>]/i).slice(1, 20);
+        for (const entry of entries) {
+          const cdataTitle = entry.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/i)?.[1];
+          const plainTitle = entry.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+          const rawTitle = (cdataTitle || plainTitle || '').replace(/<[^>]+>/g, '').trim();
+          if (!rawTitle || rawTitle.length < 12) continue;
+          const pubDate = entry.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)?.[1]?.trim() || '';
+          const cdataLink = entry.match(/<link><!\[CDATA\[([\s\S]*?)\]\]><\/link>/i)?.[1];
+          const plainLink = entry.match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1]?.trim();
+          const guidLink = entry.match(/<guid[^>]*>(https?:\/\/[^\s<]+)<\/guid>/i)?.[1];
+          const link = cdataLink || plainLink || guidLink || '';
+          let timestamp = new Date().toISOString();
+          if (pubDate) { try { timestamp = new Date(pubDate).toISOString(); } catch {} }
+          items.push({
+            id: `regional_rss_${source}_${items.length}_${Date.now()}`,
+            title: rawTitle,
+            source,
+            url: link || undefined,
+            timestamp,
+            category: 'military',
+          });
+        }
+      } catch { /* feed unreachable */ }
+    }));
+    regionalRssCache = { data: items, fetchedAt: Date.now() };
+    return items;
   }
 
   app.get('/api/live-conflict-feed', async (_req, res) => {
@@ -3978,73 +4103,94 @@ export async function registerRoutes(
         return res.json(conflictFeedCache.data);
       }
 
-      // Aggregate from all live news sources
-      const [newsItems, gnewsItems, mediastackItems] = await Promise.allSettled([
+      // 1. Siren-derived Lebanon border alerts (real-time, no network call)
+      const sirenItems = buildLebanonSirenItems();
+
+      // 2. Aggregate from all news sources in parallel
+      const [newsR, gnewsR, mediastackR, freeRssR, regionalRssR] = await Promise.allSettled([
         fetchNewsAPI(),
         fetchGNews(),
         fetchMediastack(),
+        fetchFreeNewsRSS(),
+        fetchRegionalRSS(),
       ]);
 
-      const allItems = [
-        ...(newsItems.status === 'fulfilled' ? newsItems.value : []),
-        ...(gnewsItems.status === 'fulfilled' ? gnewsItems.value : []),
-        ...(mediastackItems.status === 'fulfilled' ? mediastackItems.value : []),
+      const newsPool = [
+        ...(newsR.status === 'fulfilled' ? newsR.value : []),
+        ...(gnewsR.status === 'fulfilled' ? gnewsR.value : []),
+        ...(mediastackR.status === 'fulfilled' ? mediastackR.value : []),
+        ...(freeRssR.status === 'fulfilled' ? freeRssR.value : []),
+        ...(regionalRssR.status === 'fulfilled' ? regionalRssR.value : []),
       ];
 
-      // Also try GDELT doc API for conflict-specific articles
+      // 3. GDELT — targeted regional query
       let gdeltItems: any[] = [];
       try {
-        const gccQ = encodeURIComponent('(rocket OR missile OR drone OR strike OR attack OR airstrike OR shelling OR killed) (Saudi OR Yemen OR Houthi OR Lebanon OR Hezbollah OR GCC OR UAE OR Bahrain OR Syria OR Iraq OR Egypt OR Jordan OR Oman OR Kuwait OR Qatar)');
-        const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gccQ}&mode=artlist&maxrecords=40&format=json&sort=datedesc&timespan=24h&sourcelang=eng`;
-        const gdeltRes = await fetch(gdeltUrl, { signal: AbortSignal.timeout(8000) });
+        const gdeltQ = encodeURIComponent(
+          '(rocket OR missile OR drone OR airstrike OR shelling OR attack OR killed OR casualties) ' +
+          '(Yemen OR Houthi OR Lebanon OR Hezbollah OR Syria OR Iraq OR "Saudi Arabia" OR UAE OR Bahrain OR Kuwait OR Qatar OR Oman)'
+        );
+        const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gdeltQ}&mode=artlist&maxrecords=50&format=json&sort=datedesc&timespan=12h&sourcelang=eng`;
+        const gdeltRes = await fetch(gdeltUrl, { signal: AbortSignal.timeout(9000) });
         if (gdeltRes.ok) {
           const gdeltJson = await gdeltRes.json() as { articles?: Array<{ title?: string; url?: string; seendate?: string; domain?: string }> };
           gdeltItems = (gdeltJson.articles || []).map((a, i) => ({
-            id: `gdelt_feed_${i}_${Date.now()}`,
+            id: `gdelt_reg_${i}_${Date.now()}`,
             title: (a.title || '').replace(/<[^>]+>/g, '').trim(),
             source: a.domain || 'GDELT',
             url: a.url,
-            timestamp: a.seendate ? new Date(a.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString() : new Date().toISOString(),
+            timestamp: a.seendate
+              ? new Date(a.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString()
+              : new Date().toISOString(),
             category: 'military',
           })).filter((a: any) => a.title && a.title.length > 10);
         }
-      } catch { /* GDELT unavailable */ }
+      } catch { /* GDELT timeout */ }
 
-      const combined = [...allItems, ...gdeltItems];
-
-      // Filter for regional Arab country relevance with attack context
-      const ALL_REGIONAL_KEYWORDS = [...GCC_KEYWORDS, ...LEBANON_KEYWORDS, ...YEMEN_KEYWORDS, ...SYRIA_KEYWORDS, ...IRAQ_KEYWORDS, ...EGYPT_KEYWORDS, ...JORDAN_KEYWORDS];
+      // 4. Filter: must match a regional keyword AND an attack keyword
+      const ALL_REGIONAL_KEYWORDS = [
+        ...GCC_KEYWORDS, ...LEBANON_KEYWORDS, ...YEMEN_KEYWORDS,
+        ...SYRIA_KEYWORDS, ...IRAQ_KEYWORDS, ...EGYPT_KEYWORDS, ...JORDAN_KEYWORDS,
+      ];
+      const combined = [...newsPool, ...gdeltItems];
       const filtered = combined.filter(item => {
-        const lo = item.title.toLowerCase();
+        const lo = (item.title || '').toLowerCase();
         const hasAttack = ATTACK_KEYWORDS.some(k => lo.includes(k));
-        const isRelevant = ALL_REGIONAL_KEYWORDS.some(k => lo.includes(k));
-        return hasAttack && isRelevant;
+        const isRegional = ALL_REGIONAL_KEYWORDS.some(k => lo.includes(k));
+        return hasAttack && isRegional;
       });
 
-      // Deduplicate by title similarity
+      // 5. Smarter deduplication — normalise title before comparing
+      const normalise = (t: string) => t.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
       const seen = new Set<string>();
       const deduped = filtered.filter(item => {
-        const key = item.title.toLowerCase().slice(0, 60);
+        const key = normalise(item.title);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
 
-      const result = deduped.slice(0, 50).map(item => {
+      // 6. Classify, sanitise, sort — cap at 80 items
+      const newsResult = deduped.slice(0, 80).map(item => {
         const { attackType, relevance } = classifyConflictFeedItem(item.title);
         return {
           id: item.id,
           title: sanitizeText(item.title),
           source: item.source,
-          url: item.url,
+          url: item.url || undefined,
           timestamp: item.timestamp,
           attackType,
           relevance,
+          isSiren: false,
         };
-      }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      }).filter(item => item.relevance !== 'general'); // drop unclassified noise
 
-      conflictFeedCache = { data: result, fetchedAt: Date.now() };
-      return res.json(result);
+      // 7. Merge siren events (always at top within their timestamp bucket)
+      const all = [...sirenItems, ...newsResult]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      conflictFeedCache = { data: all, fetchedAt: Date.now() };
+      return res.json(all);
     } catch (err) {
       console.error('[CONFLICT-FEED]', err);
       return res.status(500).json({ error: 'Failed to fetch conflict feed' });
