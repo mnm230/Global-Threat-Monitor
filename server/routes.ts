@@ -3734,62 +3734,78 @@ export async function registerRoutes(
   let rocketStatsCache: { data: RocketStats; fetchedAt: number } | null = null;
   const ROCKET_STATS_CACHE_TTL = 20000;
 
+  // Origin inference — uses accurate group names, not just country labels.
+  // Iran proxy network: Hezbollah (Lebanon), Houthis/Ansar Allah (Yemen), Iraqi Islamic Resistance (Iraq).
   const ORIGIN_INFERENCE_MAP: Record<string, { origin: string; originCountry: string }> = {
-    'Upper Galilee': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Western Galilee': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Galil Elyon': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'HaGalil HaElyon': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Kiryat Shmona': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Nahariya': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Metula': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Safed': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Haifa': { origin: 'Lebanon', originCountry: 'Lebanon' },
-    'Haifa Bay': { origin: 'Lebanon', originCountry: 'Lebanon' },
-    'Acre': { origin: 'South Lebanon', originCountry: 'Lebanon' },
-    'Krayot': { origin: 'Lebanon', originCountry: 'Lebanon' },
-    'Gaza Envelope': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Sderot': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Ashkelon': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Ashdod': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Netivot': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Ofakim': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Eshkol': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Sha\'ar HaNegev': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Sdot Negev': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Hof Ashkelon': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Be\'er Sheva': { origin: 'Gaza', originCountry: 'Palestine' },
-    'Dan': { origin: 'Iran/Proxy', originCountry: 'Iran' },
-    'Tel Aviv': { origin: 'Iran/Yemen', originCountry: 'Iran' },
-    'Gush Dan': { origin: 'Iran/Yemen', originCountry: 'Iran' },
-    'Sharon': { origin: 'Iran/Yemen', originCountry: 'Iran' },
-    'Jerusalem': { origin: 'West Bank/Iran', originCountry: 'Iran' },
-    'Golan Heights': { origin: 'Syria', originCountry: 'Syria' },
-    'Golan': { origin: 'Syria', originCountry: 'Syria' },
-    'Jordan Valley': { origin: 'Iraq/Iran', originCountry: 'Iraq' },
-    'Eilat': { origin: 'Yemen', originCountry: 'Yemen' },
-    'Arava': { origin: 'Yemen', originCountry: 'Yemen' },
-    'Negev': { origin: 'Gaza/Yemen', originCountry: 'Palestine' },
-    'Red Sea': { origin: 'Yemen', originCountry: 'Yemen' },
-    'South Lebanon': { origin: 'Israel', originCountry: 'Israel' },
-    'Beirut': { origin: 'Israel', originCountry: 'Israel' },
-    'Dahieh': { origin: 'Israel', originCountry: 'Israel' },
-    'Tyre': { origin: 'Israel', originCountry: 'Israel' },
-    'Sidon': { origin: 'Israel', originCountry: 'Israel' },
-    'Baalbek': { origin: 'Israel', originCountry: 'Israel' },
-    'Bekaa': { origin: 'Israel', originCountry: 'Israel' },
-    'Nabatieh': { origin: 'Israel', originCountry: 'Israel' },
-    'Damascus': { origin: 'Israel', originCountry: 'Israel' },
-    'Aleppo': { origin: 'Turkey/Coalition', originCountry: 'Turkey' },
-    'Sanaa': { origin: 'US/Coalition', originCountry: 'United States' },
-    'Hodeidah': { origin: 'Israel/US', originCountry: 'Israel' },
-    'Tehran': { origin: 'Israel', originCountry: 'Israel' },
-    'Isfahan': { origin: 'Israel', originCountry: 'Israel' },
-    'Baghdad': { origin: 'US/Coalition', originCountry: 'United States' },
-    'Rafah': { origin: 'Israel', originCountry: 'Israel' },
-    'Khan Younis': { origin: 'Israel', originCountry: 'Israel' },
-    'Gaza City': { origin: 'Israel', originCountry: 'Israel' },
-    'Jabalia': { origin: 'Israel', originCountry: 'Israel' },
-    'Deir al-Balah': { origin: 'Israel', originCountry: 'Israel' },
+    // ── Northern Israel — Hezbollah / Lebanon front ─────────────────────────
+    'Upper Galilee':      { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Western Galilee':    { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Galil Elyon':        { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'HaGalil HaElyon':   { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Kiryat Shmona':      { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Nahariya':           { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Metula':             { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Safed':              { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Haifa':              { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Haifa Bay':          { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Acre':               { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Krayot':             { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Dan':                { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Confrontation Line': { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    'Northern District':  { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
+    // ── Southern Israel — Hamas / PIJ front ────────────────────────────────
+    'Gaza Envelope':      { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Sderot':             { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Ashkelon':           { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Ashdod':             { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Netivot':            { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Ofakim':             { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Eshkol':             { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Sha\'ar HaNegev':  { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Sdot Negev':         { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Hof Ashkelon':       { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    'Be\'er Sheva':     { origin: 'Hamas / PIJ (Gaza)', originCountry: 'Palestine' },
+    // ── Deep strikes — Iran IRGC ballistic missiles + Houthi long-range ─────
+    'Tel Aviv':           { origin: 'Iran IRGC / Houthis (Ballistic)', originCountry: 'Iran' },
+    'Gush Dan':           { origin: 'Iran IRGC / Houthis (Ballistic)', originCountry: 'Iran' },
+    'Sharon':             { origin: 'Iran IRGC / Houthis (Ballistic)', originCountry: 'Iran' },
+    'Jerusalem':          { origin: 'Iran IRGC / Houthis (Ballistic)', originCountry: 'Iran' },
+    'Negev':              { origin: 'Houthis / Ansar Allah (Iran Proxy)', originCountry: 'Yemen' },
+    // ── Southern Israel / Red Sea — Houthis / Ansar Allah ───────────────────
+    'Eilat':              { origin: 'Houthis / Ansar Allah (Iran Proxy)', originCountry: 'Yemen' },
+    'Arava':              { origin: 'Houthis / Ansar Allah (Iran Proxy)', originCountry: 'Yemen' },
+    'Red Sea':            { origin: 'Houthis / Ansar Allah (Iran Proxy)', originCountry: 'Yemen' },
+    // ── Golan / Syria — Iran-backed Syrian militias ──────────────────────────
+    'Golan Heights':      { origin: 'Iran-backed Syrian Militias', originCountry: 'Syria' },
+    'Golan':              { origin: 'Iran-backed Syrian Militias', originCountry: 'Syria' },
+    // ── Jordan Valley — Iraqi Islamic Resistance (Iran proxy) ────────────────
+    'Jordan Valley':      { origin: 'Iraqi Islamic Resistance (Iran Proxy)', originCountry: 'Iraq' },
+    // ── IDF strikes on Lebanese territory ───────────────────────────────────
+    'South Lebanon':      { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Beirut':             { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Dahieh':             { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Tyre':               { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Sidon':              { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Baalbek':            { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Bekaa':              { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Nabatieh':           { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    // ── IDF strikes on Syria ────────────────────────────────────────────────
+    'Damascus':           { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Aleppo':             { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    // ── US-led coalition strikes on Houthi territory (Op. Rough Rider) ───────
+    'Sanaa':              { origin: 'US-led Coalition (Op. Rough Rider)', originCountry: 'United States' },
+    'Hodeidah':           { origin: 'US-led Coalition (Op. Rough Rider)', originCountry: 'United States' },
+    // ── IDF strikes on Iran ─────────────────────────────────────────────────
+    'Tehran':             { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Isfahan':            { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    // ── US strikes on Iraqi militias ─────────────────────────────────────────
+    'Baghdad':            { origin: 'US-led Coalition', originCountry: 'United States' },
+    // ── IDF strikes on Gaza ──────────────────────────────────────────────────
+    'Rafah':              { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Khan Younis':        { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Gaza City':          { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Jabalia':            { origin: 'Israel (IDF)', originCountry: 'Israel' },
+    'Deir al-Balah':      { origin: 'Israel (IDF)', originCountry: 'Israel' },
   };
 
   function inferOrigin(alert: RedAlert): { origin: string; originCountry: string } {
@@ -3808,15 +3824,15 @@ export async function registerRoutes(
 
     if (country === 'Israel') {
       if (alert.threatType === 'hostile_aircraft_intrusion' || alert.threatType === 'uav_intrusion') {
-        return { origin: 'Lebanon/Iran', originCountry: 'Iran' };
+        return { origin: 'Hezbollah / Iran (UAV)', originCountry: 'Lebanon' };
       }
-      return { origin: 'Multi-Front', originCountry: 'Unknown' };
+      return { origin: 'Iran Proxy Network (Multi-Front)', originCountry: 'Iran' };
     }
-    if (country === 'Lebanon') return { origin: 'Israel', originCountry: 'Israel' };
-    if (country === 'Syria') return { origin: 'Israel/Turkey', originCountry: 'Israel' };
-    if (country === 'Yemen') return { origin: 'US/Israel', originCountry: 'United States' };
-    if (country === 'Iran') return { origin: 'Israel', originCountry: 'Israel' };
-    if (country === 'Iraq') return { origin: 'US/Coalition', originCountry: 'United States' };
+    if (country === 'Lebanon') return { origin: 'Israel (IDF)', originCountry: 'Israel' };
+    if (country === 'Syria') return { origin: 'Israel (IDF)', originCountry: 'Israel' };
+    if (country === 'Yemen') return { origin: 'US-led Coalition (Op. Rough Rider)', originCountry: 'United States' };
+    if (country === 'Iran') return { origin: 'Israel (IDF)', originCountry: 'Israel' };
+    if (country === 'Iraq') return { origin: 'US-led Coalition', originCountry: 'United States' };
 
     return { origin: 'Unknown', originCountry: 'Unknown' };
   }
