@@ -107,6 +107,18 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
   const iranLayersRef = useRef(false);
   const heatLayerRef = useRef(false);
   const trajLayerRef = useRef(false);
+  const isVisibleRef = useRef(true);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
   const [activeRegion, setActiveRegion] = useState<string>('all');
@@ -117,6 +129,22 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
   const [filterType, setFilterType] = useState<string | null>(null);
   const [screenWidth, setScreenWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1280);
 
+  const [debouncedAlerts, setDebouncedAlerts] = useState(alerts);
+  const alertFlushTimeRef = useRef(0);
+  useEffect(() => {
+    const elapsed = Date.now() - alertFlushTimeRef.current;
+    if (elapsed >= 1000) {
+      alertFlushTimeRef.current = Date.now();
+      setDebouncedAlerts(alerts);
+      return;
+    }
+    const timer = setTimeout(() => {
+      alertFlushTimeRef.current = Date.now();
+      setDebouncedAlerts(alerts);
+    }, 1000 - elapsed);
+    return () => clearTimeout(timer);
+  }, [alerts]);
+
   useEffect(() => {
     const onResize = () => setScreenWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -126,7 +154,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
 
   const geoJson = useMemo(() => {
     const now = Date.now();
-    const filtered = alerts
+    const filtered = debouncedAlerts
       .filter(a => {
         if (!a.lat || !a.lng) return false;
         if (a.lng < 20.0 || a.lng > 70.0 || a.lat < 6.0 || a.lat > 46.0) return false;
@@ -157,7 +185,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
       };
     });
     return { type: 'FeatureCollection' as const, features };
-  }, [alerts, language, filterType]);
+  }, [debouncedAlerts, language, filterType]);
 
   useEffect(() => { geoJsonRef.current = geoJson; }, [geoJson]);
 
@@ -360,6 +388,7 @@ export default function AlertMap({ alerts, language }: { alerts: RedAlert[]; lan
   }, [mapStyle]);
 
   useEffect(() => {
+    if (!isVisibleRef.current) { geoJsonRef.current = geoJson; return; }
     const map = mapRef.current;
     if (!map || !layersAddedRef.current) return;
     const src = map.getSource('alerts') as any;

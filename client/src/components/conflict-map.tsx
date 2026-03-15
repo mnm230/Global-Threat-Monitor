@@ -372,17 +372,33 @@ export default function ConflictMap({
     }
   }, [mapRetryCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Update source data when props change ──────────────────────────────────
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+  // ── Update source data when props change (throttled ~1s) ────────────────
+  const lastFlushRef = useRef(0);
+  const trailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const activeAlerts = redAlerts.filter(a => a.lat && a.lng);
-    (map.getSource('alerts') as GeoJSONSource | undefined)?.setData(toGFC(activeAlerts));
-    (map.getSource('events') as GeoJSONSource | undefined)?.setData(toGFC(events));
-    (map.getSource('thermal') as GeoJSONSource | undefined)?.setData(
-      toGFC(thermalHotspots.filter(h => h.confidence !== 'low'))
-    );
+  useEffect(() => {
+    const flush = () => {
+      lastFlushRef.current = Date.now();
+      const map = mapRef.current;
+      if (!map || !map.isStyleLoaded()) return;
+      const activeAlerts = redAlerts.filter(a => a.lat && a.lng);
+      (map.getSource('alerts') as GeoJSONSource | undefined)?.setData(toGFC(activeAlerts));
+      (map.getSource('events') as GeoJSONSource | undefined)?.setData(toGFC(events));
+      (map.getSource('thermal') as GeoJSONSource | undefined)?.setData(
+        toGFC(thermalHotspots.filter(h => h.confidence !== 'low'))
+      );
+    };
+
+    if (trailingTimerRef.current) { clearTimeout(trailingTimerRef.current); trailingTimerRef.current = null; }
+    const elapsed = Date.now() - lastFlushRef.current;
+    if (elapsed >= 1000) {
+      flush();
+    } else {
+      trailingTimerRef.current = setTimeout(flush, 1000 - elapsed);
+    }
+    return () => {
+      if (trailingTimerRef.current) { clearTimeout(trailingTimerRef.current); trailingTimerRef.current = null; }
+    };
   }, [redAlerts, events, thermalHotspots]);
 
   // ── Update static sources (bases/nuclear) once ────────────────────────────
@@ -409,26 +425,19 @@ export default function ConflictMap({
     show('nuclear-dots', vis.nuclear);
   }, [vis]);
 
-  // ── Pulsing ring animation ────────────────────────────────────────────────
+  // ── Pulsing ring animation (throttled to ~10fps) ─────────────────────────
   useEffect(() => {
-    let raf: number;
-    const MOBILE_SKIP = 3;
-    let frame = 0;
+    let interval: ReturnType<typeof setInterval> | null = null;
     const tick = () => {
-      frame++;
-      if (isVisibleRef.current) {
-        if (!IS_MOBILE || frame % MOBILE_SKIP === 0) {
-          const map = mapRef.current;
-          if (map && map.isStyleLoaded() && map.getLayer('alerts-ring')) {
-            const alpha = 0.1 + 0.09 * Math.sin(Date.now() / 1000 * 2.4);
-            map.setPaintProperty('alerts-ring', 'circle-opacity', alpha);
-          }
-        }
+      if (!isVisibleRef.current) return;
+      const map = mapRef.current;
+      if (map && map.isStyleLoaded() && map.getLayer('alerts-ring')) {
+        const alpha = 0.1 + 0.09 * Math.sin(Date.now() / 1000 * 2.4);
+        map.setPaintProperty('alerts-ring', 'circle-opacity', alpha);
       }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    interval = setInterval(tick, 100);
+    return () => { if (interval) clearInterval(interval); };
   }, []);
 
   const flyTo = (region: { lng: number; lat: number; zoom: number }) => {

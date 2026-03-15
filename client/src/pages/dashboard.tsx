@@ -98,9 +98,9 @@ import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import { headingToCompass } from '@/lib/dashboard-utils';
 import { AnimatedPanel } from '@/components/shared/animated-panel';
 import { FeedFreshnessContext, PanelHeader, PanelMinimizeButton, PanelMaximizeButton, FreshnessBadge } from '@/components/panels/panel-chrome';
-import { AnalyticsPanel } from '@/components/panels/analytics-panel';
+const AnalyticsPanel = lazy(() => import('@/components/panels/analytics-panel').then(m => ({ default: m.AnalyticsPanel })));
 import { TelegramPanel } from '@/components/panels/telegram-panel';
-import { AIPredictionPanel } from '@/components/panels/ai-prediction-panel';
+const AIPredictionPanel = lazy(() => import('@/components/panels/ai-prediction-panel').then(m => ({ default: m.AIPredictionPanel })));
 import { RocketStatsPanel } from '@/components/panels/rocket-stats-panel';
 import { RedAlertPanel } from '@/components/panels/red-alert-panel';
 import { AttackPredictorPanel } from '@/components/panels/attack-predictor-panel';
@@ -311,12 +311,18 @@ interface SSEData {
 }
 
 function useSSE(): SSEData {
-  const [state, setState] = useState<Omit<SSEData, 'connected' | 'feedFreshness'>>({
-    news: [], commodities: [], events: [], flights: [], ships: [],
-    sirens: [], redAlerts: [], telegramMessages: [],
-    thermalHotspots: [], breakingNews: [],
-    attackPrediction: null, rocketStats: null,
-  });
+  const [news, setNews] = useState<SSEData['news']>([]);
+  const [commodities, setCommodities] = useState<SSEData['commodities']>([]);
+  const [events, setEvents] = useState<SSEData['events']>([]);
+  const [flights, setFlights] = useState<SSEData['flights']>([]);
+  const [ships, setShips] = useState<SSEData['ships']>([]);
+  const [sirens, setSirens] = useState<SSEData['sirens']>([]);
+  const [redAlerts, setRedAlerts] = useState<SSEData['redAlerts']>([]);
+  const [telegramMessages, setTelegramMessages] = useState<SSEData['telegramMessages']>([]);
+  const [thermalHotspots, setThermalHotspots] = useState<SSEData['thermalHotspots']>([]);
+  const [breakingNews, setBreakingNews] = useState<SSEData['breakingNews']>([]);
+  const [attackPrediction, setAttackPrediction] = useState<SSEData['attackPrediction']>(null);
+  const [rocketStats, setRocketStats] = useState<SSEData['rocketStats']>(null);
   const [connected, setConnected] = useState(false);
   const feedFreshnessRef = useRef<FeedFreshness>({});
   const [feedFreshness, setFeedFreshness] = useState<FeedFreshness>({});
@@ -349,7 +355,18 @@ function useSSE(): SSEData {
       const batch = pending.current;
       pending.current = {};
       if (Object.keys(batch).length === 0) return;
-      setState(prev => ({ ...prev, ...batch }));
+      if ('news' in batch) setNews(batch.news!);
+      if ('commodities' in batch) setCommodities(batch.commodities!);
+      if ('events' in batch) setEvents(batch.events!);
+      if ('flights' in batch) setFlights(batch.flights!);
+      if ('ships' in batch) setShips(batch.ships!);
+      if ('sirens' in batch) setSirens(batch.sirens!);
+      if ('redAlerts' in batch) setRedAlerts(batch.redAlerts!);
+      if ('telegramMessages' in batch) setTelegramMessages(batch.telegramMessages!);
+      if ('thermalHotspots' in batch) setThermalHotspots(batch.thermalHotspots!);
+      if ('breakingNews' in batch) setBreakingNews(batch.breakingNews!);
+      if ('attackPrediction' in batch) setAttackPrediction(batch.attackPrediction!);
+      if ('rocketStats' in batch) setRocketStats(batch.rocketStats!);
     });
   }, []);
 
@@ -432,7 +449,13 @@ function useSSE(): SSEData {
     };
   }, [scheduleFlush]);
 
-  return useMemo(() => ({ ...state, connected, feedFreshness }), [state, connected, feedFreshness]);
+  return useMemo(() => ({
+    news, commodities, events, flights, ships,
+    sirens, redAlerts, telegramMessages,
+    thermalHotspots, breakingNews,
+    attackPrediction, rocketStats,
+    connected, feedFreshness,
+  }), [news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected, feedFreshness]);
 }
 
 class PanelErrorBoundary extends Component<{ children: ReactNode; panelName?: string; icon?: ReactNode }, { hasError: boolean }> {
@@ -3142,6 +3165,24 @@ export default function Dashboard() {
     return DEFAULT_GRID_LAYOUT;
   });
 
+  const compactedVisibleLayout = useMemo(() => {
+    const filtered = gridLayout.filter(item => visiblePanels[item.i as PanelId]);
+    const sorted = [...filtered].sort((a, b) => a.y - b.y || a.x - b.x);
+    const cols = 12;
+    const colHeights = new Array(cols).fill(0);
+    return sorted.map(item => {
+      let minY = 0;
+      for (let c = item.x; c < Math.min(item.x + item.w, cols); c++) {
+        minY = Math.max(minY, colHeights[c]);
+      }
+      const compacted = { ...item, y: minY };
+      for (let c = compacted.x; c < Math.min(compacted.x + compacted.w, cols); c++) {
+        colHeights[c] = compacted.y + compacted.h;
+      }
+      return compacted;
+    });
+  }, [gridLayout, visiblePanels]);
+
   const sse = useSSE();
   const { news, commodities, events, flights, ships, sirens, redAlerts, telegramMessages, thermalHotspots, breakingNews, attackPrediction, rocketStats, connected, feedFreshness } = sse;
 
@@ -3455,7 +3496,7 @@ export default function Dashboard() {
     const panel = (() => {
       switch (id) {
         case 'aiprediction':
-          return <AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} />;
+          return <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" /></div>}><AIPredictionPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} alerts={redAlerts} sirens={sirens} flights={flights} telegramMessages={telegramMessages} events={events} commodities={commodities} ships={ships} thermalHotspots={thermalHotspots} /></Suspense>;
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alerts':
@@ -3472,7 +3513,7 @@ export default function Dashboard() {
         case 'alertmap':
           return <AlertMapPanel alerts={redAlerts} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'analytics':
-          return <AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+          return <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" /></div>}><AnalyticsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} /></Suspense>;
         case 'osint':
           return <OsintTimelinePanel alerts={redAlerts} messages={telegramMessages} events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'attackpred':
@@ -3958,7 +3999,7 @@ export default function Dashboard() {
             {/* CSS for always-visible resize handles */}
             <style>{`.react-resizable-handle{opacity:1!important;background-color:rgba(255,255,255,0.12)!important;border-radius:3px;width:14px!important;height:14px!important}.react-resizable-handle::after{border-color:rgba(255,255,255,0.35)!important;border-width:0 2px 2px 0!important;width:6px!important;height:6px!important}.react-resizable-handle:hover{background-color:hsl(32 92% 50% / 0.55)!important}`}</style>
             <RGL
-              layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
+              layout={compactedVisibleLayout}
               cols={12}
               rowHeight={82}
               compactType="vertical"
