@@ -91,6 +91,7 @@ import {
   ArrowRight,
   Flame,
   Download,
+  GripVertical,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 
@@ -686,7 +687,7 @@ const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: string; lab
   aiprediction: { icon: Sparkles, label: 'AI Prediction', labelAr: 'توقعات الذكاء الاصطناعي' },
   telegram: { icon: Send, label: 'Telegram', labelAr: '\u062A\u0644\u063A\u0631\u0627\u0645' },
   events: { icon: AlertTriangle, label: 'Events', labelAr: '\u0623\u062D\u062F\u0627\u062B' },
-  alerts: { icon: AlertOctagon, label: 'IL Alerts', labelAr: 'تحذيرات إسرائيل' },
+  alerts: { icon: AlertOctagon, label: 'Alerts', labelAr: 'تحذيرات إسرائيل' },
   regional: { icon: Globe, label: 'Regional Attacks', labelAr: 'هجمات إقليمية' },
   markets: { icon: BarChart3, label: 'Markets', labelAr: '\u0623\u0633\u0648\u0627\u0642' },
   livefeed: { icon: Video, label: 'Live Feed', labelAr: '\u0628\u062B \u0645\u0628\u0627\u0634\u0631' },
@@ -1202,26 +1203,26 @@ interface LayoutPreset {
 const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, livefeed: 16, events: 22, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, regional: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 16, regional: 16, livefeed: 16, events: 22, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, markets: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, livefeed: 20, events: 22, markets: 30, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, regional: false, markets: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 16, alerts: 26, regional: 26, livefeed: 20, events: 22, markets: 30, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, markets: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, livefeed: 20, events: 25, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, regional: true, markets: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
+    colWidths: { telegram: 16, alerts: 50, regional: 50, livefeed: 20, events: 25, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, markets: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, livefeed: 100, events: 100, markets: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, regional: true, markets: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
+    colWidths: { telegram: 100, alerts: 100, regional: 100, livefeed: 100, events: 100, markets: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
     rowSplit: 50,
   },
 ];
@@ -1230,23 +1231,23 @@ const RGL = WidthProvider(GridLayout);
 
 const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   // Row 1 — Hero: IL Alerts | Regional Attacks | Map | Telegram
-  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 4 },
-  { i: 'regional',     x: 3,  y: 0,  w: 3,  h: 8,  minW: 2, minH: 4 },
-  { i: 'alertmap',     x: 6,  y: 0,  w: 4,  h: 8,  minW: 3, minH: 4 },
-  { i: 'telegram',     x: 10, y: 0,  w: 2,  h: 8,  minW: 2, minH: 3 },
+  { i: 'alerts',       x: 0,  y: 0,  w: 3,  h: 7,  minW: 2, minH: 4 },
+  { i: 'regional',     x: 3,  y: 0,  w: 3,  h: 7,  minW: 2, minH: 4 },
+  { i: 'alertmap',     x: 6,  y: 0,  w: 5,  h: 7,  minW: 3, minH: 4 },
+  { i: 'telegram',     x: 11, y: 0,  w: 1,  h: 7,  minW: 1, minH: 3 },
   // Row 2 — Intel strip: AI | Events | Markets
-  { i: 'aiprediction', x: 0,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'events',       x: 3,  y: 8,  w: 3,  h: 6,  minW: 2, minH: 2 },
-  { i: 'markets',      x: 6,  y: 8,  w: 6,  h: 6,  minW: 2, minH: 2 },
+  { i: 'aiprediction', x: 0,  y: 7,  w: 3,  h: 5,  minW: 2, minH: 3 },
+  { i: 'events',       x: 3,  y: 7,  w: 4,  h: 5,  minW: 2, minH: 3 },
+  { i: 'markets',      x: 7,  y: 7,  w: 5,  h: 5,  minW: 2, minH: 3 },
   // Row 3 — Wide feed
-  { i: 'livefeed',     x: 0,  y: 14, w: 12, h: 4,  minW: 2, minH: 2 },
+  { i: 'livefeed',     x: 0,  y: 12, w: 12, h: 4,  minW: 3, minH: 2 },
   // Row 4 — Analysis pair
-  { i: 'osint',        x: 0,  y: 18, w: 6,  h: 6,  minW: 3, minH: 2 },
-  { i: 'analytics',    x: 6,  y: 18, w: 6,  h: 6,  minW: 2, minH: 2 },
-  // Row 5 — Data pair
-  { i: 'attackpred',   x: 0,  y: 24, w: 12, h: 5,  minW: 2, minH: 3 },
+  { i: 'osint',        x: 0,  y: 16, w: 6,  h: 6,  minW: 3, minH: 3 },
+  { i: 'analytics',    x: 6,  y: 16, w: 6,  h: 6,  minW: 2, minH: 3 },
+  // Row 5 — Attack prediction
+  { i: 'attackpred',   x: 0,  y: 22, w: 12, h: 5,  minW: 3, minH: 3 },
   // Row 6 — Stats
-  { i: 'rocketstats',  x: 0,  y: 29, w: 12, h: 6,  minW: 2, minH: 3 },
+  { i: 'rocketstats',  x: 0,  y: 27, w: 12, h: 6,  minW: 3, minH: 3 },
 ];
 
 const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
@@ -1992,8 +1993,8 @@ const PanelHeader = memo(function PanelHeader({
   const freshness = useContext(FeedFreshnessContext);
   const feedLastUpdate = feedKey ? freshness[feedKey] : undefined;
   return (
-    <div className="panel-drag-handle h-[32px] px-2.5 flex items-center gap-2 shrink-0 cursor-grab active:cursor-grabbing select-none">
-      <span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground/60 shrink-0">{icon}</span>
+    <div className="panel-drag-handle h-[40px] px-2.5 flex items-center gap-1.5 shrink-0 cursor-grab active:cursor-grabbing select-none">
+      <GripVertical className="w-3 h-3 text-muted-foreground/25 shrink-0 -mr-1" /><span className="[&>svg]:w-3.5 [&>svg]:h-3.5 text-muted-foreground/60 shrink-0">{icon}</span>
       <span className="text-[12px] font-extrabold text-foreground/80 leading-none tracking-[.08em] uppercase font-mono">{title}</span>
       {count !== undefined && (
         <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums leading-none font-mono bg-muted/40 px-1.5 py-0.5 rounded-sm">
@@ -3118,7 +3119,7 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               {hasActiveAlerts && <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-red-500 animate-ping opacity-30" />}
             </div>
             <span className={`${isMobile ? 'text-[17px]' : 'text-[15px]'} font-black uppercase tracking-[0.15em] ra-font-mono ${hasActiveAlerts ? 'text-red-400' : 'text-red-500/25'}`}>
-              {language === 'ar' ? 'الإنذارات' : 'ALERTS'}
+              {language === 'ar' ? '🇮🇱 تحذيرات إسرائيل' : '🇮🇱 IL ALERTS'}
             </span>
             {hasActiveAlerts && (
               <div className="flex items-center gap-1.5">
@@ -3194,29 +3195,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               );
             })}
           </div>
-          <div className="flex gap-1 overflow-x-auto px-3 pb-2" style={{ scrollbarWidth: 'none' }}>
-            <button onClick={() => setCountryFilter('ALL')}
-              className="shrink-0 ra-font-mono font-bold text-[10px] px-2 py-1 rounded-sm transition-all active:scale-95"
-              style={{ background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.18)' : 'transparent',
-                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.06)'}`,
-                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.25)', }}
-              data-testid="button-country-filter-all"
-            >ALL {alerts.length}</button>
-            {countryOrder.map(c => {
-              const count = countryCounts[c] || 0;
-              if (!count) return null;
-              const isSelected = countryFilter === c;
-              const color = ACCENT[c] || '#ef4444';
-              return (
-                <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
-                  className="shrink-0 font-bold text-[10px] px-2 py-1 rounded-sm transition-all active:scale-95"
-                  style={{ background: isSelected ? color + '22' : 'transparent',
-                    border: `1px solid ${isSelected ? color + '88' : color + '25'}`,
-                    color: isSelected ? '#fff' : color + 'aa', }}
-                  data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
-                >{FLAG_MAP[c]} {count}</button>
-              );
-            })}
+          <div className="flex items-center gap-1.5 px-3 pb-2">
+            <span className="text-[9px] ra-font-mono font-bold text-red-500/40 uppercase tracking-widest">🇮🇱 Israel Only</span>
           </div>
         </div>
       ) : hasActiveAlerts ? (
@@ -3253,29 +3233,8 @@ const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], languag
               </div>
             </div>
           )}
-          <div className="flex gap-0.5 overflow-x-auto px-2 py-1" style={{ scrollbarWidth: 'none' }}>
-            <button onClick={() => setCountryFilter('ALL')}
-              className="shrink-0 ra-font-mono font-bold text-[10px] px-2 py-0.5 rounded-sm transition-all"
-              style={{ background: countryFilter === 'ALL' ? 'rgba(220,38,38,0.15)' : 'transparent',
-                color: countryFilter === 'ALL' ? '#fca5a5' : 'rgba(255,255,255,0.25)',
-                border: `1px solid ${countryFilter === 'ALL' ? 'rgba(239,68,68,0.3)' : 'transparent'}`, height: 18, display: 'inline-flex', alignItems: 'center' }}
-              data-testid="button-country-filter-all"
-            >ALL</button>
-            {countryOrder.map(c => {
-              const count = countryCounts[c] || 0;
-              if (!count) return null;
-              const isSelected = countryFilter === c;
-              const color = ACCENT[c] || '#ef4444';
-              return (
-                <button key={c} onClick={() => setCountryFilter(isSelected ? 'ALL' : c)}
-                  className="shrink-0 font-bold text-[10px] px-2 py-0.5 rounded-sm transition-all"
-                  style={{ background: isSelected ? color + '18' : 'transparent',
-                    color: isSelected ? '#fff' : color + '88',
-                    border: `1px solid ${isSelected ? color + '55' : 'transparent'}`, height: 18, display: 'inline-flex', alignItems: 'center' }}
-                  data-testid={`button-country-filter-${FLAG_MAP[c] || c}`}
-                >{FLAG_MAP[c]}{count}</button>
-              );
-            })}
+          <div className="flex items-center gap-1.5 px-2 py-1">
+            <span className="text-[9px] ra-font-mono font-bold text-red-500/40 uppercase tracking-widest">🇮🇱 Israel Red Alerts Only</span>
           </div>
         </div>
       ) : null}
@@ -5884,6 +5843,51 @@ function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
 
                   <div>
                     <div className="flex items-center gap-2 mb-2">
+                      <Crosshair className="w-3.5 h-3.5 text-blue-400/70" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">IDF Strikes on Lebanon (Cumulative)</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 mb-2">
+                      {[
+                        { label: 'Airstrikes', value: '6,200+', color: 'text-blue-400', accent: 'hsl(215 90% 60%)', sub: 'Sep 2024 – present' },
+                        { label: 'Hezbollah Sites', value: '1,400+', color: 'text-orange-400', accent: 'hsl(25 95% 53%)', sub: 'Military infrastructure' },
+                        { label: 'Dahieh Strikes', value: '180+', color: 'text-red-400', accent: 'hsl(0 72% 51%)', sub: 'Beirut southern suburb' },
+                        { label: 'Cmd. Eliminated', value: '40+', color: 'text-purple-400', accent: 'hsl(270 60% 60%)', sub: 'Senior Hezbollah officials' },
+                        { label: 'Ground Ops', value: '~45 km²', color: 'text-cyan-400', accent: 'hsl(195 90% 50%)', sub: 'S. Lebanon buffer zone' },
+                        { label: 'IAF Sorties', value: '14,000+', color: 'text-emerald-400', accent: 'hsl(160 84% 39%)', sub: 'Total flown' },
+                      ].map(({ label, value, color, accent, sub }) => (
+                        <div key={label} className="rounded overflow-hidden border border-border/50" style={{borderLeft:`3px solid ${accent}`}}>
+                          <div className="px-2 py-1.5 bg-muted/30">
+                            <div className="text-[8px] text-foreground/40 font-mono tracking-wider leading-none truncate">{label}</div>
+                            <div className={`text-base font-black font-mono leading-tight tabular-nums ${color}`}>{value}</div>
+                            <div className="text-[7px] text-foreground/25 font-mono">{sub}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1.5">
+                      {[
+                        { zone: 'South Lebanon (Ground)', type: 'Ground / Air', detail: 'Buffer zone ops, tunnel clearance' },
+                        { zone: 'Dahieh — Beirut', type: 'Precision Strike', detail: 'Hezbollah command + weapons storage' },
+                        { zone: 'Bekaa Valley', type: 'Airstrike', detail: 'Arms depots, Radwan HQ positions' },
+                        { zone: 'Baalbek–Hermel', type: 'Airstrike', detail: 'IRGC logistics + medium-range launchers' },
+                        { zone: 'Tyre–Sidon Coast', type: 'Naval / Air', detail: 'Port interdiction, coastal launchers' },
+                      ].map(({ zone, type, detail }) => (
+                        <div key={zone} className="flex items-start gap-2 rounded p-2 bg-muted/15 border border-border/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400/80 mt-1 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[9px] font-bold font-mono text-foreground/70 truncate">{zone}</span>
+                              <span className="text-[8px] font-mono text-blue-400/70 shrink-0">{type}</span>
+                            </div>
+                            <div className="text-[8px] font-mono text-foreground/35 mt-0.5">{detail}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
                       <Shield className="w-3.5 h-3.5 text-emerald-400/70" />
                       <span className="text-[10px] font-bold uppercase tracking-wider text-foreground/50 font-mono">Interception Events by Country</span>
                     </div>
@@ -7510,7 +7514,7 @@ function PanelSidebar({
   language: 'en' | 'ar';
   panelStats: Partial<Record<PanelId, string | number>>;
 }) {
-  const topGroup: PanelId[] = ['alerts', 'telegram', 'livefeed', 'aiprediction'];
+  const topGroup: PanelId[] = ['alerts', 'regional', 'telegram', 'livefeed', 'aiprediction'];
   const bottomGroup: PanelId[] = ['events', 'markets', 'alertmap', 'analytics', 'osint', 'attackpred', 'rocketstats'];
 
 
@@ -7520,26 +7524,27 @@ function PanelSidebar({
     const Icon = cfg.icon;
     const active = visiblePanels[id];
     const stat = panelStats[id];
+    const accent = PANEL_ACCENTS[id] || 'hsl(var(--primary))';
     return (
       <button
         key={id}
         onClick={() => active ? closePanel(id) : openPanel(id)}
         className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg relative transition-colors
           ${active
-            ? 'bg-primary/8 text-primary'
+            ? 'text-foreground'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
           }`}
+        style={active ? { background: `color-mix(in srgb, ${accent} 10%, transparent)` } : undefined}
         data-testid={`sidebar-panel-${id}`}
         title={active ? `Hide ${cfg.label}` : `Show ${cfg.label}`}
       >
-        {active && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r bg-primary" />}
-        <Icon className="w-4 h-4 shrink-0 ml-0.5" />
+        {active && <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r" style={{ background: accent }} />}
+        <Icon className="w-4 h-4 shrink-0 ml-0.5" style={active ? { color: accent } : undefined} />
         <span className="text-[13px] font-medium flex-1 text-left leading-none truncate">
           {language === 'en' ? cfg.label : cfg.labelAr}
         </span>
         {stat !== undefined && stat !== '' && (
-          <span className={`text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded-md font-semibold
-            ${active ? 'text-primary bg-primary/10' : 'text-muted-foreground/60 bg-muted'}`}>
+          <span className="text-[10px] tabular-nums shrink-0 px-1.5 py-0.5 rounded-md font-semibold text-muted-foreground/60 bg-muted">
             {stat}
           </span>
         )}
@@ -7705,6 +7710,239 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
         </div>
         <div ref={mapRef} className="absolute inset-0 w-full h-full" data-testid="popup-map-leaflet" />
       </div>
+    </div>
+  );
+}
+
+// ── Regional Attacks Panel — Lebanon, GCC, Yemen, Syria, Iraq, Egypt, Jordan ──
+const REGION_META: Record<string, { label: string; labelAr: string; flag: string; color: string }> = {
+  all:     { label: 'All',     labelAr: 'الكل',       flag: '🌍', color: '#94a3b8' },
+  lebanon: { label: 'Lebanon', labelAr: 'لبنان',      flag: '🇱🇧', color: '#10b981' },
+  yemen:   { label: 'Yemen',   labelAr: 'اليمن',      flag: '🇾🇪', color: '#f43f5e' },
+  gcc:     { label: 'GCC',     labelAr: 'الخليج',     flag: '🛢️', color: '#f59e0b' },
+  syria:   { label: 'Syria',   labelAr: 'سوريا',      flag: '🇸🇾', color: '#a855f7' },
+  iraq:    { label: 'Iraq',    labelAr: 'العراق',     flag: '🇮🇶', color: '#f97316' },
+  egypt:   { label: 'Egypt',   labelAr: 'مصر',        flag: '🇪🇬', color: '#eab308' },
+  jordan:  { label: 'Jordan',  labelAr: 'الأردن',     flag: '🇯🇴', color: '#06b6d4' },
+};
+
+const ATTACK_TYPE_META: Record<string, { icon: string; label: string; color: string }> = {
+  drone:    { icon: '🛸', label: 'Drone/UAV',  color: '#a855f7' },
+  missile:  { icon: '🚀', label: 'Missile',    color: '#ef4444' },
+  rocket:   { icon: '💥', label: 'Rocket',     color: '#f97316' },
+  airstrike:{ icon: '✈️', label: 'Airstrike',  color: '#3b82f6' },
+  naval:    { icon: '⚓', label: 'Naval',      color: '#0ea5e9' },
+  other:    { icon: '⚠️', label: 'Attack',     color: '#94a3b8' },
+};
+
+interface RegionalFeedItem {
+  id: string;
+  title: string;
+  source: string;
+  url?: string;
+  timestamp: string;
+  attackType: string;
+  relevance: string;
+  isSiren?: boolean;
+}
+
+function RegionalAttacksPanel({ language, onClose, onMaximize, isMaximized }: {
+  language: 'en' | 'ar';
+  onClose?: () => void;
+  onMaximize?: () => void;
+  isMaximized?: boolean;
+}) {
+  const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [items, setItems] = useState<RegionalFeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [error, setError] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/live-conflict-feed');
+      if (!res.ok) throw new Error('fetch failed');
+      const data: RegionalFeedItem[] = await res.json();
+      setItems(data);
+      setLastUpdate(new Date());
+      setError(false);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const iv = setInterval(fetchData, 30_000);
+    return () => clearInterval(iv);
+  }, [fetchData]);
+
+  const filtered = useMemo(() => {
+    const base = regionFilter === 'all' ? items : items.filter(item => item.relevance === regionFilter || item.relevance === 'both');
+    // siren items always float to the top
+    return [...base].sort((a, b) => (b.isSiren ? 1 : 0) - (a.isSiren ? 1 : 0));
+  }, [items, regionFilter]);
+
+  const regionCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: items.length };
+    items.forEach(item => {
+      const r = item.relevance;
+      if (r && r !== 'general') {
+        counts[r] = (counts[r] || 0) + 1;
+        if (r === 'both') {
+          counts['lebanon'] = (counts['lebanon'] || 0) + 1;
+          counts['gcc'] = (counts['gcc'] || 0) + 1;
+        }
+      }
+    });
+    return counts;
+  }, [items]);
+
+  const fmtAge = (ts: string) => {
+    const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    return `${Math.floor(diff / 3600)}h`;
+  };
+
+  const t = (en: string, ar: string) => language === 'ar' ? ar : en;
+
+  return (
+    <div className="h-full flex flex-col min-h-0" data-testid="regional-attacks-panel">
+      {/* Header */}
+      <div className="shrink-0 panel-drag-handle cursor-grab active:cursor-grabbing select-none px-3 py-2"
+        style={{ borderBottom: '1px solid rgba(16,185,129,0.18)', background: 'linear-gradient(180deg, rgba(6,78,59,0.18) 0%, transparent 100%)' }}>
+        <div className="flex items-center gap-2">
+          <div className="relative shrink-0">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-25" />
+          </div>
+          <Globe className="w-3.5 h-3.5 text-emerald-500/70 shrink-0" />
+          <span className="text-[13px] font-black uppercase tracking-[0.12em] font-mono text-emerald-400">
+            {t('REGIONAL ATTACKS', 'هجمات إقليمية')}
+          </span>
+          <div className="flex items-center gap-1 ml-1">
+            <span className="text-[12px] font-black text-white px-1.5 py-px rounded-sm font-mono"
+              style={{ background: items.length > 0 ? '#059669' : 'rgba(255,255,255,0.06)', boxShadow: items.length > 0 ? '0 0 8px rgba(16,185,129,0.3)' : 'none' }}>
+              {filtered.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            {lastUpdate && (
+              <span className="text-[9px] font-mono text-foreground/25">{fmtAge(lastUpdate.toISOString())} ago</span>
+            )}
+            {loading && <Loader2 className="w-3 h-3 text-emerald-500/40 animate-spin" />}
+            {onMaximize && <PanelMaximizeButton isMaximized={!!isMaximized} onToggle={onMaximize} />}
+            {onClose && <PanelMinimizeButton onMinimize={onClose} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Region filter tabs */}
+      <div className="shrink-0 flex overflow-x-auto gap-px px-2 py-1.5"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.12)', scrollbarWidth: 'none' }}>
+        {Object.entries(REGION_META).map(([key, meta]) => {
+          const count = regionCounts[key] || 0;
+          if (key !== 'all' && count === 0) return null;
+          const isActive = regionFilter === key;
+          return (
+            <button key={key} onClick={() => setRegionFilter(key)}
+              className="shrink-0 font-bold font-mono text-[10px] px-2 py-1 rounded-sm transition-all"
+              style={{
+                background: isActive ? meta.color + '22' : 'transparent',
+                border: `1px solid ${isActive ? meta.color + '66' : 'rgba(255,255,255,0.06)'}`,
+                color: isActive ? meta.color : 'rgba(255,255,255,0.30)',
+              }}
+            >{meta.flag} {language === 'ar' ? meta.labelAr : meta.label}{key !== 'all' ? ` ${count}` : ''}</button>
+          );
+        })}
+      </div>
+
+      {/* Feed */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-1.5 flex flex-col gap-1">
+          {loading && !items.length ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-3">
+              <Loader2 className="w-6 h-6 text-emerald-500/40 animate-spin" />
+              <span className="text-[11px] font-mono text-foreground/30">{t('Loading regional data...', 'جاري التحميل...')}</span>
+            </div>
+          ) : error && !items.length ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <AlertTriangle className="w-6 h-6 text-amber-500/40" />
+              <span className="text-[11px] font-mono text-foreground/30">{t('Data unavailable', 'البيانات غير متاحة')}</span>
+              <button onClick={fetchData} className="text-[10px] font-mono text-emerald-500/60 hover:text-emerald-400 transition-colors">retry</button>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-2">
+              <Globe className="w-6 h-6 text-foreground/15" />
+              <span className="text-[11px] font-mono text-foreground/25">{t('No recent incidents', 'لا توجد حوادث حديثة')}</span>
+            </div>
+          ) : (
+            filtered.map(item => {
+              const atMeta = ATTACK_TYPE_META[item.attackType] || ATTACK_TYPE_META.other;
+              const regMeta = REGION_META[item.relevance === 'both' ? 'lebanon' : item.relevance] || REGION_META.all;
+              const isSiren = !!item.isSiren;
+              return (
+                <div key={item.id}
+                  className="rounded-sm px-2 py-1.5 transition-colors hover:bg-white/[0.04]"
+                  style={isSiren ? {
+                    background: 'rgba(239,68,68,0.07)',
+                    border: '1px solid rgba(239,68,68,0.28)',
+                    boxShadow: '0 0 8px rgba(239,68,68,0.10)',
+                  } : {
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}>
+                  <div className="flex items-start gap-1.5">
+                    <span className="shrink-0 text-[12px] mt-px">{isSiren ? '🚨' : atMeta.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 flex-wrap mb-0.5">
+                        {isSiren && (
+                          <span className="text-[9px] font-black font-mono px-1.5 py-px rounded-sm animate-pulse"
+                            style={{ background: 'rgba(239,68,68,0.20)', color: '#f87171', border: '1px solid rgba(239,68,68,0.45)', letterSpacing: '0.08em' }}>
+                            🚨 {language === 'ar' ? 'صفارة حية' : 'LIVE SIREN'}
+                          </span>
+                        )}
+                        <span className="text-[9px] font-bold font-mono px-1 py-px rounded-sm"
+                          style={{ background: regMeta.color + '22', color: regMeta.color, border: `1px solid ${regMeta.color}44` }}>
+                          {regMeta.flag} {language === 'ar' ? regMeta.labelAr : regMeta.label}
+                        </span>
+                        {!isSiren && (
+                          <span className="text-[9px] font-mono px-1 py-px rounded-sm"
+                            style={{ background: atMeta.color + '18', color: atMeta.color + 'cc', border: `1px solid ${atMeta.color}33` }}>
+                            {atMeta.label}
+                          </span>
+                        )}
+                        {item.relevance === 'both' && (
+                          <span className="text-[9px] font-mono px-1 py-px rounded-sm"
+                            style={{ background: '#f59e0b22', color: '#f59e0b', border: '1px solid #f59e0b44' }}>
+                            🛢️ {language === 'ar' ? 'الخليج' : 'GCC'}
+                          </span>
+                        )}
+                      </div>
+                      {item.url ? (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer"
+                          className={`text-[11px] font-medium leading-snug block transition-colors hover:text-foreground ${isSiren ? 'text-red-300/90' : 'text-foreground/75'}`}>
+                          {item.title}
+                        </a>
+                      ) : (
+                        <p className={`text-[11px] font-medium leading-snug ${isSiren ? 'text-red-300/90' : 'text-foreground/75'}`}>{item.title}</p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[9px] font-mono text-foreground/30">{item.source}</span>
+                        <span className="text-[9px] text-foreground/20">·</span>
+                        <span className="text-[9px] font-mono text-foreground/25">{fmtAge(item.timestamp)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -8105,7 +8343,7 @@ export default function Dashboard() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWidths: Record<PanelId, number> = {
-    telegram: 16, alertmap: 36, alerts: 16, livefeed: 16,
+    telegram: 16, alertmap: 36, alerts: 16, regional: 16, livefeed: 16,
     events: 22, markets: 28,
     analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28,
   };
@@ -8221,7 +8459,10 @@ export default function Dashboard() {
         case 'events':
           return <ConflictEventsPanel events={events} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
         case 'alerts':
-          return <RedAlertPanel alerts={redAlerts} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
+          return <RedAlertPanel alerts={redAlerts.filter(a => !a.country || a.country === 'Israel')} sirens={sirens} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} onShowHistory={() => setShowAlertHistory(true)} />;
+        case 'regional':
+          return <RegionalAttacksPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
+
         case 'telegram':
           return <TelegramPanel messages={telegramMessages} language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} soundEnabled={soundEnabled} silentMode={settings.silentMode} volume={settings.volume} />;
         case 'markets':
@@ -8386,8 +8627,8 @@ export default function Dashboard() {
             closePanel={closePanel}
             language={language}
             panelStats={{
-
-              alerts: redAlerts.length > 0 ? `${redAlerts.length} ACTIVE` : '',
+              alerts: redAlerts.filter(a => !a.country || a.country === 'Israel').length > 0 ? `${redAlerts.filter(a => !a.country || a.country === 'Israel').length} IL` : '',
+              regional: 'LIVE',
               telegram: telegramMessages.length > 0 ? `${telegramMessages.length}` : '',
               livefeed: '',
               events: events.length > 0 ? `${events.length}` : '',
@@ -8501,26 +8742,26 @@ export default function Dashboard() {
             {/* Tab bar — hidden when alerts panel is full-screen; replaced by floating nav */}
             {mobileActivePanel !== 'alerts' ? (
               <div className="shrink-0 border-t border-border flex items-center warroom-mobile-tabs" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }} data-testid="mobile-tab-bar">
-                {(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).map(id => {
+                {(SWIPE_TABS).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
                   const isActive = mobileActivePanel === id;
                   const hasAlert = id === 'alerts' && redAlerts.length > 0;
                   const hasTelegram = id === 'telegram' && telegramMessages.length > 0;
-                  const isAI = id === 'aiprediction';
+                  const isRegional = id === 'regional';
                   return (
                     <button
                       key={id}
                       onClick={() => { setMobileActivePanel(id); setShowMobilePanelPicker(false); }}
-                      className={`flex-1 min-w-[52px] min-h-[56px] py-2 flex flex-col items-center gap-1.5 transition-all relative ${isActive ? (isAI ? 'text-violet-400' : 'text-primary') : 'text-foreground/30 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
+                      className={`flex-1 min-w-[44px] min-h-[56px] py-1.5 flex flex-col items-center gap-1 transition-all relative ${isActive ? (isRegional ? 'text-emerald-400' : 'text-primary') : 'text-foreground/30 active:text-foreground/60'} ${hasAlert && !isActive ? 'text-red-400' : ''}`}
                       style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                       data-testid={`mobile-tab-${id}`}
                     >
-                      {isActive && <div className={`absolute top-0 left-2 right-2 h-[2px] rounded-b ${isAI ? 'bg-violet-500' : 'bg-primary'}`} />}
-                      <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-105' : ''}`} />
-                      <span className={`text-[10px] font-medium transition-colors ${isActive ? (isAI ? 'text-violet-600' : 'text-primary') : 'text-muted-foreground'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
-                      {hasAlert && <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
-                      {hasTelegram && !isActive && <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-cyan-400 rounded-full" />}
+                      {isActive && <div className={`absolute top-0 left-1 right-1 h-[2px] rounded-b ${isRegional ? 'bg-emerald-500' : 'bg-primary'}`} />}
+                      <Icon className={`w-[18px] h-[18px] transition-transform ${isActive ? 'scale-105' : ''}`} />
+                      <span className={`text-[8px] font-medium transition-colors leading-tight text-center ${isActive ? (isRegional ? 'text-emerald-400' : 'text-primary') : 'text-muted-foreground'}`}>{language === 'ar' ? cfg.labelAr : cfg.label}</span>
+                      {hasAlert && <div className="absolute top-1.5 right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
+                      {hasTelegram && !isActive && <div className="absolute top-1.5 right-1 w-1.5 h-1.5 bg-cyan-400 rounded-full" />}
                     </button>
                   );
                 })}
@@ -8546,12 +8787,12 @@ export default function Dashboard() {
                 }}
                 data-testid="mobile-tab-bar"
               >
-                {(['alertmap', 'telegram', 'events', 'aiprediction'] as PanelId[]).map(id => {
+                {(['alertmap', 'regional', 'telegram', 'events'] as PanelId[]).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
                   const hasTelegram = id === 'telegram' && telegramMessages.length > 0;
-                  const isAI = id === 'aiprediction';
-                  const iconColor = isAI ? 'rgba(167,139,250,0.55)' : 'rgba(255,255,255,0.28)';
+                  const isRegional = id === 'regional';
+                  const iconColor = isRegional ? 'rgba(52,211,153,0.55)' : 'rgba(255,255,255,0.28)';
                   return (
                     <button
                       key={id}
@@ -8614,7 +8855,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="grid grid-cols-4 gap-2.5 p-3">
-                {allPanels.filter(id => !(['alertmap', 'alerts', 'telegram', 'events', 'aiprediction'] as PanelId[]).includes(id)).map(id => {
+                {allPanels.filter(id => !(SWIPE_TABS as PanelId[]).includes(id)).map(id => {
                   const cfg = PANEL_CONFIG[id];
                   const Icon = cfg.icon;
                   const count = 0;
@@ -8647,7 +8888,7 @@ export default function Dashboard() {
             }}
           >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
-              const isWide = id === 'alertmap' || id === 'alerts';
+              const isWide = id === 'alertmap';
               const mapH = isLandscape ? '440px' : '500px';
               const alertsH = isLandscape ? '340px' : '400px';
               const alertmapH = isLandscape ? '420px' : '480px';
@@ -8705,18 +8946,18 @@ export default function Dashboard() {
               Drop here to dock
             </div>
             {/* CSS for always-visible resize handles */}
-            <style>{`.react-resizable-handle{opacity:1!important;background-color:rgba(255,255,255,0.08)!important;border-radius:4px}.react-resizable-handle:hover{background-color:hsl(32 92% 50% / 0.35)!important}`}</style>
+            <style>{`.react-resizable-handle{opacity:1!important;background-color:rgba(255,255,255,0.12)!important;border-radius:3px;width:14px!important;height:14px!important}.react-resizable-handle::after{border-color:rgba(255,255,255,0.35)!important;border-width:0 2px 2px 0!important;width:6px!important;height:6px!important}.react-resizable-handle:hover{background-color:hsl(32 92% 50% / 0.55)!important}`}</style>
             <RGL
               layout={gridLayout.filter(item => visiblePanels[item.i as PanelId])}
               cols={12}
-              rowHeight={86}
+              rowHeight={82}
               compactType="vertical"
               onLayoutChange={handleGridLayoutChange}
               draggableHandle=".panel-drag-handle"
               draggableCancel="button,input,select,textarea,a,[data-no-drag],canvas,.maplibregl-canvas,.maplibregl-canvas-container,#deck-canvas"
-              margin={[6, 6]}
-              containerPadding={[4, 4]}
-              resizeHandles={['se', 'e', 's', 'sw', 'n']}
+              margin={[8, 8]}
+              containerPadding={[6, 6]}
+              resizeHandles={['se', 'e', 's', 'sw', 'w', 'n', 'ne', 'nw']}
               style={{ paddingBottom: 80 }}
             >
             {allPanels.filter(id => visiblePanels[id]).map(id => {
