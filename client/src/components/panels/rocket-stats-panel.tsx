@@ -3,6 +3,7 @@ import {
   AlertTriangle, Crosshair, Download, ExternalLink, Flame, Globe, Loader2, Radio, Rocket, Shield, Target, Zap, ArrowRight,
 } from 'lucide-react';
 import { PanelHeader } from '@/components/panels/panel-chrome';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import type { RocketStats, RocketCorridor } from '@shared/schema';
 
 export function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, stats }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; stats: RocketStats | null }) {
@@ -140,7 +141,8 @@ export function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, s
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0 p-2 space-y-2" style={{background:'hsl(var(--background))'}}>
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="p-2 space-y-2" style={{background:'hsl(var(--background))'}}>
         {!stats && activeTab !== 'live' ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-5 h-5 animate-spin text-primary/50" />
@@ -468,7 +470,8 @@ export function RocketStatsPanel({ language, onClose, onMaximize, isMaximized, s
             )}
           </div>
         )}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 }

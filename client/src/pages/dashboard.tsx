@@ -3905,6 +3905,7 @@ export default function Dashboard() {
               return (
                 <div
                   key={id}
+                  className="panel-enter"
                   style={{
                     gridColumn: isWide ? `1 / -1` : undefined,
                     minHeight: id === 'alerts' ? alertsH : id === 'alertmap' ? alertmapH : defaultH,
@@ -4005,10 +4006,19 @@ export default function Dashboard() {
                       >Dock</button>
                     </div>
                   ) : !readyPanels.has(id) ? (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: 0.4 }}>
-                      {Icon && <Icon style={{ width: 18, height: 18 }} />}
-                      <span style={{ fontSize: 11, fontWeight: 500, color: 'hsl(var(--muted-foreground))' }}>{PANEL_CONFIG[id]?.label || id}</span>
-                      <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid hsl(20 8% 12%)' }}>
+                        {Icon && <Icon style={{ width: 14, height: 14, color: 'hsl(var(--muted-foreground) / 0.25)' }} />}
+                        <div style={{ height: 8, width: 80, borderRadius: 4, background: 'hsl(var(--muted-foreground) / 0.08)' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                        <div className="skeleton-line" style={{ height: 10, width: '90%', borderRadius: 4, background: 'hsl(var(--muted-foreground) / 0.06)' }} />
+                        <div className="skeleton-line" style={{ height: 10, width: '70%', borderRadius: 4, background: 'hsl(var(--muted-foreground) / 0.05)' }} />
+                        <div className="skeleton-line" style={{ height: 10, width: '55%', borderRadius: 4, background: 'hsl(var(--muted-foreground) / 0.04)' }} />
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite', color: 'hsl(var(--muted-foreground) / 0.2)' }} />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -4025,7 +4035,9 @@ export default function Dashboard() {
                         </button>
                       )}
                       <PanelErrorBoundary panelName={PANEL_CONFIG[id]?.label || id}>
-                        {renderPanel(id)}
+                        <div className="panel-enter flex flex-col flex-1 min-h-0">
+                          {renderPanel(id)}
+                        </div>
                       </PanelErrorBoundary>
                     </>
                   )}

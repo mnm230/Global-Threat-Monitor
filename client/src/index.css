@@ -203,19 +203,29 @@
    PANEL ANIMATIONS & SCROLL UTILITIES
    ════════════════════════════════════════════════════════════════ */
 
-/* Panel mount animation */
+/* Panel mount animation — opacity only to avoid transform conflicts with RGL */
 @keyframes panel-enter {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes panel-exit {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 .panel-enter {
-  animation: panel-enter 200ms ease forwards;
+  animation: panel-enter 250ms ease forwards;
+}
+
+/* Skeleton shimmer */
+@keyframes skeleton-shimmer {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+.skeleton-line {
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 /* Momentum scrolling for touch devices */

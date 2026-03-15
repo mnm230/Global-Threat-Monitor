@@ -4,7 +4,7 @@ import {
   Globe, AlertTriangle, Flame, Shield, MapPin, Clock, Loader2,
   ChevronRight, Target, Zap, Radio,
 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import { PanelHeader, PanelMinimizeButton, PanelMaximizeButton } from '@/components/panels/panel-chrome';
 import { timeAgo } from '@/lib/dashboard-utils';
 
@@ -163,7 +163,7 @@ export function RegionalAttacksPanel({ language, onClose, onMaximize, isMaximize
       </div>
 
       {/* Feed */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollShadow className="flex-1 min-h-0">
         <div className="p-1.5 flex flex-col gap-1">
           {loading && !items.length ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
@@ -256,7 +256,7 @@ export function RegionalAttacksPanel({ language, onClose, onMaximize, isMaximize
             })
           )}
         </div>
-      </ScrollArea>
+      </ScrollShadow>
     </div>
   );
 }

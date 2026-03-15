@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
 import { PanelHeader } from '@/components/panels/panel-chrome';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import type { AttackPrediction } from '@/lib/dashboard-types';
 import type {
   RedAlert, SirenAlert, FlightData, TelegramMessage,
@@ -108,7 +109,8 @@ export function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, 
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <ScrollShadow className="flex-1 min-h-0">
+        <div>
         {!prediction ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
             <div className="relative">
@@ -697,7 +699,8 @@ export function AIPredictionPanel({ language, onClose, onMaximize, isMaximized, 
             })()}
           </>
         )}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 }

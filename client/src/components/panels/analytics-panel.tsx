@@ -4,7 +4,7 @@ import {
   BarChart3, Activity, Rocket, Shield, Sparkles, TrendingUp, AlertTriangle,
   Crosshair, Brain, Download, Loader2, Zap,
 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PanelHeader, FeedFreshnessContext } from '@/components/panels/panel-chrome';
 import { timeAgo } from '@/lib/dashboard-utils';
@@ -544,7 +544,7 @@ export function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
         ))}
       </div>
 
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollShadow className="flex-1 min-h-0">
         <div className="p-3 space-y-4">
           {!analytics ? (
             <div className="py-8 text-center"><Loader2 className="w-5 h-5 text-primary/40 animate-spin mx-auto" /></div>
@@ -1306,7 +1306,7 @@ export function AnalyticsPanel({ language, onClose, onMaximize, isMaximized }: {
             </TooltipProvider>
           )}
         </div>
-      </ScrollArea>
+      </ScrollShadow>
     </div>
   );
 }

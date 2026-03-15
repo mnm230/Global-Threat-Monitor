@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import {
   Ship, Anchor, AlertTriangle, Globe, MapPin, Clock, ChevronDown, ChevronRight, Navigation, Eye, X,
 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { PanelHeader } from '@/components/panels/panel-chrome';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import { timeAgo, headingToCompass } from '@/lib/dashboard-utils';
 import type { ShipData } from '@shared/schema';
 
@@ -71,7 +71,8 @@ export function MaritimePanel({ ships, language, onClose, onMaximize, isMaximize
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="divide-y divide-border">
         {sorted.map((s) => {
           const style = SHIP_TYPE_STYLES[s.type] || SHIP_TYPE_STYLES.cargo;
           const isSelected = selectedShip?.id === s.id;
@@ -111,7 +112,8 @@ export function MaritimePanel({ ships, language, onClose, onMaximize, isMaximize
             </div>
           );
         })}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 }

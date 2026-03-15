@@ -4,8 +4,8 @@ import {
   Clock, ExternalLink, Hash, Plus, Search, Settings, Trash2, X, BarChart3, Activity,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { PanelHeader } from '@/components/panels/panel-chrome';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import { timeAgo } from '@/lib/dashboard-utils';
 import type { TelegramMessage } from '@shared/schema';
 
@@ -371,7 +371,7 @@ export const TelegramPanel = memo(function TelegramPanel({
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollShadow className="flex-1 min-h-0">
             <div className="p-2 space-y-1.5">
               <div ref={topRef} />
               {displayMessages.length === 0 && (
@@ -499,13 +499,13 @@ export const TelegramPanel = memo(function TelegramPanel({
                 );
               })}
             </div>
-          </ScrollArea>
+          </ScrollShadow>
         </>
       )}
 
       {/* ── STATS TAB ────────────────────────────────────────────────────────── */}
       {telegramTab === 'stats' && (
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollShadow className="flex-1 min-h-0">
           <div className="p-3 space-y-4">
             {/* Summary KPIs */}
             <div className="grid grid-cols-3 gap-1.5">
@@ -595,12 +595,12 @@ export const TelegramPanel = memo(function TelegramPanel({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </ScrollShadow>
       )}
 
       {/* ── CHANNELS TAB ─────────────────────────────────────────────────────── */}
       {telegramTab === 'channels' && (
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollShadow className="flex-1 min-h-0">
           <div className="p-3 space-y-3">
             {/* Add channel form always visible here */}
             <div className="rounded border border-sky-800/25 bg-sky-950/15 p-2.5 space-y-2">
@@ -702,7 +702,7 @@ export const TelegramPanel = memo(function TelegramPanel({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </ScrollShadow>
       )}
     </div>
   );

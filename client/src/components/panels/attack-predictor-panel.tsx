@@ -3,6 +3,7 @@ import {
   AlertTriangle, Brain, ChevronDown, ChevronRight, Crosshair, Globe, Loader2, MapPin, Shield, Sparkles, Target, TrendingUp, Zap, Plane, ShieldAlert, Clock, Activity, TrendingDown,
 } from 'lucide-react';
 import { PanelHeader } from '@/components/panels/panel-chrome';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
 import type { AttackPrediction } from '@/lib/dashboard-types';
 
 export function AttackPredictorPanel({ language, onClose, onMaximize, isMaximized, prediction }: { language: 'en' | 'ar'; onClose?: () => void; onMaximize?: () => void; isMaximized?: boolean; prediction: AttackPrediction | null }) {
@@ -57,7 +58,8 @@ export function AttackPredictorPanel({ language, onClose, onMaximize, isMaximize
         }
       />
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2.5 min-h-0">
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="px-3 py-2 space-y-2.5">
         {!prediction ? (
           <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-2">
@@ -235,7 +237,8 @@ export function AttackPredictorPanel({ language, onClose, onMaximize, isMaximize
             </div>
           </>
         )}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 }
