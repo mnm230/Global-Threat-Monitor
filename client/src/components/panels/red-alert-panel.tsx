@@ -424,10 +424,10 @@ export const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], 
                                 onClick={(e) => e.stopPropagation()} data-testid={`tg-source-${alert.id}`}
                               >TG</a>
                             )}
-                            <span className="text-[8px] ra-font-mono text-white/15">{timeAgo(alert.timestamp)}</span>
                           </span>
                         </div>
                       </div>
+                      <span className="text-[8px] ra-font-mono text-white/15 shrink-0 whitespace-nowrap tabular-nums" style={{ minWidth: 20 }}>{timeAgo(alert.timestamp)}</span>
                     </div>
                   </div>
                 );
@@ -474,8 +474,8 @@ export const RedAlertPanel = memo(function RedAlertPanel({ alerts, sirens = [], 
                         TG
                       </a>
                     )}
-                    <span className="text-[9px] ra-font-mono text-white/15 shrink-0 tabular-nums">{timeAgo(alert.timestamp)}</span>
                   </div>
+                  <span className="text-[9px] ra-font-mono text-white/15 shrink-0 tabular-nums whitespace-nowrap" style={{ minWidth: 24 }}>{timeAgo(alert.timestamp)}</span>
                 </div>
               );
             })}
