@@ -14,7 +14,7 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 - **Typography:** Fira Sans for display/body, Fira Mono for data readouts and panel headers, with compact font sizes (13px base) for maximum information density. Google Fonts loads Fira Sans + Fira Mono.
 - **Clocks:** Displays both UTC and Lebanon/Beirut time with timezone labels.
 - **Responsiveness:** Adaptive layouts for mobile, tablet, and desktop, with specific UI adjustments for each, including single-panel views for mobile and CSS grid layouts for tablets.
-- **Panel System:** Features customizable, resizable panels (`telegram`, `events`, `alerts`, `markets`, `livefeed`, `alertmap`, `analytics`, `osint`, `attackpred`, `rocketstats`, `aiprediction`) within a React-grid-layout. Internet Monitor (netblack) and NOTAM panels removed.
+- **Panel System:** Features customizable, resizable panels within a React-grid-layout. Each panel is extracted into its own file under `client/src/components/panels/` (13 panel files), with `dashboard.tsx` serving as the orchestrator (~4,100 lines) handling SSE data, grid layout, and panel routing. Shared panel UI (PanelHeader, FreshnessBadge, PanelMinimizeButton, PanelMaximizeButton, FeedFreshnessContext) lives in `panel-chrome.tsx`. Shared utilities (timeAgo, headingToCompass, formatPrice) live in `client/src/lib/dashboard-utils.ts`. Shared types in `client/src/lib/dashboard-types.ts`.
 - **Alert Map:** Full-width panel leveraging MapLibre GL with responsive overlays for different screen sizes and a red alert heatmap visualization.
 
 **Technical Implementations:**
