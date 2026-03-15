@@ -1,4 +1,4 @@
-import type { CommodityData, WARROOMSettings, DEFAULT_SETTINGS as DS } from './dashboard-types';
+import type { CommodityData, WARROOMSettings } from './dashboard-types';
 import type { ConflictEvent, FlightData, ShipData, RedAlert, SirenAlert } from '@shared/schema';
 
 export function escHtml(str: string): string {
