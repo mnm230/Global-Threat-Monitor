@@ -10,26 +10,20 @@ export function useEscalation(
   notificationsEnabled: boolean,
 ): EscalationState {
   const WINDOW_MS = 60_000;
+  const seenIds = useRef<Set<string>>(new Set());
   const tsLog = useRef<number[]>([]);
   const prevLevel = useRef<EscalationState['level']>(null);
-  const initialized = useRef(false);
   const [state, setState] = useState<EscalationState>({ level: null, count: 0, rate: 0 });
 
   useEffect(() => {
     const now = Date.now();
 
-    if (!initialized.current) {
-      initialized.current = true;
-      alerts.forEach(a => {
-        const t = new Date(a.timestamp).getTime();
-        if (t > now - WINDOW_MS) tsLog.current.push(t);
-      });
-    } else {
-      alerts.forEach(a => {
-        const t = new Date(a.timestamp).getTime();
-        if (t > now - WINDOW_MS) tsLog.current.push(t);
-      });
-    }
+    alerts.forEach(a => {
+      if (seenIds.current.has(a.id)) return;
+      seenIds.current.add(a.id);
+      const t = new Date(a.timestamp).getTime();
+      if (t > now - WINDOW_MS) tsLog.current.push(t);
+    });
 
     tsLog.current = tsLog.current.filter(t => t > now - WINDOW_MS);
     const count = tsLog.current.length;
