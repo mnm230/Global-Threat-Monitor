@@ -181,9 +181,192 @@ export default function WarmEmberPage() {
     ? tickerItems.join("   ·   ")
     : "NO ACTIVE ALERTS — MONITORING OPERATIONAL — ALL SYSTEMS NOMINAL";
 
+  // ── Shared panel content fragments ──────────────────────────────────────────
+
+  const statItems = [
+    { label: "Active Alerts", value: redAlerts.length, icon: ShieldAlert, color: "#c75050" },
+    { label: "Conflict Events", value: events.length, icon: Zap, color: "#f97316" },
+    { label: "Mil. Flights", value: milFlights.length, icon: Radio, color: "#d4a574" },
+    { label: "SIGINT Msgs", value: telegram.length, icon: Terminal, color: "#c88b4a" },
+  ];
+
+  const StatBar = () => (
+    <div className="grid grid-cols-4 gap-0 divide-x divide-[#d4a574]/5">
+      {statItems.map(({ label, value, icon: Icon, color }) => (
+        <div key={label} className="flex flex-col items-center justify-center py-3 gap-1">
+          <Icon size={14} style={{ color }} className="opacity-70" />
+          <div className="text-xl font-semibold" style={{ color }}>{value}</div>
+          <div className="text-[10px] text-[#8c7a6b] uppercase tracking-wider text-center leading-tight">{label}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const AlertsContent = () => (
+    <>
+      <div className="h-12 border-b border-[#c75050]/10 bg-[#1a1512] flex items-center px-5 justify-between rounded-t-xl shrink-0">
+        <div className="flex items-center gap-2 text-[#c75050]">
+          <ShieldAlert size={16} className="opacity-80" />
+          <span className="font-medium text-sm">Active Alerts</span>
+        </div>
+        <span className="text-xs text-[#8c7a6b] bg-[#16120f] px-2 py-1 rounded-md border border-[#c75050]/10">
+          {redAlerts.length} EVENTS
+        </span>
+      </div>
+      <div className="flex-1 p-3 space-y-2 overflow-y-auto scroll-hide bg-[#16120f]/20">
+        {redAlerts.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
+            No active alerts
+          </div>
+        ) : (
+          redAlerts.slice(0, 12).map((a) => (
+            <div
+              key={a.id}
+              className="bg-[#1a1512] border border-[#c75050]/15 p-3 rounded-lg flex flex-col gap-1.5 hover:border-[#c75050]/30 transition-all shadow-sm"
+            >
+              <div className="flex justify-between items-center">
+                <span className="text-[#c75050] font-medium flex items-center gap-1.5 text-sm">
+                  <MapPin size={11} className="opacity-70 shrink-0" />
+                  <span className="truncate">{a.city || a.region}</span>
+                </span>
+                <span className="text-[#8c7a6b] text-[10px] shrink-0 ml-1">{timeAgo(a.timestamp)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="bg-[#c75050]/10 text-[#c75050] px-2 py-0.5 rounded text-[10px] font-medium tracking-wide border border-[#c75050]/20">
+                  {threatLabel(a.threatType)}
+                </span>
+                <span className="text-[#8c7a6b] text-[10px] uppercase tracking-wider">{a.country}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+
+  const SigintContent = () => (
+    <>
+      <div className="h-12 border-b border-[#d4a574]/10 bg-[#1a1512] flex items-center px-5 justify-between rounded-t-xl shrink-0">
+        <div className="flex items-center gap-2">
+          <Terminal size={16} className="text-[#8c7a6b] opacity-70" />
+          <span className="font-medium text-sm text-[#d4a574]">Signals Intelligence</span>
+        </div>
+        <span className="text-xs text-[#8c7a6b] bg-[#16120f] px-2 py-1 rounded-md border border-[#d4a574]/5">
+          {telegram.length} MSGS
+        </span>
+      </div>
+      <div className="flex-1 p-3 space-y-3 overflow-y-auto scroll-hide bg-[#16120f]/20">
+        {telegram.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
+            Awaiting feed
+          </div>
+        ) : (
+          telegram.slice(0, 15).map((m) => (
+            <div key={m.id} className="flex gap-3 leading-relaxed">
+              <div className="text-[#8c7a6b] shrink-0 font-mono text-[10px] mt-0.5">
+                {new Date(m.timestamp).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[#c88b4a] font-medium mr-1.5 text-[10px] uppercase tracking-wider bg-[#c88b4a]/10 px-1.5 py-0.5 rounded">
+                  {m.channel.replace(/^@/, "")}
+                </span>
+                <span className="text-[#a89b8d] text-xs">{m.text.slice(0, 160)}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </>
+  );
+
+  const MarketsContent = () => (
+    <>
+      <div className="h-12 border-b border-[#d4a574]/10 bg-[#1a1512] flex items-center px-5 rounded-t-xl shrink-0">
+        <div className="flex items-center gap-2">
+          <BarChart2 size={16} className="text-[#8c7a6b] opacity-70" />
+          <span className="font-medium text-sm text-[#d4a574]">Market Status</span>
+        </div>
+      </div>
+      <div className="flex-1 bg-[#16120f]/20 overflow-hidden">
+        {displayMarkets.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
+            Loading markets
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="text-[#8c7a6b] text-[10px] uppercase tracking-wider border-b border-[#d4a574]/5">
+                <th className="py-1.5 px-4 font-medium">Asset</th>
+                <th className="py-1.5 px-3 font-medium text-right">Price</th>
+                <th className="py-1.5 px-3 font-medium text-right">Chg%</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#d4a574]/5">
+              {displayMarkets.slice(0, 6).map((c) => (
+                <tr key={c.symbol} className="hover:bg-[#d4a574]/5 transition-colors">
+                  <td className="py-1.5 px-4 text-[#a89b8d] text-xs">
+                    {SYMBOL_LABELS[c.symbol] || c.name.toUpperCase()}
+                  </td>
+                  <td className="py-1.5 px-3 text-right text-[#d4a574] font-medium text-xs">
+                    {c.currency === "USD" ? "$" : ""}{c.price < 10 ? c.price.toFixed(4) : c.price.toFixed(2)}
+                  </td>
+                  <td className="py-1.5 px-3 text-right text-xs">
+                    <span className={`flex items-center justify-end gap-0.5 ${c.changePercent >= 0 ? "text-[#d4a574]" : "text-[#c75050]"}`}>
+                      {c.changePercent >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                      {c.changePercent >= 0 ? "+" : ""}{c.changePercent.toFixed(2)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+
+  const TheaterContent = () => (
+    <>
+      <div className="h-12 border-b border-[#d4a574]/10 bg-[#1a1512] flex items-center px-5 rounded-t-xl shrink-0">
+        <div className="flex items-center gap-2">
+          <Wifi size={16} className="text-[#8c7a6b] opacity-70" />
+          <span className="font-medium text-sm text-[#d4a574]">Theater Status</span>
+        </div>
+      </div>
+      <div className="flex-1 px-5 bg-[#16120f]/20 flex flex-col justify-center gap-3">
+        {theaterEntries.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
+            No alert activity
+          </div>
+        ) : (
+          theaterEntries.map(([country, count]) => {
+            const pct = (count / maxCountryCount) * 100;
+            const color = pct > 70 ? "#c75050" : pct > 40 ? "#c88b4a" : "#d4a574";
+            return (
+              <div key={country} className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#a89b8d]">{country}</span>
+                  <span className="text-[11px] uppercase tracking-wide font-medium" style={{ color }}>
+                    {count} {count === 1 ? "alert" : "alerts"}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-[#1a1512] rounded-full overflow-hidden border border-[#d4a574]/5">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, backgroundColor: color }}
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div
-      className="min-h-screen text-sm overflow-hidden selection:bg-[#c88b4a]/30"
+      className="min-h-screen text-sm selection:bg-[#c88b4a]/30 flex flex-col"
       style={{
         backgroundColor: "#16120f",
         backgroundImage: "radial-gradient(circle at 50% 0%, #211c17 0%, #16120f 100%)",
@@ -238,38 +421,39 @@ export default function WarmEmberPage() {
       `}} />
 
       {/* TOP HEADER */}
-      <header className="h-14 border-b border-[#d4a574]/10 flex items-center justify-between px-6 bg-[#1a1512]/80 backdrop-blur-sm">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3 text-[#d4a574] font-semibold tracking-wider text-lg">
+      <header className="h-14 sm:h-14 border-b border-[#d4a574]/10 flex items-center justify-between px-4 sm:px-6 bg-[#1a1512]/80 backdrop-blur-sm shrink-0">
+        <div className="flex items-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-2 sm:gap-3 text-[#d4a574] font-semibold tracking-wider text-lg">
             <Globe size={22} className="opacity-80" />
-            WARROOM
+            <span className="hidden xs:inline">WARROOM</span>
           </div>
 
           <div
-            className="flex items-center gap-2 bg-[#1a1512] border px-4 py-1.5 rounded-full font-medium text-sm"
+            className="flex items-center gap-2 bg-[#1a1512] border px-3 sm:px-4 py-1.5 rounded-full font-medium text-sm"
             style={{ borderColor: dc.color + "33", color: dc.color }}
           >
             <span className="w-2.5 h-2.5 rounded-full pulse-orange" style={{ backgroundColor: dc.color }} />
-            {dc.label}
+            <span className="hidden sm:inline">{dc.label}</span>
+            <span className="sm:hidden">{dc.label.split(" ")[0]}</span>
           </div>
 
-          <div className="flex items-center gap-2 bg-[#1a1512] border border-[#c88b4a]/20 px-4 py-1.5 rounded-full text-[#c88b4a] font-medium text-sm">
+          <div className="hidden sm:flex items-center gap-2 bg-[#1a1512] border border-[#c88b4a]/20 px-4 py-1.5 rounded-full text-[#c88b4a] font-medium text-sm">
             <Activity size={16} />
             {connected ? "LIVE OPS" : "RECONNECTING"}
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <a
             href="/"
-            className="text-[#8c7a6b] hover:text-[#d4a574] text-xs uppercase tracking-wider transition-colors"
+            className="text-[#8c7a6b] hover:text-[#d4a574] text-xs uppercase tracking-wider transition-colors hidden lg:inline"
           >
             ← Full Dashboard
           </a>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Clock size={16} className="text-[#8c7a6b]" />
             <div className="text-right flex flex-col justify-center">
-              <div className="text-[#d4a574] text-sm font-medium tracking-wide leading-tight">{time}</div>
+              <div className="text-[#d4a574] text-xs sm:text-sm font-medium tracking-wide leading-tight">{time}</div>
               <div className="text-[11px] text-[#8c7a6b] uppercase tracking-wider leading-tight">UTC</div>
             </div>
           </div>
@@ -277,7 +461,7 @@ export default function WarmEmberPage() {
       </header>
 
       {/* TICKER */}
-      <div className="h-8 border-b border-[#d4a574]/5 bg-[#16120f] overflow-hidden flex items-center">
+      <div className="h-8 border-b border-[#d4a574]/5 bg-[#16120f] overflow-hidden flex items-center shrink-0">
         <div className="shrink-0 px-3 border-r border-[#d4a574]/10 text-[#c88b4a] text-[10px] font-medium uppercase tracking-wider">
           INTEL
         </div>
@@ -292,7 +476,47 @@ export default function WarmEmberPage() {
         </div>
       </div>
 
-      <div className="p-4 h-[calc(100vh-88px)] box-border">
+      {/* ── MOBILE / TABLET LAYOUT (< lg) ── */}
+      <div className="lg:hidden flex-1 overflow-y-auto">
+        <div className="p-3 space-y-3">
+
+          {/* Stat bar */}
+          <div className="hud-panel p-3">
+            <StatBar />
+          </div>
+
+          {/* Alerts + SIGINT: stacked on mobile, side-by-side on sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="hud-panel flex flex-col min-h-[260px]">
+              <AlertsContent />
+            </div>
+            <div className="hud-panel flex flex-col min-h-[260px]">
+              <SigintContent />
+            </div>
+          </div>
+
+          {/* Markets + Theater: stacked on mobile, side-by-side on sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="hud-panel flex flex-col min-h-[200px]">
+              <MarketsContent />
+            </div>
+            <div className="hud-panel flex flex-col min-h-[200px]">
+              <TheaterContent />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Sticky back button (mobile/tablet only) */}
+        <div className="sticky bottom-0 border-t border-[#d4a574]/10 bg-[#16120f] py-3 px-4">
+          <a href="/" className="flex items-center justify-center gap-2 text-[#8c7a6b] hover:text-[#d4a574] text-sm transition-colors">
+            ← Back to Full Dashboard
+          </a>
+        </div>
+      </div>
+
+      {/* ── DESKTOP LAYOUT (lg+) — original grid ── */}
+      <div className="hidden lg:block p-4 h-[calc(100vh-88px)] box-border">
         <main className="w-full h-full grid grid-cols-12 grid-rows-6 gap-4">
 
           {/* ── STRATEGIC OVERVIEW ── */}
@@ -309,12 +533,7 @@ export default function WarmEmberPage() {
 
             {/* Stat row */}
             <div className="grid grid-cols-4 gap-0 border-b border-[#d4a574]/5 shrink-0">
-              {[
-                { label: "Active Alerts", value: redAlerts.length, icon: ShieldAlert, color: "#c75050" },
-                { label: "Conflict Events", value: events.length, icon: Zap, color: "#f97316" },
-                { label: "Mil. Flights", value: milFlights.length, icon: Radio, color: "#d4a574" },
-                { label: "SIGINT Msgs", value: telegram.length, icon: Terminal, color: "#c88b4a" },
-              ].map(({ label, value, icon: Icon, color }) => (
+              {statItems.map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="flex flex-col items-center justify-center py-3 border-r border-[#d4a574]/5 last:border-0 gap-1">
                   <Icon size={14} style={{ color }} className="opacity-70" />
                   <div className="text-xl font-semibold" style={{ color }}>{value}</div>
@@ -393,160 +612,22 @@ export default function WarmEmberPage() {
 
           {/* ── ACTIVE ALERTS ── */}
           <div className="hud-panel col-span-4 row-span-3 flex flex-col">
-            <div className="h-12 border-b border-[#c75050]/10 bg-[#1a1512] flex items-center px-5 justify-between rounded-t-xl shrink-0">
-              <div className="flex items-center gap-2 text-[#c75050]">
-                <ShieldAlert size={16} className="opacity-80" />
-                <span className="font-medium text-sm">Active Alerts</span>
-              </div>
-              <span className="text-xs text-[#8c7a6b] bg-[#16120f] px-2 py-1 rounded-md border border-[#c75050]/10">
-                {redAlerts.length} EVENTS
-              </span>
-            </div>
-            <div className="flex-1 p-3 space-y-2 overflow-y-auto scroll-hide bg-[#16120f]/20">
-              {redAlerts.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
-                  No active alerts
-                </div>
-              ) : (
-                redAlerts.slice(0, 12).map((a) => (
-                  <div
-                    key={a.id}
-                    className="bg-[#1a1512] border border-[#c75050]/15 p-3 rounded-lg flex flex-col gap-1.5 hover:border-[#c75050]/30 transition-all shadow-sm"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#c75050] font-medium flex items-center gap-1.5 text-sm">
-                        <MapPin size={11} className="opacity-70 shrink-0" />
-                        <span className="truncate">{a.city || a.region}</span>
-                      </span>
-                      <span className="text-[#8c7a6b] text-[10px] shrink-0 ml-1">{timeAgo(a.timestamp)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="bg-[#c75050]/10 text-[#c75050] px-2 py-0.5 rounded text-[10px] font-medium tracking-wide border border-[#c75050]/20">
-                        {threatLabel(a.threatType)}
-                      </span>
-                      <span className="text-[#8c7a6b] text-[10px] uppercase tracking-wider">{a.country}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <AlertsContent />
           </div>
 
           {/* ── SIGINT FEED ── */}
           <div className="hud-panel col-span-4 row-span-3 flex flex-col">
-            <div className="h-12 border-b border-[#d4a574]/10 bg-[#1a1512] flex items-center px-5 justify-between rounded-t-xl shrink-0">
-              <div className="flex items-center gap-2">
-                <Terminal size={16} className="text-[#8c7a6b] opacity-70" />
-                <span className="font-medium text-sm text-[#d4a574]">Signals Intelligence</span>
-              </div>
-              <span className="text-xs text-[#8c7a6b] bg-[#16120f] px-2 py-1 rounded-md border border-[#d4a574]/5">
-                {telegram.length} MSGS
-              </span>
-            </div>
-            <div className="flex-1 p-3 space-y-3 overflow-y-auto scroll-hide bg-[#16120f]/20">
-              {telegram.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
-                  Awaiting feed
-                </div>
-              ) : (
-                telegram.slice(0, 15).map((m) => (
-                  <div key={m.id} className="flex gap-3 leading-relaxed">
-                    <div className="text-[#8c7a6b] shrink-0 font-mono text-[10px] mt-0.5">
-                      {new Date(m.timestamp).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" })}
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[#c88b4a] font-medium mr-1.5 text-[10px] uppercase tracking-wider bg-[#c88b4a]/10 px-1.5 py-0.5 rounded">
-                        {m.channel.replace(/^@/, "")}
-                      </span>
-                      <span className="text-[#a89b8d] text-xs">{m.text.slice(0, 160)}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <SigintContent />
           </div>
 
           {/* ── MARKET STATUS ── */}
           <div className="hud-panel col-span-4 row-span-2 flex flex-col">
-            <div className="h-12 border-b border-[#d4a574]/10 bg-[#1a1512] flex items-center px-5 rounded-t-xl shrink-0">
-              <div className="flex items-center gap-2">
-                <BarChart2 size={16} className="text-[#8c7a6b] opacity-70" />
-                <span className="font-medium text-sm text-[#d4a574]">Market Status</span>
-              </div>
-            </div>
-            <div className="flex-1 bg-[#16120f]/20 overflow-hidden">
-              {displayMarkets.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
-                  Loading markets
-                </div>
-              ) : (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-[#8c7a6b] text-[10px] uppercase tracking-wider border-b border-[#d4a574]/5">
-                      <th className="py-1.5 px-4 font-medium">Asset</th>
-                      <th className="py-1.5 px-3 font-medium text-right">Price</th>
-                      <th className="py-1.5 px-3 font-medium text-right">Chg%</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#d4a574]/5">
-                    {displayMarkets.slice(0, 6).map((c) => (
-                      <tr key={c.symbol} className="hover:bg-[#d4a574]/5 transition-colors">
-                        <td className="py-1.5 px-4 text-[#a89b8d] text-xs">
-                          {SYMBOL_LABELS[c.symbol] || c.name.toUpperCase()}
-                        </td>
-                        <td className="py-1.5 px-3 text-right text-[#d4a574] font-medium text-xs">
-                          {c.currency === "USD" ? "$" : ""}{c.price < 10 ? c.price.toFixed(4) : c.price.toFixed(2)}
-                        </td>
-                        <td className="py-1.5 px-3 text-right text-xs">
-                          <span className={`flex items-center justify-end gap-0.5 ${c.changePercent >= 0 ? "text-[#d4a574]" : "text-[#c75050]"}`}>
-                            {c.changePercent >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                            {c.changePercent >= 0 ? "+" : ""}{c.changePercent.toFixed(2)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+            <MarketsContent />
           </div>
 
           {/* ── THEATER STATUS ── */}
           <div className="hud-panel col-span-4 row-span-2 flex flex-col">
-            <div className="h-12 border-b border-[#d4a574]/10 bg-[#1a1512] flex items-center px-5 rounded-t-xl shrink-0">
-              <div className="flex items-center gap-2">
-                <Wifi size={16} className="text-[#8c7a6b] opacity-70" />
-                <span className="font-medium text-sm text-[#d4a574]">Theater Status</span>
-              </div>
-            </div>
-            <div className="flex-1 px-5 bg-[#16120f]/20 flex flex-col justify-center gap-3">
-              {theaterEntries.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[#8c7a6b] text-xs uppercase tracking-wider opacity-50">
-                  No alert activity
-                </div>
-              ) : (
-                theaterEntries.map(([country, count]) => {
-                  const pct = (count / maxCountryCount) * 100;
-                  const color = pct > 70 ? "#c75050" : pct > 40 ? "#c88b4a" : "#d4a574";
-                  return (
-                    <div key={country} className="flex flex-col gap-1.5">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-[#a89b8d]">{country}</span>
-                        <span className="text-[11px] uppercase tracking-wide font-medium" style={{ color }}>
-                          {count} {count === 1 ? "alert" : "alerts"}
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-[#1a1512] rounded-full overflow-hidden border border-[#d4a574]/5">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, backgroundColor: color }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            <TheaterContent />
           </div>
 
         </main>

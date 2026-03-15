@@ -8575,6 +8575,14 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="flex items-center gap-0.5">
+              <a
+                href="/ember"
+                className="px-2 h-7 rounded text-[11px] font-mono font-bold text-foreground/30 hover:text-amber-400 hover:bg-amber-500/[0.08] transition-all duration-150 inline-flex items-center gap-1"
+                title="Compact Ember View"
+              >
+                EMBER
+              </a>
+              <div className="w-px h-3.5 bg-border mx-0.5" />
               <Button
                 size="sm" variant="ghost"
                 className={`px-2 h-7 rounded text-[11px] transition-all duration-150
@@ -8684,6 +8692,7 @@ export default function Dashboard() {
                 { id: 'watchlist', icon: Eye, label: language === 'ar' ? 'مراقبة' : 'Watchlist', action: () => { setShowWatchlist(true); setShowMobileMenu(false); } },
                 { id: 'export', icon: FileDown, label: language === 'ar' ? 'تصدير' : 'Export', action: () => { handleExport(); setShowMobileMenu(false); } },
                 { id: 'settings', icon: Settings, label: language === 'ar' ? 'إعدادات' : 'Settings', action: () => { setShowSettings(true); setShowMobileMenu(false); } },
+                { id: 'ember', icon: Globe, label: 'Ember View', action: () => { window.location.href = '/ember'; } },
                 { id: 'language', icon: Languages, label: language === 'en' ? 'عربي' : 'English', action: () => { setLanguage(language === 'en' ? 'ar' : 'en'); setShowMobileMenu(false); } },
               ].map((item) => {
                 const Icon = item.icon;

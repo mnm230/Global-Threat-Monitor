@@ -214,25 +214,30 @@ function randomPick<T>(arr: T[]): T {
 
 
 const FREE_NEWS_RSS_FEEDS = [
-  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml', source: 'BBC Middle East' },
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml', source: 'Al Jazeera' },
-  { url: 'https://news.google.com/rss/search?q=iran+israel+war&hl=en-US&gl=US&ceid=US:en', source: 'Google News War' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml', source: 'NYT Middle East' },
-  // Lebanon
-  { url: 'https://news.google.com/rss/search?q=lebanon+war+hezbollah&hl=en-US&gl=US&ceid=US:en', source: 'Google News Lebanon' },
-  { url: 'https://news.google.com/rss/search?q=south+lebanon+IDF+hezbollah+airstrike&hl=en-US&gl=US&ceid=US:en', source: 'Google News S.Lebanon' },
-  { url: 'https://news.google.com/rss/search?q=beirut+strike+explosion+lebanon&hl=en-US&gl=US&ceid=US:en', source: 'Google News Beirut' },
-  { url: 'https://news.google.com/rss/search?q=nabatieh+tyre+sidon+lebanon+military&hl=en-US&gl=US&ceid=US:en', source: 'Google News Leb Cities' },
-  // Yemen & Houthis
-  { url: 'https://news.google.com/rss/search?q=houthi+attack+missile+drone+red+sea&hl=en-US&gl=US&ceid=US:en', source: 'Google News Houthi' },
-  { url: 'https://news.google.com/rss/search?q=yemen+strike+airstrike+killed&hl=en-US&gl=US&ceid=US:en', source: 'Google News Yemen' },
-  // Syria
-  { url: 'https://news.google.com/rss/search?q=syria+airstrike+attack+military&hl=en-US&gl=US&ceid=US:en', source: 'Google News Syria' },
-  // Iraq
-  { url: 'https://news.google.com/rss/search?q=iraq+attack+drone+militia+pmu&hl=en-US&gl=US&ceid=US:en', source: 'Google News Iraq' },
-  // GCC
-  { url: 'https://news.google.com/rss/search?q=saudi+arabia+attack+houthi+missile&hl=en-US&gl=US&ceid=US:en', source: 'Google News KSA' },
-  { url: 'https://news.google.com/rss/search?q=uae+attack+drone+security&hl=en-US&gl=US&ceid=US:en', source: 'Google News UAE' },
+  // ── Major wire / aggregators ─────────────────────────────────────────────
+  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml',                                                             source: 'BBC ME' },
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml',                                                                           source: 'Al Jazeera' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml',                                                        source: 'NYT ME' },
+  { url: 'https://news.google.com/rss/search?q=iran+israel+war+attack+strike&hl=en-US&gl=US&ceid=US:en',                       source: 'GN: Iran-Israel War' },
+  // ── Lebanon / Hezbollah ───────────────────────────────────────────────────
+  { url: 'https://news.google.com/rss/search?q=lebanon+war+hezbollah+attack&hl=en-US&gl=US&ceid=US:en',                        source: 'GN: Lebanon War' },
+  { url: 'https://news.google.com/rss/search?q=south+lebanon+IDF+hezbollah+airstrike&hl=en-US&gl=US&ceid=US:en',              source: 'GN: S.Lebanon IDF' },
+  { url: 'https://news.google.com/rss/search?q=beirut+strike+explosion+hezbollah&hl=en-US&gl=US&ceid=US:en',                  source: 'GN: Beirut' },
+  { url: 'https://news.google.com/rss/search?q=nabatieh+bint+jbeil+sidon+lebanon+military&hl=en-US&gl=US&ceid=US:en',         source: 'GN: Leb Cities' },
+  // ── Yemen & Houthis ───────────────────────────────────────────────────────
+  { url: 'https://news.google.com/rss/search?q=houthi+attack+missile+drone+red+sea+ship&hl=en-US&gl=US&ceid=US:en',           source: 'GN: Houthi' },
+  { url: 'https://news.google.com/rss/search?q=yemen+airstrike+strike+killed+US+coalition&hl=en-US&gl=US&ceid=US:en',          source: 'GN: Yemen Strikes' },
+  { url: 'https://news.google.com/rss/search?q=red+sea+shipping+attack+tanker+seized&hl=en-US&gl=US&ceid=US:en',              source: 'GN: Red Sea' },
+  // ── Syria ──────────────────────────────────────────────────────────────────
+  { url: 'https://news.google.com/rss/search?q=syria+airstrike+attack+killed+military&hl=en-US&gl=US&ceid=US:en',             source: 'GN: Syria' },
+  // ── Iraq ───────────────────────────────────────────────────────────────────
+  { url: 'https://news.google.com/rss/search?q=iraq+attack+drone+militia+pmu+pmf&hl=en-US&gl=US&ceid=US:en',                  source: 'GN: Iraq' },
+  // ── GCC ────────────────────────────────────────────────────────────────────
+  { url: 'https://news.google.com/rss/search?q=saudi+arabia+attack+houthi+missile&hl=en-US&gl=US&ceid=US:en',                 source: 'GN: KSA' },
+  { url: 'https://news.google.com/rss/search?q=uae+attack+drone+security+threat&hl=en-US&gl=US&ceid=US:en',                   source: 'GN: UAE' },
+  // ── Iran ───────────────────────────────────────────────────────────────────
+  { url: 'https://news.google.com/rss/search?q=iran+missile+drone+IRGC+attack+nuclear&hl=en-US&gl=US&ceid=US:en',             source: 'GN: Iran' },
+  { url: 'https://news.google.com/rss/search?q=iran+sanctions+nuclear+deal+threat&hl=en-US&gl=US&ceid=US:en',                 source: 'GN: Iran Nuclear' },
 ];
 
 let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
@@ -3933,14 +3938,75 @@ export async function registerRoutes(
   let conflictFeedCache: { data: any[]; fetchedAt: number } | null = null;
   const CONFLICT_FEED_TTL = 15_000; // 15s — fresher updates
 
-  const GCC_KEYWORDS = ['saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'aramco', 'uae', 'abu dhabi', 'dubai', 'kuwait', 'bahrain', 'qatar', 'oman', 'muscat', 'gcc', 'gulf', 'strait of hormuz'];
-  const LEBANON_KEYWORDS = ['lebanon', 'beirut', 'hezbollah', 'south lebanon', 'nabatieh', 'baalbek', 'tyre', 'sidon', 'unifil', 'litani', 'bekaa', 'nasrallah', 'bint jbeil', 'dahieh', 'dahiyeh', 'southern lebanon', 'amal', 'laad'];
-  const YEMEN_KEYWORDS = ['yemen', 'houthi', 'hodeidah', 'hudaydah', 'sanaa', 'aden', 'taiz', 'marib', 'ansar allah', 'red sea', 'bab el-mandeb', 'ansarallah', 'houthis'];
-  const SYRIA_KEYWORDS = ['syria', 'damascus', 'aleppo', 'idlib', 'deir ez-zor', 'raqqa', 'daraa', 'homs', 'hama', 'sdf', 'isis', 'hayat tahrir', 'hts', 'syrian', 'latakia', 'derazor'];
-  const IRAQ_KEYWORDS = ['iraq', 'baghdad', 'mosul', 'basra', 'kirkuk', 'erbil', 'pmu', 'kataib hezbollah', 'hashd', 'kurdistan', 'anbar', 'fallujah', 'iraqi', 'najaf', 'karbala'];
-  const EGYPT_KEYWORDS = ['egypt', 'cairo', 'sinai', 'rafah crossing', 'egyptian', 'suez', 'port said', 'north sinai'];
-  const JORDAN_KEYWORDS = ['jordan', 'amman', 'aqaba', 'zarqa', 'irbid', 'jordanian'];
-  const ATTACK_KEYWORDS = ['rocket', 'missile', 'drone', 'uav', 'strike', 'attack', 'launch', 'intercept', 'barrage', 'salvo', 'ballistic', 'airstrike', 'bombing', 'shelling', 'killed', 'wounded', 'casualties', 'raid', 'offensive', 'explosion', 'fire', 'hit', 'artillery', 'mortar', 'infiltration', 'breach', 'clash', 'operation'];
+  const GCC_KEYWORDS = [
+    'saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'mecca', 'medina',
+    'dammam', 'dhahran', 'jubail', 'yanbu', 'tabuk', 'al-qatif', 'aramco', 'sabic', 'ras tanura',
+    'uae', 'abu dhabi', 'dubai', 'sharjah', 'fujairah', 'al ain', 'ras al khaimah',
+    'kuwait', 'kuwait city', 'bahrain', 'manama', 'muharraq',
+    'qatar', 'doha', 'al udeid', 'oman', 'muscat', 'salalah', 'sohar', 'masirah',
+    'gcc', 'gulf', 'gulf state', 'arabian gulf', 'strait of hormuz', 'persian gulf',
+  ];
+  const LEBANON_KEYWORDS = [
+    'lebanon', 'lebanese', 'beirut', 'hezbollah', 'hizballah', 'hizb allah',
+    'south lebanon', 'southern lebanon', 'nabatieh', 'baalbek', 'tyre', 'sour', 'sidon', 'saida',
+    'tripoli leb', 'byblos', 'jounieh', 'zahle', 'hermel', 'akkar', 'chouf',
+    'unifil', 'litani', 'bekaa', 'beqaa', 'nasrallah', 'naim qassem',
+    'bint jbeil', 'marjayoun', 'khiam', 'naqoura', 'kfar kila', 'mays al-jabal',
+    'dahieh', 'dahiyeh', 'southern suburb', 'amal movement', 'laad', 'radwan',
+  ];
+  const YEMEN_KEYWORDS = [
+    'yemen', 'yemeni', 'houthi', 'houthis', 'ansarallah', 'ansar allah', 'ansar al-allah',
+    'hodeidah', 'hudaydah', 'hodeida', 'sanaa', "sana'a", 'aden', 'taiz', 'marib', 'marib',
+    'shabwa', 'lahij', 'al-bayda', 'zinjibar', 'al-hazm', 'dhamar', 'ibb', 'al-mukalla',
+    'bab el-mandeb', 'bab-el-mandeb', 'mandab', 'red sea attack', 'red sea drone',
+    'gulf of aden', 'socotra', 'hussein al-houthi', 'abdulmalik al-houthi',
+    'islamic resistance in iraq', 'houthi missile', 'houthi drone', 'ballistic houthi',
+  ];
+  const SYRIA_KEYWORDS = [
+    'syria', 'syrian', 'damascus', 'aleppo', 'idlib', 'deir ez-zor', 'deir ezzor', 'derazor',
+    'raqqa', 'daraa', 'homs', 'hama', 'latakia', 'tartus', 'quneitra', 'suweida', 'suwayda',
+    'qamishli', 'kobane', 'ain al-arab', 'manbij', 'afrin', 'euphrates', 'palmyra', 'abu kamal',
+    'sdf', 'ypg', 'isis', 'isil', 'daesh', 'hayat tahrir', 'hts', 'jabhat al-nusra',
+    'hnc', 'saa', 'ndf', 'wagner syria', 'iran-backed syria',
+  ];
+  const IRAQ_KEYWORDS = [
+    'iraq', 'iraqi', 'baghdad', 'mosul', 'basra', 'kirkuk', 'erbil', 'irbil', 'sulaymaniyah',
+    'fallujah', 'ramadi', 'tikrit', 'samarra', 'diyala', 'baquba', 'taji', 'karbala', 'najaf',
+    'anbar', 'al-asad airbase', 'ain al-asad', 'habaniyah', 'tuz khurmatu',
+    'pmu', 'pmf', 'kataib hezbollah', 'kataib', 'hashd', 'popular mobilization',
+    'islamic resistance in iraq', 'asa\'ib ahl al-haq', 'harakat hezbollah', 'badr organization',
+    'kurdistan', 'peshmerga', 'pkk iraq',
+  ];
+  const EGYPT_KEYWORDS = [
+    'egypt', 'egyptian', 'cairo', 'sinai', 'north sinai', 'south sinai',
+    'rafah crossing', 'kerem shalom', 'arish', 'sheikh zuweid', 'bir al-abed',
+    'suez', 'suez canal', 'port said', 'ismailia', 'suez city',
+    'luxor', 'aswan', 'sharm el-sheikh', 'dahab',
+  ];
+  const JORDAN_KEYWORDS = [
+    'jordan', 'jordanian', 'amman', 'aqaba', 'zarqa', 'irbid', 'mafraq',
+    'azraq', 'ruwaished', 'al-mafraq', 'karak', 'petra', 'wadi rum',
+    'hashemite', 'arab legion', 'jaf (jordan)',
+  ];
+  const IRAN_KEYWORDS = [
+    'iran', 'iranian', 'tehran', 'isfahan', 'natanz', 'fordow', 'arak', 'bushehr', 'kharg',
+    'irgc', 'revolutionary guard', 'sepah', 'quds force', 'qods force', 'soleimani',
+    'khamenei', 'raisi', 'pezeshkian', 'zarif', 'shamkhani',
+    'persian gulf iran', 'strait of hormuz iran', 'nuclear iran', 'iran nuclear',
+    'iran missile', 'iran drone', 'iran attack', 'iran proxy', 'iran-backed',
+    'shahab', 'emad', 'sejjil', 'kheibar', 'fateh', 'zolfaghar', 'fattah hypersonic',
+    'mohajer', 'shahed', 'arash drone', 'qaem',
+  ];
+  const ATTACK_KEYWORDS = [
+    'rocket', 'missile', 'drone', 'uav', 'strike', 'attack', 'launch', 'intercept',
+    'barrage', 'salvo', 'ballistic', 'airstrike', 'air strike', 'bombing', 'bomb',
+    'shelling', 'shell', 'killed', 'dead', 'wounded', 'casualties', 'death toll',
+    'raid', 'offensive', 'explosion', 'blast', 'fire', 'hit', 'struck', 'destroy',
+    'artillery', 'mortar', 'infiltration', 'breach', 'clash', 'operation', 'incursion',
+    'engagement', 'combat', 'targeted', 'assassination', 'liquidate', 'eliminate',
+    'naval attack', 'ship attack', 'vessel attack', 'tanker seized', 'tanker hit',
+    'ambush', 'hostage', 'abduct', 'capture', 'cross-border', 'cross border',
+  ];
 
   // Northern Israel border cities — sirens here indicate Lebanon/Hezbollah attacks
   const NORTH_ISRAEL_BORDER_CITIES = [
@@ -3952,36 +4018,53 @@ export async function registerRoutes(
     'Golan Heights', 'הר דב', 'כרמיאל', 'קריית שמונה', 'מטולה', 'שלומי', 'נהריה',
   ];
 
-  function classifyConflictFeedItem(title: string): { attackType: string; relevance: string } {
+  function classifyConflictFeedItem(title: string): { attackType: string; relevance: string; threatLevel: 'high' | 'medium' | 'low' } {
     const lo = title.toLowerCase();
-    const isGCC = GCC_KEYWORDS.some(k => lo.includes(k));
+    const isGCC     = GCC_KEYWORDS.some(k => lo.includes(k));
     const isLebanon = LEBANON_KEYWORDS.some(k => lo.includes(k));
-    const isYemen = YEMEN_KEYWORDS.some(k => lo.includes(k));
-    const isSyria = SYRIA_KEYWORDS.some(k => lo.includes(k));
-    const isIraq = IRAQ_KEYWORDS.some(k => lo.includes(k));
-    const isEgypt = EGYPT_KEYWORDS.some(k => lo.includes(k));
-    const isJordan = JORDAN_KEYWORDS.some(k => lo.includes(k));
+    const isYemen   = YEMEN_KEYWORDS.some(k => lo.includes(k));
+    const isSyria   = SYRIA_KEYWORDS.some(k => lo.includes(k));
+    const isIraq    = IRAQ_KEYWORDS.some(k => lo.includes(k));
+    const isEgypt   = EGYPT_KEYWORDS.some(k => lo.includes(k));
+    const isJordan  = JORDAN_KEYWORDS.some(k => lo.includes(k));
+    const isIran    = IRAN_KEYWORDS.some(k => lo.includes(k));
 
+    // Priority order — most specific match wins
     let relevance = 'general';
     if (isLebanon) relevance = 'lebanon';
     else if (isYemen) relevance = 'yemen';
-    else if (isGCC) relevance = 'gcc';
-    else if (isSyria) relevance = 'syria';
+    else if (isIran) relevance = 'iran';
     else if (isIraq) relevance = 'iraq';
+    else if (isSyria) relevance = 'syria';
+    else if (isGCC) relevance = 'gcc';
     else if (isEgypt) relevance = 'egypt';
     else if (isJordan) relevance = 'jordan';
-    if (isGCC && isYemen) relevance = 'gcc'; // Yemen attacks on GCC = GCC
-    if (isLebanon && isGCC) relevance = 'both';
 
+    // Cross-border overrides
+    if (isYemen && isGCC) relevance = 'gcc';        // Houthi attack on GCC territory → GCC
+    if (isLebanon && isGCC) relevance = 'both';     // Hezbollah + Gulf = both
+    if (isIran && isGCC) relevance = 'iran';        // Iran threatening Gulf = Iran
+    if (isIran && isLebanon) relevance = 'lebanon'; // Iran + Hezbollah → Lebanon
+    if (isIran && isIraq) relevance = 'iraq';       // IRGC activity in Iraq → Iraq
+
+    // Attack type detection (order: most specific first)
     let attackType = 'other';
-    if (/drone|uav|shaheed|shahed|kamikaze/i.test(lo)) attackType = 'drone';
-    else if (/ballistic|cruise|hypersonic|qassam|katyusha|grad/i.test(lo)) attackType = 'missile';
-    else if (/rocket|mortar|rpg/i.test(lo)) attackType = 'rocket';
-    else if (/airstrike|air strike|bombing|warplane|jet|f-35|f-16|f-15|apache/i.test(lo)) attackType = 'airstrike';
-    else if (/naval|ship|vessel|destroyer|frigate|tanker|cargo/i.test(lo)) attackType = 'naval';
-    else if (/artillery|shelling|cannon/i.test(lo)) attackType = 'artillery';
+    if (/drone|uav|shahed|shaheed|kamikaze|loitering|tb2|bayraktar|mohajer|arash/i.test(lo)) attackType = 'drone';
+    else if (/ballistic|cruise|hypersonic|qassam|katyusha|grad|fattah|sejjil|emad|kheibar|zolfaghar|shahab/i.test(lo)) attackType = 'missile';
+    else if (/rocket|mortar|rpg|grad|rl burst/i.test(lo)) attackType = 'rocket';
+    else if (/airstrike|air strike|air raid|bombing|warplane|jet|f-35|f-16|f-15|f-18|su-35|apache|helicopter gunship/i.test(lo)) attackType = 'airstrike';
+    else if (/naval|ship|vessel|destroyer|frigate|tanker|cargo|corvette|submarine|speedboat|maritime/i.test(lo)) attackType = 'naval';
+    else if (/artillery|shelling|cannon|howitzer|grad mlrs/i.test(lo)) attackType = 'artillery';
     else if (/missile/i.test(lo)) attackType = 'missile';
-    return { attackType, relevance };
+
+    // Threat level
+    let threatLevel: 'high' | 'medium' | 'low' = 'low';
+    const highWords = /killed|dead|casualties|death toll|wounded|ballistic|nuclear|massive barrage|dozens|hundreds|explosion|blast|destroyed|struck|hypersonic|warship|tanker seized/i;
+    const medWords  = /rocket|missile|drone|airstrike|attack|launch|intercept|barrage|shelling|infiltr|clash|raid|offensive/i;
+    if (highWords.test(lo)) threatLevel = 'high';
+    else if (medWords.test(lo)) threatLevel = 'medium';
+
+    return { attackType, relevance, threatLevel };
   }
 
   // Build synthetic items from northern Israel sirens (→ Lebanon-origin attacks)
@@ -4034,23 +4117,46 @@ export async function registerRoutes(
 
   // Dedicated RSS feeds queried only for the conflict feed
   const REGIONAL_RSS_FEEDS = [
-    // Lebanon / Hezbollah
-    { url: 'https://www.naharnet.com/stories/en/rss.xml', source: 'Naharnet (Lebanon)' },
-    { url: 'https://today.lorientlejour.com/rss', source: "L'Orient Today" },
-    { url: 'https://news.google.com/rss/search?q=hezbollah+attack+rocket+lebanon&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Hezbollah' },
-    { url: 'https://news.google.com/rss/search?q=south+lebanon+military+attack+airstrike&hl=en-US&gl=US&ceid=US:en', source: 'GNews: S.Lebanon' },
-    // Yemen / Houthis
-    { url: 'https://news.google.com/rss/search?q=houthi+attack+missile+drone+ship+red+sea&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Houthi' },
-    { url: 'https://news.google.com/rss/search?q=yemen+airstrikes+killed+casualties&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Yemen' },
-    // Syria
-    { url: 'https://news.google.com/rss/search?q=syria+attack+airstrike+killed+military&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Syria' },
-    { url: 'https://www.syriahr.com/en/feed/', source: 'Syrian Observatory' },
-    // Iraq
-    { url: 'https://news.google.com/rss/search?q=iraq+drone+attack+militia+killed&hl=en-US&gl=US&ceid=US:en', source: 'GNews: Iraq' },
-    // GCC
-    { url: 'https://news.google.com/rss/search?q=saudi+arabia+houthi+missile+attack&hl=en-US&gl=US&ceid=US:en', source: 'GNews: KSA' },
-    { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml', source: 'The National (UAE)' },
-    { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya' },
+    // ── Lebanon / Hezbollah ──────────────────────────────────────────────────
+    { url: 'https://www.naharnet.com/stories/en/rss.xml',                                                                        source: 'Naharnet' },
+    { url: 'https://today.lorientlejour.com/rss',                                                                                source: "L'Orient Today" },
+    { url: 'https://news.google.com/rss/search?q=hezbollah+attack+rocket+missile+lebanon&hl=en-US&gl=US&ceid=US:en',            source: 'GN: Hezbollah' },
+    { url: 'https://news.google.com/rss/search?q=south+lebanon+IDF+airstrike+killed&hl=en-US&gl=US&ceid=US:en',                source: 'GN: S.Lebanon' },
+    { url: 'https://news.google.com/rss/search?q=beirut+explosion+strike+hezbollah&hl=en-US&gl=US&ceid=US:en',                 source: 'GN: Beirut' },
+    // ── Yemen / Houthis ───────────────────────────────────────────────────────
+    { url: 'https://news.google.com/rss/search?q=houthi+attack+missile+drone+red+sea+ship&hl=en-US&gl=US&ceid=US:en',          source: 'GN: Houthi' },
+    { url: 'https://news.google.com/rss/search?q=ansarallah+launch+strike+ballistic&hl=en-US&gl=US&ceid=US:en',                source: 'GN: Ansar Allah' },
+    { url: 'https://news.google.com/rss/search?q=yemen+airstrike+killed+US+coalition+strike&hl=en-US&gl=US&ceid=US:en',        source: 'GN: Yemen Strikes' },
+    { url: 'https://news.google.com/rss/search?q=red+sea+ship+attack+tanker+drone+houthi&hl=en-US&gl=US&ceid=US:en',           source: 'GN: Red Sea' },
+    { url: 'https://news.google.com/rss/search?q=bab+el-mandeb+gulf+aden+maritime+attack&hl=en-US&gl=US&ceid=US:en',           source: 'GN: Gulf of Aden' },
+    // ── Syria ──────────────────────────────────────────────────────────────────
+    { url: 'https://www.syriahr.com/en/feed/',                                                                                   source: 'SOHR (Syria)' },
+    { url: 'https://news.google.com/rss/search?q=syria+airstrike+attack+killed+military&hl=en-US&gl=US&ceid=US:en',            source: 'GN: Syria' },
+    { url: 'https://news.google.com/rss/search?q=idlib+deir+ezzor+damascus+strike+explosion&hl=en-US&gl=US&ceid=US:en',        source: 'GN: Syria Cities' },
+    { url: 'https://news.google.com/rss/search?q=HTS+SDF+ISIS+Syria+offensive+attack&hl=en-US&gl=US&ceid=US:en',               source: 'GN: Syria Factions' },
+    // ── Iraq ───────────────────────────────────────────────────────────────────
+    { url: 'https://news.google.com/rss/search?q=iraq+drone+attack+militia+PMU+PMF&hl=en-US&gl=US&ceid=US:en',                 source: 'GN: Iraq' },
+    { url: 'https://news.google.com/rss/search?q=kataib+hezbollah+islamic+resistance+iraq+attack&hl=en-US&gl=US&ceid=US:en',   source: 'GN: Iraq Militia' },
+    { url: 'https://news.google.com/rss/search?q=erbil+baghdad+taji+basra+attack+explosion&hl=en-US&gl=US&ceid=US:en',         source: 'GN: Iraq Cities' },
+    { url: 'https://www.rudaw.net/english/rss',                                                                                  source: 'Rudaw (Kurdistan)' },
+    // ── GCC / Saudi Arabia ─────────────────────────────────────────────────────
+    { url: 'https://news.google.com/rss/search?q=saudi+arabia+houthi+attack+missile+drone&hl=en-US&gl=US&ceid=US:en',          source: 'GN: KSA-Houthi' },
+    { url: 'https://news.google.com/rss/search?q=UAE+attack+drone+security+threat&hl=en-US&gl=US&ceid=US:en',                  source: 'GN: UAE Security' },
+    { url: 'https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml',                                             source: 'The National (UAE)' },
+    { url: 'https://english.alarabiya.net/tools/rss',                                                                           source: 'Al Arabiya' },
+    { url: 'https://www.arabnews.com/arc/outboundfeeds/rss/?outputType=xml',                                                   source: 'Arab News (KSA)' },
+    // ── Iran ───────────────────────────────────────────────────────────────────
+    { url: 'https://news.google.com/rss/search?q=iran+missile+drone+attack+IRGC+strike&hl=en-US&gl=US&ceid=US:en',             source: 'GN: Iran Military' },
+    { url: 'https://news.google.com/rss/search?q=iran+nuclear+natanz+fordow+sanction&hl=en-US&gl=US&ceid=US:en',               source: 'GN: Iran Nuclear' },
+    { url: 'https://news.google.com/rss/search?q=israel+iran+strike+attack+retaliation&hl=en-US&gl=US&ceid=US:en',             source: 'GN: Iran-Israel' },
+    { url: 'https://www.iranintl.com/en/rss',                                                                                   source: 'Iran International' },
+    // ── Egypt / Jordan ─────────────────────────────────────────────────────────
+    { url: 'https://news.google.com/rss/search?q=sinai+egypt+attack+explosion+north+sinai&hl=en-US&gl=US&ceid=US:en',          source: 'GN: Egypt/Sinai' },
+    { url: 'https://news.google.com/rss/search?q=jordan+drone+attack+security+threat&hl=en-US&gl=US&ceid=US:en',               source: 'GN: Jordan' },
+    // ── Regional aggregators ───────────────────────────────────────────────────
+    { url: 'https://www.middleeasteye.net/rss',                                                                                  source: 'Middle East Eye' },
+    { url: 'https://news.google.com/rss/search?q=middle+east+attack+killed+strike+military&hl=en-US&gl=US&ceid=US:en',         source: 'GN: ME Attacks' },
+    { url: 'https://news.google.com/rss/search?q=IDF+strike+Gaza+West+Bank+Rafah+killed&hl=en-US&gl=US&ceid=US:en',           source: 'GN: IDF Ops' },
   ];
 
   let regionalRssCache: { data: any[]; fetchedAt: number } | null = null;
@@ -4123,34 +4229,48 @@ export async function registerRoutes(
         ...(regionalRssR.status === 'fulfilled' ? regionalRssR.value : []),
       ];
 
-      // 3. GDELT — targeted regional query
+      // 3. GDELT — two parallel targeted queries for breadth
       let gdeltItems: any[] = [];
       try {
-        const gdeltQ = encodeURIComponent(
-          '(rocket OR missile OR drone OR airstrike OR shelling OR attack OR killed OR casualties) ' +
-          '(Yemen OR Houthi OR Lebanon OR Hezbollah OR Syria OR Iraq OR "Saudi Arabia" OR UAE OR Bahrain OR Kuwait OR Qatar OR Oman)'
+        const gdeltParseDate = (d: string) =>
+          new Date(d.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString();
+
+        const gdeltQ1 = encodeURIComponent(
+          '(rocket OR missile OR drone OR airstrike OR shelling OR killed OR casualties OR explosion) ' +
+          '(Yemen OR Houthi OR Lebanon OR Hezbollah OR Syria OR Iraq OR "Saudi Arabia" OR UAE OR Kuwait OR Qatar OR Bahrain OR Oman)'
         );
-        const gdeltUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${gdeltQ}&mode=artlist&maxrecords=50&format=json&sort=datedesc&timespan=12h&sourcelang=eng`;
-        const gdeltRes = await fetch(gdeltUrl, { signal: AbortSignal.timeout(9000) });
-        if (gdeltRes.ok) {
-          const gdeltJson = await gdeltRes.json() as { articles?: Array<{ title?: string; url?: string; seendate?: string; domain?: string }> };
-          gdeltItems = (gdeltJson.articles || []).map((a, i) => ({
-            id: `gdelt_reg_${i}_${Date.now()}`,
-            title: (a.title || '').replace(/<[^>]+>/g, '').trim(),
-            source: a.domain || 'GDELT',
-            url: a.url,
-            timestamp: a.seendate
-              ? new Date(a.seendate.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString()
-              : new Date().toISOString(),
-            category: 'military',
-          })).filter((a: any) => a.title && a.title.length > 10);
-        }
+        const gdeltQ2 = encodeURIComponent(
+          '(missile OR drone OR attack OR nuclear OR IRGC OR strike OR killed) ' +
+          '(Iran OR Iranian OR Natanz OR Fordow OR IRGC OR "Islamic Republic" OR "Red Sea" OR "Strait of Hormuz")'
+        );
+
+        const [gdR1, gdR2] = await Promise.allSettled([
+          fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=${gdeltQ1}&mode=artlist&maxrecords=60&format=json&sort=datedesc&timespan=18h&sourcelang=eng`, { signal: AbortSignal.timeout(9000) }),
+          fetch(`https://api.gdeltproject.org/api/v2/doc/doc?query=${gdeltQ2}&mode=artlist&maxrecords=40&format=json&sort=datedesc&timespan=18h&sourcelang=eng`, { signal: AbortSignal.timeout(9000) }),
+        ]);
+
+        const mapGdelt = (r: PromiseSettledResult<Response>, prefix: string) => {
+          if (r.status !== 'fulfilled' || !r.value.ok) return Promise.resolve([]);
+          return r.value.json().then((j: any) =>
+            (j.articles || []).map((a: any, i: number) => ({
+              id: `gdelt_${prefix}_${i}_${Date.now()}`,
+              title: (a.title || '').replace(/<[^>]+>/g, '').trim(),
+              source: a.domain || 'GDELT',
+              url: a.url,
+              timestamp: a.seendate ? gdeltParseDate(a.seendate) : new Date().toISOString(),
+              category: 'military',
+            })).filter((a: any) => a.title && a.title.length > 10)
+          );
+        };
+
+        const [gd1, gd2] = await Promise.all([mapGdelt(gdR1, 'reg'), mapGdelt(gdR2, 'iran')]);
+        gdeltItems = [...gd1, ...gd2];
       } catch { /* GDELT timeout */ }
 
       // 4. Filter: must match a regional keyword AND an attack keyword
       const ALL_REGIONAL_KEYWORDS = [
         ...GCC_KEYWORDS, ...LEBANON_KEYWORDS, ...YEMEN_KEYWORDS,
-        ...SYRIA_KEYWORDS, ...IRAQ_KEYWORDS, ...EGYPT_KEYWORDS, ...JORDAN_KEYWORDS,
+        ...SYRIA_KEYWORDS, ...IRAQ_KEYWORDS, ...EGYPT_KEYWORDS, ...JORDAN_KEYWORDS, ...IRAN_KEYWORDS,
       ];
       const combined = [...newsPool, ...gdeltItems];
       const filtered = combined.filter(item => {
@@ -4160,8 +4280,8 @@ export async function registerRoutes(
         return hasAttack && isRegional;
       });
 
-      // 5. Smarter deduplication — normalise title before comparing
-      const normalise = (t: string) => t.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      // 5. Smarter deduplication — normalise title before comparing (100-char key)
+      const normalise = (t: string) => t.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100);
       const seen = new Set<string>();
       const deduped = filtered.filter(item => {
         const key = normalise(item.title);
@@ -4170,9 +4290,9 @@ export async function registerRoutes(
         return true;
       });
 
-      // 6. Classify, sanitise, sort — cap at 80 items
-      const newsResult = deduped.slice(0, 80).map(item => {
-        const { attackType, relevance } = classifyConflictFeedItem(item.title);
+      // 6. Classify, sanitise — sort high-threat first, then by time — cap at 120 items
+      const newsResult = deduped.slice(0, 120).map(item => {
+        const { attackType, relevance, threatLevel } = classifyConflictFeedItem(item.title);
         return {
           id: item.id,
           title: sanitizeText(item.title),
@@ -4181,13 +4301,21 @@ export async function registerRoutes(
           timestamp: item.timestamp,
           attackType,
           relevance,
+          threatLevel,
           isSiren: false,
         };
       }).filter(item => item.relevance !== 'general'); // drop unclassified noise
 
-      // 7. Merge siren events (always at top within their timestamp bucket)
-      const all = [...sirenItems, ...newsResult]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      // 7. Sort: high threatLevel first (within sirenItems), then by timestamp
+      const THREAT_SCORE: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      const sortItems = (arr: any[]) => arr.sort((a, b) => {
+        const tsDiff = (THREAT_SCORE[b.threatLevel] || 1) - (THREAT_SCORE[a.threatLevel] || 1);
+        if (tsDiff !== 0) return tsDiff;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+
+      // 8. Merge siren events (always pinned at top) + sorted news
+      const all = [...sirenItems, ...sortItems(newsResult)];
 
       conflictFeedCache = { data: all, fetchedAt: Date.now() };
       return res.json(all);
