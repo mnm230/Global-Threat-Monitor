@@ -1239,9 +1239,9 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
   'אום אל-פחם': { lat: 32.519, lng: 35.153, en: 'Umm al-Fahm', ar: 'أم الفحم', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 45 },
   'באקה אל-גרביה': { lat: 32.419, lng: 35.049, en: 'Baqa al-Gharbiyye', ar: 'باقة الغربية', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 45 },
   'ג\'ת-ואדי ערה': { lat: 32.389, lng: 35.026, en: 'Jatt (Wadi Ara)', ar: 'جت', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 45 },
-  'טייבה': { lat: 32.267, lng: 35.009, en: 'Tayibe', ar: 'الطيبة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
-  'טירה': { lat: 32.234, lng: 34.952, en: 'Tira', ar: 'الطيرة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
-  'קלנסווה': { lat: 32.286, lng: 34.986, en: 'Qalansawe', ar: 'قلنسوة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'טייבה (מרכז)': { lat: 32.267, lng: 35.009, en: 'Tayibe', ar: 'الطيبة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'טירה (מרכז)': { lat: 32.234, lng: 34.952, en: 'Tira', ar: 'الطيرة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
+  'קלנסווה (מרכז)': { lat: 32.286, lng: 34.986, en: 'Qalansawe', ar: 'قلنسوة', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
   'ג\'לג\'וליה': { lat: 32.155, lng: 34.961, en: 'Jaljulia', ar: 'جلجولية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
   'רהט': { lat: 31.395, lng: 34.759, en: 'Rahat', ar: 'رهط', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
   'ערערה-בנגב': { lat: 31.148, lng: 34.989, en: 'Ar\'ara BaNegev', ar: 'عرعرة النقب', region: 'Northern Negev', regionHe: 'צפון הנגב', regionAr: 'النقب الشمالي', countdown: 60 },
@@ -1271,7 +1271,6 @@ const OREF_CITY_COORDS: Record<string, { lat: number; lng: number; en: string; a
   'טייבה': { lat: 32.267, lng: 35.010, en: 'Tayibe', ar: 'الطيبة', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
   'טירה': { lat: 32.232, lng: 34.951, en: 'Tira', ar: 'الطيرة', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
   'קלנסווה': { lat: 32.284, lng: 34.983, en: 'Qalansawe', ar: 'قلنسوة', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
-  'ג\'לג\'וליה': { lat: 32.158, lng: 34.955, en: 'Jaljulia', ar: 'جلجولية', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
   'אם אל-פחם': { lat: 32.519, lng: 35.153, en: 'Umm al-Fahm', ar: 'أم الفحم', region: 'Wadi Ara', regionHe: 'ואדי ערה', regionAr: 'وادي عارة', countdown: 60 },
   'נחלים': { lat: 32.066, lng: 34.921, en: 'Nahalim', ar: 'نحاليم', region: 'Central', regionHe: 'מרכז', regionAr: 'المركز', countdown: 90 },
   'מתן': { lat: 32.184, lng: 34.942, en: 'Mattan', ar: 'متان', region: 'Sharon', regionHe: 'שרון', regionAr: 'الشارون', countdown: 90 },
@@ -2623,6 +2622,7 @@ Return this exact JSON schema (all fields required, write in military prose — 
     : 'No confirmed OPFOR kinetic activity in this period. Maintain elevated vigilance for launch indicators.';
 
   // BLUFOR
+  const windowEW: Array<{ type: string; country: string; radiusKm: number }> = [];
   const ewActive = windowEW.length;
   const blufor = `Air defense posture active. ${windowAlerts.length > 0 ? `${windowAlerts.length} intercept activation(s) triggered across active defense batteries.` : 'No intercept activations required this period.'} ${ewActive > 0 ? `${ewActive} active EW/GPS disruption zone(s) tracked.` : ''} Coalition ISR assets maintaining coverage.`;
 
@@ -2636,7 +2636,7 @@ Return this exact JSON schema (all fields required, write in military prose — 
     })),
     ...windowConflicts.filter(e => e.severity === 'critical' || e.severity === 'high').slice(0, 4).map(e => ({
       dtg,
-      location: e.location || e.country,
+      location: e.location || e.country || 'Unknown',
       event: `${e.title}. ${e.description.slice(0, 120)}`,
       significance: (e.severity === 'critical' ? 'critical' : 'high') as 'critical' | 'high' | 'medium',
     })),
@@ -2650,7 +2650,7 @@ Return this exact JSON schema (all fields required, write in military prose — 
 
   // Intelligence
   const intelligence = windowMessages.length > 0
-    ? `${windowMessages.length} OSINT items classified in period. ${windowMessages.filter(m => m.classification === 'critical').length} critical-tier intercepts. ${windowMessages.slice(0, 2).map(m => m.text.slice(0, 80)).join(' | ')}`
+    ? `${windowMessages.length} OSINT items classified in period. ${windowMessages.filter(m => m.classification?.severity === 'critical').length} critical-tier intercepts. ${windowMessages.slice(0, 2).map(m => m.text.slice(0, 80)).join(' | ')}`
     : `No OSINT items in this window. Pattern-of-life baseline normal. ${windowConflicts.length > 0 ? `GDELT conflict mapping shows ${windowConflicts.length} events — cross-reference with ISR feed.` : 'No anomalous patterns detected.'}`;
 
   // Infrastructure
@@ -3527,7 +3527,8 @@ export async function registerRoutes(
         locationAr: a.cityAr,
         region: a.region,
         regionAr: a.regionAr,
-        threatType: SIREN_THREAT_MAP[a.threatType] || 'rocket',
+        threatType: (SIREN_THREAT_MAP[a.threatType] || 'rocket') as SirenAlert['threatType'],
+        countdown: a.countdown,
         timestamp: a.timestamp,
         active: a.active || (a.countdown > 0 && (a.countdown - Math.floor((now - new Date(a.timestamp).getTime()) / 1000)) > 0),
       }));

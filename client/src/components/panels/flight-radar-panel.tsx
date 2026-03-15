@@ -33,8 +33,8 @@ export const FlightRadarPanel = memo(function FlightRadarPanel({ flights, langua
     return () => { cancelled = true; };
   }, [selectedFlight?.callsign]);
   const sorted = [...flights].sort((a, b) => {
-    const order = { military: 0, surveillance: 1, commercial: 2 };
-    return (order[a.type] ?? 3) - (order[b.type] ?? 3);
+    const order: Record<string, number> = { military: 0, fighter: 0, surveillance: 1, commercial: 2, tanker: 3, refueling: 3 };
+    return (order[a.type] ?? 4) - (order[b.type] ?? 4);
   });
 
   return (

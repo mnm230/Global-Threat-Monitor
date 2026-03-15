@@ -49,12 +49,14 @@ export interface ConflictEvent {
   descriptionAr?: string;
   timestamp: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
+  country?: string;
+  location?: string;
 }
 
 export interface FlightData {
   id: string;
   callsign: string;
-  type: 'military' | 'commercial' | 'surveillance';
+  type: 'military' | 'commercial' | 'surveillance' | 'fighter' | 'tanker' | 'refueling';
   lat: number;
   lng: number;
   altitude: number;
@@ -92,7 +94,8 @@ export interface SirenAlert {
   locationAr: string;
   region: string;
   regionAr: string;
-  threatType: 'rocket' | 'missile' | 'uav' | 'hostile_aircraft';
+  threatType: 'rocket' | 'rockets' | 'missile' | 'uav' | 'hostile_aircraft';
+  countdown: number;
   timestamp: string;
   active: boolean;
 }
@@ -113,9 +116,10 @@ export interface RedAlert {
   active: boolean;
   lat: number;
   lng: number;
+  area?: string;
   source?: 'live' | 'sim';
-  sourceChannel?: string;   // e.g. "@wfwitness"
-  sourceUrl?: string;       // e.g. "https://t.me/wfwitness/12345"
+  sourceChannel?: string;
+  sourceUrl?: string;
 }
 
 export interface ThreatClassification {
