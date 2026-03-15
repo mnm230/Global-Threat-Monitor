@@ -115,9 +115,6 @@ import {
   type WARROOMSettings,
   type PanelId,
   type LayoutPreset,
-  type FloatState,
-  type Correlation,
-  type EscalationState,
   DEFAULT_SETTINGS,
   loadSettings,
   PANEL_CONFIG,
@@ -133,6 +130,7 @@ import { useDesktopNotifications } from '@/hooks/use-notifications';
 import { useAnomalyDetection } from '@/hooks/use-anomaly-detection';
 import { useEscalation } from '@/hooks/use-escalation';
 import { useCorrelations } from '@/hooks/use-correlations';
+import { useFloatingPanels } from '@/hooks/use-floating-panels';
 
 import { PanelErrorBoundary } from '@/components/panel-error-boundary';
 import { ResizeHandle } from '@/components/resize-handle';
@@ -407,48 +405,7 @@ export default function Dashboard() {
     setMaximizedPanel(prev => prev === id ? null : id);
   }, []);
 
-  // ── Floating panel system ──────────────────────────────────────────────────
-  const [floatingPanels, setFloatingPanels] = useState<Partial<Record<PanelId, FloatState>>>({});
-  const floatTopZ = useRef(600);
-  const [draggingFloatId, setDraggingFloatId] = useState<PanelId | null>(null);
-  const dockZoneRef = useRef<HTMLDivElement | null>(null);
-
-  const popOutPanel = useCallback((id: PanelId) => {
-    floatTopZ.current += 1;
-    setFloatingPanels(prev => {
-      if (prev[id]) {
-        // already floating — just focus
-        return { ...prev, [id]: { ...prev[id]!, z: floatTopZ.current } };
-      }
-      const count = Object.keys(prev).length;
-      const w = Math.min(window.innerWidth * 0.38, 540);
-      const h = Math.min(window.innerHeight * 0.58, 560);
-      return {
-        ...prev,
-        [id]: {
-          x: Math.max(40, (window.innerWidth - w) / 2 + count * 28),
-          y: Math.max(60, (window.innerHeight - h) / 2 + count * 28),
-          w, h, z: floatTopZ.current,
-        },
-      };
-    });
-  }, []);
-
-  const dockPanel = useCallback((id: PanelId) => {
-    setFloatingPanels(prev => { const n = { ...prev }; delete n[id]; return n; });
-  }, []);
-
-  const closeFloatPanel = useCallback((id: PanelId) => {
-    setFloatingPanels(prev => { const n = { ...prev }; delete n[id]; return n; });
-    closePanel(id);
-  }, [closePanel]);
-
-  const focusFloatPanel = useCallback((id: PanelId) => {
-    floatTopZ.current += 1;
-    setFloatingPanels(prev =>
-      prev[id] ? { ...prev, [id]: { ...prev[id]!, z: floatTopZ.current } } : prev
-    );
-  }, []);
+  const { floatingPanels, draggingFloatId, setDraggingFloatId, dockZoneRef, popOutPanel, dockPanel, closeFloatPanel, focusFloatPanel } = useFloatingPanels(closePanel);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {

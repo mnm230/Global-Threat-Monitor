@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { SSEData, FeedFreshness } from '@/lib/dashboard-types';
+import type { RedAlert } from '@shared/schema';
 import { queryClient } from '@/lib/queryClient';
 
 export function useSSE(): SSEData {
@@ -97,7 +98,7 @@ export function useSSE(): SSEData {
         try {
           const raw = JSON.parse(e.data);
           const seen = new Set<string>();
-          pending.current.redAlerts = raw.filter((a: any) => seen.has(a.id) ? false : (seen.add(a.id), true));
+          pending.current.redAlerts = (raw as RedAlert[]).filter(a => seen.has(a.id) ? false : (seen.add(a.id), true));
           markFresh('alerts'); markFresh('alertmap');
           scheduleFlush();
         } catch {}
@@ -112,7 +113,7 @@ export function useSSE(): SSEData {
         try { pending.current.breakingNews = JSON.parse(e.data); markFresh('breaking'); scheduleFlush(); } catch {}
       });
       es.addEventListener('analytics', (e) => {
-        try { queryClient.setQueryData(['/api/analytics'], (old: any) => ({ ...old, ...JSON.parse(e.data) })); markFresh('analytics'); } catch {}
+        try { queryClient.setQueryData(['/api/analytics'], (old: Record<string, unknown> | undefined) => ({ ...old, ...JSON.parse(e.data) })); markFresh('analytics'); } catch {}
       });
       es.addEventListener('attack-prediction', (e) => {
         try { pending.current.attackPrediction = JSON.parse(e.data); markFresh('attackpred'); markFresh('aiprediction'); scheduleFlush(); } catch {}
