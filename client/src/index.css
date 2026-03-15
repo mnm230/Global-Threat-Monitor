@@ -200,6 +200,51 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
+   PANEL ANIMATIONS & SCROLL UTILITIES
+   ════════════════════════════════════════════════════════════════ */
+
+/* Panel mount animation */
+@keyframes panel-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes panel-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+.panel-enter {
+  animation: panel-enter 200ms ease forwards;
+}
+
+/* Momentum scrolling for touch devices */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Scroll shadow utilities */
+.scroll-shadow-top {
+  box-shadow: inset 0 8px 8px -8px rgba(0,0,0,0.4);
+}
+.scroll-shadow-bottom {
+  box-shadow: inset 0 -8px 8px -8px rgba(0,0,0,0.4);
+}
+
+/* Panel resize ghost */
+.resize-ghost {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid hsl(var(--primary) / 0.3);
+  border-radius: 4px;
+  backdrop-filter: brightness(1.05);
+  transition: opacity 100ms ease;
+}
+
+/* ════════════════════════════════════════════════════════════════
    DASH PANELS  — Dense Bloomberg-style
    ════════════════════════════════════════════════════════════════ */
 @layer utilities {

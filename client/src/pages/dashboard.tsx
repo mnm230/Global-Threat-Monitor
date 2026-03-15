@@ -94,6 +94,8 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { SiTelegram } from 'react-icons/si';
+import { ScrollShadow } from '@/components/shared/scroll-shadow';
+import { AnimatedPanel } from '@/components/shared/animated-panel';
 
 const ConflictMap = lazy(() => import('@/components/conflict-map'));
 
@@ -512,6 +514,7 @@ function ResizeHandle({ onResize, direction = 'col' }: { onResize: (delta: numbe
     >
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-20 -ml-[9px]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-20 -mt-[9px]'} rounded transition-colors ${isDragging ? 'bg-primary/10' : 'bg-transparent group-hover:bg-primary/5'}`} />
       <div className={`absolute ${direction === 'col' ? 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-10' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[2px] w-10'} rounded-full transition-all duration-200 ${isDragging ? 'bg-primary shadow-[0_0_8px_hsl(32_92%_50%/0.5)]' : 'bg-transparent group-hover:bg-primary/50'}`} />
+      {isDragging && <div className="resize-ghost" />}
     </div>
   );
 }
@@ -2237,20 +2240,22 @@ const CommoditiesPanel = memo(function CommoditiesPanel({
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2">
-        <MarketSectionHeader label={language === 'en' ? 'Commodities' : '\u0627\u0644\u0633\u0644\u0639'} count={cmdty.length} />
-        <div className="grid grid-cols-2 gap-1.5">
-          {cmdty.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="px-2 pb-2">
+          <MarketSectionHeader label={language === 'en' ? 'Commodities' : '\u0627\u0644\u0633\u0644\u0639'} count={cmdty.length} />
+          <div className="grid grid-cols-2 gap-1.5">
+            {cmdty.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
+          </div>
+          <MarketSectionHeader label={language === 'en' ? 'Major FX' : '\u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} count={fxMajor.length} />
+          <div className="grid grid-cols-2 gap-1.5">
+            {fxMajor.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
+          </div>
+          <MarketSectionHeader label={language === 'en' ? 'Regional FX' : '\u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} count={fxRegional.length} />
+          <div className="grid grid-cols-2 gap-1.5">
+            {fxRegional.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
+          </div>
         </div>
-        <MarketSectionHeader label={language === 'en' ? 'Major FX' : '\u0627\u0644\u0639\u0645\u0644\u0627\u062A \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629'} count={fxMajor.length} />
-        <div className="grid grid-cols-2 gap-1.5">
-          {fxMajor.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
-        </div>
-        <MarketSectionHeader label={language === 'en' ? 'Regional FX' : '\u0639\u0645\u0644\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} count={fxRegional.length} />
-        <div className="grid grid-cols-2 gap-1.5">
-          {fxRegional.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
-        </div>
-      </div>
+      </ScrollShadow>
     </div>
   );
 });
@@ -2313,7 +2318,8 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0 p-2" style={{ scrollbarWidth: 'none' }}>
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="p-2" style={{ scrollbarWidth: 'none' }}>
         {regionGroups.map(([region, regionSirens]) => (
           <div key={region} className="mb-2">
             <div className="flex items-center gap-2 px-1 mb-1">
@@ -2373,7 +2379,8 @@ function SirensPanel({ sirens, language, onClose }: { sirens: SirenAlert[]; lang
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 }
@@ -2485,7 +2492,8 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
           </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="divide-y divide-border">
         {sorted.map((f) => {
           const style = FLIGHT_TYPE_STYLES[f.type] || FLIGHT_TYPE_STYLES.commercial;
           const isSelected = selectedFlight?.id === f.id;
@@ -2522,7 +2530,8 @@ const FlightRadarPanel = memo(function FlightRadarPanel({ flights, language, onC
             </div>
           );
         })}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 });
@@ -2616,7 +2625,8 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
           <p className="text-[10px] text-foreground/25">No active events</p>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-border">
+      <ScrollShadow className="flex-1 min-h-0">
+        <div className="divide-y divide-border">
         {filtered.map((e) => {
           const sev = SEVERITY_STYLES[e.severity] || SEVERITY_STYLES.low;
           const icon = EVENT_TYPE_ICONS[e.type] || '📍';
@@ -2653,7 +2663,8 @@ const ConflictEventsPanel = memo(function ConflictEventsPanel({ events, language
             </div>
           );
         })}
-      </div>
+        </div>
+      </ScrollShadow>
     </div>
   );
 });
@@ -7714,25 +7725,33 @@ function LiveFlightTracker({ flight, allFlights, language, onClose }: {
   );
 }
 
-// ── Regional Attacks Panel — Lebanon, GCC, Yemen, Syria, Iraq, Egypt, Jordan ──
+// ── Regional Attacks Panel — Lebanon, GCC, Yemen, Syria, Iraq, Egypt, Jordan, Iran ──
 const REGION_META: Record<string, { label: string; labelAr: string; flag: string; color: string }> = {
   all:     { label: 'All',     labelAr: 'الكل',       flag: '🌍', color: '#94a3b8' },
   lebanon: { label: 'Lebanon', labelAr: 'لبنان',      flag: '🇱🇧', color: '#10b981' },
   yemen:   { label: 'Yemen',   labelAr: 'اليمن',      flag: '🇾🇪', color: '#f43f5e' },
-  gcc:     { label: 'GCC',     labelAr: 'الخليج',     flag: '🛢️', color: '#f59e0b' },
-  syria:   { label: 'Syria',   labelAr: 'سوريا',      flag: '🇸🇾', color: '#a855f7' },
+  iran:    { label: 'Iran',    labelAr: 'إيران',      flag: '🇮🇷', color: '#a855f7' },
   iraq:    { label: 'Iraq',    labelAr: 'العراق',     flag: '🇮🇶', color: '#f97316' },
-  egypt:   { label: 'Egypt',   labelAr: 'مصر',        flag: '🇪🇬', color: '#eab308' },
+  syria:   { label: 'Syria',   labelAr: 'سوريا',      flag: '🇸🇾', color: '#eab308' },
+  gcc:     { label: 'GCC',     labelAr: 'الخليج',     flag: '🛢️', color: '#f59e0b' },
+  egypt:   { label: 'Egypt',   labelAr: 'مصر',        flag: '🇪🇬', color: '#22d3ee' },
   jordan:  { label: 'Jordan',  labelAr: 'الأردن',     flag: '🇯🇴', color: '#06b6d4' },
 };
 
+const THREAT_LEVEL_META: Record<string, { dot: string; label: string }> = {
+  high:   { dot: '#ef4444', label: 'HIGH' },
+  medium: { dot: '#f59e0b', label: 'MED'  },
+  low:    { dot: '#6b7280', label: 'LOW'  },
+};
+
 const ATTACK_TYPE_META: Record<string, { icon: string; label: string; color: string }> = {
-  drone:    { icon: '🛸', label: 'Drone/UAV',  color: '#a855f7' },
-  missile:  { icon: '🚀', label: 'Missile',    color: '#ef4444' },
-  rocket:   { icon: '💥', label: 'Rocket',     color: '#f97316' },
-  airstrike:{ icon: '✈️', label: 'Airstrike',  color: '#3b82f6' },
-  naval:    { icon: '⚓', label: 'Naval',      color: '#0ea5e9' },
-  other:    { icon: '⚠️', label: 'Attack',     color: '#94a3b8' },
+  drone:     { icon: '🛸', label: 'Drone/UAV',  color: '#a855f7' },
+  missile:   { icon: '🚀', label: 'Missile',    color: '#ef4444' },
+  rocket:    { icon: '💥', label: 'Rocket',     color: '#f97316' },
+  airstrike: { icon: '✈️', label: 'Airstrike',  color: '#3b82f6' },
+  naval:     { icon: '⚓', label: 'Naval',      color: '#0ea5e9' },
+  artillery: { icon: '💣', label: 'Artillery',  color: '#d97706' },
+  other:     { icon: '⚠️', label: 'Attack',     color: '#94a3b8' },
 };
 
 interface RegionalFeedItem {
@@ -7743,6 +7762,7 @@ interface RegionalFeedItem {
   timestamp: string;
   attackType: string;
   relevance: string;
+  threatLevel?: 'high' | 'medium' | 'low';
   isSiren?: boolean;
 }
 
@@ -7881,9 +7901,11 @@ function RegionalAttacksPanel({ language, onClose, onMaximize, isMaximized }: {
             </div>
           ) : (
             filtered.map(item => {
-              const atMeta = ATTACK_TYPE_META[item.attackType] || ATTACK_TYPE_META.other;
-              const regMeta = REGION_META[item.relevance === 'both' ? 'lebanon' : item.relevance] || REGION_META.all;
+              const atMeta  = ATTACK_TYPE_META[item.attackType] || ATTACK_TYPE_META.other;
+              const regMeta = REGION_META[item.relevance === 'both' ? 'gcc' : item.relevance] || REGION_META.all;
               const isSiren = !!item.isSiren;
+              const tlMeta  = !isSiren ? (THREAT_LEVEL_META[item.threatLevel || 'low'] || THREAT_LEVEL_META.low) : null;
+              const isHigh  = !isSiren && item.threatLevel === 'high';
               return (
                 <div key={item.id}
                   className="rounded-sm px-2 py-1.5 transition-colors hover:bg-white/[0.04]"
@@ -7891,6 +7913,9 @@ function RegionalAttacksPanel({ language, onClose, onMaximize, isMaximized }: {
                     background: 'rgba(239,68,68,0.07)',
                     border: '1px solid rgba(239,68,68,0.28)',
                     boxShadow: '0 0 8px rgba(239,68,68,0.10)',
+                  } : isHigh ? {
+                    background: 'rgba(239,68,68,0.04)',
+                    border: '1px solid rgba(239,68,68,0.15)',
                   } : {
                     background: 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.05)',
@@ -7921,14 +7946,21 @@ function RegionalAttacksPanel({ language, onClose, onMaximize, isMaximized }: {
                             🛢️ {language === 'ar' ? 'الخليج' : 'GCC'}
                           </span>
                         )}
+                        {tlMeta && (
+                          <span className="flex items-center gap-0.5 text-[9px] font-mono px-1 py-px rounded-sm"
+                            style={{ background: tlMeta.dot + '15', color: tlMeta.dot, border: `1px solid ${tlMeta.dot}33` }}>
+                            <span className="inline-block w-1 h-1 rounded-full" style={{ background: tlMeta.dot }} />
+                            {tlMeta.label}
+                          </span>
+                        )}
                       </div>
                       {item.url ? (
                         <a href={item.url} target="_blank" rel="noopener noreferrer"
-                          className={`text-[11px] font-medium leading-snug block transition-colors hover:text-foreground ${isSiren ? 'text-red-300/90' : 'text-foreground/75'}`}>
+                          className={`text-[11px] font-medium leading-snug block transition-colors hover:text-foreground ${isSiren ? 'text-red-300/90' : isHigh ? 'text-foreground/85' : 'text-foreground/70'}`}>
                           {item.title}
                         </a>
                       ) : (
-                        <p className={`text-[11px] font-medium leading-snug ${isSiren ? 'text-red-300/90' : 'text-foreground/75'}`}>{item.title}</p>
+                        <p className={`text-[11px] font-medium leading-snug ${isSiren ? 'text-red-300/90' : isHigh ? 'text-foreground/85' : 'text-foreground/70'}`}>{item.title}</p>
                       )}
                       <div className="flex items-center gap-1.5 mt-1">
                         <span className="text-[9px] font-mono text-foreground/30">{item.source}</span>
@@ -8716,9 +8748,9 @@ export default function Dashboard() {
                 </div>
               ))}
               {!(['alertmap', 'alerts', 'regional', 'telegram', 'events'] as PanelId[]).includes(mobileActivePanel) && (
-                <div className="absolute inset-0 flex flex-col z-10">
+                <AnimatedPanel animKey={mobileActivePanel} className="absolute inset-0 flex flex-col z-10">
                   {renderPanel(mobileActivePanel)}
-                </div>
+                </AnimatedPanel>
               )}
             </div>
             {/* Swipe dots — hidden when alerts panel is full-screen */}
