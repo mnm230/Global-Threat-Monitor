@@ -143,7 +143,6 @@ import { FloatingWindow } from '@/components/floating-window';
 import { PanelSidebar } from '@/components/panel-sidebar';
 import { OsintTimelinePanel } from '@/components/osint-timeline-panel';
 import { AlertMapPanel } from '@/components/alert-map-panel';
-import { MapSection } from '@/components/map-section';
 import { LiveFlightTracker } from '@/components/live-flight-tracker';
 
 import { NotesOverlay } from '@/components/overlays/notes-overlay';
