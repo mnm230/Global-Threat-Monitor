@@ -62,7 +62,7 @@ async function refreshRedAlerts() {
     const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
     latest.breakingNews = breaking;
     broadcast('breaking-news', breaking);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] red-alerts failed:', (e as Error).message); }
 }
 
 async function refreshTelegramPriority() {
@@ -74,7 +74,7 @@ async function refreshTelegramPriority() {
     const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
     latest.breakingNews = breaking;
     broadcast('breaking-news', breaking);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] telegram-priority failed:', (e as Error).message); }
 }
 
 async function refreshTelegramFull() {
@@ -83,7 +83,7 @@ async function refreshTelegramFull() {
     setLatestTgMsgs(tgMsgs);
     latest.telegram = tgMsgs;
     broadcast('telegram', tgMsgs);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] telegram-full failed:', (e as Error).message); }
 }
 
 async function refreshEvents() {
@@ -91,7 +91,7 @@ async function refreshEvents() {
     const events = await fetchGDELTConflictEvents(fetchOrefAlerts);
     latest.events = { events, flights: [], ships: [] };
     broadcast('events', latest.events);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] events failed:', (e as Error).message); }
 }
 
 async function refreshNews() {
@@ -99,7 +99,7 @@ async function refreshNews() {
     const news = await generateNews();
     latest.news = news;
     broadcast('news', news);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] news failed:', (e as Error).message); }
 }
 
 async function refreshThermal() {
@@ -107,14 +107,14 @@ async function refreshThermal() {
     const hotspots = await fetchThermalHotspots();
     latest.thermal = hotspots;
     broadcast('thermal', hotspots);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] thermal failed:', (e as Error).message); }
 }
 
 async function refreshXFeeds() {
   try {
     const xPosts = await fetchXFeeds();
     setLatestXPosts(xPosts);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] x-feeds failed:', (e as Error).message); }
 }
 
 async function refreshClassified() {
@@ -125,7 +125,7 @@ async function refreshClassified() {
       latest.classified = classified;
       broadcast('classified', classified);
     }
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] classified failed:', (e as Error).message); }
 }
 
 async function refreshAnalytics() {
@@ -144,7 +144,7 @@ async function refreshAnalytics() {
     );
     latest.analytics = analytics;
     broadcast('analytics', analytics);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] analytics failed:', (e as Error).message); }
 }
 
 async function refreshAttackPrediction() {
@@ -152,7 +152,7 @@ async function refreshAttackPrediction() {
     const pred = await generateAttackPrediction();
     latest.attackPrediction = pred;
     broadcast('attack-prediction', pred);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] attack-prediction failed:', (e as Error).message); }
 }
 
 function refreshRocketStats() {
@@ -160,7 +160,7 @@ function refreshRocketStats() {
     const stats = generateRocketStats();
     latest.rocketStats = stats;
     broadcast('rocket-stats', stats);
-  } catch {}
+  } catch (e) { console.error('[SSE-REFRESH] rocket-stats failed:', (e as Error).message); }
 }
 
 function refreshCommodities() {
