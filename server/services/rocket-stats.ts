@@ -4,6 +4,71 @@ import { alertHistory, latestAlerts, classifiedMessageCache } from "../lib/share
 import { sanitizeText } from "../lib/utils";
 import { fetchNewsAPI, fetchGNews, fetchMediastack, fetchFreeNewsRSS } from "./news";
 
+interface ConflictFeedItem {
+  id: string;
+  title: string;
+  source: string;
+  url: string | undefined;
+  timestamp: string;
+  attackType: string;
+  relevance: string;
+  isSiren: boolean;
+  threatLevel?: string;
+  cities?: string[];
+  count?: number;
+}
+
+interface EpicFuryData {
+  day: number | null;
+  lastUpdated: string | null;
+  ballisticMissiles: number | null;
+  dronesUAVs: number | null;
+  missilesToIsrael: number | null;
+  launchersDestroyed: number | null;
+  countriesAttacked: number | null;
+  israelKilled: number | null;
+  israelWounded: number | null;
+  iranKilled: number | null;
+  iranWounded: number | null;
+  lebanonKilled: number | null;
+  fetchedAt: string;
+  source: string;
+  htmlLength: number;
+}
+
+interface GdeltArticle {
+  title?: string;
+  domain?: string;
+  url?: string;
+  seendate?: string;
+}
+
+interface GdeltResponse {
+  articles?: GdeltArticle[];
+}
+
+interface AiAnalystContext {
+  threatLevel?: string;
+  confidence?: number;
+  nextTarget?: string;
+  escalationVector?: string;
+  velocityPerHour?: number;
+  velocity30m?: number;
+  isEscalating?: boolean;
+  nextAttackWindow?: {
+    label?: string;
+    estimatedMinutes?: number;
+    confidence?: number;
+    basis?: string;
+  };
+  locationProbabilities?: Array<{
+    countryFlag: string;
+    location: string;
+    probability: number;
+    threatType: string;
+  }>;
+}
+
 const rocketStatsCache = new TtlCache<RocketStats>(20_000);
 
 const ORIGIN_INFERENCE_MAP: Record<string, { origin: string; originCountry: string }> = {
@@ -179,7 +244,7 @@ export function generateRocketStats(): RocketStats {
   return stats;
 }
 
-const conflictFeedCache = new TtlCache<Record<string, unknown>[]>(15_000);
+const conflictFeedCache = new TtlCache<ConflictFeedItem[]>(15_000);
 
 const GCC_KEYWORDS = [
   'saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'mecca', 'medina',
@@ -305,7 +370,7 @@ function classifyConflictFeedItem(title: string): { attackType: string; relevanc
   return { attackType, relevance, threatLevel };
 }
 
-function buildLebanonSirenItems(): any[] {
+function buildLebanonSirenItems(): ConflictFeedItem[] {
   const cutoff = Date.now() - 6 * 60 * 60 * 1000;
   const borderAlerts = (alertHistory.length > 0 ? alertHistory : latestAlerts)
     .filter(a => {
@@ -386,14 +451,14 @@ const REGIONAL_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=IDF+strike+Gaza+West+Bank+Rafah+killed&hl=en-US&gl=US&ceid=US:en', source: 'GN: IDF Ops' },
 ];
 
-const regionalRssCache = new TtlCache<Record<string, unknown>[]>(60_000);
+const regionalRssCache = new TtlCache<ConflictFeedItem[]>(60_000);
 
-async function fetchRegionalRSS(): Promise<Record<string, unknown>[]> {
+async function fetchRegionalRSS(): Promise<ConflictFeedItem[]> {
   const rssCached = regionalRssCache.get();
   if (rssCached) {
     return rssCached;
   }
-  const items: any[] = [];
+  const items: ConflictFeedItem[] = [];
   await Promise.allSettled(REGIONAL_RSS_FEEDS.map(async ({ url, source }) => {
     try {
       const res = await fetch(url, {
@@ -421,7 +486,9 @@ async function fetchRegionalRSS(): Promise<Record<string, unknown>[]> {
           source,
           url: link || undefined,
           timestamp,
-          category: 'military',
+          attackType: 'unknown',
+          relevance: 'regional',
+          isSiren: false,
         });
       }
     } catch { /* feed unreachable */ }
@@ -430,7 +497,7 @@ async function fetchRegionalRSS(): Promise<Record<string, unknown>[]> {
   return items;
 }
 
-export async function fetchLiveConflictFeed(): Promise<any[]> {
+export async function fetchLiveConflictFeed(): Promise<ConflictFeedItem[]> {
   const feedCached = conflictFeedCache.get();
   if (feedCached) {
     return feedCached;
@@ -454,7 +521,7 @@ export async function fetchLiveConflictFeed(): Promise<any[]> {
     ...(regionalRssR.status === 'fulfilled' ? regionalRssR.value : []),
   ];
 
-  let gdeltItems: any[] = [];
+  let gdeltItems: ConflictFeedItem[] = [];
   try {
     const gdeltParseDate = (d: string) =>
       new Date(d.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/, '$1-$2-$3T$4:$5:$6Z')).toISOString();
@@ -475,15 +542,17 @@ export async function fetchLiveConflictFeed(): Promise<any[]> {
 
     const mapGdelt = (r: PromiseSettledResult<Response>, prefix: string) => {
       if (r.status !== 'fulfilled' || !r.value.ok) return Promise.resolve([]);
-      return r.value.json().then((j: any) =>
-        (j.articles || []).map((a: any, i: number) => ({
+      return r.value.json().then((j: GdeltResponse) =>
+        (j.articles || []).map((a: GdeltArticle, i: number) => ({
           id: `gdelt_${prefix}_${i}_${Date.now()}`,
           title: (a.title || '').replace(/<[^>]+>/g, '').trim(),
           source: a.domain || 'GDELT',
           url: a.url,
           timestamp: a.seendate ? gdeltParseDate(a.seendate) : new Date().toISOString(),
-          category: 'military',
-        })).filter((a: any) => a.title && a.title.length > 10)
+          attackType: 'unknown',
+          relevance: 'regional',
+          isSiren: false,
+        })).filter((a: ConflictFeedItem) => a.title && a.title.length > 10)
       );
     };
 
@@ -528,7 +597,7 @@ export async function fetchLiveConflictFeed(): Promise<any[]> {
   }).filter(item => item.relevance !== 'general');
 
   const THREAT_SCORE: Record<string, number> = { high: 3, medium: 2, low: 1 };
-  const sortItems = (arr: any[]) => arr.sort((a, b) => {
+  const sortItems = (arr: ConflictFeedItem[]) => arr.sort((a, b) => {
     const tsDiff = (THREAT_SCORE[b.threatLevel] || 1) - (THREAT_SCORE[a.threatLevel] || 1);
     if (tsDiff !== 0) return tsDiff;
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
@@ -817,7 +886,7 @@ export async function generateAttackPrediction(): Promise<Record<string, unknown
   return result;
 }
 
-export async function fetchEpicFury(): Promise<any> {
+export async function fetchEpicFury(): Promise<EpicFuryData> {
   const response = await fetch('https://littlemoiz.com/', {
     signal: AbortSignal.timeout(12000),
     headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36' },
@@ -851,19 +920,19 @@ export async function fetchEpicFury(): Promise<any> {
   };
 }
 
-export function handleAiAnalyst(question: string, clientContext: any): string {
+export function handleAiAnalyst(question: string, clientContext: AiAnalystContext): string {
   const ctx = clientContext || {};
-  const q = (question as string).toLowerCase();
+  const q = question.toLowerCase();
 
   const threatLevel  = ctx.threatLevel  || 'MODERATE';
   const confidence   = Math.round((ctx.confidence || 0.5) * 100);
   const nextTarget   = ctx.nextTarget   || 'Unknown';
   const escVector    = ctx.escalationVector || '';
-  const velocity     = (ctx.velocityPerHour as number | undefined) ?? 0;
-  const velocity30m  = (ctx.velocity30m    as number | undefined) ?? 0;
-  const isEscalating = ctx.isEscalating as boolean | undefined;
-  const win          = ctx.nextAttackWindow as { label?: string; estimatedMinutes?: number; confidence?: number; basis?: string } | undefined;
-  const locs         = (ctx.locationProbabilities as Array<{ countryFlag: string; location: string; probability: number; threatType: string }> | undefined) || [];
+  const velocity     = ctx.velocityPerHour ?? 0;
+  const velocity30m  = ctx.velocity30m ?? 0;
+  const isEscalating = ctx.isEscalating;
+  const win          = ctx.nextAttackWindow;
+  const locs         = ctx.locationProbabilities || [];
   const topLocs      = locs.slice(0, 5);
 
   const dtg = new Date().toUTCString();

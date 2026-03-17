@@ -607,9 +607,10 @@ async function fetchTzevaadomHistory(): Promise<RedAlert[]> {
   const alerts: RedAlert[] = [];
   const now = Date.now();
   const SIX_HOURS = 6 * 3600000;
-  const recentGroups = raw.filter((g: any) => {
-    if (!g.alerts || g.alerts.length === 0) return false;
-    const groupTime = g.alerts[0].time * 1000;
+  const recentGroups = raw.filter((g: Record<string, unknown>) => {
+    const alerts = g.alerts as Array<Record<string, unknown>> | undefined;
+    if (!alerts || alerts.length === 0) return false;
+    const groupTime = (alerts[0].time as number) * 1000;
     return (now - groupTime) < SIX_HOURS;
   }).slice(0, 30);
   for (const group of recentGroups) {
@@ -655,12 +656,10 @@ async function fetchFromOrefDirect(): Promise<RedAlert[]> {
   const trimmed = text.trim();
   // OREF returns empty/whitespace/\r\n when no active alerts
   if (!trimmed || trimmed === '' || trimmed === '\r\n' || trimmed === '[]') return [];
-  let raw: any;
+  let raw: unknown;
   try { raw = JSON.parse(trimmed); } catch { return []; }
   if (!raw || typeof raw !== 'object') return [];
-  // OREF live API returns a single alert object {id, cat, title, data: string[], desc}
-  // (NOT an array). Normalise to array for uniform processing.
-  const items: any[] = Array.isArray(raw) ? raw : [raw];
+  const items: Array<Record<string, unknown>> = Array.isArray(raw) ? raw : [raw as Record<string, unknown>];
   const alerts: RedAlert[] = [];
   for (const item of items) {
     if (!item || typeof item !== 'object') continue;
