@@ -110,6 +110,7 @@ import { SirensPanel } from '@/components/panels/sirens-panel';
 import { FlightRadarPanel } from '@/components/panels/flight-radar-panel';
 import { ConflictEventsPanel } from '@/components/panels/conflict-events-panel';
 import { MaritimePanel } from '@/components/panels/maritime-panel';
+import { WeatherPanel } from '@/components/panels/weather-panel';
 
 import {
   type WARROOMSettings,
@@ -189,10 +190,12 @@ export default function Dashboard() {
       });
     };
     check();
+    const orientationHandler = () => setTimeout(check, 100);
     window.addEventListener('resize', check);
-    window.addEventListener('orientationchange', () => setTimeout(check, 100));
+    window.addEventListener('orientationchange', orientationHandler);
     return () => {
       window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', orientationHandler);
       cancelAnimationFrame(raf);
     };
   }, []);
@@ -299,7 +302,7 @@ export default function Dashboard() {
 
 
 
-  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, regional: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true };
+  const defaultVisible: Record<PanelId, boolean> = { telegram: true, events: true, alerts: true, regional: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: true, attackpred: true, rocketstats: true, aiprediction: true, weather: false };
   const [visiblePanels, setVisiblePanels] = useState<Record<PanelId, boolean>>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('warroom_panel_state_v2') || '{}');
@@ -661,6 +664,8 @@ export default function Dashboard() {
           return <AttackPredictorPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} prediction={attackPrediction} />;
         case 'rocketstats':
           return <RocketStatsPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} stats={rocketStats} />;
+        case 'weather':
+          return <WeatherPanel language={language} onClose={close} onMaximize={maximize} isMaximized={isMax} />;
       }
     })();
     return panel ?? null;

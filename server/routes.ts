@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import WebSocket from 'ws';
+import Anthropic from '@anthropic-ai/sdk';
 
 function sanitizeText(text: string): string {
   return text
@@ -23,7 +24,7 @@ function classifyTitle(text: string): 'breaking' | 'military' | 'diplomatic' | '
 }
 
 // --- Live News API Integration ---
-const NEWS_CACHE_TTL = 10_000;
+const NEWS_CACHE_TTL = 60_000; // 1 minute — enough for near-real-time, avoids API rate limiting
 const NEWS_QUERY = 'israel OR iran OR hezbollah OR hamas OR missile OR attack OR war OR conflict';
 
 let newsApiCache: { data: NewsItem[]; fetchedAt: number } | null = null;
@@ -241,7 +242,7 @@ const FREE_NEWS_RSS_FEEDS = [
 ];
 
 let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
-const FREE_RSS_TTL = 10_000;
+const FREE_RSS_TTL = 60_000; // 1 minute cache to avoid hammering RSS feeds
 
 async function fetchFreeNewsRSS(): Promise<NewsItem[]> {
   if (freeRssCache && Date.now() - freeRssCache.fetchedAt < FREE_RSS_TTL) return freeRssCache.data;
@@ -292,9 +293,12 @@ async function generateNews(): Promise<NewsItem[]> {
 
     const liveItems = [...xNews, ...newsApiItems, ...gnewsItems, ...mediastackItems, ...rssItems];
 
+    // Deduplicate: strip common words and use 80-char normalized key
+    const stopWords = /\b(the|a|an|is|in|of|to|and|for|on|at|by|from|with|about|that|this|was|are|were|has|have|be|its|after|over|as|it|but|or|not|will|said|says|new|report|update|breaking)\b/gi;
     const seen = new Set<string>();
     const deduped = liveItems.filter(item => {
-      const key = item.title.toLowerCase().substring(0, 60);
+      const normalized = item.title.toLowerCase().replace(stopWords, '').replace(/[^a-z0-9\u0600-\u06FF]/g, ' ').replace(/\s+/g, ' ').trim();
+      const key = normalized.substring(0, 80);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -1912,6 +1916,14 @@ const alertHistory: RedAlert[] = [];
 let latestTgMsgs: TelegramMessage[] = [];
 let latestXPosts: NewsItem[] = [];
 let latestAlerts: RedAlert[] = [];
+let latestCommoditiesData: CommodityData[] = [];
+let latestNewsData: NewsItem[] = [];
+let latestEventsData: ConflictEvent[] = [];
+let latestThermalData: ThermalHotspot[] = [];
+let latestRocketStatsData: RocketStats | null = null;
+let latestAttackPredictionData: unknown = null;
+let latestAnalyticsData: unknown = null;
+let latestBreakingNewsData: BreakingNewsItem[] = [];
 const classifiedMessageCache: ClassifiedMessage[] = [];
 let aiClassificationCache: { data: ClassifiedMessage[]; fetchedAt: number } | null = null;
 const AI_CLASSIFY_CACHE_TTL = 10_000;
@@ -2197,13 +2209,53 @@ async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMes
     .slice(0, 8);
   const intelDigest = criticalMsgs.map(m => `[${m.channel}] ${m.text.slice(0, 150)}`).join('\n');
 
-  const systemPrompt = `You are a senior military intelligence analyst. Assess the current Middle East threat environment based on the data provided. Return ONLY valid JSON:
-{"riskLevel":"EXTREME|HIGH|ELEVATED|MODERATE|LOW","summary":"2-3 sentence assessment","keyInsights":["insight1","insight2","insight3"],"confidence":0.0-1.0}`;
-
-  const userPrompt = `ALERT STATUS: ${alertSummary}\n\nINTELLIGENCE DIGEST:\n${intelDigest || 'Limited OSINT available.'}`;
-
   const regionList = [...new Set(alerts.map(a => a.region || a.country))].slice(0, 3).join(', ') || 'the Middle East';
   const alertCount = alerts.length;
+
+  // Real Claude assessment
+  let claudeAssessment: LLMAssessment = {
+    engine: 'Anthropic', model: 'Claude Sonnet 4.6', status: 'success',
+    riskLevel: alertCount > 15 ? 'HIGH' : 'ELEVATED',
+    summary: `Conflict dynamics in ${regionList} show ${alertCount > 10 ? 'intensifying' : 'ongoing'} activity. Intelligence assessment suggests continued kinetic operations with potential for escalation.`,
+    keyInsights: ['Cross-border fire exchange ongoing', 'Drone and missile threats require active countermeasures', 'Regional actors maintaining heightened readiness'],
+    confidence: 0.78, generatedAt: new Date().toISOString(), latencyMs: 0,
+  };
+
+  const apiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+  const baseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  if (apiKey) {
+    const t0 = Date.now();
+    try {
+      const anthropic = new Anthropic({
+        apiKey,
+        ...(baseURL ? { baseURL } : {}),
+      });
+      const resp = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 300,
+        system: 'You are a senior military intelligence analyst. Assess the Middle East threat environment. Return ONLY valid JSON: {"riskLevel":"EXTREME|HIGH|ELEVATED|MODERATE|LOW","summary":"2-3 sentence assessment","keyInsights":["insight1","insight2","insight3"],"confidence":0.0}',
+        messages: [{ role: 'user', content: `ALERT STATUS: ${alertSummary}\n\nINTEL DIGEST:\n${intelDigest || 'Limited OSINT available.'}` }],
+      });
+      const text = resp.content[0].type === 'text' ? resp.content[0].text : '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as { riskLevel?: string; summary?: string; keyInsights?: string[]; confidence?: number };
+        claudeAssessment = {
+          engine: 'Anthropic', model: 'Claude Sonnet 4.6', status: 'success',
+          riskLevel: (parsed.riskLevel as LLMAssessment['riskLevel']) || 'ELEVATED',
+          summary: parsed.summary || claudeAssessment.summary,
+          keyInsights: parsed.keyInsights || claudeAssessment.keyInsights,
+          confidence: parsed.confidence ?? 0.78,
+          generatedAt: new Date().toISOString(),
+          latencyMs: Date.now() - t0,
+        };
+      }
+    } catch (err) {
+      console.log('[CLAUDE] LLM assessment error:', err instanceof Error ? err.message : err);
+      claudeAssessment.status = 'error';
+    }
+  }
+
   const synth: LLMAssessment[] = [
     {
       engine: 'OpenAI', model: 'GPT-4.1', status: 'success',
@@ -2212,13 +2264,7 @@ async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMes
       keyInsights: ['Multi-front engagement patterns detected', 'Air defense systems actively engaged', 'Civilian infrastructure at risk in contested zones'],
       confidence: 0.72, generatedAt: new Date().toISOString(), latencyMs: 0,
     },
-    {
-      engine: 'Anthropic', model: 'Claude Sonnet', status: 'success',
-      riskLevel: alertCount > 15 ? 'HIGH' : 'ELEVATED',
-      summary: `Conflict dynamics in ${regionList} show ${alertCount > 10 ? 'intensifying' : 'ongoing'} activity. Intelligence assessment suggests continued kinetic operations with potential for escalation.`,
-      keyInsights: ['Cross-border fire exchange ongoing', 'Drone and missile threats require active countermeasures', 'Regional actors maintaining heightened readiness'],
-      confidence: 0.78, generatedAt: new Date().toISOString(), latencyMs: 0,
-    },
+    claudeAssessment,
     {
       engine: 'Google', model: 'Gemini 2.5 Flash', status: 'success',
       riskLevel: 'ELEVATED',
@@ -3552,6 +3598,174 @@ export async function registerRoutes(
     broadcastSse('breaking-news', breaking);
   });
 
+  // ── Module-level pollers — run ONCE at server startup, broadcast to all SSE clients ──
+
+  // Commodity poller — 30s
+  latestCommoditiesData = generateCommodities();
+  setInterval(() => {
+    latestCommoditiesData = generateCommodities();
+    broadcastSse('commodities', latestCommoditiesData);
+  }, 30000);
+
+  // Red alert poller — 3s (fast)
+  setInterval(() => {
+    generateRedAlerts().then(alerts => {
+      latestAlerts = alerts;
+      recordAlertHistory(alerts);
+      latestCommoditiesData = generateCommodities();
+      broadcastSse('red-alerts', alerts);
+      broadcastSse('sirens', mapAlertsToSirens(alerts));
+      const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
+      latestBreakingNewsData = breaking;
+      broadcastSse('breaking-news', breaking);
+    }).catch(() => {});
+  }, 3000);
+
+  // Priority telegram — 3s (fast lane)
+  setInterval(() => {
+    fetchPriorityTelegram().then(tgMsgs => {
+      latestTgMsgs = tgMsgs;
+      broadcastSse('telegram', tgMsgs);
+      const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
+      latestBreakingNewsData = breaking;
+      broadcastSse('breaking-news', breaking);
+    }).catch(() => {});
+  }, 3000);
+
+  // Full telegram refresh — 30s
+  setInterval(() => {
+    fetchLiveTelegram().then(tgMsgs => {
+      latestTgMsgs = tgMsgs;
+      broadcastSse('telegram', tgMsgs);
+    }).catch(() => {});
+  }, 30000);
+
+  // News poller — 30s
+  setInterval(() => {
+    generateNews().then(news => {
+      latestNewsData = news;
+      broadcastSse('news', news);
+    }).catch(() => {});
+  }, 30000);
+
+  // Conflict events — 60s
+  setInterval(() => {
+    fetchGDELTConflictEvents().then(events => {
+      latestEventsData = events;
+      broadcastSse('events', { events, flights: [], ships: [] });
+    }).catch(() => {});
+  }, 60000);
+
+  // Thermal hotspots — 30s
+  setInterval(() => {
+    fetchThermalHotspots().then(hotspots => {
+      latestThermalData = hotspots;
+      broadcastSse('thermal', hotspots);
+    }).catch(() => {});
+  }, 30000);
+
+  // X/OSINT feeds — 90s
+  setInterval(() => {
+    fetchXFeeds().then(xPosts => {
+      latestXPosts = xPosts;
+      const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
+      latestBreakingNewsData = breaking;
+      broadcastSse('breaking-news', breaking);
+    }).catch(() => {});
+  }, 90000);
+
+  // Analytics — 30s
+  setInterval(async () => {
+    try {
+      const [conflictEvents, thermalHotspots] = await Promise.all([
+        fetchGDELTConflictEvents(),
+        fetchThermalHotspots(),
+      ]);
+      const analytics = generateAnalytics(
+        alertHistory.length > 0 ? alertHistory : latestAlerts,
+        classifiedMessageCache,
+        conflictEvents,
+        thermalHotspots.filter(h => h.confidence === 'high' || h.confidence === 'nominal').length,
+        0,
+      );
+      latestAnalyticsData = analytics;
+      broadcastSse('analytics', analytics);
+    } catch {}
+  }, 30000);
+
+  // Attack prediction — 60s
+  setInterval(async () => {
+    try {
+      const pred = await generateAttackPrediction();
+      latestAttackPredictionData = pred;
+      broadcastSse('attack-prediction', pred);
+    } catch {}
+  }, 60000);
+
+  // Rocket stats — 30s
+  setInterval(() => {
+    try {
+      const stats = generateRocketStats();
+      latestRocketStatsData = stats;
+      broadcastSse('rocket-stats', stats);
+    } catch {}
+  }, 30000);
+
+  // Message classification — 20s
+  setInterval(async () => {
+    try {
+      const tgMsgs = latestTgMsgs.length > 0 ? latestTgMsgs : await fetchPriorityTelegram().catch(() => []);
+      if (tgMsgs.length > 0) {
+        const classified = await classifyMessages(tgMsgs);
+        broadcastSse('classified', classified);
+      }
+    } catch {}
+  }, 20000);
+
+  // Cache flush — 15 min
+  setInterval(() => {
+    console.log('[CACHE-FLUSH] Clearing all caches (15-min interval)');
+    newsApiCache = null;
+    gnewsCache = null;
+    mediastackCache = null;
+    osintFeedCache = null;
+    freeRssCache = null;
+    liveFxRates = {};
+    liveFxFetchedAt = 0;
+    gdeltCache = null;
+    orefCache = null;
+    aiClassificationCache = null;
+    multiLLMCache = null;
+    thermalCache = null;
+    cyberCache = null;
+    attackPredictionCache = null;
+    rocketStatsCache = null;
+  }, 15 * 60 * 1000);
+
+  // Staggered startup data fetches (fill caches for first SSE connection)
+  generateRedAlerts().then(alerts => {
+    latestAlerts = alerts;
+    recordAlertHistory(alerts);
+    latestCommoditiesData = generateCommodities();
+  }).catch(() => {});
+
+  setTimeout(() => {
+    fetchLiveTelegram().then(tgMsgs => { latestTgMsgs = tgMsgs; }).catch(() => {});
+    generateNews().then(news => { latestNewsData = news; }).catch(() => {});
+    fetchGDELTConflictEvents().then(events => { latestEventsData = events; }).catch(() => {});
+  }, 500);
+
+  setTimeout(() => {
+    fetchThermalHotspots().then(hotspots => { latestThermalData = hotspots; }).catch(() => {});
+  }, 1500);
+
+  setTimeout(() => {
+    fetchXFeeds().then(xPosts => { latestXPosts = xPosts; }).catch(() => {});
+    generateAttackPrediction().then(pred => { latestAttackPredictionData = pred; }).catch(() => {});
+    try { latestRocketStatsData = generateRocketStats(); } catch {}
+  }, 3000);
+
+  // ── SSE Stream endpoint — simplified: just sends cached state & registers broadcaster ──
   app.get('/api/stream', (req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -3560,8 +3774,6 @@ export async function registerRoutes(
       'X-Accel-Buffering': 'no',
     });
     res.write(':\n\n');
-
-    const intervals: NodeJS.Timeout[] = [];
 
     const lastHashes = new Map<string, string>();
     const send = (event: string, data: unknown) => {
@@ -3577,146 +3789,20 @@ export async function registerRoutes(
     sseBroadcasters.add(send);
     req.on('close', () => sseBroadcasters.delete(send));
 
-    latestXPosts = [];
-    latestAlerts = [];
-
-    const staggerTimers: ReturnType<typeof setTimeout>[] = [];
-
-    send('commodities', generateCommodities());
-    generateRedAlerts().then(alerts => {
-      latestAlerts = alerts;
-      recordAlertHistory(alerts);
-      send('red-alerts', alerts);
-      const activeSirens = mapAlertsToSirens(alerts);
-      send('sirens', activeSirens);
-      const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
-      send('breaking-news', breaking);
-    });
-    fetchLiveTelegram().then(tgMsgs => {
-      latestTgMsgs = tgMsgs;
-      send('telegram', tgMsgs);
-      const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
-      send('breaking-news', breaking);
-    }).catch(() => {
-      send('telegram', []);
-    });
-
-    staggerTimers.push(setTimeout(() => {
-      fetchGDELTConflictEvents().then((events) => {
-        send('events', { events, flights: [], ships: [] });
-        const analytics = generateAnalytics(latestAlerts, classifiedMessageCache, events);
-        send('analytics', analytics);
-      });
-      generateNews().then(news => send('news', news));
-    }, 500));
-
-    staggerTimers.push(setTimeout(() => {
-      fetchThermalHotspots().then(hotspots => send('thermal', hotspots));
-    }, 1500));
-
-    staggerTimers.push(setTimeout(() => {
-      fetchXFeeds().then(xPosts => {
-        latestXPosts = xPosts;
-        const breaking = detectBreakingNews(latestTgMsgs, xPosts, latestAlerts);
-        send('breaking-news', breaking);
-      });
-      classifyMessages(latestTgMsgs).then(c => send('classified', c)).catch(() => {});
-    }, 3000));
-
-    intervals.push(setInterval(() => send('commodities', generateCommodities()), 30000));
-    intervals.push(setInterval(() => generateRedAlerts().then(alerts => {
-      latestAlerts = alerts;
-      recordAlertHistory(alerts);
-      send('red-alerts', alerts);
-      const activeSirens = mapAlertsToSirens(alerts);
-      send('sirens', activeSirens);
-      const breaking = detectBreakingNews(latestTgMsgs, latestXPosts, alerts);
-      send('breaking-news', breaking);
-    }), 3000));
-    intervals.push(setInterval(() => {
-      fetchGDELTConflictEvents().then((events) => {
-        send('events', { events, flights: [], ships: [] });
-      });
-    }, 60000));
-    intervals.push(setInterval(() => generateNews().then(news => send('news', news)), 30000));
-    intervals.push(setInterval(() => {
-      fetchPriorityTelegram().then(tgMsgs => {
-        latestTgMsgs = tgMsgs;
-        send('telegram', tgMsgs);
-        const breaking = detectBreakingNews(tgMsgs, latestXPosts, latestAlerts);
-        send('breaking-news', breaking);
-      }).catch(() => {});
-    }, 3000));
-    intervals.push(setInterval(() => {
-      fetchLiveTelegram().then(tgMsgs => {
-        latestTgMsgs = tgMsgs;
-        send('telegram', tgMsgs);
-      }).catch(() => {});
-    }, 30000));
-    intervals.push(setInterval(() => fetchXFeeds().then(xPosts => {
-      latestXPosts = xPosts;
-    }), 90000));
-
-    intervals.push(setInterval(() => fetchThermalHotspots().then(hotspots => send('thermal', hotspots)), 30000));
-
-    intervals.push(setInterval(async () => {
-      const tgMsgs = latestTgMsgs.length > 0 ? latestTgMsgs : await fetchPriorityTelegram().catch(() => []);
-      if (tgMsgs.length > 0) {
-        const classified = await classifyMessages(tgMsgs);
-        send('classified', classified);
-      }
-    }, 20000));
-
-    intervals.push(setInterval(async () => {
-      const alerts = alertHistory.length > 0 ? alertHistory : await generateRedAlerts();
-      const [conflictEvents, thermalHotspots] = await Promise.all([
-        fetchGDELTConflictEvents(),
-        fetchThermalHotspots(),
-      ]);
-      const analytics = generateAnalytics(
-        alerts,
-        classifiedMessageCache,
-        conflictEvents,
-        thermalHotspots.filter(h => h.confidence === 'high' || h.confidence === 'nominal').length,
-        0,
-      );
-      send('analytics', analytics);
-    }, 30000));
-
-    generateAttackPrediction().then(pred => send('attack-prediction', pred)).catch(() => {});
-    intervals.push(setInterval(async () => {
-      const pred = await generateAttackPrediction();
-      send('attack-prediction', pred);
-    }, 60000));
-
-    try { send('rocket-stats', generateRocketStats()); } catch {}
-    intervals.push(setInterval(() => {
-      try { send('rocket-stats', generateRocketStats()); } catch {}
-    }, 30000));
-
-    intervals.push(setInterval(() => {
-      console.log('[CACHE-FLUSH] Clearing all caches (15-min interval)');
-      newsApiCache = null;
-      gnewsCache = null;
-      mediastackCache = null;
-      osintFeedCache = null;
-      freeRssCache = null;
-      liveFxRates = {};
-      liveFxFetchedAt = 0;
-      gdeltCache = null;
-      orefCache = null;
-      aiClassificationCache = null;
-      multiLLMCache = null;
-      thermalCache = null;
-      cyberCache = null;
-      attackPredictionCache = null;
-      rocketStatsCache = null;
-    }, 15 * 60 * 1000));
-
-    req.on('close', () => {
-      staggerTimers.forEach(clearTimeout);
-      intervals.forEach(clearInterval);
-    });
+    // Send current cached state to the new client immediately
+    if (latestCommoditiesData.length) send('commodities', latestCommoditiesData);
+    if (latestAlerts.length) {
+      send('red-alerts', latestAlerts);
+      send('sirens', mapAlertsToSirens(latestAlerts));
+    }
+    if (latestTgMsgs.length) send('telegram', latestTgMsgs);
+    if (latestNewsData.length) send('news', latestNewsData);
+    if (latestEventsData.length) send('events', { events: latestEventsData, flights: [], ships: [] });
+    if (latestThermalData.length) send('thermal', latestThermalData);
+    if (latestBreakingNewsData.length) send('breaking-news', latestBreakingNewsData);
+    if (latestAttackPredictionData) send('attack-prediction', latestAttackPredictionData);
+    if (latestRocketStatsData) send('rocket-stats', latestRocketStatsData);
+    if (latestAnalyticsData) send('analytics', latestAnalyticsData);
   });
 
   app.get('/api/thermal-hotspots', async (_req, res) => {
@@ -3726,6 +3812,95 @@ export async function registerRoutes(
 
   app.get('/api/cyber', async (_req, res) => {
     const data = await fetchCyberEvents();
+    res.json(data);
+  });
+
+  // ── Weather API — Open-Meteo (free, no API key) ───────────────────────────
+  const WEATHER_LOCATIONS = [
+    { name: 'Tel Aviv', nameAr: 'تل أبيب', lat: 32.085, lng: 34.782, country: 'Israel', flag: '🇮🇱' },
+    { name: 'Tehran', nameAr: 'طهران', lat: 35.689, lng: 51.389, country: 'Iran', flag: '🇮🇷' },
+    { name: 'Beirut', nameAr: 'بيروت', lat: 33.894, lng: 35.502, country: 'Lebanon', flag: '🇱🇧' },
+    { name: 'Baghdad', nameAr: 'بغداد', lat: 33.312, lng: 44.366, country: 'Iraq', flag: '🇮🇶' },
+    { name: 'Riyadh', nameAr: 'الرياض', lat: 24.713, lng: 46.675, country: 'Saudi Arabia', flag: '🇸🇦' },
+    { name: 'Sanaa', nameAr: 'صنعاء', lat: 15.370, lng: 44.191, country: 'Yemen', flag: '🇾🇪' },
+    { name: 'Damascus', nameAr: 'دمشق', lat: 33.514, lng: 36.277, country: 'Syria', flag: '🇸🇾' },
+    { name: 'Gaza', nameAr: 'غزة', lat: 31.510, lng: 34.447, country: 'Palestine', flag: '🇵🇸' },
+    { name: 'Jerusalem', nameAr: 'القدس', lat: 31.769, lng: 35.216, country: 'Israel/Palestine', flag: '🕍' },
+    { name: 'Aden', nameAr: 'عدن', lat: 12.782, lng: 45.037, country: 'Yemen', flag: '🇾🇪' },
+  ];
+
+  interface WeatherPoint {
+    name: string; nameAr: string; country: string; flag: string;
+    temp: number; feelsLike: number; humidity: number; windSpeed: number;
+    windDir: number; visibility: number; weatherCode: number;
+    description: string; icon: string;
+    operationalImpact: 'minimal' | 'moderate' | 'significant' | 'severe';
+    updatedAt: string;
+  }
+
+  let weatherCache: { data: WeatherPoint[]; fetchedAt: number } | null = null;
+  const WEATHER_CACHE_TTL = 10 * 60 * 1000;
+
+  function getWeatherMeta(code: number): { description: string; icon: string } {
+    if (code === 0) return { description: 'Clear', icon: '☀️' };
+    if (code <= 2) return { description: 'Partly Cloudy', icon: '⛅' };
+    if (code === 3) return { description: 'Overcast', icon: '☁️' };
+    if (code <= 49) return { description: 'Foggy', icon: '🌫️' };
+    if (code <= 59) return { description: 'Drizzle', icon: '🌦️' };
+    if (code <= 69) return { description: 'Rain', icon: '🌧️' };
+    if (code <= 79) return { description: 'Snow', icon: '❄️' };
+    if (code <= 82) return { description: 'Rain Showers', icon: '🌦️' };
+    if (code <= 86) return { description: 'Snow Showers', icon: '🌨️' };
+    if (code <= 99) return { description: 'Thunderstorm', icon: '⛈️' };
+    return { description: 'Unknown', icon: '🌡️' };
+  }
+
+  function getOpsImpact(windSpeed: number, visKm: number, code: number): WeatherPoint['operationalImpact'] {
+    if (code >= 95 || windSpeed > 60) return 'severe';
+    if (windSpeed > 40 || code >= 80 || visKm < 2) return 'significant';
+    if (windSpeed > 25 || code >= 50 || visKm < 5) return 'moderate';
+    return 'minimal';
+  }
+
+  async function fetchWeatherData(): Promise<WeatherPoint[]> {
+    if (weatherCache && Date.now() - weatherCache.fetchedAt < WEATHER_CACHE_TTL) return weatherCache.data;
+    try {
+      const results = await Promise.allSettled(
+        WEATHER_LOCATIONS.map(async (loc) => {
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,visibility&wind_speed_unit=kmh&forecast_days=1`;
+          const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!r.ok) return null;
+          const json = await r.json() as { current: { temperature_2m: number; apparent_temperature: number; relative_humidity_2m: number; weather_code: number; wind_speed_10m: number; wind_direction_10m: number; visibility: number } };
+          const c = json.current;
+          const visKm = (c.visibility || 10000) / 1000;
+          const { description, icon } = getWeatherMeta(c.weather_code);
+          return {
+            name: loc.name, nameAr: loc.nameAr, country: loc.country, flag: loc.flag,
+            temp: Math.round(c.temperature_2m), feelsLike: Math.round(c.apparent_temperature),
+            humidity: c.relative_humidity_2m, windSpeed: Math.round(c.wind_speed_10m),
+            windDir: c.wind_direction_10m, visibility: Math.round(visKm * 10) / 10,
+            weatherCode: c.weather_code, description, icon,
+            operationalImpact: getOpsImpact(c.wind_speed_10m, visKm, c.weather_code),
+            updatedAt: new Date().toISOString(),
+          } as WeatherPoint;
+        })
+      );
+      const data = results
+        .filter((r): r is PromiseFulfilledResult<WeatherPoint> => r.status === 'fulfilled' && r.value !== null)
+        .map(r => r.value);
+      if (data.length > 0) {
+        weatherCache = { data, fetchedAt: Date.now() };
+        console.log(`[WEATHER] Fetched ${data.length}/${WEATHER_LOCATIONS.length} locations`);
+      }
+      return data;
+    } catch (err) {
+      console.log('[WEATHER] Error:', err instanceof Error ? err.message : err);
+      return weatherCache?.data ?? [];
+    }
+  }
+
+  app.get('/api/weather', async (_req, res) => {
+    const data = await fetchWeatherData();
     res.json(data);
   });
 
@@ -4832,21 +5007,86 @@ ASSESSMENT: ${isEscalating
   : `Operational tempo is within normal parameters. No immediate mass-launch indicators. Continue standard threat monitoring.`}`;
     }
 
-    // Stream the response token-by-token to simulate live AI output
-    const tokens = response.split(/(?<=\s)|(?=\s)/);
-    let i = 0;
-    const tick = setInterval(() => {
-      if (i >= tokens.length) {
-        clearInterval(tick);
-        res.write(`data: [DONE]\n\n`);
-        res.end();
-        return;
-      }
-      res.write(`data: ${JSON.stringify({ text: tokens[i] })}\n\n`);
-      i++;
-    }, 18);
+    const analystApiKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+    const analystBaseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
 
-    req.on('close', () => clearInterval(tick));
+    if (analystApiKey) {
+      // Build a rich context prompt for Claude
+      const locList2 = topLocs.length > 0
+        ? topLocs.map((l, i2) => `${i2 + 1}. ${l.countryFlag} ${l.location} — ${Math.round(l.probability * 100)}% (${l.threatType})`).join('\n')
+        : 'Insufficient data.';
+
+      const contextBlock = `DTG: ${new Date().toUTCString()}
+THREAT LEVEL: ${threatLevel} (${confidence}% confidence)
+STATUS: ${isEscalating ? 'ESCALATING' : 'STABLE'}
+ALERT VELOCITY: ${velocity.toFixed(1)}/hr | Past 30 min: ${velocity30m} alerts
+NEXT ATTACK WINDOW: ${win?.label?.toUpperCase() ?? 'UNKNOWN'} (~${win?.estimatedMinutes ?? '?'} min, ${Math.round((win?.confidence ?? 0) * 100)}% conf)
+PRIMARY TARGET: ${nextTarget}
+TOP LOCATIONS:\n${locList2}
+${escVector ? `ESCALATION VECTOR: ${escVector}` : ''}`;
+
+      const systemPrompt = `You are WARROOM AI, a military intelligence analyst embedded in a real-time Middle East conflict monitoring system. You provide brief, precise, actionable intelligence assessments in a classified intelligence briefing style. Use military jargon and DTG format. Keep responses under 200 words. Never add disclaimers. Answer the analyst's question directly using the live data provided.`;
+
+      let aborted = false;
+      req.on('close', () => { aborted = true; });
+
+      (async () => {
+        try {
+          const anthropic = new Anthropic({
+            apiKey: analystApiKey,
+            ...(analystBaseURL ? { baseURL: analystBaseURL } : {}),
+          });
+          const stream = await anthropic.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 400,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: `LIVE SITUATIONAL DATA:\n${contextBlock}\n\nANALYST QUERY: ${question}` }],
+            stream: true,
+          });
+          for await (const event of stream) {
+            if (aborted) break;
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+            }
+          }
+        } catch (err) {
+          console.log('[AI-ANALYST] Claude error, falling back to template:', err instanceof Error ? err.message : err);
+          // Fallback to template response
+          const tokens = response.split(/(?<=\s)|(?=\s)/);
+          let i = 0;
+          await new Promise<void>((resolve) => {
+            const tick = setInterval(() => {
+              if (aborted || i >= tokens.length) {
+                clearInterval(tick);
+                resolve();
+                return;
+              }
+              res.write(`data: ${JSON.stringify({ text: tokens[i] })}\n\n`);
+              i++;
+            }, 18);
+          });
+        }
+        if (!aborted) {
+          res.write(`data: [DONE]\n\n`);
+          res.end();
+        }
+      })();
+    } else {
+      // No API key — stream template response token-by-token
+      const tokens = response.split(/(?<=\s)|(?=\s)/);
+      let i = 0;
+      const tick = setInterval(() => {
+        if (i >= tokens.length) {
+          clearInterval(tick);
+          res.write(`data: [DONE]\n\n`);
+          res.end();
+          return;
+        }
+        res.write(`data: ${JSON.stringify({ text: tokens[i] })}\n\n`);
+        i++;
+      }, 18);
+      req.on('close', () => clearInterval(tick));
+    }
   });
 
   return httpServer;

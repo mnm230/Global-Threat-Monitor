@@ -20,7 +20,6 @@ export function useSSE(): SSEData {
   const feedFreshnessRef = useRef<FeedFreshness>({});
   const [feedFreshness, setFeedFreshness] = useState<FeedFreshness>({});
   const retryCount = useRef(0);
-  const maxRetries = 5;
   const pending = useRef<Partial<Omit<SSEData, 'connected' | 'feedFreshness'>>>({});
   const rafId = useRef<number | null>(null);
 
@@ -125,11 +124,10 @@ export function useSSE(): SSEData {
       es.onerror = () => {
         setConnected(false);
         es?.close();
-        if (retryCount.current < maxRetries) {
-          const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30000);
-          retryCount.current++;
-          retryTimeout = setTimeout(connect, delay);
-        }
+        // Always retry — exponential backoff capped at 30s (never give up)
+        const delay = Math.min(1000 * Math.pow(2, retryCount.current), 30000);
+        retryCount.current++;
+        retryTimeout = setTimeout(connect, delay);
       };
     };
 

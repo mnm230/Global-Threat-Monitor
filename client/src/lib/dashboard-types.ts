@@ -143,7 +143,7 @@ export interface SSEData {
   feedFreshness: FeedFreshness;
 }
 
-export type PanelId = 'events' | 'alerts' | 'regional' | 'markets' | 'telegram' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction';
+export type PanelId = 'events' | 'alerts' | 'regional' | 'markets' | 'telegram' | 'livefeed' | 'alertmap' | 'analytics' | 'osint' | 'attackpred' | 'rocketstats' | 'aiprediction' | 'weather';
 
 export interface Correlation {
   id: string;
@@ -194,6 +194,7 @@ export const PANEL_CONFIG: Record<PanelId, { icon: typeof Newspaper; label: stri
   osint: { icon: Activity, label: 'OSINT Feed', labelAr: 'تغذية OSINT' },
   attackpred: { icon: Crosshair, label: 'Attack Predictor', labelAr: 'توقع الهجوم' },
   rocketstats: { icon: Rocket, label: 'Rocket Stats', labelAr: 'إحصائيات الصواريخ' },
+  weather: { icon: Activity, label: 'Weather Ops', labelAr: 'الأحوال الجوية' },
 };
 
 export const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
@@ -209,6 +210,7 @@ export const PANEL_ACCENTS: Partial<Record<PanelId, string>> = {
   alertmap:     'hsl(12 60% 46%)',
   attackpred:   'hsl(24 60% 46%)',
   rocketstats:  'hsl(175 50% 40%)',
+  weather:      'hsl(200 55% 42%)',
 };
 
 export const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
@@ -223,32 +225,33 @@ export const DEFAULT_GRID_LAYOUT: GridItemLayout[] = [
   { i: 'osint',        x: 0,  y: 16, w: 6,  h: 6,  minW: 3, minH: 3 },
   { i: 'analytics',    x: 6,  y: 16, w: 6,  h: 6,  minW: 2, minH: 3 },
   { i: 'attackpred',   x: 0,  y: 22, w: 12, h: 5,  minW: 3, minH: 3 },
-  { i: 'rocketstats',  x: 0,  y: 27, w: 12, h: 6,  minW: 3, minH: 3 },
+  { i: 'rocketstats',  x: 0,  y: 27, w: 9,  h: 6,  minW: 3, minH: 3 },
+  { i: 'weather',      x: 9,  y: 27, w: 3,  h: 6,  minW: 2, minH: 4 },
 ];
 
 export const BUILT_IN_PRESETS: LayoutPreset[] = [
   {
     name: 'Default',
-    visiblePanels: { telegram: true, events: true, alerts: true, regional: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 16, regional: 16, livefeed: 16, events: 22, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: true, events: true, alerts: true, regional: true, markets: true, livefeed: true, alertmap: true, analytics: true, osint: false, attackpred: false, rocketstats: false, aiprediction: true, weather: false },
+    colWidths: { telegram: 16, alerts: 16, regional: 16, livefeed: 16, events: 22, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28, weather: 22 },
     rowSplit: 58,
   },
   {
     name: 'Maritime Focus',
-    visiblePanels: { telegram: false, events: false, alerts: false, regional: false, markets: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 16, alerts: 26, regional: 26, livefeed: 20, events: 22, markets: 30, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: false, alerts: false, regional: false, markets: true, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false, weather: false },
+    colWidths: { telegram: 16, alerts: 26, regional: 26, livefeed: 20, events: 22, markets: 30, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28, weather: 22 },
     rowSplit: 60,
   },
   {
     name: 'Air Defense',
-    visiblePanels: { telegram: false, events: true, alerts: true, regional: true, markets: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true },
-    colWidths: { telegram: 16, alerts: 50, regional: 50, livefeed: 20, events: 25, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28 },
+    visiblePanels: { telegram: false, events: true, alerts: true, regional: true, markets: false, livefeed: false, alertmap: true, analytics: false, osint: false, attackpred: true, rocketstats: false, aiprediction: true, weather: false },
+    colWidths: { telegram: 16, alerts: 50, regional: 50, livefeed: 20, events: 25, markets: 28, alertmap: 28, analytics: 28, osint: 28, attackpred: 22, rocketstats: 22, aiprediction: 28, weather: 22 },
     rowSplit: 55,
   },
   {
     name: 'Mobile',
-    visiblePanels: { telegram: true, events: false, alerts: true, regional: true, markets: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false },
-    colWidths: { telegram: 100, alerts: 100, regional: 100, livefeed: 100, events: 100, markets: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100 },
+    visiblePanels: { telegram: true, events: false, alerts: true, regional: true, markets: false, livefeed: true, alertmap: true, analytics: false, osint: false, attackpred: false, rocketstats: false, aiprediction: false, weather: false },
+    colWidths: { telegram: 100, alerts: 100, regional: 100, livefeed: 100, events: 100, markets: 100, alertmap: 100, analytics: 100, osint: 100, attackpred: 100, rocketstats: 100, aiprediction: 100, weather: 100 },
     rowSplit: 50,
   },
 ];
