@@ -1,24 +1,38 @@
 import type { CommodityData } from "@shared/schema";
 import { randomUA } from "../lib/utils";
 
-const COMMODITY_META = [
-  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 88.06, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cb.f', yahooSymbol: 'BZ=F' },
-  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 84.40, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'cl.f', yahooSymbol: 'CL=F' },
-  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 5147.30, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'gc.f', yahooSymbol: 'GC=F' },
-  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 87.34, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'si.f', stooqDivisor: 100, yahooSymbol: 'SI=F' },
-  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.03, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'ng.f', yahooSymbol: 'NG=F' },
-  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 602.50, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'zw.f', yahooSymbol: 'ZW=F' },
-  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 5.90, currency: 'USD', category: 'commodity' as const, stooqSymbol: 'hg.f', stooqDivisor: 100, yahooSymbol: 'HG=F' },
-  { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.1640, currency: '', category: 'fx-major' as const, fxKey: 'EUR', stooqSymbol: 'eurusd', yahooSymbol: 'EURUSD=X' },
-  { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.3440, currency: '', category: 'fx-major' as const, fxKey: 'GBP', stooqSymbol: 'gbpusd', yahooSymbol: 'GBPUSD=X' },
-  { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 157.67, currency: '', category: 'fx-major' as const, fxKey: 'JPY', invert: true, stooqSymbol: 'usdjpy', yahooSymbol: 'USDJPY=X' },
-  { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', fallback: 0.7778, currency: '', category: 'fx-major' as const, fxKey: 'CHF', invert: true, stooqSymbol: 'usdchf', yahooSymbol: 'USDCHF=X' },
-  { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', fallback: 0.7074, currency: '', category: 'fx-major' as const, fxKey: 'AUD', stooqSymbol: 'audusd', yahooSymbol: 'AUDUSD=X' },
-  { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', fallback: 1.3589, currency: '', category: 'fx-major' as const, fxKey: 'CAD', invert: true, stooqSymbol: 'usdcad', yahooSymbol: 'USDCAD=X' },
-  { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', fallback: 3.0847, currency: '', category: 'fx' as const, fxKey: 'ILS', invert: true, stooqSymbol: 'usdils', yahooSymbol: 'USDILS=X' },
-  { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', fallback: 42150, currency: '', category: 'fx' as const, fxKey: 'IRR', invert: true },
-  { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', fallback: 3.7542, currency: '', category: 'fx' as const, fxKey: 'SAR', invert: true, stooqSymbol: 'usdsar', yahooSymbol: 'USDSAR=X' },
-  { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', fallback: 3.6729, currency: '', category: 'fx' as const, fxKey: 'AED', invert: true, yahooSymbol: 'USDAED=X' },
+interface CommodityMetaItem {
+  symbol: string;
+  name: string;
+  nameAr: string;
+  fallback: number;
+  currency: string;
+  category: 'commodity' | 'fx-major' | 'fx';
+  stooqSymbol?: string;
+  yahooSymbol?: string;
+  stooqDivisor?: number;
+  fxKey?: string;
+  invert?: boolean;
+}
+
+const COMMODITY_META: CommodityMetaItem[] = [
+  { symbol: 'BRENT', name: 'Brent Crude', nameAr: '\u062E\u0627\u0645 \u0628\u0631\u0646\u062A', fallback: 88.06, currency: 'USD', category: 'commodity', stooqSymbol: 'cb.f', yahooSymbol: 'BZ=F' },
+  { symbol: 'WTI', name: 'WTI Crude', nameAr: '\u062E\u0627\u0645 \u063A\u0631\u0628 \u062A\u0643\u0633\u0627\u0633', fallback: 84.40, currency: 'USD', category: 'commodity', stooqSymbol: 'cl.f', yahooSymbol: 'CL=F' },
+  { symbol: 'GOLD', name: 'Gold Spot', nameAr: '\u0627\u0644\u0630\u0647\u0628', fallback: 5147.30, currency: 'USD', category: 'commodity', stooqSymbol: 'gc.f', yahooSymbol: 'GC=F' },
+  { symbol: 'SILVER', name: 'Silver Spot', nameAr: '\u0627\u0644\u0641\u0636\u0629', fallback: 87.34, currency: 'USD', category: 'commodity', stooqSymbol: 'si.f', stooqDivisor: 100, yahooSymbol: 'SI=F' },
+  { symbol: 'NATGAS', name: 'Natural Gas', nameAr: '\u0627\u0644\u063A\u0627\u0632 \u0627\u0644\u0637\u0628\u064A\u0639\u064A', fallback: 3.03, currency: 'USD', category: 'commodity', stooqSymbol: 'ng.f', yahooSymbol: 'NG=F' },
+  { symbol: 'WHEAT', name: 'Wheat Futures', nameAr: '\u0639\u0642\u0648\u062F \u0627\u0644\u0642\u0645\u062D', fallback: 602.50, currency: 'USD', category: 'commodity', stooqSymbol: 'zw.f', yahooSymbol: 'ZW=F' },
+  { symbol: 'COPPER', name: 'Copper', nameAr: '\u0627\u0644\u0646\u062D\u0627\u0633', fallback: 5.90, currency: 'USD', category: 'commodity', stooqSymbol: 'hg.f', stooqDivisor: 100, yahooSymbol: 'HG=F' },
+  { symbol: 'EUR/USD', name: 'Euro/US Dollar', nameAr: '\u064A\u0648\u0631\u0648/\u062F\u0648\u0644\u0627\u0631', fallback: 1.1640, currency: '', category: 'fx-major', fxKey: 'EUR', stooqSymbol: 'eurusd', yahooSymbol: 'EURUSD=X' },
+  { symbol: 'GBP/USD', name: 'British Pound/Dollar', nameAr: '\u062C\u0646\u064A\u0647/\u062F\u0648\u0644\u0627\u0631', fallback: 1.3440, currency: '', category: 'fx-major', fxKey: 'GBP', stooqSymbol: 'gbpusd', yahooSymbol: 'GBPUSD=X' },
+  { symbol: 'USD/JPY', name: 'US Dollar/Yen', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u064A\u0646', fallback: 157.67, currency: '', category: 'fx-major', fxKey: 'JPY', invert: true, stooqSymbol: 'usdjpy', yahooSymbol: 'USDJPY=X' },
+  { symbol: 'USD/CHF', name: 'US Dollar/Swiss Franc', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0641\u0631\u0646\u0643', fallback: 0.7778, currency: '', category: 'fx-major', fxKey: 'CHF', invert: true, stooqSymbol: 'usdchf', yahooSymbol: 'USDCHF=X' },
+  { symbol: 'AUD/USD', name: 'Aussie Dollar/Dollar', nameAr: '\u0623\u0633\u062A\u0631\u0627\u0644\u064A/\u062F\u0648\u0644\u0627\u0631', fallback: 0.7074, currency: '', category: 'fx-major', fxKey: 'AUD', stooqSymbol: 'audusd', yahooSymbol: 'AUDUSD=X' },
+  { symbol: 'USD/CAD', name: 'US Dollar/Canadian', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0643\u0646\u062F\u064A', fallback: 1.3589, currency: '', category: 'fx-major', fxKey: 'CAD', invert: true, stooqSymbol: 'usdcad', yahooSymbol: 'USDCAD=X' },
+  { symbol: 'USD/ILS', name: 'US Dollar/Shekel', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0634\u064A\u0642\u0644', fallback: 3.0847, currency: '', category: 'fx', fxKey: 'ILS', invert: true, stooqSymbol: 'usdils', yahooSymbol: 'USDILS=X' },
+  { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', fallback: 42150, currency: '', category: 'fx', fxKey: 'IRR', invert: true },
+  { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', fallback: 3.7542, currency: '', category: 'fx', fxKey: 'SAR', invert: true, stooqSymbol: 'usdsar', yahooSymbol: 'USDSAR=X' },
+  { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', fallback: 3.6729, currency: '', category: 'fx', fxKey: 'AED', invert: true, yahooSymbol: 'USDAED=X' },
 ];
 
 let liveFxRates: Record<string, number> = {};
@@ -107,13 +121,13 @@ async function fetchLiveCommodityPrices(): Promise<void> {
 
 async function _doFetchCommodityPrices(): Promise<void> {
   const allItems = COMMODITY_META
-    .filter(m => (m as any).yahooSymbol || (m as any).stooqSymbol)
+    .filter(m => m.yahooSymbol || m.stooqSymbol)
     .map(m => ({
-      stooqSymbol: (m as any).stooqSymbol as string | undefined,
-      yahooSymbol: (m as any).yahooSymbol as string | undefined,
+      stooqSymbol: m.stooqSymbol,
+      yahooSymbol: m.yahooSymbol,
       symbol: m.symbol,
       category: m.category,
-      divisor: ((m as any).stooqDivisor as number) || 1,
+      divisor: m.stooqDivisor || 1,
     }));
 
   const results = await Promise.allSettled(
@@ -161,8 +175,8 @@ async function refreshFxFromStooq(): Promise<void> {
 
 async function _doRefreshFx(): Promise<void> {
   const fxItems = COMMODITY_META
-    .filter(m => (m.category === 'fx-major' || m.category === 'fx') && ((m as any).yahooSymbol || (m as any).stooqSymbol))
-    .map(m => ({ stooqSymbol: (m as any).stooqSymbol as string | undefined, yahooSymbol: (m as any).yahooSymbol as string | undefined }));
+    .filter(m => (m.category === 'fx-major' || m.category === 'fx') && (m.yahooSymbol || m.stooqSymbol))
+    .map(m => ({ stooqSymbol: m.stooqSymbol, yahooSymbol: m.yahooSymbol }));
 
   const results = await Promise.allSettled(
     fxItems.map(async item => {
@@ -194,7 +208,7 @@ export function generateCommodities(): CommodityData[] {
   const results: CommodityData[] = [];
 
   for (const item of COMMODITY_META) {
-    const meta = item as typeof item & { fxKey?: string; invert?: boolean; stooqSymbol?: string };
+    const meta = item;
     let basePrice: number | null = null;
     let liveChange = 0;
     let liveChangePercent = 0;

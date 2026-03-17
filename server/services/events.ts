@@ -1,4 +1,5 @@
 import type { ConflictEvent, ThermalHotspot, CyberEvent, TelegramMessage } from "@shared/schema";
+import { TtlCache } from "../lib/cache";
 import { latestTgMsgs } from "../lib/shared-state";
 
 const GDELT_GEOCODE_MAP: Record<string, { lat: number; lng: number }> = {
@@ -76,8 +77,7 @@ function geocodeFromTitle(title: string): { lat: number; lng: number } | null {
   return null;
 }
 
-let gdeltCache: { data: ConflictEvent[]; fetchedAt: number } | null = null;
-const GDELT_CACHE_TTL = 30_000;
+const gdeltCache = new TtlCache<ConflictEvent[]>(30_000);
 
 const HISTORY_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const historicalEvents: ConflictEvent[] = [];
@@ -253,13 +253,11 @@ function extractLebanonGroundEvents(tgMsgs: TelegramMessage[]): ConflictEvent[] 
   return events;
 }
 
-let thermalCache: { data: ThermalHotspot[]; fetchedAt: number } | null = null;
-const THERMAL_CACHE_TTL = 10_000;
+const thermalCache = new TtlCache<ThermalHotspot[]>(10_000);
 
 export async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
-  if (thermalCache && Date.now() - thermalCache.fetchedAt < THERMAL_CACHE_TTL) {
-    return thermalCache.data;
-  }
+  const thermalCached = thermalCache.get();
+  if (thermalCached) return thermalCached;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -271,7 +269,7 @@ export async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
     if (!resp.ok) throw new Error(`FIRMS HTTP ${resp.status}`);
     const text = await resp.text();
     const lines = text.trim().split('\n');
-    if (lines.length < 2) return thermalCache?.data || [];
+    if (lines.length < 2) return thermalCache.get() || [];
     const header = lines[0].split(',');
     const latIdx = header.indexOf('latitude');
     const lngIdx = header.indexOf('longitude');
@@ -305,17 +303,16 @@ export async function fetchThermalHotspots(): Promise<ThermalHotspot[]> {
         dayNight: (cols[dnIdx] || 'D').trim() as 'D' | 'N',
       });
     }
-    thermalCache = { data: hotspots, fetchedAt: Date.now() };
+    thermalCache.set(hotspots);
     console.log(`[FIRMS] Fetched ${hotspots.length} thermal hotspots in MENA region`);
     return hotspots;
   } catch (err) {
     console.error('[FIRMS] Fetch error:', err);
-    return thermalCache?.data || [];
+    return thermalCache.get() || [];
   }
 }
 
-const CYBER_CACHE_TTL = 10_000;
-let cyberCache: { data: CyberEvent[]; fetchedAt: number } | null = null;
+const cyberCache = new TtlCache<CyberEvent[]>(10_000);
 
 const CYBER_RSS_FEEDS = [
   'https://cyberscoop.com/feed/',
@@ -435,7 +432,8 @@ async function fetchOTXPulses(): Promise<CyberEvent[]> {
 }
 
 export async function fetchCyberEvents(): Promise<CyberEvent[]> {
-  if (cyberCache && Date.now() - cyberCache.fetchedAt < CYBER_CACHE_TTL) return cyberCache.data;
+  const cyberCached = cyberCache.get();
+  if (cyberCached) return cyberCached;
   try {
     const [articles, otxEvents] = await Promise.all([fetchCyberRSSArticles(), fetchOTXPulses()]);
     const otxME = otxEvents.filter(e => isMECountry(e.country) || isMERelevant(e.target + ' ' + (e.attacker || '') + ' ' + e.description));
@@ -448,18 +446,17 @@ export async function fetchCyberEvents(): Promise<CyberEvent[]> {
       return true;
     }).slice(0, 15);
     console.log(`[CYBER] ME-filtered: ${deduped.length} events (OTX ME: ${otxME.length})`);
-    cyberCache = { data: deduped, fetchedAt: Date.now() };
+    cyberCache.set(deduped);
     return deduped;
   } catch (err) {
     console.error('[CYBER] Fetch error:', err instanceof Error ? err.message : err);
-    return cyberCache?.data || [];
+    return cyberCache.get() || [];
   }
 }
 
 export async function fetchGDELTConflictEvents(fetchOrefAlerts: () => Promise<import("@shared/schema").RedAlert[]>): Promise<ConflictEvent[]> {
-  if (gdeltCache && Date.now() - gdeltCache.fetchedAt < GDELT_CACHE_TTL) {
-    return gdeltCache.data;
-  }
+  const cached = gdeltCache.get();
+  if (cached) return cached;
 
   const events: ConflictEvent[] = [];
 
@@ -551,7 +548,7 @@ export async function fetchGDELTConflictEvents(fetchOrefAlerts: () => Promise<im
     return true;
   });
 
-  gdeltCache = { data: deduped, fetchedAt: Date.now() };
+  gdeltCache.set(deduped);
   mergeIntoHistory(deduped);
   const counts = {
     alerts: events.filter(e => e.id.startsWith('alert_')).length,
@@ -563,7 +560,7 @@ export async function fetchGDELTConflictEvents(fetchOrefAlerts: () => Promise<im
 }
 
 export function clearCache(): void {
-  gdeltCache = null;
-  thermalCache = null;
-  cyberCache = null;
+  gdeltCache.clear();
+  thermalCache.clear();
+  cyberCache.clear();
 }

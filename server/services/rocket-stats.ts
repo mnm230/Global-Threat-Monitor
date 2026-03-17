@@ -1,10 +1,10 @@
 import type { RedAlert, RocketStats, RocketCorridor, NewsItem, TelegramMessage } from "@shared/schema";
+import { TtlCache } from "../lib/cache";
 import { alertHistory, latestAlerts, classifiedMessageCache } from "../lib/shared-state";
 import { sanitizeText } from "../lib/utils";
 import { fetchNewsAPI, fetchGNews, fetchMediastack, fetchFreeNewsRSS } from "./news";
 
-let rocketStatsCache: { data: RocketStats; fetchedAt: number } | null = null;
-const ROCKET_STATS_CACHE_TTL = 20000;
+const rocketStatsCache = new TtlCache<RocketStats>(20_000);
 
 const ORIGIN_INFERENCE_MAP: Record<string, { origin: string; originCountry: string }> = {
   'Upper Galilee':      { origin: 'Hezbollah (Iran Proxy)', originCountry: 'Lebanon' },
@@ -96,8 +96,9 @@ function inferOrigin(alert: RedAlert): { origin: string; originCountry: string }
 }
 
 export function generateRocketStats(): RocketStats {
-  if (rocketStatsCache && Date.now() - rocketStatsCache.fetchedAt < ROCKET_STATS_CACHE_TTL) {
-    return rocketStatsCache.data;
+  const rocketCached = rocketStatsCache.get();
+  if (rocketCached) {
+    return rocketCached;
   }
 
   const now = Date.now();
@@ -174,12 +175,11 @@ export function generateRocketStats(): RocketStats {
     generatedAt: new Date().toISOString(),
   };
 
-  rocketStatsCache = { data: stats, fetchedAt: Date.now() };
+  rocketStatsCache.set(stats);
   return stats;
 }
 
-let conflictFeedCache: { data: any[]; fetchedAt: number } | null = null;
-const CONFLICT_FEED_TTL = 15_000;
+const conflictFeedCache = new TtlCache<Record<string, unknown>[]>(15_000);
 
 const GCC_KEYWORDS = [
   'saudi', 'riyadh', 'jizan', 'najran', 'khamis mushait', 'abha', 'jeddah', 'mecca', 'medina',
@@ -386,12 +386,12 @@ const REGIONAL_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=IDF+strike+Gaza+West+Bank+Rafah+killed&hl=en-US&gl=US&ceid=US:en', source: 'GN: IDF Ops' },
 ];
 
-let regionalRssCache: { data: any[]; fetchedAt: number } | null = null;
-const REGIONAL_RSS_TTL = 60_000;
+const regionalRssCache = new TtlCache<Record<string, unknown>[]>(60_000);
 
-async function fetchRegionalRSS(): Promise<any[]> {
-  if (regionalRssCache && Date.now() - regionalRssCache.fetchedAt < REGIONAL_RSS_TTL) {
-    return regionalRssCache.data;
+async function fetchRegionalRSS(): Promise<Record<string, unknown>[]> {
+  const rssCached = regionalRssCache.get();
+  if (rssCached) {
+    return rssCached;
   }
   const items: any[] = [];
   await Promise.allSettled(REGIONAL_RSS_FEEDS.map(async ({ url, source }) => {
@@ -426,13 +426,14 @@ async function fetchRegionalRSS(): Promise<any[]> {
       }
     } catch { /* feed unreachable */ }
   }));
-  regionalRssCache = { data: items, fetchedAt: Date.now() };
+  regionalRssCache.set(items);
   return items;
 }
 
 export async function fetchLiveConflictFeed(): Promise<any[]> {
-  if (conflictFeedCache && Date.now() - conflictFeedCache.fetchedAt < CONFLICT_FEED_TTL) {
-    return conflictFeedCache.data;
+  const feedCached = conflictFeedCache.get();
+  if (feedCached) {
+    return feedCached;
   }
 
   const sirenItems = buildLebanonSirenItems();
@@ -535,21 +536,19 @@ export async function fetchLiveConflictFeed(): Promise<any[]> {
 
   const all = [...sirenItems, ...sortItems(newsResult)];
 
-  conflictFeedCache = { data: all, fetchedAt: Date.now() };
+  conflictFeedCache.set(all);
   return all;
 }
 
-let attackPredictionCache: { data: any; fetchedAt: number } | null = null;
-const ATTACK_PRED_CACHE_TTL = 25000;
+const attackPredictionCache = new TtlCache<Record<string, unknown>>(25_000);
 
 export function invalidateAttackPredictionCache(): void {
-  attackPredictionCache = null;
+  attackPredictionCache.clear();
 }
 
-export async function generateAttackPrediction(): Promise<any> {
-  if (attackPredictionCache && Date.now() - attackPredictionCache.fetchedAt < ATTACK_PRED_CACHE_TTL) {
-    return attackPredictionCache.data;
-  }
+export async function generateAttackPrediction(): Promise<Record<string, unknown>> {
+  const predCached = attackPredictionCache.get();
+  if (predCached) return predCached;
 
   const now = Date.now();
   const alerts = alertHistory.length > 0 ? alertHistory : latestAlerts;
@@ -814,7 +813,7 @@ export async function generateAttackPrediction(): Promise<any> {
     locationProbabilities,
   };
 
-  attackPredictionCache = { data: result, fetchedAt: Date.now() };
+  attackPredictionCache.set(result);
   return result;
 }
 
@@ -890,8 +889,8 @@ export function handleAiAnalyst(question: string, clientContext: any): string {
 }
 
 export function clearCache(): void {
-  rocketStatsCache = null;
-  conflictFeedCache = null;
-  regionalRssCache = null;
-  attackPredictionCache = null;
+  rocketStatsCache.clear();
+  conflictFeedCache.clear();
+  regionalRssCache.clear();
+  attackPredictionCache.clear();
 }

@@ -117,7 +117,7 @@ export interface RedAlert {
   lat: number;
   lng: number;
   area?: string;
-  source?: 'live' | 'sim';
+  source?: 'live' | 'sim' | 'telegram';
   sourceChannel?: string;
   sourceUrl?: string;
 }

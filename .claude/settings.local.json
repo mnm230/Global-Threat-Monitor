@@ -51,7 +51,8 @@
       "Bash(wc:*)",
       "Bash(lsof -ti:5000)",
       "Bash(identify /home/runner/workspace/client/public/favicon.png)",
-      "Bash(convert --version)"
+      "Bash(convert --version)",
+      "WebFetch(domain:warroom-dpen.onrender.com)"
     ]
   }
 }

@@ -3,7 +3,8 @@ import type {
   ThreatClassification, AlertPattern, FalseAlarmScore, LLMAssessment,
   AnalyticsSnapshot, EscalationForecast, RegionAnomaly, Sitrep, SitrepWindow,
 } from "@shared/schema";
-import { alertHistory, classifiedMessageCache, aiClassificationCache, setAiClassificationCache } from "../lib/shared-state";
+import { TtlCache } from "../lib/cache";
+import { alertHistory, classifiedMessageCache, aiClassificationCache } from "../lib/shared-state";
 import { fetchGDELTConflictEvents } from "./events";
 import { fetchOrefAlerts } from "./alerts";
 import { fetchCyberEvents } from "./events";
@@ -88,9 +89,8 @@ function classifyThreatLocal(text: string): ThreatClassification {
 }
 
 export async function classifyMessages(messages: TelegramMessage[]): Promise<ClassifiedMessage[]> {
-  if (aiClassificationCache && Date.now() - aiClassificationCache.fetchedAt < 10_000) {
-    return aiClassificationCache.data;
-  }
+  const aiCached = aiClassificationCache.get();
+  if (aiCached) return aiCached;
 
   const recent = messages.slice(0, 20);
   const results: ClassifiedMessage[] = [];
@@ -101,7 +101,7 @@ export async function classifyMessages(messages: TelegramMessage[]): Promise<Cla
     results.push({ ...msg, classification });
   }
 
-  setAiClassificationCache({ data: results, fetchedAt: Date.now() });
+  aiClassificationCache.set(results);
   classifiedMessageCache.length = 0;
   classifiedMessageCache.push(...results);
   return results;
@@ -263,13 +263,11 @@ function scoreFalseAlarms(alerts: RedAlert[]): FalseAlarmScore[] {
   return scores;
 }
 
-let multiLLMCache: { data: LLMAssessment[]; fetchedAt: number } | null = null;
-const MULTI_LLM_CACHE_TTL = 30_000;
+const multiLLMCache = new TtlCache<LLMAssessment[]>(30_000);
 
 async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMessage[]): Promise<LLMAssessment[]> {
-  if (multiLLMCache && Date.now() - multiLLMCache.fetchedAt < MULTI_LLM_CACHE_TTL) {
-    return multiLLMCache.data;
-  }
+  const llmCached = multiLLMCache.get();
+  if (llmCached) return llmCached;
 
   const alertSummary = alerts.length > 0
     ? `Active alerts: ${alerts.length}. Regions: ${[...new Set(alerts.map(a => a.country))].join(', ')}. Types: ${[...new Set(alerts.map(a => a.threatType))].join(', ')}. Latest: ${alerts.slice(0, 5).map(a => `${a.city} (${a.threatType})`).join('; ')}.`
@@ -317,7 +315,7 @@ async function runMultiLLMAssessment(alerts: RedAlert[], messages: ClassifiedMes
       confidence: 0.65, generatedAt: new Date().toISOString(), latencyMs: 0,
     },
   ];
-  multiLLMCache = { data: synth, fetchedAt: Date.now() };
+  multiLLMCache.set(synth);
   return synth;
 }
 
@@ -598,8 +596,17 @@ function generateAnalytics(alerts: RedAlert[], messages: ClassifiedMessage[], co
   };
 }
 
-const sitrepCaches: Partial<Record<SitrepWindow, { data: Sitrep; fetchedAt: number }>> = {};
 const SITREP_CACHE_TTL = 5 * 60_000;
+const sitrepCaches = new Map<SitrepWindow, TtlCache<Sitrep>>();
+
+function getSitrepCache(window: SitrepWindow): TtlCache<Sitrep> {
+  let c = sitrepCaches.get(window);
+  if (!c) {
+    c = new TtlCache<Sitrep>(SITREP_CACHE_TTL);
+    sitrepCaches.set(window, c);
+  }
+  return c;
+}
 
 function formatDTG(date: Date): string {
   const dd = String(date.getUTCDate()).padStart(2, '0');
@@ -612,8 +619,9 @@ function formatDTG(date: Date): string {
 }
 
 async function generateSitrep(window: SitrepWindow): Promise<Sitrep> {
-  const cached = sitrepCaches[window];
-  if (cached && Date.now() - cached.fetchedAt < SITREP_CACHE_TTL) return cached.data;
+  const sitrepCache = getSitrepCache(window);
+  const sitrepCached = sitrepCache.get();
+  if (sitrepCached) return sitrepCached;
 
   const windowMs = window === '1h' ? 3_600_000 : window === '6h' ? 21_600_000 : 86_400_000;
   const cutoff = Date.now() - windowMs;
@@ -766,7 +774,7 @@ Return this exact JSON schema (all fields required, write in military prose — 
     generatedAt: new Date().toISOString(),
     model: 'data-driven',
   };
-  sitrepCaches[window] = { data: fallback, fetchedAt: Date.now() };
+  sitrepCache.set(fallback);
   console.log(`[SITREP] Data-driven fallback generated window=${window} riskLevel=${riskLevel} keyEvents=${fallback.keyEvents.length}`);
   return fallback;
 }
@@ -784,8 +792,7 @@ export {
 };
 
 export function clearCache(): void {
-  multiLLMCache = null;
-  for (const key of Object.keys(sitrepCaches)) {
-    delete sitrepCaches[key as SitrepWindow];
-  }
+  multiLLMCache.clear();
+  for (const c of sitrepCaches.values()) c.clear();
+  aiClassificationCache.clear();
 }

@@ -20,7 +20,8 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 **Technical Implementations:**
 - **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI.
 - **Backend:** Express.js REST API. Modular service architecture:
-  - `server/routes.ts` (~400 lines) — thin routing layer, SSE streaming, WebSocket setup
+  - `server/routes.ts` (~260 lines) — thin routing layer, SSE client subscribe/snapshot, WebSocket setup
+  - `server/services/sse-scheduler.ts` — shared background SSE broadcaster (single process-level polling loop)
   - `server/services/news.ts` — news aggregation (NewsAPI, GNews, Mediastack, RSS, X feeds)
   - `server/services/commodities.ts` — commodity prices, FX rates, market data
   - `server/services/events.ts` — GDELT conflict events, thermal hotspots, cyber events, ground events

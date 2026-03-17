@@ -1,4 +1,5 @@
 import type { RedAlert, TelegramMessage } from "@shared/schema";
+import { TtlCache } from "../lib/cache";
 import { latestTgMsgs } from "../lib/shared-state";
 import WebSocket from "ws";
 
@@ -466,8 +467,7 @@ async function fetchDynamicCities() {
 
 fetchDynamicCities();
 
-let orefCache: { data: RedAlert[]; timestamp: number } | null = null;
-const OREF_CACHE_TTL = 0;
+const orefCache = new TtlCache<RedAlert[]>(0);
 
 const HE_WORD_MAP: Record<string, string> = {
   'אזור': 'Ezor', 'תעשייה': 'Industrial', 'תעשיון': 'Industrial Zone', 'מרכז': 'Center',
@@ -908,7 +908,7 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
           active: true,
           lat,
           lng,
-          source: 'telegram' as any,
+          source: 'telegram',
           sourceChannel: msg.channel,
           sourceUrl,
         });
@@ -921,9 +921,8 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
 
 async function fetchOrefAlerts(): Promise<RedAlert[]> {
   const now = Date.now();
-  if (orefCache && (now - orefCache.timestamp) < OREF_CACHE_TTL) {
-    return orefCache.data;
-  }
+  const orefCached = orefCache.get();
+  if (orefCached) return orefCached;
 
   let liveAlerts: RedAlert[] = [];
   let historyAlerts: RedAlert[] = [];
@@ -974,8 +973,8 @@ async function fetchOrefAlerts(): Promise<RedAlert[]> {
     console.log(`[RED-ALERTS] Total: ${deduped.length} alerts (${sources.join(', ')})`);
   }
 
-  orefCache = { data: deduped, timestamp: now };
-  return orefCache.data;
+  orefCache.set(deduped);
+  return deduped;
 }
 
 async function generateRedAlerts(): Promise<RedAlert[]> {
@@ -1050,6 +1049,6 @@ export {
 };
 
 export function clearCache(): void {
-  orefCache = null;
+  orefCache.clear();
   tzevaadomWsAlerts = [];
 }

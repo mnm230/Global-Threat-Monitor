@@ -1,17 +1,21 @@
 import type { NewsItem } from "@shared/schema";
 import { sanitizeText, classifyTitle } from "../lib/utils";
+import { TtlCache } from "../lib/cache";
 
 const NEWS_CACHE_TTL = 10_000;
 const NEWS_QUERY = 'israel OR iran OR hezbollah OR hamas OR missile OR attack OR war OR conflict';
 
-let newsApiCache: { data: NewsItem[]; fetchedAt: number } | null = null;
-let gnewsCache: { data: NewsItem[]; fetchedAt: number } | null = null;
-let mediastackCache: { data: NewsItem[]; fetchedAt: number } | null = null;
+const newsApiCache = new TtlCache<NewsItem[]>(NEWS_CACHE_TTL);
+const gnewsCache = new TtlCache<NewsItem[]>(NEWS_CACHE_TTL);
+const mediastackCache = new TtlCache<NewsItem[]>(NEWS_CACHE_TTL);
+const osintFeedCache = new TtlCache<NewsItem[]>(60_000);
+const freeRssCache = new TtlCache<NewsItem[]>(10_000);
 
 async function fetchNewsAPI(): Promise<NewsItem[]> {
   const key = process.env.NEWSAPI_KEY;
   if (!key) return [];
-  if (newsApiCache && Date.now() - newsApiCache.fetchedAt < NEWS_CACHE_TTL) return newsApiCache.data;
+  const cached = newsApiCache.get();
+  if (cached) return cached;
   try {
     const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(NEWS_QUERY)}&language=en&sortBy=publishedAt&pageSize=20&apiKey=${key}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -27,19 +31,20 @@ async function fetchNewsAPI(): Promise<NewsItem[]> {
         timestamp: a.publishedAt || new Date().toISOString(),
         url: a.url,
       }));
-    newsApiCache = { data: items, fetchedAt: Date.now() };
+    newsApiCache.set(items);
     console.log(`[NEWSAPI] Fetched ${items.length} articles`);
     return items;
   } catch (err) {
     console.log('[NEWSAPI] Error:', err instanceof Error ? err.message : err);
-    return newsApiCache?.data ?? [];
+    return newsApiCache.get() ?? [];
   }
 }
 
 async function fetchGNews(): Promise<NewsItem[]> {
   const key = process.env.GNEWS_API_KEY;
   if (!key) return [];
-  if (gnewsCache && Date.now() - gnewsCache.fetchedAt < NEWS_CACHE_TTL) return gnewsCache.data;
+  const cached = gnewsCache.get();
+  if (cached) return cached;
   try {
     const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(NEWS_QUERY)}&lang=en&max=10&sortby=publishedAt&token=${key}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -55,19 +60,20 @@ async function fetchGNews(): Promise<NewsItem[]> {
         timestamp: a.publishedAt || new Date().toISOString(),
         url: a.url,
       }));
-    gnewsCache = { data: items, fetchedAt: Date.now() };
+    gnewsCache.set(items);
     console.log(`[GNEWS] Fetched ${items.length} articles`);
     return items;
   } catch (err) {
     console.log('[GNEWS] Error:', err instanceof Error ? err.message : err);
-    return gnewsCache?.data ?? [];
+    return gnewsCache.get() ?? [];
   }
 }
 
 async function fetchMediastack(): Promise<NewsItem[]> {
   const key = process.env.MEDIASTACK_KEY;
   if (!key) return [];
-  if (mediastackCache && Date.now() - mediastackCache.fetchedAt < NEWS_CACHE_TTL) return mediastackCache.data;
+  const cached = mediastackCache.get();
+  if (cached) return cached;
   try {
     const url = `http://api.mediastack.com/v1/news?access_key=${key}&keywords=${encodeURIComponent('israel,iran,war,conflict,missile,attack')}&languages=en&limit=25&sort=published_desc`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -83,12 +89,12 @@ async function fetchMediastack(): Promise<NewsItem[]> {
         timestamp: a.published_at || new Date().toISOString(),
         url: a.url,
       }));
-    mediastackCache = { data: items, fetchedAt: Date.now() };
+    mediastackCache.set(items);
     console.log(`[MEDIASTACK] Fetched ${items.length} articles`);
     return items;
   } catch (err) {
     console.log('[MEDIASTACK] Error:', err instanceof Error ? err.message : err);
-    return mediastackCache?.data ?? [];
+    return mediastackCache.get() ?? [];
   }
 }
 
@@ -118,13 +124,10 @@ const OSINT_RSS_FEEDS = [
   { url: 'https://english.alarabiya.net/tools/rss', source: 'Al Arabiya EN' },
   { url: 'https://news.google.com/rss/search?q=south+lebanon+hezbollah+IDF+invasion&hl=en-US&gl=US&ceid=US:en', source: 'Google OSINT Lebanon' },
 ];
-let osintFeedCache: { data: NewsItem[]; fetchedAt: number } | null = null;
-const OSINT_FEED_CACHE_TTL = 60_000;
 
 async function fetchOSINTRSSFeeds(): Promise<NewsItem[]> {
-  if (osintFeedCache && Date.now() - osintFeedCache.fetchedAt < OSINT_FEED_CACHE_TTL) {
-    return osintFeedCache.data;
-  }
+  const cached = osintFeedCache.get();
+  if (cached) return cached;
   const results: NewsItem[] = [];
   await Promise.allSettled(OSINT_RSS_FEEDS.map(async (feed) => {
     try {
@@ -162,7 +165,7 @@ async function fetchOSINTRSSFeeds(): Promise<NewsItem[]> {
   if (results.length > 0) {
     console.log(`[X-FEED] OSINT RSS: Fetched ${results.length} items from ${OSINT_RSS_FEEDS.length} feeds`);
   }
-  osintFeedCache = { data: results, fetchedAt: Date.now() };
+  osintFeedCache.set(results);
   return results;
 }
 
@@ -192,11 +195,9 @@ const FREE_NEWS_RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=iran+sanctions+nuclear+deal+threat&hl=en-US&gl=US&ceid=US:en', source: 'GN: Iran Nuclear' },
 ];
 
-let freeRssCache: { data: NewsItem[]; fetchedAt: number } | null = null;
-const FREE_RSS_TTL = 10_000;
-
 async function fetchFreeNewsRSS(): Promise<NewsItem[]> {
-  if (freeRssCache && Date.now() - freeRssCache.fetchedAt < FREE_RSS_TTL) return freeRssCache.data;
+  const cached = freeRssCache.get();
+  if (cached) return cached;
   const items: NewsItem[] = [];
   await Promise.allSettled(FREE_NEWS_RSS_FEEDS.map(async ({ url, source }) => {
     try {
@@ -228,7 +229,7 @@ async function fetchFreeNewsRSS(): Promise<NewsItem[]> {
     } catch {}
   }));
   console.log(`[FREE-RSS] Fetched ${items.length} articles from free feeds`);
-  freeRssCache = { data: items, fetchedAt: Date.now() };
+  freeRssCache.set(items);
   return items;
 }
 
@@ -261,9 +262,9 @@ export async function generateNews(): Promise<NewsItem[]> {
 export { fetchNewsAPI, fetchGNews, fetchMediastack, fetchFreeNewsRSS, fetchXFeeds };
 
 export function clearCache(): void {
-  newsApiCache = null;
-  gnewsCache = null;
-  mediastackCache = null;
-  osintFeedCache = null;
-  freeRssCache = null;
+  newsApiCache.clear();
+  gnewsCache.clear();
+  mediastackCache.clear();
+  osintFeedCache.clear();
+  freeRssCache.clear();
 }
