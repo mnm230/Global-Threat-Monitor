@@ -47,7 +47,11 @@
       "Bash(echo:*)",
       "Read(//run/replit/user/53111344/.config/git/**)",
       "Read(//home/runner/.config/git/**)",
-      "Bash(replit-git-askpass:*)"
+      "Bash(replit-git-askpass:*)",
+      "Bash(wc:*)",
+      "Bash(lsof -ti:5000)",
+      "Bash(identify /home/runner/workspace/client/public/favicon.png)",
+      "Bash(convert --version)"
     ]
   }
 }

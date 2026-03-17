@@ -19,7 +19,18 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
 
 **Technical Implementations:**
 - **Frontend:** React, TypeScript, Vite, TailwindCSS, Shadcn UI.
-- **Backend:** Express.js REST API.
+- **Backend:** Express.js REST API. Modular service architecture:
+  - `server/routes.ts` (~400 lines) — thin routing layer, SSE streaming, WebSocket setup
+  - `server/services/news.ts` — news aggregation (NewsAPI, GNews, Mediastack, RSS, X feeds)
+  - `server/services/commodities.ts` — commodity prices, FX rates, market data
+  - `server/services/events.ts` — GDELT conflict events, thermal hotspots, cyber events, ground events
+  - `server/services/alerts.ts` — Red Alert system (OREF, Tzevaadom, Telegram extraction, WebSocket)
+  - `server/services/analytics.ts` — AI classification, multi-LLM assessment, sitrep generation
+  - `server/services/telegram.ts` — Telegram OSINT channel scraping, breaking news detection
+  - `server/services/rocket-stats.ts` — rocket statistics, attack prediction, live conflict feed, AI analyst
+  - `server/lib/cache.ts` — generic TTL cache utility
+  - `server/lib/shared-state.ts` — shared mutable state (alert history, SSE broadcasters)
+  - `server/lib/utils.ts` — shared helpers (sanitizeText, randomUA, etc.)
 - **Mapping & Visualization:** deck.gl and MapLibre GL with a custom ultra-dark CARTO basemap and 40+ toggleable layers, supporting a 3-layer rendering system for event markers.
 - **Real-time Data:** Server-Sent Events (SSE) via a single `/api/stream` endpoint for continuous updates.
 - **Red Alert System:** Integrates multiple APIs for real-time Israeli Red Alerts, including visual urgency tiers and trilingual support.

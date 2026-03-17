@@ -917,6 +917,7 @@ function extractAlertsFromTelegram(tgMsgs: TelegramMessage[]): RedAlert[] {
     }
   }
   return alerts;
+}
 
 async function fetchOrefAlerts(): Promise<RedAlert[]> {
   const now = Date.now();
