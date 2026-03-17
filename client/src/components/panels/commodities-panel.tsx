@@ -74,6 +74,7 @@ export const CommoditiesPanel = memo(function CommoditiesPanel({
   onMaximize?: () => void;
   isMaximized?: boolean;
 }) {
+  const indices = commodities.filter(c => c.category === 'index');
   const cmdty = commodities.filter(c => c.category === 'commodity');
   const fxMajor = commodities.filter(c => c.category === 'fx-major');
   const fxRegional = commodities.filter(c => c.category === 'fx');
@@ -116,6 +117,14 @@ export const CommoditiesPanel = memo(function CommoditiesPanel({
       </div>
       <ScrollShadow className="flex-1 min-h-0">
         <div className="px-2 pb-2">
+          {indices.length > 0 && (
+            <>
+              <MarketSectionHeader label={language === 'en' ? 'Regional Indices' : '\u0645\u0624\u0634\u0631\u0627\u062A \u0625\u0642\u0644\u064A\u0645\u064A\u0629'} count={indices.length} />
+              <div className="grid grid-cols-2 gap-1.5">
+                {indices.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}
+              </div>
+            </>
+          )}
           <MarketSectionHeader label={language === 'en' ? 'Commodities' : '\u0627\u0644\u0633\u0644\u0639'} count={cmdty.length} />
           <div className="grid grid-cols-2 gap-1.5">
             {cmdty.map(c => <MarketTile key={c.symbol} c={c} language={language} />)}

@@ -7,7 +7,7 @@ interface CommodityMetaItem {
   nameAr: string;
   fallback: number;
   currency: string;
-  category: 'commodity' | 'fx-major' | 'fx';
+  category: 'commodity' | 'fx-major' | 'fx' | 'index';
   stooqSymbol?: string;
   yahooSymbol?: string;
   stooqDivisor?: number;
@@ -33,6 +33,12 @@ const COMMODITY_META: CommodityMetaItem[] = [
   { symbol: 'USD/IRR', name: 'US Dollar/Rial', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644', fallback: 42150, currency: '', category: 'fx', fxKey: 'IRR', invert: true },
   { symbol: 'USD/SAR', name: 'US Dollar/Riyal', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A', fallback: 3.7542, currency: '', category: 'fx', fxKey: 'SAR', invert: true, stooqSymbol: 'usdsar', yahooSymbol: 'USDSAR=X' },
   { symbol: 'USD/AED', name: 'US Dollar/Dirham', nameAr: '\u062F\u0648\u0644\u0627\u0631/\u062F\u0631\u0647\u0645', fallback: 3.6729, currency: '', category: 'fx', fxKey: 'AED', invert: true, yahooSymbol: 'USDAED=X' },
+  // Regional stock indices
+  { symbol: 'TASI', name: 'Saudi Tadawul (TASI)', nameAr: '\u0645\u0624\u0634\u0631 \u062A\u062F\u0627\u0648\u0644 \u0627\u0644\u0633\u0639\u0648\u062F\u064A', fallback: 11480, currency: 'SAR', category: 'index', yahooSymbol: '^TASI' },
+  { symbol: 'DFM', name: 'Dubai Financial Market', nameAr: '\u0633\u0648\u0642 \u062F\u0628\u064A \u0627\u0644\u0645\u0627\u0644\u064A', fallback: 4320, currency: 'AED', category: 'index', yahooSymbol: '^DFMGI' },
+  { symbol: 'ADX', name: 'Abu Dhabi Index (ADX)', nameAr: '\u0645\u0624\u0634\u0631 \u0623\u0628\u0648\u0638\u0628\u064A', fallback: 9180, currency: 'AED', category: 'index', yahooSymbol: '^FTFADGI' },
+  { symbol: 'TA-125', name: 'Tel Aviv 125', nameAr: '\u0628\u0648\u0631\u0635\u0629 \u062A\u0644 \u0623\u0628\u064A\u0628 125', fallback: 2140, currency: 'ILS', category: 'index', yahooSymbol: '^TA125.TA' },
+  { symbol: 'EGX30', name: 'Egypt Exchange 30', nameAr: '\u0628\u0648\u0631\u0635\u0629 \u0645\u0635\u0631 30', fallback: 27500, currency: 'EGP', category: 'index', yahooSymbol: '^CASE' },
 ];
 
 let liveFxRates: Record<string, number> = {};
@@ -148,8 +154,9 @@ async function _doFetchCommodityPrices(): Promise<void> {
   let yahooCount = 0;
   let stooqCount = 0;
   for (const r of results) {
-    if (r.status === 'fulfilled' && r.value.result && r.value.item.stooqSymbol) {
-      liveCommodityPrices[r.value.item.stooqSymbol] = r.value.result;
+    if (r.status === 'fulfilled' && r.value.result) {
+      const key = r.value.item.stooqSymbol ?? r.value.item.yahooSymbol;
+      if (key) liveCommodityPrices[key] = r.value.result;
       successCount++;
       if (r.value.source === 'yahoo') yahooCount++;
       else if (r.value.source === 'stooq') stooqCount++;
@@ -213,8 +220,9 @@ export function generateCommodities(): CommodityData[] {
     let liveChange = 0;
     let liveChangePercent = 0;
 
-    if (meta.stooqSymbol && liveCommodityPrices[meta.stooqSymbol]) {
-      const live = liveCommodityPrices[meta.stooqSymbol];
+    const priceKey = meta.stooqSymbol ?? meta.yahooSymbol;
+    if (priceKey && liveCommodityPrices[priceKey]) {
+      const live = liveCommodityPrices[priceKey];
       basePrice = live.price;
       liveChange = live.change;
       liveChangePercent = live.changePercent;
