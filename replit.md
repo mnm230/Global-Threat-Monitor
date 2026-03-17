@@ -29,6 +29,7 @@ The WARROOM dashboard is built using a modern web stack, emphasizing real-time d
   - `server/services/analytics.ts` — AI classification, multi-LLM assessment, sitrep generation
   - `server/services/telegram.ts` — Telegram OSINT channel scraping, breaking news detection
   - `server/services/rocket-stats.ts` — rocket statistics, attack prediction, live conflict feed, AI analyst
+  - `server/services/weather.ts` — weather data from Open-Meteo API for MENA cities
   - `server/lib/cache.ts` — generic TTL cache utility
   - `server/lib/shared-state.ts` — shared mutable state (alert history, SSE broadcasters)
   - `server/lib/utils.ts` — shared helpers (sanitizeText, randomUA, etc.)

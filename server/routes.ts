@@ -27,6 +27,7 @@ import {
   fetchEpicFury, handleAiAnalyst, invalidateAttackPredictionCache,
 } from "./services/rocket-stats";
 
+import { fetchWeatherData } from "./services/weather";
 import { startSseScheduler, getLatestSnapshot } from "./services/sse-scheduler";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<void> {
@@ -140,6 +141,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get('/api/epic-fury', async (_req, res) => {
     const data = await fetchEpicFury();
+    res.json(data);
+  });
+
+  app.get('/api/weather', async (_req, res) => {
+    const data = await fetchWeatherData();
     res.json(data);
   });
 
